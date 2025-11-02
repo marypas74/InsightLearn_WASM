@@ -96,8 +96,11 @@ services:
       - ASPNETCORE_URLS=http://+:80;https://+:443
       - ASPNETCORE_HTTPS_PORT=443
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - ConnectionStrings__MongoDb=mongodb://admin:YOUR_MONGO_PASSWORD@mongodb:27017/insightlearn?authSource=admin
       - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
       - Elasticsearch__Url=http://elasticsearch:9200
+      - Ollama__Url=http://ollama:11434
+      - Ollama__Model=llama2
       - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
       - JwtSettings__Issuer=InsightLearn.Api
       - JwtSettings__Audience=InsightLearn.Users
@@ -114,6 +117,10 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_started
+      mongodb:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     volumes:
       - api-files:/app/wwwroot
       - api-logs:/app/logs
@@ -149,9 +156,12 @@ services:
       # 🔥 CRITICAL FIX: Enable ForwardedHeaders for OAuth redirect_uri fix
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - ConnectionStrings__MongoDb=mongodb://admin:YOUR_MONGO_PASSWORD@mongodb:27017/insightlearn?authSource=admin
       - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
       # 🔥 CRITICAL FIX: Enhanced API and JWT configuration for secure communication
       - ApiSettings__BaseUrl=http://api:80/
+      - Ollama__Url=http://ollama:11434
+      - Ollama__Model=llama2
       - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
       - JwtSettings__Issuer=InsightLearn.Api
       - JwtSettings__Audience=InsightLearn.Users
@@ -187,6 +197,10 @@ services:
       sqlserver:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
       api:
         condition: service_healthy
@@ -234,10 +248,167 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  # MongoDB - Video Storage and NoSQL Data
+  mongodb:
+    image: mongo:7.0
+    container_name: insightlearn-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: YOUR_MONGO_PASSWORD
+      MONGO_INITDB_DATABASE: insightlearn
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Grafana - Monitoring and Dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: insightlearn-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel,grafana-worldmap-panel
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/insightlearn-dashboard.json
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      # Dashboard JSON files
+      - ./monitoring/grafana-insightlearn-dashboard.json:/etc/grafana/provisioning/dashboards/insightlearn-dashboard.json:ro
+      - ./monitoring/grafana-insightlearn-app-metrics.json:/etc/grafana/provisioning/dashboards/insightlearn-app-metrics.json:ro
+      - ./monitoring/grafana-dashboard-fixed.json:/etc/grafana/provisioning/dashboards/grafana-dashboard-fixed.json:ro
+      # Provisioning configuration files
+      - ./monitoring/grafana-provisioning-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./monitoring/grafana-provisioning-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - api
+      - web
+
+  # Prometheus - Metrics Collection for Grafana
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: insightlearn-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # Jenkins - CI/CD Automation
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: insightlearn-jenkins
+    user: root
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Xmx2g
+      - JENKINS_OPTS=--prefix=/jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins:/jenkins-config:ro
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/jenkins/login || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 2G
+
+  # Ollama - Local LLM Server for AI Features
+  ollama:
+    image: ollama/ollama:latest
+    container_name: insightlearn-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - insightlearn-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
 volumes:
   sqlserver-data:
   redis-data:
   elasticsearch-data:
+  mongodb-data:
+  mongodb-config:
+  grafana-data:
+  prometheus-data:
+  jenkins-data:
+  ollama-data:
   api-files:
   api-logs:
   api-temp:

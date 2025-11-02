@@ -1,0 +1,85 @@
+# Prometheus Configuration for InsightLearn Monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'insightlearn-local'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files (optional)
+rule_files:
+  # - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # InsightLearn API
+  - job_name: 'insightlearn-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:80']
+        labels:
+          service: 'api'
+          app: 'insightlearn'
+
+  # InsightLearn Web
+  - job_name: 'insightlearn-web'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['web:80']
+        labels:
+          service: 'web'
+          app: 'insightlearn'
+
+  # Redis Exporter (if available)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          service: 'redis'
+          app: 'insightlearn'
+
+  # SQL Server (if metrics endpoint available)
+  - job_name: 'sqlserver'
+    static_configs:
+      - targets: ['sqlserver:1433']
+        labels:
+          service: 'sqlserver'
+          app: 'insightlearn'
+
+  # Elasticsearch
+  - job_name: 'elasticsearch'
+    metrics_path: '/_prometheus/metrics'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+        labels:
+          service: 'elasticsearch'
+          app: 'insightlearn'
+
+  # MongoDB (if exporter available)
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb:27017']
+        labels:
+          service: 'mongodb'
+          app: 'insightlearn'
+
+  # Nginx
+  - job_name: 'nginx'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['nginx:80']
+        labels:
+          service: 'nginx'
+          app: 'insightlearn'
