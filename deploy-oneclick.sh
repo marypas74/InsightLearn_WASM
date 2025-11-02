@@ -331,6 +331,82 @@ fi
 print_success "Databases initialized"
 
 ###############################################################################
+# Auto-Restore Data if Backup Exists
+###############################################################################
+
+print_info "Checking for existing data backups..."
+
+# Check for seed data first (committed data)
+if [ -f "seed-data/InsightLearnDb.bak" ] || [ -d "seed-data/mongodb_dump" ]; then
+    LATEST_BACKUP="seed-data"
+    BACKUP_TYPE="seed"
+    print_success "Found seed data (committed production snapshot)"
+else
+    # Find most recent backup
+    LATEST_BACKUP=$(find ./backups -type d -name "data_*" 2>/dev/null | sort -r | head -1)
+    BACKUP_TYPE="backup"
+fi
+
+if [ -n "$LATEST_BACKUP" ] && [ -d "$LATEST_BACKUP" ]; then
+    if [ "$BACKUP_TYPE" = "seed" ]; then
+        print_warning "Found seed data: $LATEST_BACKUP"
+    else
+        print_warning "Found existing data backup: $LATEST_BACKUP"
+    fi
+    echo ""
+    echo "Do you want to restore data from this backup?"
+    echo "This will:"
+    echo "  - Restore SQL Server database with all users, courses, etc."
+    echo "  - Restore MongoDB data (videos, chatbot messages)"
+    echo "  - Restore Redis cache"
+    echo "  - Restore user-uploaded files"
+    echo ""
+    read -p "Restore data? (y/n) " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Starting data restore..."
+        echo ""
+
+        # Check if restore script exists
+        RESTORE_SCRIPT=""
+        if [ "$BACKUP_TYPE" = "seed" ] && [ -f "$LATEST_BACKUP/restore-seed-data.sh" ]; then
+            RESTORE_SCRIPT="$LATEST_BACKUP/restore-seed-data.sh"
+        elif [ -f "$LATEST_BACKUP/restore-data.sh" ]; then
+            RESTORE_SCRIPT="$LATEST_BACKUP/restore-data.sh"
+        fi
+
+        if [ -n "$RESTORE_SCRIPT" ]; then
+            # Execute restore script
+            cd "$LATEST_BACKUP"
+            chmod +x $(basename "$RESTORE_SCRIPT")
+            ./$(basename "$RESTORE_SCRIPT")
+
+            if [ $? -eq 0 ]; then
+                cd - > /dev/null
+                print_success "Data restore completed successfully!"
+                print_info "Restarting application services..."
+                docker-compose restart api web
+                sleep 10
+                print_success "Application restarted with restored data"
+            else
+                cd - > /dev/null
+                print_error "Data restore failed. Application will start with empty database."
+            fi
+        else
+            print_warning "Restore script not found in backup. Skipping data restore."
+        fi
+    else
+        print_info "Skipping data restore. Application will start with empty database."
+    fi
+else
+    print_info "No existing data backups found. Application will start with empty database."
+    print_info "To create a backup later, run: ./backup-data.sh"
+fi
+
+echo ""
+
+###############################################################################
 # Step 7: Verify Deployment
 ###############################################################################
 
