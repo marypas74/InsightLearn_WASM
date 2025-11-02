@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: insightlearn-config
+  namespace: insightlearn
+data:
+  # Redis Configuration
+  redis-connection: "redis-service:6379"
+
+  # Elasticsearch Configuration
+  elasticsearch-url: "http://elasticsearch-service:9200"
+  elasticsearch-index: "insightlearn"
+
+  # Ollama Configuration
+  ollama-base-url: "http://ollama-service:11434"
+
+  # MongoDB Configuration
+  mongodb-host: "mongodb-service"
+  mongodb-port: "27017"
+  mongodb-database: "insightlearn_videos"
+
+  # JWT Settings
+  jwt-issuer: "InsightLearn.Api"
+  jwt-audience: "InsightLearn.Users"
+  jwt-expiration-days: "7"
+
+  # API Settings
+  api-base-url: "http://api-service/"
+
+  # Logging Configuration
+  log-level-default: "Information"
+  log-level-microsoft: "Warning"
+
+  # ASPNET Configuration
+  aspnetcore-environment: "Production"

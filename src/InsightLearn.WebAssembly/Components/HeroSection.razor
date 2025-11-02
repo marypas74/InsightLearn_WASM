@@ -1,0 +1,203 @@
+@inject NavigationManager Navigation
+
+<section class="hero-section" role="banner">
+    <div class="hero-container">
+        <!-- Hero Content -->
+        <div class="hero-content">
+            <!-- Hero Badge -->
+            <div class="hero-badge">
+                <i class="fas fa-star"></i>
+                Trusted by 40M+ learners worldwide
+            </div>
+
+            <!-- Hero Title -->
+            <h1 class="hero-title">
+                Learn without limits with
+                <span class="text-gradient">InsightLearn.cloud</span>
+            </h1>
+
+            <!-- Hero Subtitle -->
+            <p class="hero-subtitle">
+                Start, switch, or advance your career with more than 213,000 courses,
+                Professional Certificates, and degrees from world-class universities and companies.
+            </p>
+
+            <!-- Hero Features -->
+            <div class="hero-features">
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle icon"></i>
+                    <span>Learn from over 155K+ expert instructors</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle icon"></i>
+                    <span>Access courses anytime, anywhere</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-check-circle icon"></i>
+                    <span>Get industry-recognized certificates</span>
+                </div>
+            </div>
+
+            <!-- Hero Actions -->
+            <div class="hero-actions">
+                <a href="@PrimaryButtonUrl" class="btn-main btn-main-primary">
+                    <i class="fas fa-play me-2"></i>
+                    @PrimaryButtonText
+                </a>
+                <a href="@SecondaryButtonUrl" class="btn-main btn-main-outline">
+                    @SecondaryButtonText
+                </a>
+            </div>
+        </div>
+
+        <!-- Hero Visual -->
+        <div class="hero-visual">
+            <div class="hero-image-container">
+                <!-- Background Hero Image -->
+                <div class="hero-background-image">
+                    <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop&q=80"
+                         alt="Students learning together"
+                         class="hero-bg-img" />
+                    <div class="hero-image-overlay"></div>
+                </div>
+
+                <!-- Floating Learning Elements -->
+                <div class="hero-floating-elements">
+                    <!-- Floating Card 1 - Web Development -->
+                    <div class="floating-card">
+                        <div class="floating-icon">
+                            <img src="https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=40&h=40&fit=crop&q=80" alt="Web Development" />
+                        </div>
+                        <div class="floating-content">
+                            <div class="floating-title">Web Development</div>
+                            <div class="floating-subtitle">50+ courses</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Card 2 - Data Science -->
+                    <div class="floating-card">
+                        <div class="floating-icon">
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=40&h=40&fit=crop&q=80" alt="Data Science" />
+                        </div>
+                        <div class="floating-content">
+                            <div class="floating-title">Data Science</div>
+                            <div class="floating-subtitle">30+ courses</div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Card 3 - Design -->
+                    <div class="floating-card">
+                        <div class="floating-icon">
+                            <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=40&h=40&fit=crop&q=80" alt="UI/UX Design" />
+                        </div>
+                        <div class="floating-content">
+                            <div class="floating-title">UI/UX Design</div>
+                            <div class="floating-subtitle">25+ courses</div>
+                        </div>
+                    </div>
+
+                    <!-- Success Story Card -->
+                    <div class="floating-card success-story">
+                        <div class="success-avatar">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b1e2?w=32&h=32&fit=crop&q=80" alt="Student" />
+                        </div>
+                        <div class="success-content">
+                            <div class="success-text">Just got promoted!</div>
+                            <div class="success-subtitle">Thanks to InsightLearn</div>
+                        </div>
+                        <div class="success-icon">🎉</div>
+                    </div>
+                </div>
+
+                <!-- Central Learning Hub -->
+                <div class="learning-hub">
+                    <div class="hub-content">
+                        <div class="hub-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h3>Your Learning Journey Starts Here</h3>
+                        <p>Join millions of learners worldwide</p>
+                        <div class="learning-stats">
+                            <div class="stat">
+                                <span class="stat-number">40M+</span>
+                                <span class="stat-label">Learners</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number">213K+</span>
+                                <span class="stat-label">Courses</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Stats Section -->
+    <div class="hero-stats">
+        <div class="container-main">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                    <div class="stat-number">213K+</div>
+                    <div class="stat-label">Online Courses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number">40M+</div>
+                    <div class="stat-label">Learners</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-number">155K+</div>
+                    <div class="stat-label">Instructors</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="stat-number">190+</div>
+                    <div class="stat-label">Countries</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    /// <summary>
+    /// Hero section title
+    /// </summary>
+    [Parameter] public string Title { get; set; } = "Learn without limits with InsightLearn.cloud";
+
+    /// <summary>
+    /// Hero section subtitle
+    /// </summary>
+    [Parameter] public string Subtitle { get; set; } = "Start, switch, or advance your career with more than 213,000 courses, Professional Certificates, and degrees from world-class universities and companies.";
+
+    /// <summary>
+    /// Primary button text
+    /// </summary>
+    [Parameter] public string PrimaryButtonText { get; set; } = "Start Learning Today";
+
+    /// <summary>
+    /// Secondary button text
+    /// </summary>
+    [Parameter] public string SecondaryButtonText { get; set; } = "Join Free";
+
+    /// <summary>
+    /// Primary button navigation URL
+    /// </summary>
+    [Parameter] public string PrimaryButtonUrl { get; set; } = "/courses";
+
+    /// <summary>
+    /// Secondary button navigation URL
+    /// </summary>
+    [Parameter] public string SecondaryButtonUrl { get; set; } = "/register-comprehensive";
+}

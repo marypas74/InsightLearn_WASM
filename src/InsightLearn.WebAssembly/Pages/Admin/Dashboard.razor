@@ -1,0 +1,214 @@
+@page "/admin"
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Admin Dashboard - InsightLearn</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="breadcrumb-nav">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Admin Dashboard</span>
+        </nav>
+    </div>
+
+    <div class="page-header">
+        <h1 class="page-title">Admin Dashboard</h1>
+        <p class="page-description">Monitor and manage your learning platform</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner spinner-lg"></div>
+            <p>Loading dashboard...</p>
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>@error</h3>
+            <button class="btn btn-primary" @onclick="LoadDashboard">Retry</button>
+        </div>
+    }
+    else
+    {
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon users">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">@totalUsers</div>
+                    <div class="metric-label">Total Users</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon courses">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">@totalCourses</div>
+                    <div class="metric-label">Total Courses</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon enrollments">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">@totalEnrollments</div>
+                    <div class="metric-label">Enrollments</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon revenue">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">@totalRevenue.ToString("C")</div>
+                    <div class="metric-label">Total Revenue</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="clean-card">
+            <div class="card-header">
+                <h2>Quick Actions</h2>
+            </div>
+            <div class="card-content">
+                <div class="quick-actions-grid">
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/users")'>
+                        <i class="fas fa-users"></i>
+                        <span>Manage Users</span>
+                    </button>
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/courses")'>
+                        <i class="fas fa-book"></i>
+                        <span>Manage Courses</span>
+                    </button>
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/categories")'>
+                        <i class="fas fa-tags"></i>
+                        <span>Manage Categories</span>
+                    </button>
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/analytics")'>
+                        <i class="fas fa-chart-line"></i>
+                        <span>View Analytics</span>
+                    </button>
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/reports")'>
+                        <i class="fas fa-file-alt"></i>
+                        <span>Generate Reports</span>
+                    </button>
+                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/settings")'>
+                        <i class="fas fa-cog"></i>
+                        <span>System Settings</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="clean-card">
+            <div class="card-header">
+                <h2>Recent Activity</h2>
+            </div>
+            <div class="card-content">
+                @if (recentActivity?.Any() == true)
+                {
+                    <div class="activity-list">
+                        @foreach (var activity in recentActivity)
+                        {
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-@activity.Icon"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p class="activity-text">@activity.Description</p>
+                                    <span class="activity-time">@activity.Timestamp.ToRelativeTime()</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="empty-text">No recent activity</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+
+    private int totalUsers = 0;
+    private int totalCourses = 0;
+    private int totalEnrollments = 0;
+    private decimal totalRevenue = 0;
+    private List<ActivityDto>? recentActivity;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            var response = await ApiClient.GetAsync<AdminDashboardDto>("/api/admin/dashboard");
+
+            if (response.Success && response.Data != null)
+            {
+                totalUsers = response.Data.TotalUsers;
+                totalCourses = response.Data.TotalCourses;
+                totalEnrollments = response.Data.TotalEnrollments;
+                totalRevenue = response.Data.TotalRevenue;
+                recentActivity = response.Data.RecentActivity;
+            }
+            else
+            {
+                error = response.Message ?? "Failed to load dashboard";
+                Toast.ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading the dashboard";
+            Toast.ShowError(error);
+            Console.WriteLine($"Admin dashboard error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class AdminDashboardDto
+    {
+        public int TotalUsers { get; set; }
+        public int TotalCourses { get; set; }
+        public int TotalEnrollments { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public List<ActivityDto> RecentActivity { get; set; } = new();
+    }
+
+    public class ActivityDto
+    {
+        public string Description { get; set; } = "";
+        public string Icon { get; set; } = "info-circle";
+        public DateTime Timestamp { get; set; }
+    }
+}

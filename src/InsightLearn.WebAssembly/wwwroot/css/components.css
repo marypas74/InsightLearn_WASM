@@ -1,0 +1,360 @@
+/* ===== COMPONENT-SPECIFIC STYLES ===== */
+
+/* Error Template Styles (extracted from App.razor) */
+.error-template {
+    padding: 40px 15px;
+}
+
+.error-template h1 {
+    font-size: 100px;
+    font-weight: bold;
+    color: #dc3545;
+}
+
+.error-template h2 {
+    font-size: 24px;
+    font-weight: normal;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.error-details {
+    font-size: 16px;
+    color: #777;
+}
+
+/* Register Page Styles (extracted from Register.razor) */
+.register-auth-image-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
+    position: relative;
+}
+
+.register-overlay {
+    background: rgba(0,0,0,0.3);
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.register-form-control-lg {
+    padding: 12px 16px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.register-form-control-lg:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.register-btn-lg {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.register-btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.register-btn-outline-dark {
+    border: 2px solid #333;
+    color: #333;
+}
+
+.register-btn-outline-dark:hover {
+    background-color: #333;
+    color: white;
+}
+
+/* TopBar Component Styles (extracted from TopBar.razor) */
+.topbar-user-badge {
+    background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+    color: #333;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+}
+
+.topbar-user-info h6 {
+    font-size: 0.875rem;
+    color: #b8860b;
+    margin: 0;
+}
+
+.topbar-user-info small {
+    color: #8b4513;
+    font-size: 0.65rem;
+}
+
+.topbar-dropdown-menu {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+}
+
+.topbar-nav-item {
+    border-color: var(--primary-color);
+}
+
+.topbar-nav-link {
+    border-color: var(--primary-color);
+    color: var(--gray-700);
+}
+
+.topbar-admin-fab {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    border: none;
+    color: white;
+    font-size: 1.1rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.topbar-admin-menu {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    min-width: 200px;
+}
+
+.topbar-admin-menu-item {
+    color: var(--gray-800);
+    font-size: 0.875rem;
+    padding: 8px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.topbar-mobile-badge {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.topbar-mobile-avatar {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.topbar-mobile-hint {
+    background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+    color: #8b4513;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    border-radius: 12px;
+}
+
+.topbar-admin-hint {
+    background: linear-gradient(135deg, rgba(164, 53, 240, 0.1) 0%, rgba(135, 16, 216, 0.1) 100%);
+    color: var(--primary-color);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.topbar-admin-hint:hover {
+    background: linear-gradient(135deg, rgba(164, 53, 240, 0.2) 0%, rgba(135, 16, 216, 0.2) 100%);
+    color: var(--primary-hover);
+}
+
+.topbar-admin-hint.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.topbar-admin-hint small {
+    font-size: 0.625rem;
+}
+
+.topbar-dropdown-item {
+    background-color: var(--gray-50);
+    color: var(--primary-color);
+    padding: 8px 16px;
+}
+
+.topbar-dropdown-divider {
+    color: var(--gray-500);
+    margin: 4px 0;
+}
+
+.topbar-logout-btn {
+    color: var(--error);
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    text-align: left;
+    width: 100%;
+}
+
+.topbar-logout-btn:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--error);
+}
+
+.topbar-logout-btn i {
+    color: var(--error);
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+    .topbar-user-badge {
+        font-size: 0.65rem;
+    }
+    
+    .topbar-admin-fab {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+/* Admin Category Management Styles */
+.category-metric-card {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+}
+
+.category-metric-card.success {
+    background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
+}
+
+.category-metric-card.info {
+    background: linear-gradient(135deg, var(--info-500) 0%, var(--info-600) 100%);
+}
+
+.category-metric-card.warning {
+    background: linear-gradient(135deg, var(--warning-500) 0%, var(--warning-600) 100%);
+}
+
+.category-metric-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.category-metric-label {
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+.category-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid var(--white);
+    display: inline-block;
+}
+
+.category-color-large {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--white);
+    display: inline-block;
+}
+
+/* Course Management Styles */
+.course-metric-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.course-status-badge {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.course-info-label {
+    font-size: var(--font-size-lg);
+    color: var(--gray-600);
+}
+
+.course-search-input {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: var(--font-size-sm);
+    width: 100%;
+}
+
+.course-search-input:focus {
+    color: var(--gray-600);
+    outline: none;
+}
+
+.course-search-input::placeholder {
+    color: var(--primary-color);
+}
+
+.course-search-clear {
+    color: var(--gray-800);
+}
+
+/* User Management Styles */
+.user-management-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.user-management-description {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.user-management-btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+    padding: 12px 24px;
+    color: white;
+    border-radius: 8px;
+}
+
+.user-management-btn-outline {
+    background: none;
+    border: 2px solid #007bff;
+    padding: 12px 24px;
+    color: #007bff;
+    border-radius: 8px;
+}
+
+/* SEO Management Styles */
+.seo-badge-secondary {
+    color: #6c757d;
+}
+
+.seo-badge-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.seo-badge-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.seo-badge-light {
+    background-color: #f8f9fa;
+    color: #e83e8c;
+    font-size: 0.9rem;
+}
+
+.seo-btn-link {
+    background: none;
+    border: none;
+    color: #007bff;
+}

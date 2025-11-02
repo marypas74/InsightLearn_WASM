@@ -1,0 +1,26 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+
+<AuthorizeView>
+    <Authorized>
+        <div class="auth-status authenticated">
+            <span class="status-text">Logged in as <strong>@context.User.Identity?.Name</strong></span>
+            <button @onclick="HandleLogout" class="btn btn-sm btn-outline">Logout</button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="auth-status not-authenticated">
+            <a href="/login" class="btn btn-sm btn-primary">Login</a>
+            <a href="/register" class="btn btn-sm btn-outline">Register</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

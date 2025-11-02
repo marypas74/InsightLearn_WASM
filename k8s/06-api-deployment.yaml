@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: insightlearn
+spec:
+  selector:
+    app: insightlearn-api
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  - port: 443
+    targetPort: 443
+    name: https
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insightlearn-api
+  namespace: insightlearn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: insightlearn-api
+  template:
+    metadata:
+      labels:
+        app: insightlearn-api
+    spec:
+      containers:
+      - name: api
+        image: insightlearn/api:$IMAGE_VERSION
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: aspnetcore-environment
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: connection-string
+        - name: Redis__ConnectionString
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: redis-connection
+        - name: Elasticsearch__Url
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: elasticsearch-url
+        - name: JwtSettings__SecretKey
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: jwt-secret-key
+        - name: JwtSettings__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-issuer
+        - name: JwtSettings__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-audience
+        - name: JwtSettings__ExpirationDays
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-expiration-days
+        - name: Logging__LogLevel__Default
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: log-level-default
+        - name: Logging__LogLevel__Microsoft
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: log-level-microsoft
+        - name: Ollama__BaseUrl
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: ollama-base-url
+        - name: ASPNETCORE_Kestrel__Certificates__Default__Path
+          value: "/https/tls.crt"
+        - name: ASPNETCORE_Kestrel__Certificates__Default__KeyPath
+          value: "/https/tls.key"
+        volumeMounts:
+        - name: api-files
+          mountPath: /app/wwwroot
+        - name: api-logs
+          mountPath: /app/logs
+        - name: api-tls
+          mountPath: /https
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: api-files
+        emptyDir: {}
+      - name: api-logs
+        emptyDir: {}
+      - name: api-tls
+        secret:
+          secretName: api-tls-cert
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: insightlearn-api-hpa
+  namespace: insightlearn
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: insightlearn-api
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

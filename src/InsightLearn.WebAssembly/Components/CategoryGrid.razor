@@ -1,0 +1,151 @@
+@using InsightLearn.Core.Entities
+@inject NavigationManager Navigation
+
+<div class="category-grid">
+    @foreach (var category in Categories)
+    {
+        <a href="@GetCategoryUrl(category)" class="category-card" tabindex="0" aria-label="@GetCategoryAriaLabel(category)">
+            <div class="category-icon">
+                <i class="@GetCategoryIcon(category)"></i>
+            </div>
+            <div class="category-content">
+                <h3 class="category-title">@category.Name</h3>
+                <p class="category-description">@category.Description</p>
+                <div class="category-stats">
+                    <span class="course-count">@GetCourseCount(category) courses</span>
+                    <span class="category-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </span>
+                </div>
+            </div>
+        </a>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of categories to display in the grid
+    /// </summary>
+    [Parameter] public List<CategoryDisplayModel> Categories { get; set; } = new();
+
+    /// <summary>
+    /// Event callback when a category is clicked
+    /// </summary>
+    [Parameter] public EventCallback<CategoryDisplayModel> OnCategoryClick { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Define default categories if none provided
+        if (!Categories.Any())
+        {
+            Categories = GetDefaultCategories();
+        }
+    }
+
+    private List<CategoryDisplayModel> GetDefaultCategories()
+    {
+        return new List<CategoryDisplayModel>
+        {
+            new()
+            {
+                Name = "Development",
+                Description = "Web, Mobile, Programming Languages",
+                CourseCount = 12500,
+                IconClass = "fas fa-code",
+                Slug = "development"
+            },
+            new()
+            {
+                Name = "Business",
+                Description = "Entrepreneurship, Management, Sales",
+                CourseCount = 8700,
+                IconClass = "fas fa-briefcase",
+                Slug = "business"
+            },
+            new()
+            {
+                Name = "IT & Software",
+                Description = "IT Certifications, Network & Security",
+                CourseCount = 6200,
+                IconClass = "fas fa-laptop",
+                Slug = "it-software"
+            },
+            new()
+            {
+                Name = "Design",
+                Description = "UI/UX, Graphic Design, Design Tools",
+                CourseCount = 5900,
+                IconClass = "fas fa-palette",
+                Slug = "design"
+            },
+            new()
+            {
+                Name = "Marketing",
+                Description = "Digital Marketing, SEO, Social Media",
+                CourseCount = 4800,
+                IconClass = "fas fa-bullhorn",
+                Slug = "marketing"
+            },
+            new()
+            {
+                Name = "Photography",
+                Description = "Digital Photography, Photo Editing",
+                CourseCount = 3200,
+                IconClass = "fas fa-camera",
+                Slug = "photography"
+            },
+            new()
+            {
+                Name = "Music",
+                Description = "Music Production, Instruments",
+                CourseCount = 2800,
+                IconClass = "fas fa-music",
+                Slug = "music"
+            },
+            new()
+            {
+                Name = "Health & Fitness",
+                Description = "Fitness, Nutrition, Mental Health",
+                CourseCount = 2400,
+                IconClass = "fas fa-heartbeat",
+                Slug = "health-fitness"
+            }
+        };
+    }
+
+    private string GetCategoryUrl(CategoryDisplayModel category)
+    {
+        return $"/categories/{category.Slug}";
+    }
+
+    private string GetCategoryIcon(CategoryDisplayModel category)
+    {
+        return !string.IsNullOrEmpty(category.IconClass) ? category.IconClass : "fas fa-folder";
+    }
+
+    private string GetCourseCount(CategoryDisplayModel category)
+    {
+        if (category.CourseCount >= 1000)
+        {
+            return $"{category.CourseCount / 1000:F1}K+";
+        }
+        return category.CourseCount.ToString();
+    }
+
+    private string GetCategoryAriaLabel(CategoryDisplayModel category)
+    {
+        return $"Browse {category.Name} category: {category.Description}, {GetCourseCount(category)} courses available";
+    }
+
+    /// <summary>
+    /// Model class for category display
+    /// </summary>
+    public class CategoryDisplayModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string IconClass { get; set; } = "";
+        public int CourseCount { get; set; }
+    }
+}

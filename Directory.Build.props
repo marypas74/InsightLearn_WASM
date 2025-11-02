@@ -1,0 +1,57 @@
+<Project>
+  <PropertyGroup>
+    <!-- Versioning Configuration -->
+    <VersionPrefix>1.4.22</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
+
+    <!-- Semantic Versioning: Major.Minor.Patch-Suffix+BuildMetadata -->
+    <Version Condition="'$(VersionSuffix)' != ''">$(VersionPrefix)-$(VersionSuffix)</Version>
+    <Version Condition="'$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
+
+    <!-- Assembly Versioning -->
+    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).$(BUILD_NUMBER)</FileVersion>
+    <FileVersion Condition="'$(BUILD_NUMBER)' == ''">$(VersionPrefix).0</FileVersion>
+
+    <!-- Informational Version (includes Git commit) -->
+    <InformationalVersion Condition="'$(GIT_COMMIT)' != ''">$(Version)+$(GIT_COMMIT)</InformationalVersion>
+    <InformationalVersion Condition="'$(GIT_COMMIT)' == ''">$(Version)</InformationalVersion>
+
+    <!-- Product Information -->
+    <Product>InsightLearn LMS</Product>
+    <Company>InsightLearn</Company>
+    <Copyright>Copyright © InsightLearn $(Year)</Copyright>
+    <Year>$([System.DateTime]::UtcNow.Year)</Year>
+
+    <!-- Build Configuration -->
+    <Authors>InsightLearn Development Team</Authors>
+    <Description>Enterprise Learning Management System</Description>
+    <PackageProjectUrl>https://insightlearn.local</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yourorg/insightlearn</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Common Properties -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Build Metadata -->
+  <PropertyGroup>
+    <BuildDate>$([System.DateTime]::UtcNow.ToString(yyyyMMddHHmmss))</BuildDate>
+    <BuildConfiguration>$(Configuration)</BuildConfiguration>
+  </PropertyGroup>
+
+  <!-- Version Information Display -->
+  <Target Name="DisplayVersion" BeforeTargets="Build">
+    <Message Text="========================================" Importance="High" />
+    <Message Text="Building InsightLearn v$(Version)" Importance="High" />
+    <Message Text="Assembly Version: $(AssemblyVersion)" Importance="High" />
+    <Message Text="File Version: $(FileVersion)" Importance="High" />
+    <Message Text="Informational Version: $(InformationalVersion)" Importance="High" />
+    <Message Text="Build Date: $(BuildDate)" Importance="High" />
+    <Message Text="Configuration: $(BuildConfiguration)" Importance="High" />
+    <Message Text="========================================" Importance="High" />
+  </Target>
+</Project>

@@ -1,0 +1,329 @@
+/**
+ * Connection Handler Styles
+ * User-friendly connection error handling for Blazor Server
+ */
+
+/* Connection Modal */
+.connection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.connection-modal.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.connection-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.connection-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    margin: 0 1rem;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.connection-modal.hidden .connection-modal-content {
+    transform: translateY(-20px);
+}
+
+/* Connection Icon */
+.connection-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border-radius: 50%;
+    color: white;
+    font-size: 2rem;
+}
+
+.connection-icon-wifi {
+    animation: pulse 2s infinite;
+}
+
+.connection-icon-error {
+    color: #dc2626;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Connection Text */
+.connection-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.connection-message {
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.connection-message small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+/* Progress Bar */
+.connection-progress {
+    margin-bottom: 2rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f3f4f6;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 2s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+/* Connection Actions */
+.connection-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.connection-actions.hidden {
+    display: none;
+}
+
+.connection-actions .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.connection-actions .btn-primary {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: white;
+}
+
+.connection-actions .btn-primary:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.connection-actions .btn-outline {
+    background: white;
+    color: #6b7280;
+    border: 2px solid #e5e7eb;
+}
+
+.connection-actions .btn-outline:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+    transform: translateY(-2px);
+}
+
+/* Offline Notification */
+.offline-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    background: #374151;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.offline-notification.show {
+    transform: translateX(0);
+}
+
+.offline-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.offline-content i {
+    color: #fbbf24;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+    .connection-modal-content {
+        padding: 1.5rem;
+        margin: 0 0.5rem;
+    }
+    
+    .connection-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .connection-title {
+        font-size: 1.25rem;
+    }
+    
+    .connection-message {
+        font-size: 0.875rem;
+    }
+    
+    .connection-actions {
+        flex-direction: column;
+    }
+    
+    .connection-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .offline-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        transform: translateY(-100%);
+    }
+    
+    .offline-notification.show {
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .connection-modal-content {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .connection-title {
+        color: #f9fafb;
+    }
+    
+    .connection-message {
+        color: #d1d5db;
+    }
+    
+    .connection-actions .btn-outline {
+        background: #1f2937;
+        color: #d1d5db;
+        border-color: #374151;
+    }
+    
+    .connection-actions .btn-outline:hover {
+        border-color: #dc2626;
+        color: #dc2626;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .connection-modal-content {
+        border: 3px solid #000;
+    }
+    
+    .connection-actions .btn {
+        border-width: 2px;
+    }
+    
+    .connection-actions .btn-outline {
+        border-color: #000;
+        color: #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .connection-modal,
+    .connection-modal-content,
+    .progress-fill,
+    .offline-notification {
+        transition: none;
+    }
+    
+    .connection-icon-wifi {
+        animation: none;
+    }
+    
+    .progress-fill::after {
+        animation: none;
+    }
+}

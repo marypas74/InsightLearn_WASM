@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Blazor WebAssembly packages -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.21" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.21" PrivateAssets="all" />
+
+    <!-- Authentication & Authorization -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.21" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="8.0.21" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.2" />
+
+    <!-- HTTP & JSON -->
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.1" />
+
+    <!-- Client-side storage -->
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+
+    <!-- Toast notifications (compatible with WASM) -->
+    <PackageReference Include="Blazored.Toast" Version="4.2.1" />
+
+    <!-- Serilog for client-side logging -->
+    <PackageReference Include="Serilog" Version="4.1.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.BrowserConsole" Version="2.0.0" />
+
+    <!-- FluentValidation for client-side validation -->
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference shared DTOs and models from Core/Application projects -->
+    <ProjectReference Include="../InsightLearn.Core/InsightLearn.Core.csproj" />
+    <ProjectReference Include="../InsightLearn.Application/InsightLearn.Application.csproj" />
+  </ItemGroup>
+
+</Project>

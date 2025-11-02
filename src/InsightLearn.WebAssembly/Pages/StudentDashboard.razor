@@ -1,0 +1,282 @@
+@page "/dashboard/student"
+@attribute [Authorize(Roles = "Student")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+<PageTitle>Student Dashboard - InsightLearn</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="container-max">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb-nav">
+            <nav class="breadcrumb" aria-label="breadcrumb">
+                <a href="/" class="breadcrumb-item">Home</a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-item active" aria-current="page">Student Dashboard</span>
+            </nav>
+        </div>
+
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <div class="welcome-content">
+                <h1 class="welcome-title">Welcome back, @userName!</h1>
+                <p class="welcome-subtitle">Continue your learning journey and track your progress.</p>
+            </div>
+            <div class="welcome-icon">
+                <i class="fas fa-user-graduate" aria-hidden="true"></i>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner spinner-lg"></div>
+                <p>Loading your dashboard...</p>
+            </div>
+        }
+        else if (error != null)
+        {
+            <div class="error-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>@error</h3>
+                <button class="btn btn-primary" @onclick="LoadDashboardData">
+                    <i class="fas fa-refresh"></i> Retry
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="dashboard-grid">
+                <!-- My Courses -->
+                <div class="courses-section">
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>My Courses</h2>
+                            </div>
+                            <a href="/courses" class="btn btn-secondary">Browse More</a>
+                        </div>
+                        <div class="card-content">
+                            @if (enrolledCourses?.Any() == true)
+                            {
+                                <div class="courses-list">
+                                    @foreach (var course in enrolledCourses)
+                                    {
+                                        <div class="course-item">
+                                            <div class="course-info">
+                                                <h3 class="course-title">@course.CourseName</h3>
+                                                <p class="course-category">
+                                                    <i class="fas fa-tag"></i>
+                                                    @course.CategoryName
+                                                </p>
+                                                <p class="course-date">Enrolled: @course.EnrollmentDate.ToString("MMM dd, yyyy")</p>
+                                            </div>
+                                            <div class="course-progress">
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill"
+                                                         style="width: @course.Progress%">
+                                                    </div>
+                                                </div>
+                                                <p class="progress-text">@course.Progress.ToString("F1")% Complete</p>
+                                                <button class="btn btn-primary btn-sm"
+                                                        @onclick="() => NavigateToCourse(course.CourseId)">
+                                                    Continue
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <h3 class="empty-title">No courses enrolled yet</h3>
+                                    <p class="empty-description">Start learning today by exploring our course catalog.</p>
+                                    <a href="/courses" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Browse Courses
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress & Stats -->
+                <div class="progress-section">
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>Learning Progress</h2>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="stats-list">
+                                <div class="stat-item">
+                                    <span class="stat-label">Enrolled Courses</span>
+                                    <span class="stat-value">@(enrolledCourses?.Count ?? 0)</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Completed Lessons</span>
+                                    <span class="stat-value">@totalCompletedLessons</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Hours</span>
+                                    <span class="stat-value">@totalHours</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Certificates Earned</span>
+                                    <span class="stat-value">@certificatesEarned</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Lessons -->
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>Upcoming Lessons</h2>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            @if (upcomingLessons?.Any() == true)
+                            {
+                                <div class="lessons-list">
+                                    @foreach (var lesson in upcomingLessons)
+                                    {
+                                        <div class="lesson-item">
+                                            <div class="lesson-icon">
+                                                <i class="fas fa-play-circle"></i>
+                                            </div>
+                                            <div class="lesson-info">
+                                                <h4>@lesson.Title</h4>
+                                                <p>@lesson.CourseName</p>
+                                            </div>
+                                            <div class="lesson-duration">
+                                                <i class="fas fa-clock"></i>
+                                                @lesson.Duration min
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="empty-text">No upcoming lessons</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+    private string userName = "Student";
+
+    private List<EnrolledCourseDto>? enrolledCourses;
+    private List<UpcomingLessonDto>? upcomingLessons;
+    private int totalCompletedLessons = 0;
+    private int totalHours = 0;
+    private int certificatesEarned = 0;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (AuthenticationStateTask != null)
+            {
+                var authState = await AuthenticationStateTask;
+                var user = authState.User;
+                userName = user.Identity?.Name ?? "Student";
+            }
+
+            await LoadDashboardData();
+        }
+        catch (Exception ex)
+        {
+            error = $"Failed to load dashboard: {ex.Message}";
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            var response = await ApiClient.GetAsync<StudentDashboardDto>("/api/dashboard/student");
+
+            if (response.Success && response.Data != null)
+            {
+                enrolledCourses = response.Data.EnrolledCourses;
+                upcomingLessons = response.Data.UpcomingLessons;
+                totalCompletedLessons = response.Data.TotalCompletedLessons;
+                totalHours = response.Data.TotalHours;
+                certificatesEarned = response.Data.CertificatesEarned;
+            }
+            else
+            {
+                error = response.Message ?? "Failed to load dashboard data";
+                Toast.ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading your dashboard";
+            Toast.ShowError(error);
+            Console.WriteLine($"Dashboard error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateToCourse(Guid courseId)
+    {
+        Navigation.NavigateTo($"/courses/{courseId}");
+    }
+
+    // DTOs
+    public class StudentDashboardDto
+    {
+        public List<EnrolledCourseDto> EnrolledCourses { get; set; } = new();
+        public List<UpcomingLessonDto> UpcomingLessons { get; set; } = new();
+        public int TotalCompletedLessons { get; set; }
+        public int TotalHours { get; set; }
+        public int CertificatesEarned { get; set; }
+    }
+
+    public class EnrolledCourseDto
+    {
+        public Guid CourseId { get; set; }
+        public string CourseName { get; set; } = "";
+        public string CategoryName { get; set; } = "";
+        public DateTime EnrollmentDate { get; set; }
+        public decimal Progress { get; set; }
+    }
+
+    public class UpcomingLessonDto
+    {
+        public Guid LessonId { get; set; }
+        public string Title { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public int Duration { get; set; }
+    }
+}

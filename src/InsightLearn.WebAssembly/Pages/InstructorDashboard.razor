@@ -1,0 +1,374 @@
+@page "/dashboard/instructor"
+@attribute [Authorize(Roles = "Instructor")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Instructor Dashboard - InsightLearn</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="container-max">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb-nav">
+            <nav class="breadcrumb" aria-label="breadcrumb">
+                <a href="/" class="breadcrumb-item">Home</a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-item active" aria-current="page">Instructor Dashboard</span>
+            </nav>
+        </div>
+
+        <!-- Welcome Banner -->
+        <div class="instructor-welcome-banner">
+            <div class="welcome-content">
+                <h1 class="welcome-title">Welcome back, @instructorName!</h1>
+                <p class="welcome-subtitle">Manage your courses, track student progress, and create engaging content.</p>
+            </div>
+            <div class="welcome-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner spinner-lg"></div>
+                <p>Loading your dashboard...</p>
+            </div>
+        }
+        else if (error != null)
+        {
+            <div class="error-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>@error</h3>
+                <button class="btn btn-primary" @onclick="LoadDashboardData">
+                    <i class="fas fa-refresh"></i> Retry
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="dashboard-grid">
+                <!-- Statistics Overview -->
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">@totalCourses</div>
+                            <div class="stat-label">Total Courses</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">@totalStudents</div>
+                            <div class="stat-label">Total Students</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">@totalRevenue.ToString("C")</div>
+                            <div class="stat-label">Total Revenue</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">@averageRating.ToString("F1")</div>
+                            <div class="stat-label">Average Rating</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Courses -->
+                <div class="courses-section">
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>My Courses</h2>
+                            </div>
+                            <a href="/instructor/courses/create" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Course
+                            </a>
+                        </div>
+                        <div class="card-content">
+                            @if (courses?.Any() == true)
+                            {
+                                <div class="courses-list">
+                                    @foreach (var course in courses)
+                                    {
+                                        <div class="instructor-course-item">
+                                            <div class="course-info">
+                                                <h3 class="course-title">@course.CourseTitle</h3>
+                                                <p class="course-enrollment">
+                                                    <i class="fas fa-users"></i>
+                                                    @course.Enrollments students enrolled
+                                                </p>
+                                                <div class="course-metrics">
+                                                    <span class="metric">
+                                                        <i class="fas fa-star"></i>
+                                                        @course.AverageRating.ToString("F1")
+                                                    </span>
+                                                    <span class="metric revenue">
+                                                        <i class="fas fa-dollar-sign"></i>
+                                                        @course.Revenue.ToString("C")
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="course-actions">
+                                                <button class="btn btn-secondary btn-sm"
+                                                        @onclick="() => NavigateToCourse(course.CourseId)">
+                                                    Manage
+                                                </button>
+                                                <button class="btn btn-outline btn-sm"
+                                                        @onclick="() => ViewAnalytics(course.CourseId)">
+                                                    Analytics
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-chalkboard"></i>
+                                    </div>
+                                    <h3 class="empty-title">No courses created yet</h3>
+                                    <p class="empty-description">Start sharing your knowledge by creating your first course.</p>
+                                    <a href="/instructor/courses/create" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Create Your First Course
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Students & Activity -->
+                <div class="activity-section">
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>Recent Students</h2>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            @if (recentStudents?.Any() == true)
+                            {
+                                <div class="students-list">
+                                    @foreach (var student in recentStudents)
+                                    {
+                                        <div class="student-item">
+                                            <div class="student-avatar">
+                                                @if (!string.IsNullOrEmpty(student.Avatar))
+                                                {
+                                                    <img src="@student.Avatar" alt="@student.Name" />
+                                                }
+                                                else
+                                                {
+                                                    <span>@GetInitials(student.Name)</span>
+                                                }
+                                            </div>
+                                            <div class="student-info">
+                                                <h4>@student.Name</h4>
+                                                <p>Enrolled in @student.CourseName</p>
+                                                <span class="enroll-date">@student.EnrollmentDate.ToRelativeTime()</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="empty-text">No recent enrollments</p>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Recent Reviews -->
+                    <div class="clean-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <h2>Recent Reviews</h2>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            @if (recentReviews?.Any() == true)
+                            {
+                                <div class="reviews-list">
+                                    @foreach (var review in recentReviews)
+                                    {
+                                        <div class="review-item">
+                                            <div class="review-header">
+                                                <div class="reviewer-info">
+                                                    <strong>@review.StudentName</strong>
+                                                    <div class="rating">
+                                                        @for (int i = 1; i <= 5; i++)
+                                                        {
+                                                            <i class="fas fa-star @(i <= review.Rating ? "" : "star-empty")"></i>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <span class="review-date">@review.CreatedAt.ToRelativeTime()</span>
+                                            </div>
+                                            <p class="review-text">@review.Comment</p>
+                                            <p class="review-course">@review.CourseName</p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="empty-text">No reviews yet</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+    private string instructorName = "Instructor";
+
+    private List<InstructorCourseDto>? courses;
+    private List<RecentStudentDto>? recentStudents;
+    private List<RecentReviewDto>? recentReviews;
+
+    private int totalCourses = 0;
+    private int totalStudents = 0;
+    private decimal totalRevenue = 0;
+    private decimal averageRating = 0;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (AuthenticationStateTask != null)
+            {
+                var authState = await AuthenticationStateTask;
+                var user = authState.User;
+                instructorName = user.Identity?.Name ?? "Instructor";
+            }
+
+            await LoadDashboardData();
+        }
+        catch (Exception ex)
+        {
+            error = $"Failed to load dashboard: {ex.Message}";
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            var response = await ApiClient.GetAsync<InstructorDashboardDto>("/api/dashboard/instructor");
+
+            if (response.Success && response.Data != null)
+            {
+                courses = response.Data.Courses;
+                recentStudents = response.Data.RecentStudents;
+                recentReviews = response.Data.RecentReviews;
+                totalCourses = response.Data.TotalCourses;
+                totalStudents = response.Data.TotalStudents;
+                totalRevenue = response.Data.TotalRevenue;
+                averageRating = response.Data.AverageRating;
+            }
+            else
+            {
+                error = response.Message ?? "Failed to load dashboard data";
+                Toast.ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading your dashboard";
+            Toast.ShowError(error);
+            Console.WriteLine($"Dashboard error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NavigateToCourse(Guid courseId)
+    {
+        Navigation.NavigateTo($"/instructor/courses/{courseId}");
+    }
+
+    private void ViewAnalytics(Guid courseId)
+    {
+        Navigation.NavigateTo($"/instructor/courses/{courseId}/analytics");
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var names = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+            return $"{names[0][0]}{names[^1][0]}".ToUpper();
+        return names[0][0].ToString().ToUpper();
+    }
+
+    // DTOs
+    public class InstructorDashboardDto
+    {
+        public List<InstructorCourseDto> Courses { get; set; } = new();
+        public List<RecentStudentDto> RecentStudents { get; set; } = new();
+        public List<RecentReviewDto> RecentReviews { get; set; } = new();
+        public int TotalCourses { get; set; }
+        public int TotalStudents { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal AverageRating { get; set; }
+    }
+
+    public class InstructorCourseDto
+    {
+        public Guid CourseId { get; set; }
+        public string CourseTitle { get; set; } = "";
+        public int Enrollments { get; set; }
+        public decimal AverageRating { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class RecentStudentDto
+    {
+        public string Name { get; set; } = "";
+        public string Avatar { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public DateTime EnrollmentDate { get; set; }
+    }
+
+    public class RecentReviewDto
+    {
+        public string StudentName { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public int Rating { get; set; }
+        public string Comment { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

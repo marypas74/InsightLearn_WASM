@@ -1,0 +1,240 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+
+<!-- Sidebar Header with Brand -->
+<div class="sidebar-header">
+    <a href="/" class="sidebar-brand">
+        <span class="brand-icon">📚</span>
+        InsightLearn<span class="text-muted">.cloud</span>
+    </a>
+</div>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar-nav">
+    <!-- Main Navigation Section -->
+    <div class="nav-section">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="nav-icon">
+                        <i class="fas fa-home"></i>
+                    </span>
+                    Home
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/courses">
+                    <span class="nav-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </span>
+                    Browse Courses
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/categories">
+                    <span class="nav-icon">
+                        <i class="fas fa-th-large"></i>
+                    </span>
+                    Categories
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/help">
+                    <span class="nav-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                    Help Center
+                </NavLink>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Authentication Section -->
+    <AuthorizeView>
+        <Authorized>
+            <!-- User Section -->
+            <div class="nav-section">
+                <h3 class="nav-section-title">My Learning</h3>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/dashboard">
+                            <span class="nav-icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </span>
+                            Dashboard
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/my-courses">
+                            <span class="nav-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </span>
+                            My Courses
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/profile">
+                            <span class="nav-icon">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            Profile
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/settings">
+                            <span class="nav-icon">
+                                <i class="fas fa-cog"></i>
+                            </span>
+                            Settings
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Instructor Section -->
+            <AuthorizeView Roles="Instructor">
+                <Authorized Context="instructorContext">
+                    <div class="nav-section">
+                    <h3 class="nav-section-title">Instructor</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/dashboard/instructor">
+                                <span class="nav-icon">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </span>
+                                Instructor Dashboard
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/instructor/courses">
+                                <span class="nav-icon">
+                                    <i class="fas fa-book"></i>
+                                </span>
+                                My Courses
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/instructor/courses/create">
+                                <span class="nav-icon">
+                                    <i class="fas fa-plus-circle"></i>
+                                </span>
+                                Create Course
+                            </NavLink>
+                        </li>
+                    </ul>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+
+            <!-- Admin Section -->
+            <AuthorizeView Roles="Admin">
+                <Authorized Context="adminContext">
+                    <div class="nav-section">
+                    <h3 class="nav-section-title">Administration</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin">
+                                <span class="nav-icon">
+                                    <i class="fas fa-shield-alt"></i>
+                                </span>
+                                Admin Dashboard
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin/users">
+                                <span class="nav-icon">
+                                    <i class="fas fa-users"></i>
+                                </span>
+                                User Management
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin/courses">
+                                <span class="nav-icon">
+                                    <i class="fas fa-book"></i>
+                                </span>
+                                Course Management
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin/analytics">
+                                <span class="nav-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                                Analytics
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin/settings">
+                                <span class="nav-icon">
+                                    <i class="fas fa-cog"></i>
+                                </span>
+                                System Settings
+                            </NavLink>
+                        </li>
+                    </ul>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </Authorized>
+        <NotAuthorized>
+            <!-- Guest Section -->
+            <div class="nav-section">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/login">
+                            <span class="nav-icon">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </span>
+                            Login
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/register">
+                            <span class="nav-icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            Register
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <!-- Footer Section -->
+    <div class="nav-section nav-footer">
+        <ul class="nav-list">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/privacy">
+                    <span class="nav-icon">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    Privacy
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/terms">
+                    <span class="nav-icon">
+                        <i class="fas fa-file-contract"></i>
+                    </span>
+                    Terms
+                </NavLink>
+            </li>
+        </ul>
+    </div>
+</nav>

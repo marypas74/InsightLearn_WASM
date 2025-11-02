@@ -1,0 +1,393 @@
+@page "/"
+@inject IJSRuntime JS
+
+<PageTitle>InsightLearn - Transform Your Future with Expert Learning</PageTitle>
+
+<div class="new-home-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    Transform Your Future with
+                    <span class="hero-highlight">Expert Learning</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Join thousands of learners mastering new skills through world-class courses.
+                    Start your journey to success today.
+                </p>
+                <div class="hero-cta">
+                    <a href="/courses" class="btn btn-primary">Explore Courses</a>
+                    <a href="/about" class="btn btn-secondary">Learn More</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="50000">0</span>
+                        <span class="stat-label">Active Students</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="500">0</span>
+                        <span class="stat-label">Expert Instructors</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="1200">0</span>
+                        <span class="stat-label">Courses Available</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-card card-1">
+                    <div class="card-icon">📊</div>
+                    <div class="card-text">Data Science</div>
+                </div>
+                <div class="hero-card card-2">
+                    <div class="card-icon">💻</div>
+                    <div class="card-text">Web Development</div>
+                </div>
+                <div class="hero-card card-3">
+                    <div class="card-icon">🎨</div>
+                    <div class="card-text">Design</div>
+                </div>
+                <div class="hero-card card-4">
+                    <div class="card-icon">🚀</div>
+                    <div class="card-text">Business</div>
+                </div>
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    <span class="live-text"><span id="liveStudents">2,847</span> learning now</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-icon">🎓</div>
+                <div class="stat-value" data-target="95">0%</div>
+                <div class="stat-description">Course Completion Rate</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" data-target="4.8">0</div>
+                <div class="stat-description">Average Course Rating</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">💼</div>
+                <div class="stat-value" data-target="87">0%</div>
+                <div class="stat-description">Career Advancement</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">🌍</div>
+                <div class="stat-value" data-target="150">0+</div>
+                <div class="stat-description">Countries Worldwide</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">How InsightLearn Works</h2>
+                <p class="section-subtitle">Your journey to mastery in three simple steps</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">01</div>
+                    <div class="step-icon">🔍</div>
+                    <h3 class="step-title">Choose Your Path</h3>
+                    <p class="step-description">
+                        Browse our extensive catalog of courses across technology, business, design, and more.
+                        Find the perfect course that matches your goals and skill level.
+                    </p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">02</div>
+                    <div class="step-icon">📚</div>
+                    <h3 class="step-title">Learn at Your Pace</h3>
+                    <p class="step-description">
+                        Access high-quality video lessons, interactive exercises, and downloadable resources.
+                        Learn on your schedule with lifetime access to course materials.
+                    </p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">03</div>
+                    <div class="step-icon">🏆</div>
+                    <h3 class="step-title">Earn & Achieve</h3>
+                    <p class="step-description">
+                        Complete projects, earn certificates, and showcase your new skills.
+                        Join a community of learners and advance your career.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Courses Section -->
+    <section class="featured-courses-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Featured Courses</h2>
+                <p class="section-subtitle">Start learning with our most popular courses</p>
+            </div>
+            <div class="courses-grid">
+                @foreach (var course in featuredCourses)
+                {
+                    <div class="course-card">
+                        <div class="course-badge">@course.Badge</div>
+                        <div class="course-image">
+                            <div class="course-category-tag">@course.Category</div>
+                        </div>
+                        <div class="course-content">
+                            <h3 class="course-title">@course.Title</h3>
+                            <p class="course-description">@course.Description</p>
+                            <div class="course-meta">
+                                <div class="course-rating">
+                                    <span class="rating-stars">⭐⭐⭐⭐⭐</span>
+                                    <span class="rating-value">@course.Rating</span>
+                                    <span class="rating-count">(@course.Students)</span>
+                                </div>
+                                <div class="course-level">@course.Level</div>
+                            </div>
+                            <div class="course-footer">
+                                <div class="course-price">
+                                    <span class="price-current">@course.Price</span>
+                                    @if (!string.IsNullOrEmpty(course.OriginalPrice))
+                                    {
+                                        <span class="price-original">@course.OriginalPrice</span>
+                                    }
+                                </div>
+                                <a href="/courses/@course.Id" class="course-cta">Enroll Now</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="section-cta">
+                <a href="/courses" class="btn btn-primary">View All Courses</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Success Stories</h2>
+                <p class="section-subtitle">Hear from learners who transformed their careers</p>
+            </div>
+            <div class="testimonials-grid">
+                @foreach (var story in successStories)
+                {
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">"</div>
+                        <p class="testimonial-text">@story.Quote</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">@story.InitialAvatar</div>
+                            <div class="author-info">
+                                <div class="author-name">@story.Name</div>
+                                <div class="author-title">@story.Title</div>
+                            </div>
+                        </div>
+                        <div class="testimonial-achievement">@story.Achievement</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Start Your Learning Journey?</h2>
+                <p class="cta-subtitle">
+                    Join thousands of learners worldwide and unlock your potential today.
+                    Get started with a free trial.
+                </p>
+                <div class="cta-buttons">
+                    <a href="/register" class="btn btn-primary btn-large">Start Free Trial</a>
+                    <a href="/courses" class="btn btn-secondary btn-large">Browse Courses</a>
+                </div>
+                <p class="cta-note">No credit card required • Cancel anytime • 30-day money-back guarantee</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer removed - using MainLayout footer instead for consistency -->
+</div>
+
+@code {
+    private List<FeaturedCourseModel> featuredCourses = new();
+    private List<SuccessStoryModel> successStories = new();
+
+    protected override void OnInitialized()
+    {
+        featuredCourses = new List<FeaturedCourseModel>
+        {
+            new FeaturedCourseModel
+            {
+                Id = "1",
+                Title = "Complete Web Development Bootcamp 2025",
+                Description = "Master HTML, CSS, JavaScript, React, Node.js, and more. Build real-world projects and launch your career as a web developer.",
+                Category = "Development",
+                Level = "Beginner",
+                Rating = "4.9",
+                Students = "52,341",
+                Price = "$49.99",
+                OriginalPrice = "$199.99",
+                Badge = "Bestseller"
+            },
+            new FeaturedCourseModel
+            {
+                Id = "2",
+                Title = "Data Science & Machine Learning Masterclass",
+                Description = "Learn Python, statistics, ML algorithms, and AI. Work with real datasets and build production-ready models.",
+                Category = "Data Science",
+                Level = "Intermediate",
+                Rating = "4.8",
+                Students = "38,912",
+                Price = "$59.99",
+                OriginalPrice = "$249.99",
+                Badge = "Trending"
+            },
+            new FeaturedCourseModel
+            {
+                Id = "3",
+                Title = "UI/UX Design: From Concept to Prototype",
+                Description = "Master Figma, user research, wireframing, and prototyping. Create stunning designs that users love.",
+                Category = "Design",
+                Level = "All Levels",
+                Rating = "4.9",
+                Students = "29,478",
+                Price = "$44.99",
+                OriginalPrice = "$179.99",
+                Badge = "New"
+            },
+            new FeaturedCourseModel
+            {
+                Id = "4",
+                Title = "AWS Certified Solutions Architect",
+                Description = "Complete AWS certification prep. Learn cloud computing, architecture, security, and pass the exam with confidence.",
+                Category = "Cloud Computing",
+                Level = "Advanced",
+                Rating = "4.7",
+                Students = "21,567",
+                Price = "$69.99",
+                OriginalPrice = "$299.99",
+                Badge = "Hot"
+            },
+            new FeaturedCourseModel
+            {
+                Id = "5",
+                Title = "Digital Marketing Complete Course",
+                Description = "Master SEO, social media, content marketing, analytics, and PPC. Grow your business or start a new career.",
+                Category = "Marketing",
+                Level = "Beginner",
+                Rating = "4.8",
+                Students = "44,892",
+                Price = "$39.99",
+                OriginalPrice = "$159.99",
+                Badge = "Popular"
+            },
+            new FeaturedCourseModel
+            {
+                Id = "6",
+                Title = "Python Programming: Zero to Hero",
+                Description = "Learn Python from scratch. Build projects, automate tasks, and prepare for data science or web development.",
+                Category = "Programming",
+                Level = "Beginner",
+                Rating = "4.9",
+                Students = "67,234",
+                Price = "$34.99",
+                OriginalPrice = "$149.99",
+                Badge = "Bestseller"
+            }
+        };
+
+        successStories = new List<SuccessStoryModel>
+        {
+            new SuccessStoryModel
+            {
+                Name = "Sarah Johnson",
+                Title = "Full Stack Developer at Google",
+                Quote = "InsightLearn transformed my career completely. I went from knowing nothing about coding to landing my dream job at Google in just 8 months. The instructors are world-class and the projects are incredibly practical.",
+                Achievement = "Career switch in 8 months",
+                InitialAvatar = "SJ"
+            },
+            new SuccessStoryModel
+            {
+                Name = "Michael Chen",
+                Title = "Data Scientist at Microsoft",
+                Quote = "The Data Science course gave me the exact skills I needed. The real-world projects and mentor support made all the difference. I got three job offers after completing the program.",
+                Achievement = "3x salary increase",
+                InitialAvatar = "MC"
+            },
+            new SuccessStoryModel
+            {
+                Name = "Emily Rodriguez",
+                Title = "UX Designer at Airbnb",
+                Quote = "Best investment in my career! The UI/UX course taught me not just design tools, but how to think like a designer. The portfolio projects I built helped me stand out in interviews.",
+                Achievement = "Hired at dream company",
+                InitialAvatar = "ER"
+            },
+            new SuccessStoryModel
+            {
+                Name = "David Kim",
+                Title = "Cloud Architect at Amazon",
+                Quote = "I passed my AWS certification on the first try thanks to InsightLearn. The hands-on labs and practice exams were invaluable. Now I'm leading cloud migration projects at Amazon.",
+                Achievement = "AWS certified in 3 months",
+                InitialAvatar = "DK"
+            },
+            new SuccessStoryModel
+            {
+                Name = "Lisa Anderson",
+                Title = "Digital Marketing Manager",
+                Quote = "This platform helped me launch my own marketing agency. The courses are comprehensive, up-to-date, and taught by industry experts. I've already 10x'd my investment.",
+                Achievement = "Started own business",
+                InitialAvatar = "LA"
+            },
+            new SuccessStoryModel
+            {
+                Name = "James Wilson",
+                Title = "Python Developer at Tesla",
+                Quote = "The Python course was exactly what I needed to transition from mechanical engineering to software. The community support and career guidance were outstanding.",
+                Achievement = "Career pivot success",
+                InitialAvatar = "JW"
+            }
+        };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initNewHomePage");
+        }
+    }
+
+    public class FeaturedCourseModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Level { get; set; } = string.Empty;
+        public string Rating { get; set; } = string.Empty;
+        public string Students { get; set; } = string.Empty;
+        public string Price { get; set; } = string.Empty;
+        public string OriginalPrice { get; set; } = string.Empty;
+        public string Badge { get; set; } = string.Empty;
+    }
+
+    public class SuccessStoryModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Quote { get; set; } = string.Empty;
+        public string Achievement { get; set; } = string.Empty;
+        public string InitialAvatar { get; set; } = string.Empty;
+    }
+}

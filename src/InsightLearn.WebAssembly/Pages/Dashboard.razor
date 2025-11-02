@@ -1,0 +1,116 @@
+@page "/dashboard"
+@attribute [Authorize]
+@inject IDashboardService DashboardService
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - InsightLearn</PageTitle>
+
+<div class="dashboard-page">
+    <h1>My Dashboard</h1>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (dashboardData != null)
+    {
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <h3>@dashboardData.EnrolledCourses</h3>
+                <p>Enrolled Courses</p>
+            </div>
+            <div class="stat-card">
+                <h3>@dashboardData.CompletedCourses</h3>
+                <p>Completed</p>
+            </div>
+            <div class="stat-card">
+                <h3>@dashboardData.AverageProgress.ToString("F1")%</h3>
+                <p>Average Progress</p>
+            </div>
+        </div>
+
+        <div class="recent-courses">
+            <h2>Continue Learning</h2>
+            @if (dashboardData.RecentCourses.Any())
+            {
+                <div class="courses-grid">
+                    @foreach (var course in dashboardData.RecentCourses)
+                    {
+                        <div class="course-card">
+                            <h4>@course.CourseTitle</h4>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: @course.Progress%"
+                                     aria-valuenow="@course.Progress" aria-valuemin="0" aria-valuemax="100">
+                                    @course.Progress%
+                                </div>
+                            </div>
+                            <p class="text-muted">Last accessed: @course.LastAccessed.ToString("MMM dd, yyyy")</p>
+                            <a href="/courses/@course.CourseId" class="btn btn-primary">Continue</a>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p>You haven't enrolled in any courses yet. <a href="/courses">Browse courses</a></p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            Unable to load dashboard data. Please try again later.
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardData? dashboardData;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+
+        try
+        {
+            // Determine user role and load appropriate dashboard
+            var isInstructor = await AuthService.IsInRoleAsync("Instructor");
+            var isAdmin = await AuthService.IsInRoleAsync("Administrator");
+
+            ApiResponse<DashboardData> response;
+
+            if (isAdmin)
+            {
+                response = await DashboardService.GetAdminDashboardAsync();
+            }
+            else if (isInstructor)
+            {
+                response = await DashboardService.GetInstructorDashboardAsync();
+            }
+            else
+            {
+                response = await DashboardService.GetStudentDashboardAsync();
+            }
+
+            if (response.Success && response.Data != null)
+            {
+                dashboardData = response.Data;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

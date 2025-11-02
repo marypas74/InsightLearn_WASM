@@ -1,0 +1,329 @@
+---
+# Jenkins Job Configuration for InsightLearn Stress Testing
+# Apply with: kubectl apply -f jenkins-jobs.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-jobs-config
+  namespace: jenkins
+  labels:
+    app: jenkins
+data:
+  insightlearn-ci-cd.xml: |
+    <?xml version='1.1' encoding='UTF-8'?>
+    <flow-definition plugin="workflow-job@2.40">
+      <actions/>
+      <description>InsightLearn CI/CD Pipeline with Stress Testing</description>
+      <keepDependencies>false</keepDependencies>
+      <properties>
+        <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+          <triggers>
+            <hudson.triggers.SCMTrigger>
+              <spec>H/5 * * * *</spec>
+              <ignorePostCommitHooks>false</ignorePostCommitHooks>
+            </hudson.triggers.SCMTrigger>
+          </triggers>
+        </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      </properties>
+      <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90">
+        <scm class="hudson.plugins.git.GitSCM" plugin="git@4.7.1">
+          <configVersion>2</configVersion>
+          <userRemoteConfigs>
+            <hudson.plugins.git.UserRemoteConfig>
+              <url>https://github.com/your-repo/insightlearn.git</url>
+              <credentialsId>github-credentials</credentialsId>
+            </hudson.plugins.git.UserRemoteConfig>
+          </userRemoteConfigs>
+          <branches>
+            <hudson.plugins.git.BranchSpec>
+              <name>*/main</name>
+            </hudson.plugins.git.BranchSpec>
+          </branches>
+          <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+          <submoduleCfg class="list"/>
+          <extensions/>
+        </scm>
+        <scriptPath>Jenkinsfile</scriptPath>
+        <lightweight>true</lightweight>
+      </definition>
+      <triggers/>
+      <disabled>false</disabled>
+    </flow-definition>
+
+  insightlearn-stress-test-only.xml: |
+    <?xml version='1.1' encoding='UTF-8'?>
+    <flow-definition plugin="workflow-job@2.40">
+      <actions/>
+      <description>Run only stress tests for InsightLearn</description>
+      <keepDependencies>false</keepDependencies>
+      <properties>
+        <hudson.model.ParametersDefinitionProperty>
+          <parameterDefinitions>
+            <hudson.model.ChoiceParameterDefinition>
+              <name>TEST_TYPE</name>
+              <description>Select which test to run</description>
+              <choices class="java.util.Arrays$ArrayList">
+                <a class="string-array">
+                  <string>smoke</string>
+                  <string>load</string>
+                  <string>stress</string>
+                  <string>spike</string>
+                  <string>soak</string>
+                  <string>all</string>
+                </a>
+              </choices>
+            </hudson.model.ChoiceParameterDefinition>
+            <hudson.model.StringParameterDefinition>
+              <name>API_URL</name>
+              <description>API URL to test</description>
+              <defaultValue>http://192.168.49.2:31081</defaultValue>
+              <trim>true</trim>
+            </hudson.model.StringParameterDefinition>
+            <hudson.model.StringParameterDefinition>
+              <name>WEB_URL</name>
+              <description>Web URL to test</description>
+              <defaultValue>http://192.168.49.2:31080</defaultValue>
+              <trim>true</trim>
+            </hudson.model.StringParameterDefinition>
+          </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+      </properties>
+      <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+        <script><![CDATA[
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  containers:
+  - name: k6
+    image: grafana/k6:latest
+    command:
+    - cat
+    tty: true
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - cat
+    tty: true
+"""
+        }
+    }
+
+    parameters {
+        choice(name: 'TEST_TYPE', choices: ['smoke', 'load', 'stress', 'spike', 'soak', 'all'], description: 'Select test type')
+        string(name: 'API_URL', defaultValue: 'http://192.168.49.2:31081', description: 'API URL')
+        string(name: 'WEB_URL', defaultValue: 'http://192.168.49.2:31080', description: 'Web URL')
+    }
+
+    environment {
+        RESULTS_DIR = 'TestResults/stress'
+        TIMESTAMP = sh(script: "date +%Y%m%d_%H%M%S", returnStdout: true).trim()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'ls -la tests/stress/'
+            }
+        }
+
+        stage('Run Stress Tests') {
+            steps {
+                container('k6') {
+                    script {
+                        sh "mkdir -p ${RESULTS_DIR}/${TIMESTAMP}"
+
+                        def testFile = ""
+                        switch(params.TEST_TYPE) {
+                            case 'smoke':
+                                testFile = 'smoke-test.js'
+                                break
+                            case 'load':
+                                testFile = 'load-test.js'
+                                break
+                            case 'stress':
+                                testFile = 'stress-test.js'
+                                break
+                            case 'spike':
+                                testFile = 'spike-test.js'
+                                break
+                            case 'soak':
+                                testFile = 'soak-test.js'
+                                break
+                            case 'all':
+                                testFile = 'all'
+                                break
+                        }
+
+                        if (testFile == 'all') {
+                            echo "Running all tests..."
+                            sh """
+                                cd tests/stress
+                                export API_URL=${params.API_URL}
+                                export WEB_URL=${params.WEB_URL}
+
+                                k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/smoke-results.json smoke-test.js
+                                k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/load-results.json load-test.js
+                                k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/stress-results.json stress-test.js
+                                k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/spike-results.json spike-test.js
+                            """
+                        } else {
+                            echo "Running ${testFile}..."
+                            sh """
+                                cd tests/stress
+                                export API_URL=${params.API_URL}
+                                export WEB_URL=${params.WEB_URL}
+                                k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/results.json ${testFile}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: "${RESULTS_DIR}/**/*", allowEmptyArchive: true
+
+            publishHTML([
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: "${RESULTS_DIR}",
+                reportFiles: '*.html',
+                reportName: 'Stress Test Report'
+            ])
+        }
+        success {
+            echo "✅ Stress tests completed successfully!"
+        }
+        failure {
+            echo "❌ Stress tests failed!"
+        }
+    }
+}
+        ]]></script>
+        <sandbox>true</sandbox>
+      </definition>
+      <triggers/>
+      <disabled>false</disabled>
+    </flow-definition>
+
+  insightlearn-nightly-stress.xml: |
+    <?xml version='1.1' encoding='UTF-8'?>
+    <flow-definition plugin="workflow-job@2.40">
+      <actions/>
+      <description>Nightly stress test for InsightLearn - runs comprehensive tests overnight</description>
+      <keepDependencies>false</keepDependencies>
+      <properties>
+        <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+          <triggers>
+            <hudson.triggers.TimerTrigger>
+              <spec>H 2 * * *</spec>
+            </hudson.triggers.TimerTrigger>
+          </triggers>
+        </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      </properties>
+      <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+        <script><![CDATA[
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: agent
+spec:
+  containers:
+  - name: k6
+    image: grafana/k6:latest
+    command:
+    - cat
+    tty: true
+"""
+        }
+    }
+
+    environment {
+        API_URL = 'http://192.168.49.2:31081'
+        WEB_URL = 'http://192.168.49.2:31080'
+        RESULTS_DIR = 'TestResults/nightly-stress'
+        TIMESTAMP = sh(script: "date +%Y%m%d_%H%M%S", returnStdout: true).trim()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Pre-flight Check') {
+            steps {
+                container('k6') {
+                    echo "Checking service availability..."
+                    sh """
+                        apk add --no-cache curl
+                        curl -f ${API_URL}/health || exit 1
+                        curl -f ${WEB_URL}/health || exit 1
+                    """
+                }
+            }
+        }
+
+        stage('Run Comprehensive Tests') {
+            steps {
+                container('k6') {
+                    sh """
+                        mkdir -p ${RESULTS_DIR}/${TIMESTAMP}
+                        cd tests/stress
+
+                        echo "Running smoke test..."
+                        k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/smoke-results.json smoke-test.js
+
+                        echo "Running load test..."
+                        k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/load-results.json load-test.js
+
+                        echo "Running stress test..."
+                        k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/stress-results.json stress-test.js
+
+                        echo "Running spike test..."
+                        k6 run --out json=${WORKSPACE}/${RESULTS_DIR}/${TIMESTAMP}/spike-results.json spike-test.js
+
+                        echo "All nightly tests completed!"
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: "${RESULTS_DIR}/**/*", allowEmptyArchive: true
+        }
+        success {
+            echo "✅ Nightly stress tests passed!"
+            // Add notification here (email, Slack, etc.)
+        }
+        failure {
+            echo "❌ Nightly stress tests failed!"
+            // Add alert notification here
+        }
+    }
+}
+        ]]></script>
+        <sandbox>true</sandbox>
+      </definition>
+      <triggers/>
+      <disabled>false</disabled>
+    </flow-definition>

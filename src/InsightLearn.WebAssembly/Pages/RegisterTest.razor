@@ -1,0 +1,81 @@
+@page "/test/register"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IToastService Toast
+
+<PageTitle>Register Test - InsightLearn</PageTitle>
+
+<div class="test-page">
+    <h1>Registration Test Page</h1>
+
+    <div class="test-section">
+        <h2>Quick Register</h2>
+        <button @onclick="RegisterTestUser" class="btn btn-primary">Register Test User</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Custom Registration</h2>
+        <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label>Email:</label>
+                <InputText @bind-Value="registerModel.Email" class="form-control" />
+                <ValidationMessage For="@(() => registerModel.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label>Password:</label>
+                <InputText @bind-Value="registerModel.Password" type="password" class="form-control" />
+                <ValidationMessage For="@(() => registerModel.Password)" />
+            </div>
+
+            <div class="form-group">
+                <label>Confirm Password:</label>
+                <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control" />
+                <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+
+    private async Task RegisterTestUser()
+    {
+        var testUser = new RegisterRequest
+        {
+            Email = $"test{Guid.NewGuid().ToString().Substring(0, 8)}@test.com",
+            Password = "Test123!",
+            ConfirmPassword = "Test123!"
+        };
+
+        var result = await AuthService.RegisterAsync(testUser);
+        if (result.Success)
+        {
+            Toast.ShowSuccess("Test user registered successfully!");
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            Toast.ShowError(result.Message);
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        var result = await AuthService.RegisterAsync(registerModel);
+        if (result.Success)
+        {
+            Toast.ShowSuccess("Registration successful!");
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            Toast.ShowError(result.Message);
+        }
+    }
+}

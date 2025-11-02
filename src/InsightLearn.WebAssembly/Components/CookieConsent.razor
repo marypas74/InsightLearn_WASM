@@ -1,0 +1,45 @@
+@inject IJSRuntime JS
+@inject ILocalStorageService LocalStorage
+
+@if (showBanner)
+{
+    <div class="cookie-consent-banner">
+        <div class="cookie-content">
+            <p>
+                We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.
+                <a href="/cookie-policy">Learn more</a>
+            </p>
+            <div class="cookie-actions">
+                <button @onclick="AcceptCookies" class="btn btn-primary">Accept</button>
+                <button @onclick="DeclineCookies" class="btn btn-secondary">Decline</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showBanner = false;
+    private const string CookieConsentKey = "cookie-consent";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var consent = await LocalStorage.GetItemAsStringAsync(CookieConsentKey);
+            showBanner = string.IsNullOrEmpty(consent);
+            StateHasChanged();
+        }
+    }
+
+    private async Task AcceptCookies()
+    {
+        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, "accepted");
+        showBanner = false;
+    }
+
+    private async Task DeclineCookies()
+    {
+        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, "declined");
+        showBanner = false;
+    }
+}

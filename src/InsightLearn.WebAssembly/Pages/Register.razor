@@ -1,0 +1,146 @@
+@page "/register"
+@inject IAuthService AuthService
+@inject IToastService ToastService
+@inject NavigationManager Navigation
+
+<PageTitle>Register - InsightLearn</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2>Create Account</h2>
+            <p class="text-muted">Join InsightLearn and start learning today</p>
+
+            <EditForm Model="@registerRequest" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="firstName">First Name *</label>
+                            <InputText id="firstName" class="form-control" @bind-Value="registerRequest.FirstName"
+                                       placeholder="John" />
+                            <ValidationMessage For="@(() => registerRequest.FirstName)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="lastName">Last Name *</label>
+                            <InputText id="lastName" class="form-control" @bind-Value="registerRequest.LastName"
+                                       placeholder="Doe" />
+                            <ValidationMessage For="@(() => registerRequest.LastName)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <InputText id="email" class="form-control" @bind-Value="registerRequest.Email"
+                               placeholder="john.doe@example.com" />
+                    <ValidationMessage For="@(() => registerRequest.Email)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <InputText id="password" type="password" class="form-control" @bind-Value="registerRequest.Password"
+                               placeholder="Minimum 6 characters" />
+                    <ValidationMessage For="@(() => registerRequest.Password)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password *</label>
+                    <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="registerRequest.ConfirmPassword"
+                               placeholder="Re-enter password" />
+                    <ValidationMessage For="@(() => registerRequest.ConfirmPassword)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="role">I want to *</label>
+                    <InputSelect id="role" class="form-control" @bind-Value="registerRequest.Role">
+                        <option value="Student">Learn (Student)</option>
+                        <option value="Instructor">Teach (Instructor)</option>
+                    </InputSelect>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        <span> Creating account...</span>
+                    }
+                    else
+                    {
+                        <span>Create Account</span>
+                    }
+                </button>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3" role="alert">
+                        @errorMessage
+                    </div>
+                }
+            </EditForm>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="/login">Sign in</a></p>
+            </div>
+
+            <div class="oauth-section">
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+                <button @onclick="RegisterWithGoogle" class="btn btn-outline-secondary btn-block" disabled="@isLoading">
+                    <img src="/images/google-icon.svg" alt="Google" style="width: 20px; height: 20px; margin-right: 8px;" />
+                    Sign up with Google
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new() { Role = "Student" };
+    private string? errorMessage;
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await AuthService.RegisterAsync(registerRequest);
+
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("Registration successful! Welcome to InsightLearn!");
+                Navigation.NavigateTo("/complete-registration", true);
+            }
+            else
+            {
+                errorMessage = response.Message ?? "Registration failed";
+                if (response.Errors.Any())
+                {
+                    errorMessage += ": " + string.Join(", ", response.Errors);
+                }
+                ToastService.ShowError(errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+            ToastService.ShowError(errorMessage);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void RegisterWithGoogle()
+    {
+        Navigation.NavigateTo("/api/auth/google-login?returnUrl=/complete-registration", true);
+    }
+}

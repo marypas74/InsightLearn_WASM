@@ -1,0 +1,111 @@
+---
+# ServiceMonitor for InsightLearn API
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: insightlearn-api-monitor
+  namespace: insightlearn
+  labels:
+    app: insightlearn-api
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: insightlearn-api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# ServiceMonitor for InsightLearn Web
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: insightlearn-web-monitor
+  namespace: insightlearn
+  labels:
+    app: insightlearn-web
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: insightlearn-web
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# ServiceMonitor for SQL Server
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sqlserver-monitor
+  namespace: insightlearn
+  labels:
+    app: sqlserver
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: sqlserver
+  endpoints:
+  - port: mssql
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# ServiceMonitor for Redis
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-monitor
+  namespace: insightlearn
+  labels:
+    app: redis
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+  - port: redis
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# ServiceMonitor for Elasticsearch
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch-monitor
+  namespace: insightlearn
+  labels:
+    app: elasticsearch
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+  endpoints:
+  - port: http
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# PodMonitor for all InsightLearn pods
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: insightlearn-pods
+  namespace: insightlearn
+  labels:
+    release: kube-prometheus
+spec:
+  selector:
+    matchLabels: {}
+  podMetricsEndpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+  namespaceSelector:
+    matchNames:
+    - insightlearn

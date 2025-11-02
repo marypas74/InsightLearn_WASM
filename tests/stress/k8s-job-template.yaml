@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-stress-test-JOB_ID
+  namespace: insightlearn
+  labels:
+    app: k6-stress-test
+    test-type: TEST_TYPE_PLACEHOLDER
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: k6-stress-test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: k6
+        image: insightlearn/k6-tests:latest
+        imagePullPolicy: Never
+        command: ["k6", "run", "/tests/TEST_TYPE_PLACEHOLDER-test.js"]
+        env:
+        - name: API_URL
+          value: "API_URL_PLACEHOLDER"
+        - name: WEB_URL
+          value: "WEB_URL_PLACEHOLDER"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

@@ -1,0 +1,253 @@
+# Docker Compose file for InsightLearn Platform
+# All services configured for production deployment with enhanced monitoring
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: insightlearn-sqlserver
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: "YOUR_DB_PASSWORD"
+      MSSQL_PID: Developer
+      MSSQL_AGENT_ENABLED: true
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'InsightLearn123@#' -Q 'SELECT 1' -C -l 30"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Redis Cache - Production Optimized
+  redis:
+    image: redis:7-alpine
+    container_name: insightlearn-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/users.acl:/usr/local/etc/redis/users.acl:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-InsightLearn2024RedisSecure!}
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-InsightLearn2024RedisSecure!}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    sysctls:
+      - net.core.somaxconn=65535
+    ulimits:
+      memlock: -1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: insightlearn-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - insightlearn-network
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insightlearn-api
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "7001:80"
+      - "7002:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - ASPNETCORE_HTTPS_PORT=443
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
+      - Elasticsearch__Url=http://elasticsearch:9200
+      - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
+      - JwtSettings__Issuer=InsightLearn.Api
+      - JwtSettings__Audience=InsightLearn.Users
+      - JwtSettings__ExpirationDays=30
+      - JwtSettings__RefreshTokenExpirationDays=90
+      - JwtSettings__AllowMultipleConcurrentSessions=true
+      - ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft=Warning
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    volumes:
+      - api-files:/app/wwwroot
+      - api-logs:/app/logs
+      - dataprotection-keys:/home/appuser/.aspnet/DataProtection-Keys
+      - api-temp:/app/temp
+      - ./nginx/certs:/app/certs:ro
+      - api-sessions:/app/sessions
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: insightlearn-web
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "7003:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      # 🔥 CRITICAL FIX: Enable ForwardedHeaders for OAuth redirect_uri fix
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
+      # 🔥 CRITICAL FIX: Enhanced API and JWT configuration for secure communication
+      - ApiSettings__BaseUrl=http://api:80/
+      - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
+      - JwtSettings__Issuer=InsightLearn.Api
+      - JwtSettings__Audience=InsightLearn.Users
+      - JwtSettings__ExpirationDays=30
+      - JwtSettings__RefreshTokenExpirationDays=90
+      - JwtSettings__AllowMultipleConcurrentSessions=true
+      # 🔥 CRITICAL FIX: Enhanced cookie security settings per persistenza HTTPS
+      - CookieSettings__SecurePolicy=Always
+      - CookieSettings__SameSite=None
+      - CookieSettings__HttpOnly=true
+      - CookieSettings__MaxAge=2592000
+      - CookieSettings__IsEssential=true
+      - ASPNETCORE_HOSTINGSTARTUPASSEMBLIES=
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft=Warning
+      - BLAZOR_DETAILED_ERRORS=true
+      - Logging__LogLevel__Microsoft.AspNetCore.Components.Authorization=Debug
+      - Logging__LogLevel__InsightLearn.Web.Services.DatabaseAuthenticationStateProvider=Debug
+      - Logging__LogLevel__InsightLearn.Application.Services.UserManagementService=Debug
+      - Logging__LogLevel__InsightLearn.Web.Shared.MainHeader=Debug
+      - Logging__LogLevel__InsightLearn.Web.Components.AuthenticationStatus=Debug
+      # Enhanced header performance settings
+      - ASPNETCORE_RESPONSE_COMPRESSION_ENABLED=true
+      - ASPNETCORE_STATIC_FILE_CACHE_ENABLED=true
+      # Google OAuth Configuration with proper callback endpoint
+      - GoogleAuth__ClientId=YOUR_GOOGLE_CLIENT_ID_HERE
+      - GoogleAuth__ClientSecret=YOUR_GOOGLE_CLIENT_SECRET_HERE
+      - AppSettings__BaseUrl=https://localhost
+      # 🔥 CRITICAL FIX: Enhanced authentication debugging
+      - Logging__LogLevel__InsightLearn.Web.Services.AuthenticatedHttpClient=Information
+      - Logging__LogLevel__Microsoft.AspNetCore.Authentication.JwtBearer=Information
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    volumes:
+      - web-logs:/app/logs
+      - dataprotection-keys:/home/appuser/.aspnet/DataProtection-Keys
+      - web-temp:/app/temp
+      - ./nginx/certs:/app/certs:ro
+      - web-sessions:/app/sessions
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy - HTTPS Primary
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.nginx
+    container_name: insightlearn-nginx
+    ports:
+      - "80:80"   # HTTP redirect to HTTPS
+      - "443:443" # HTTPS primary endpoint
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-logs:/var/log/nginx
+      - ./nginx/certs:/etc/nginx/ssl:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - insightlearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  elasticsearch-data:
+  api-files:
+  api-logs:
+  api-temp:
+  web-logs:
+  web-temp:
+  web-sessions:
+  api-sessions:
+  nginx-logs:
+  dataprotection-keys:
+
+networks:
+  insightlearn-network:
+    driver: bridge

@@ -1,0 +1,184 @@
+@using InsightLearn.Core.Entities
+@inject NavigationManager Navigation
+
+<div class="course-card" @onclick="NavigateToCourse" tabindex="0" role="button" aria-label="@AriaLabel">
+    <!-- Course Thumbnail -->
+    <div class="course-thumbnail">
+        <img src="@ThumbnailUrl" alt="@Course.Title" loading="lazy" />
+
+        <!-- Course Duration Badge -->
+        @if (!string.IsNullOrEmpty(Duration))
+        {
+            <div class="course-duration-badge">@Duration</div>
+        }
+
+        <!-- Course Badge (Bestseller, New, Hot, etc.) -->
+        @if (!string.IsNullOrEmpty(Badge))
+        {
+            <div class="course-badge @BadgeClass">@Badge</div>
+        }
+    </div>
+
+    <!-- Course Content -->
+    <div class="course-content">
+        <!-- Course Category -->
+        @if (!string.IsNullOrEmpty(Course.Category?.Name))
+        {
+            <div class="course-category">@Course.Category.Name</div>
+        }
+
+        <!-- Course Title -->
+        <h3 class="course-title">@Course.Title</h3>
+
+        <!-- Course Instructor -->
+        <div class="course-instructor">
+            <div class="instructor-avatar">
+                @if (!string.IsNullOrEmpty(InstructorAvatar))
+                {
+                    <img src="@InstructorAvatar" alt="@InstructorName" />
+                }
+                else
+                {
+                    <div class="instructor-initials">@GetInstructorInitials()</div>
+                }
+            </div>
+            <span>@InstructorName</span>
+        </div>
+
+        <!-- Course Rating -->
+        @if (Rating > 0)
+        {
+            <div class="course-rating">
+                <div class="rating-stars">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <i class="star @(i <= Rating ? "fas" : "far") fa-star @(i <= Rating ? "" : "empty")"></i>
+                    }
+                </div>
+                <span class="rating-number">@Rating.ToString("F1")</span>
+                <span class="rating-count">(@ReviewCount.ToString("N0"))</span>
+            </div>
+        }
+
+        <!-- Course Price -->
+        <div class="course-price">
+            @if (DiscountedPrice.HasValue && DiscountedPrice < Price)
+            {
+                <span class="current-price">@FormatPrice(DiscountedPrice.Value)</span>
+                <span class="original-price">@FormatPrice(Price)</span>
+            }
+            else
+            {
+                <span class="current-price">@FormatPrice(Price)</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The course entity to display
+    /// </summary>
+    [Parameter] public Course Course { get; set; } = new();
+
+    /// <summary>
+    /// URL of the course thumbnail image
+    /// </summary>
+    [Parameter] public string ThumbnailUrl { get; set; } = "/images/default-course.jpg";
+
+    /// <summary>
+    /// Name of the course instructor
+    /// </summary>
+    [Parameter] public string InstructorName { get; set; } = "";
+
+    /// <summary>
+    /// URL of the instructor's avatar image
+    /// </summary>
+    [Parameter] public string InstructorAvatar { get; set; } = "";
+
+    /// <summary>
+    /// Full price of the course
+    /// </summary>
+    [Parameter] public decimal Price { get; set; }
+
+    /// <summary>
+    /// Optional discounted price
+    /// </summary>
+    [Parameter] public decimal? DiscountedPrice { get; set; }
+
+    /// <summary>
+    /// Course rating (0-5 stars)
+    /// </summary>
+    [Parameter] public double Rating { get; set; }
+
+    /// <summary>
+    /// Number of reviews
+    /// </summary>
+    [Parameter] public int ReviewCount { get; set; }
+
+    /// <summary>
+    /// Course duration text (e.g., "3h 45m")
+    /// </summary>
+    [Parameter] public string Duration { get; set; } = "";
+
+    /// <summary>
+    /// Badge text (e.g., "Bestseller", "New", "Hot")
+    /// </summary>
+    [Parameter] public string Badge { get; set; } = "";
+
+    /// <summary>
+    /// Event callback when course is clicked
+    /// </summary>
+    [Parameter] public EventCallback<Course> OnCourseClick { get; set; }
+
+    private string BadgeClass => Badge.ToLower() switch
+    {
+        "bestseller" => "bestseller",
+        "new" => "new",
+        "hot" => "hot",
+        _ => ""
+    };
+
+    private string AriaLabel => $"{Course.Title} by {InstructorName}, {Rating:F1} star rating, {FormatPrice(DiscountedPrice ?? Price)}";
+
+    private async Task NavigateToCourse()
+    {
+        if (OnCourseClick.HasDelegate)
+        {
+            await OnCourseClick.InvokeAsync(Course);
+        }
+        else
+        {
+            // Default navigation to course detail page
+            var navigationUrl = Course.Id != Guid.Empty ? $"/courses/{Course.Id}" : "/courses";
+            Navigation.NavigateTo(navigationUrl);
+        }
+    }
+
+    private string GetInstructorInitials()
+    {
+        if (string.IsNullOrEmpty(InstructorName)) return "I";
+
+        var names = InstructorName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+        {
+            return $"{names[0][0]}{names[1][0]}".ToUpper();
+        }
+        else if (names.Length == 1)
+        {
+            return names[0][0].ToString().ToUpper();
+        }
+
+        return "I";
+    }
+
+    private string FormatPrice(decimal price)
+    {
+        if (price == 0)
+        {
+            return "Free";
+        }
+
+        return price.ToString("C");
+    }
+}

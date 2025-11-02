@@ -1,0 +1,1526 @@
+@using System.Net.Http.Json
+@using Microsoft.JSInterop
+@using InsightLearn.WebAssembly.Services
+@inject IChatService ChatService
+@inject IJSRuntime JSRuntime
+
+<div class="intercom-container">
+    @if (!isOpen)
+    {
+        <!-- Launcher Button -->
+        <button class="intercom-launcher" @onclick="OpenMessenger" title="Open chat">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M14 0C6.268 0 0 5.824 0 13s6.268 13 14 13c.933 0 1.843-.09 2.719-.259l6.553 2.255c.787.27 1.594-.394 1.439-1.186l-.999-5.104C25.72 19.591 28 16.529 28 13 28 5.824 21.732 0 14 0z" fill="currentColor"/>
+            </svg>
+            @if (unreadCount > 0)
+            {
+                <span class="intercom-launcher-badge">@unreadCount</span>
+            }
+        </button>
+
+        <!-- Preview Popup -->
+        @if (showPreview)
+        {
+            <div class="intercom-preview">
+                <div class="intercom-preview-header">
+                    <div class="intercom-preview-avatar-group">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces"
+                             alt="Support"
+                             class="preview-avatar" />
+                    </div>
+                    <div class="intercom-preview-text">
+                        <div class="intercom-preview-greeting">Welcome! 👋</div>
+                        <div class="intercom-preview-question">What can I help you with today?</div>
+                    </div>
+                </div>
+                <div class="intercom-preview-meta">
+                    <span class="preview-online-dot"></span>
+                    We typically reply in a few minutes
+                </div>
+                <div class="intercom-preview-actions">
+                    <button class="preview-quick-action" @onclick="@(() => OpenMessengerWithMessage("I'd like to talk to a human 🙋"))">
+                        <span class="action-emoji">🙋</span>
+                        I'd like to talk to a human
+                    </button>
+                    <button class="preview-quick-action" @onclick="@(() => OpenMessengerWithMessage("I'm looking for customer support 🆘"))">
+                        <span class="action-emoji">🆘</span>
+                        I'm looking for customer support
+                    </button>
+                    <button class="preview-quick-action" @onclick="@(() => OpenMessengerWithMessage("Just browsing 👀"))">
+                        <span class="action-emoji">👀</span>
+                        Just browsing
+                    </button>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- Messenger Window -->
+        <div class="intercom-messenger open @(isMinimized ? "minimized" : "")"
+             @ref="messengerElement"
+             id="intercom-messenger"
+             style="@(messengerWidth > 0 ? $"width: {messengerWidth}px; height: {messengerHeight}px;" : "")">
+            <!-- Header -->
+            <div class="intercom-header" id="intercom-header">
+                <div class="intercom-header-top intercom-drag-handle">
+                    <div class="intercom-logo">IL</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="intercom-team-avatars">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces"
+                                 alt="Support team member"
+                                 class="intercom-avatar intercom-avatar-1" />
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces"
+                                 alt="Support team member"
+                                 class="intercom-avatar intercom-avatar-2" />
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces"
+                                 alt="Support team member"
+                                 class="intercom-avatar intercom-avatar-3" />
+                        </div>
+                        <button class="intercom-minimize" @onclick="ToggleMinimize" title="@(isMinimized ? "Maximize" : "Minimize")">
+                            @if (isMinimized)
+                            {
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M2 8h12M8 2v12"/>
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M2 8h12"/>
+                                </svg>
+                            }
+                        </button>
+                        <button class="intercom-close" @onclick="CloseMessenger" title="Close">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 4L4 12M4 4l8 8"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="intercom-greeting">Hi there 👋</div>
+                <div class="intercom-subheading">How can we help?</div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="intercom-content" @ref="contentElement">
+                @if (currentTab == "home")
+                {
+                    <!-- Home Tab Content - Welcome only, no chat -->
+                    <div class="intercom-home-content">
+                        <div class="intercom-message">
+                            <div class="intercom-message-avatar bot-avatar">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="intercom-message-bubble">
+                                    Welcome to InsightLearn! 👋 How can we help you today?
+                                </div>
+                                <div class="intercom-message-time">@DateTime.Now.ToString("HH:mm")</div>
+                            </div>
+                        </div>
+                        <div class="intercom-home-actions">
+                            <p style="text-align: center; color: #6B7280; font-size: 14px; margin: 20px 0;">
+                                Click on <strong>Messages</strong> below to start a conversation with our support team.
+                            </p>
+                        </div>
+                    </div>
+                }
+                else if (currentTab == "messages")
+                {
+                    @if (!hasProvidedEmail)
+                    {
+                        <!-- Email Collection Form -->
+                        <div class="intercom-email-form">
+                            <div class="intercom-email-header">
+                                <div class="intercom-team-photos">
+                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=faces"
+                                         alt="Sarah - Support Specialist"
+                                         class="team-photo" />
+                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces"
+                                         alt="Michael - Support Manager"
+                                         class="team-photo" />
+                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=faces"
+                                         alt="Emma - Customer Success"
+                                         class="team-photo" />
+                                </div>
+                                <h3>👋 Welcome!</h3>
+                                <p>Our team typically replies in a few minutes. To start a conversation, please provide your email address:</p>
+                            </div>
+                            <div class="intercom-email-input-group">
+                                <input type="email"
+                                       class="intercom-email-input"
+                                       @bind="userEmail"
+                                       @bind:event="oninput"
+                                       @onkeydown="HandleEmailKeyDown"
+                                       placeholder="your@email.com"
+                                       required />
+                                <button class="intercom-email-submit"
+                                        @onclick="SubmitEmail"
+                                        disabled="@(!IsValidEmail(userEmail))">
+                                    Start Chat →
+                                </button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(emailError))
+                            {
+                                <div class="intercom-email-error">@emailError</div>
+                            }
+                            <div class="intercom-email-privacy">
+                                By continuing, you agree to our <a href="/privacy-policy" target="_blank">Privacy Policy</a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Chat Messages -->
+                        @foreach (var message in messages)
+                        {
+                            <div class="intercom-message @(message.IsUser ? "user" : "")">
+                                <div class="intercom-message-avatar @(message.IsUser ? "" : "bot-avatar")">
+                                    @if (!message.IsUser)
+                                    {
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <span>@userEmail.Substring(0, 1).ToUpper()</span>
+                                    }
+                                </div>
+                                <div>
+                                    <div class="intercom-message-bubble">
+                                        @message.Text
+                                    </div>
+                                    <div class="intercom-message-time">@message.Timestamp.ToString("HH:mm")</div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (isTyping)
+                        {
+                            <div class="intercom-message">
+                                <div class="intercom-message-avatar bot-avatar">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                                    </svg>
+                                </div>
+                                <div class="intercom-message-bubble">
+                                    <div class="intercom-typing">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+            </div>
+
+            <!-- Composer (only show if email provided and on messages tab) -->
+            @if (hasProvidedEmail && currentTab == "messages")
+            {
+                <div class="intercom-composer">
+                    <div class="intercom-composer-inner">
+                        <textarea class="intercom-input"
+                                  @bind="currentMessage"
+                                  @bind:event="oninput"
+                                  @onkeydown="HandleKeyDown"
+                                  placeholder="Send us a message..."
+                                  rows="1"
+                                  maxlength="500"
+                                  disabled="@isTyping"></textarea>
+                        <button class="intercom-send"
+                                @onclick="SendMessage"
+                                disabled="@(string.IsNullOrWhiteSpace(currentMessage) || isTyping)"
+                                title="Send">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 1L1 8l6 2 2 6 6-15z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="intercom-reply-time">We typically reply in a few minutes</div>
+                </div>
+            }
+
+            <!-- Footer Tabs -->
+            <div class="intercom-footer">
+                <button class="intercom-tab @(currentTab == "home" ? "active" : "")" @onclick='() => SwitchTab("home")'>
+                    <div class="intercom-tab-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        </svg>
+                    </div>
+                    <span class="intercom-tab-label">Home</span>
+                </button>
+                <button class="intercom-tab @(currentTab == "messages" ? "active" : "")" @onclick='() => SwitchTab("messages")'>
+                    <div class="intercom-tab-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        @if (unreadCount > 0 && currentTab != "messages")
+                        {
+                            <span class="intercom-tab-badge">@unreadCount</span>
+                        }
+                    </div>
+                    <span class="intercom-tab-label">Messages</span>
+                </button>
+            </div>
+
+            <!-- Resize Handle -->
+            <div class="intercom-resize-handle"
+                 @onmousedown="StartResize"
+                 @onmousedown:preventDefault
+                 title="Drag to resize">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M15 15L11 11M15 11L11 15M15 7L7 15"/>
+                </svg>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ElementReference messengerElement;
+    private ElementReference contentElement;
+
+    private bool isOpen = false;
+    private bool showPreview = false;
+    private string currentTab = "home";
+    private bool hasProvidedEmail = false;
+    private string userEmail = "";
+    private string emailError = "";
+    private int unreadCount = 1;
+    private string? sessionId = null;
+
+    // GDPR: Limiti per utenti anonimi (REJECT functional cookies)
+    private const int ANONYMOUS_MAX_MESSAGES = 10;
+    private int anonymousMessageCount = 0;
+    private bool isAnonymousMode = false;
+
+    // Resize & Minimize
+    private bool isMinimized = false;
+    private int messengerWidth = 0;  // 0 = default CSS size
+    private int messengerHeight = 0; // 0 = default CSS size
+    private bool isResizing = false;
+    private double startX = 0;
+    private double startY = 0;
+    private int startWidth = 0;
+    private int startHeight = 0;
+
+    private List<ChatMessageModel> messages = new();
+    private string currentMessage = "";
+    private bool isTyping = false;
+
+    private class ChatMessageModel
+    {
+        public string Text { get; set; } = "";
+        public bool IsUser { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public string SenderName { get; set; } = "";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // GDPR: Recupera email e sessionId SOLO se l'utente ha accettato Functional Cookies
+            try
+            {
+                // Verifica consenso GDPR per Functional Cookies
+                var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie_consent");
+                bool functionalAllowed = false;
+
+                if (!string.IsNullOrEmpty(consentJson))
+                {
+                    try
+                    {
+                        var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson);
+                        functionalAllowed = consent?.Functional ?? false;
+                    }
+                    catch
+                    {
+                        // Se il JSON è invalido, assumiamo che non ci sia consenso
+                        functionalAllowed = false;
+                    }
+                }
+
+                // Solo se l'utente ha accettato Functional Cookies, recuperiamo i dati
+                if (functionalAllowed)
+                {
+                    var storedEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatbot_email");
+                    var storedSessionId = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatbot_sessionId");
+
+                    if (!string.IsNullOrEmpty(storedEmail) && !string.IsNullOrEmpty(storedSessionId))
+                    {
+                        userEmail = storedEmail;
+                        sessionId = storedSessionId;
+                        hasProvidedEmail = true;
+                        await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Sessione recuperata (consenso functional OK):", storedEmail, storedSessionId);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(consentJson))
+                {
+                    // GDPR REJECT: Utente ha rifiutato functional cookies
+                    // Attiva modalità anonima: NON richiede email, usa "GDPR - REJECT"
+                    userEmail = "GDPR - REJECT";
+                    hasProvidedEmail = true;
+                    isAnonymousMode = true;
+                    await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Modalità ANONIMA attivata (functional REJECT) - Max messaggi:", ANONYMOUS_MAX_MESSAGES);
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Nessun consenso presente - in attesa decisione utente");
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore recupero localStorage:", ex.Message);
+            }
+
+            // Recupera dimensioni salvate chatbot (UI preference, sempre permesso)
+            try
+            {
+                var savedWidth = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatbot_width");
+                var savedHeight = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "chatbot_height");
+
+                if (!string.IsNullOrEmpty(savedWidth) && int.TryParse(savedWidth, out int w))
+                {
+                    messengerWidth = w;
+                }
+                if (!string.IsNullOrEmpty(savedHeight) && int.TryParse(savedHeight, out int h))
+                {
+                    messengerHeight = h;
+                }
+            }
+            catch { }
+
+            // Show preview after 3 seconds
+            await Task.Delay(3000);
+            if (!isOpen)
+            {
+                showPreview = true;
+                StateHasChanged();
+            }
+        }
+
+        if (isOpen && contentElement.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToBottom", contentElement);
+        }
+    }
+
+    private void OpenMessenger()
+    {
+        isOpen = true;
+        showPreview = false;
+        currentTab = "home";
+        unreadCount = 0;
+        StateHasChanged();
+    }
+
+    private void OpenMessengerWithMessage(string message)
+    {
+        isOpen = true;
+        showPreview = false;
+        currentTab = "messages";
+        unreadCount = 0;
+        // Pre-fill the message if email is already provided
+        if (hasProvidedEmail)
+        {
+            currentMessage = message;
+        }
+        StateHasChanged();
+    }
+
+    private void CloseMessenger()
+    {
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    private void SwitchTab(string tab)
+    {
+        if (tab == "home")
+        {
+            // Home button: close chatbot completely
+            CloseMessenger();
+        }
+        else if (tab == "messages")
+        {
+            // Messages button: open messages tab
+            // Email form will be shown if email not yet provided
+            currentTab = "messages";
+            unreadCount = 0; // Clear badge when clicking Messages
+            StateHasChanged();
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task HandleEmailKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsValidEmail(userEmail))
+        {
+            await SubmitEmail();
+        }
+    }
+
+    private async Task SubmitEmail()
+    {
+        emailError = "";
+
+        if (!IsValidEmail(userEmail))
+        {
+            emailError = "Please enter a valid email address";
+            return;
+        }
+
+        hasProvidedEmail = true;
+
+        // GDPR: Salva email in localStorage SOLO se l'utente ha accettato Functional Cookies
+        bool functionalAllowed = await CheckFunctionalConsentAsync();
+        if (functionalAllowed)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_email", userEmail);
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Email salvata in localStorage (consenso functional OK):", userEmail);
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore salvataggio email:", ex.Message);
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Consenso functional non presente - email NON salvata");
+        }
+
+        // Add welcome message
+        messages.Add(new ChatMessageModel
+        {
+            Text = $"Thanks for providing your email. How can I help you today?",
+            IsUser = false,
+            Timestamp = DateTime.Now,
+            SenderName = ""
+        });
+
+        StateHasChanged();
+
+        // Scroll to bottom after rendering
+        await Task.Delay(100);
+        if (contentElement.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToBottom", contentElement);
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !string.IsNullOrWhiteSpace(currentMessage) && !isTyping)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(currentMessage) || isTyping)
+            return;
+
+        // GDPR: Verifica limite messaggi per utenti anonimi
+        if (isAnonymousMode && anonymousMessageCount >= ANONYMOUS_MAX_MESSAGES)
+        {
+            messages.Add(new ChatMessageModel
+            {
+                Text = $"You've reached the maximum number of messages ({ANONYMOUS_MAX_MESSAGES}) in anonymous mode. To continue chatting, please accept Functional Cookies in the privacy settings.",
+                IsUser = false,
+                SenderName = ""
+            });
+            StateHasChanged();
+            return;
+        }
+
+        var userMessage = currentMessage.Trim();
+
+        // Incrementa contatore per utenti anonimi
+        if (isAnonymousMode)
+        {
+            anonymousMessageCount++;
+        }
+
+        messages.Add(new ChatMessageModel
+        {
+            Text = userMessage,
+            IsUser = true,
+            SenderName = ""
+        });
+        currentMessage = "";
+        isTyping = true;
+        StateHasChanged();
+
+        await Task.Delay(100);
+        if (contentElement.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToBottom", contentElement);
+        }
+
+        try
+        {
+            // DEBUG: Log before API call
+            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Calling API with message:", userMessage, "email:", userEmail, "sessionId:", sessionId);
+
+            // Use the WASM-compatible ChatService with email and sessionId
+            var response = await ChatService.SendMessageAsync(
+                userMessage,
+                email: hasProvidedEmail ? userEmail : null,
+                sessionId: !string.IsNullOrEmpty(sessionId) ? sessionId : null
+            );
+
+            // DEBUG: Log response
+            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Response received:",
+                response != null ? "NOT NULL" : "NULL",
+                "Success:", response?.Success ?? false,
+                "Data:", response?.Data != null ? "NOT NULL" : "NULL");
+
+            // Check if we have a valid response with message
+            string botMessage = null;
+
+            if (response?.Data != null && !string.IsNullOrEmpty(response.Data.Message))
+            {
+                // Response in Data.Message (wrapped format)
+                botMessage = response.Data.Message;
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Data.Message");
+            }
+            else if (response != null && !string.IsNullOrEmpty(response.Message))
+            {
+                // Response in Message (direct API format - this is the current case!)
+                botMessage = response.Message;
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Message (direct API)");
+            }
+
+            if (!string.IsNullOrEmpty(botMessage))
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Adding bot message:", botMessage);
+
+                messages.Add(new ChatMessageModel
+                {
+                    Text = botMessage,
+                    IsUser = false,
+                    SenderName = ""
+                });
+
+                // Salva sessionId ricevuto dall'API in localStorage (cookie HTTPS sicuro)
+                string? receivedSessionId = response?.Data?.SessionId;
+
+                if (!string.IsNullOrEmpty(receivedSessionId))
+                {
+                    sessionId = receivedSessionId;
+
+                    // GDPR: Salva sessionId SOLO se l'utente ha accettato Functional Cookies
+                    bool functionalAllowed = await CheckFunctionalConsentAsync();
+                    if (functionalAllowed)
+                    {
+                        try
+                        {
+                            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_sessionId", sessionId);
+                            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] SessionId salvato in localStorage (consenso functional OK):", sessionId);
+                        }
+                        catch (Exception ex)
+                        {
+                            await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore salvataggio sessionId:", ex.Message);
+                        }
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Consenso functional non presente - sessionId NON salvato");
+                    }
+                }
+
+                // Show badge if user is not in Messages tab (new message notification)
+                if (currentTab != "messages")
+                {
+                    unreadCount++;
+                }
+            }
+            else
+            {
+                // DEBUG: Log why it failed
+                var errorMsg = response == null ? "Response is NULL" :
+                               response.Data == null ? "Data is NULL" :
+                               string.IsNullOrEmpty(response.Data.Message) ? "Data.Message is empty" :
+                               "Unknown error";
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] ERROR:", errorMsg, "Full response:", response);
+
+                messages.Add(new ChatMessageModel
+                {
+                    Text = $"Sorry, I'm having trouble connecting right now. Please try again later.",
+                    IsUser = false,
+                    SenderName = ""
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // DEBUG: Log exception
+            await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Exception:", ex.Message, ex.StackTrace);
+
+            messages.Add(new ChatMessageModel
+            {
+                Text = $"Sorry, an error occurred: {ex.Message}",
+                IsUser = false,
+                SenderName = ""
+            });
+        }
+        finally
+        {
+            isTyping = false;
+            StateHasChanged();
+
+            await Task.Delay(100);
+            if (contentElement.Id != null)
+            {
+                await JSRuntime.InvokeVoidAsync("scrollToBottom", contentElement);
+            }
+        }
+    }
+
+    // Minimize/Maximize toggle
+    private void ToggleMinimize()
+    {
+        isMinimized = !isMinimized;
+        StateHasChanged();
+    }
+
+    // Resize methods
+    private async Task StartResize(MouseEventArgs e)
+    {
+        isResizing = true;
+        startX = e.ClientX;
+        startY = e.ClientY;
+
+        // Get current size
+        var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>("eval",
+            "document.getElementById('intercom-messenger').getBoundingClientRect()");
+
+        startWidth = (int)rect.GetProperty("width").GetDouble();
+        startHeight = (int)rect.GetProperty("height").GetDouble();
+
+        // Add global mouse listeners
+        await JSRuntime.InvokeVoidAsync("eval", @"
+            window.chatbotResizeMove = (e) => {
+                DotNet.invokeMethodAsync('InsightLearn.WebAssembly', 'ChatbotResize', e.clientX, e.clientY);
+            };
+            window.chatbotResizeEnd = () => {
+                DotNet.invokeMethodAsync('InsightLearn.WebAssembly', 'ChatbotResizeEnd');
+            };
+            window.addEventListener('mousemove', window.chatbotResizeMove);
+            window.addEventListener('mouseup', window.chatbotResizeEnd);
+        ");
+    }
+
+    [JSInvokable]
+    public void ChatbotResize(double clientX, double clientY)
+    {
+        if (!isResizing) return;
+
+        // Calculate new size (resize from bottom-right corner)
+        var deltaX = (int)(clientX - startX);
+        var deltaY = (int)(clientY - startY);
+
+        messengerWidth = Math.Max(320, Math.Min(800, startWidth + deltaX));
+        messengerHeight = Math.Max(400, Math.Min(800, startHeight + deltaY));
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task ChatbotResizeEnd()
+    {
+        isResizing = false;
+
+        // Remove global listeners
+        await JSRuntime.InvokeVoidAsync("eval", @"
+            window.removeEventListener('mousemove', window.chatbotResizeMove);
+            window.removeEventListener('mouseup', window.chatbotResizeEnd);
+        ");
+
+        // Save size to localStorage (GDPR-compliant: always allowed for UI preferences)
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_width", messengerWidth.ToString());
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_height", messengerHeight.ToString());
+        }
+        catch { }
+    }
+
+    // Helper method per verificare consenso GDPR Functional Cookies
+    private async Task<bool> CheckFunctionalConsentAsync()
+    {
+        try
+        {
+            var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie_consent");
+            if (!string.IsNullOrEmpty(consentJson))
+            {
+                var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson);
+                return consent?.Functional ?? false;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    // Classe per deserializzare cookie_consent
+    private class CookieConsent
+    {
+        public bool Necessary { get; set; }
+        public bool Functional { get; set; }
+        public bool Analytics { get; set; }
+        public bool Marketing { get; set; }
+    }
+}
+
+<style>
+/* Intercom-style Chatbot Styles */
+.intercom-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+}
+
+.intercom-launcher {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #2D5BFF;
+    border: none;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06), 0 2px 32px rgba(0, 0, 0, 0.16);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.16s ease;
+    position: relative;
+    color: white;
+}
+
+.intercom-launcher:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 40px rgba(0, 0, 0, 0.20);
+    transform: scale(1.05);
+}
+
+.intercom-launcher-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #FF3B30;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border: 2px solid white;
+}
+
+.intercom-preview {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 380px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: intercomSlideIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: pointer;
+}
+
+@@keyframes intercomSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.intercom-preview-message {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #1F2937;
+    margin-bottom: 4px;
+}
+
+.intercom-preview-meta {
+    font-size: 13px;
+    color: #6B7280;
+}
+
+.intercom-messenger {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 400px;
+    height: 680px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: intercomSlideIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.intercom-header {
+    background: linear-gradient(135deg, #1F4FD9 0%, #2D5BFF 50%, #00C9FF 100%);
+    padding: 24px 20px;
+    color: white;
+    position: relative;
+}
+
+.intercom-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.intercom-logo {
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #2D5BFF;
+    font-size: 16px;
+}
+
+/* Drag Handle - Indica area trascinabile */
+.intercom-drag-handle {
+    cursor: move !important;
+    user-select: none;
+}
+
+.intercom-drag-handle:active {
+    cursor: grabbing !important;
+}
+
+.intercom-team-avatars {
+    display: flex;
+    gap: 4px;
+}
+
+.intercom-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    overflow: hidden;
+}
+
+.intercom-avatar svg {
+    width: 100%;
+    height: 100%;
+}
+
+.intercom-close {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.intercom-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.intercom-greeting {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.intercom-subheading {
+    font-size: 20px;
+    font-weight: 500;
+    opacity: 0.95;
+}
+
+.intercom-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #F7F8FA;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.intercom-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.intercom-content::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 3px;
+}
+
+.intercom-home-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.intercom-quick-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.intercom-quick-reply {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: #1F2937;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.intercom-quick-reply:hover {
+    border-color: #2D5BFF;
+    box-shadow: 0 2px 8px rgba(45, 91, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.intercom-message {
+    display: flex;
+    gap: 10px;
+    animation: messageSlide 0.3s ease;
+}
+
+@@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.intercom-message.user {
+    flex-direction: row-reverse;
+}
+
+.intercom-message-avatar {
+    display: none; /* Hide avatars/initials */
+}
+
+.intercom-message.user .intercom-message-avatar {
+    background: #6B7280;
+}
+
+.intercom-message-avatar.bot-avatar {
+    background: #2D5BFF;
+    color: white;
+}
+
+.intercom-message-bubble {
+    background: white;
+    padding: 10px 14px;
+    border-radius: 16px;
+    max-width: 75%;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1F2937;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.intercom-message.user .intercom-message-bubble {
+    background: #2D5BFF;
+    color: white;
+}
+
+.intercom-message-time {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 4px;
+    padding: 0 4px;
+}
+
+.intercom-typing {
+    display: flex;
+    gap: 4px;
+    padding: 10px 14px;
+}
+
+.intercom-typing span {
+    width: 8px;
+    height: 8px;
+    background: #9CA3AF;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.intercom-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.intercom-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* Email Form Styles */
+.intercom-email-form {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.intercom-email-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1F2937;
+    margin: 0 0 8px 0;
+}
+
+.intercom-email-header p {
+    font-size: 14px;
+    color: #6B7280;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+.intercom-email-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.intercom-email-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.intercom-email-input:focus {
+    border-color: #2D5BFF;
+    box-shadow: 0 0 0 3px rgba(45, 91, 255, 0.1);
+}
+
+.intercom-email-submit {
+    background: #2D5BFF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.intercom-email-submit:hover:not(:disabled) {
+    background: #1F4FD9;
+}
+
+.intercom-email-submit:disabled {
+    background: #D1D5DB;
+    cursor: not-allowed;
+}
+
+.intercom-email-error {
+    color: #EF4444;
+    font-size: 12px;
+    margin-top: -8px;
+}
+
+.intercom-email-privacy {
+    margin-top: 12px;
+    text-align: center;
+    color: #9CA3AF;
+}
+
+.intercom-email-privacy a {
+    color: #2D5BFF;
+    text-decoration: none;
+}
+
+.intercom-email-privacy a:hover {
+    text-decoration: underline;
+}
+
+.intercom-composer {
+    padding: 16px 20px;
+    background: white;
+    border-top: 1px solid #E5E7EB;
+}
+
+.intercom-composer-inner {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    background: #F7F8FA;
+    border: 1px solid #E5E7EB;
+    border-radius: 24px;
+    padding: 4px 4px 4px 16px;
+    transition: all 0.2s;
+}
+
+.intercom-composer-inner:focus-within {
+    background: white;
+    border-color: #2D5BFF;
+    box-shadow: 0 0 0 3px rgba(45, 91, 255, 0.1);
+}
+
+.intercom-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 0;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    max-height: 100px;
+    font-family: inherit;
+    color: #1F2937;
+}
+
+.intercom-input::placeholder {
+    color: #9CA3AF;
+}
+
+.intercom-send {
+    width: 36px;
+    height: 36px;
+    background: #2D5BFF;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.intercom-send:hover:not(:disabled) {
+    background: #1F4FD9;
+    transform: scale(1.05);
+}
+
+.intercom-send:disabled {
+    background: #E5E7EB;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.intercom-reply-time {
+    text-align: center;
+    font-size: 12px;
+    color: #6B7280;
+    margin-top: 4px;
+}
+
+.intercom-footer {
+    display: flex;
+    border-top: 1px solid #E5E7EB;
+    background: white;
+}
+
+.intercom-tab {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+    color: #6B7280;
+}
+
+.intercom-tab:hover {
+    background: #F7F8FA;
+}
+
+.intercom-tab.active {
+    color: #2D5BFF;
+}
+
+.intercom-tab-icon {
+    width: 24px;
+    height: 24px;
+    position: relative;
+}
+
+.intercom-tab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #FF3B30;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.intercom-tab-label {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@@media (max-width: 768px) {
+    .intercom-messenger {
+        width: 100vw;
+        height: 100vh;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+    }
+
+    .intercom-preview {
+        width: calc(100vw - 48px);
+        right: 24px;
+    }
+}
+
+/* Minimize Button */
+.intercom-minimize {
+    background: transparent;
+    border: none;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+    width: 28px;
+    height: 28px;
+}
+
+.intercom-minimize:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1F2937;
+}
+
+.intercom-minimize svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Minimized State */
+.intercom-messenger.minimized {
+    height: 56px !important;
+    overflow: hidden;
+}
+
+.intercom-messenger.minimized .intercom-conversation,
+.intercom-messenger.minimized .intercom-composer,
+.intercom-messenger.minimized .intercom-footer {
+    display: none;
+}
+
+/* Resize Handle */
+.intercom-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: color 0.2s;
+}
+
+.intercom-resize-handle:hover {
+    color: #2D5BFF;
+}
+
+.intercom-resize-handle svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.5;
+}
+
+.intercom-resize-handle:hover svg {
+    opacity: 1;
+}
+
+/* Hide resize handle on mobile */
+@@media (max-width: 768px) {
+    .intercom-resize-handle {
+        display: none;
+    }
+}
+</style>
+
+<script>
+    // Make chatbot draggable
+    window.addEventListener('DOMContentLoaded', (event) => {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        const container = document.querySelector('.intercom-container');
+        const messenger = document.querySelector('.intercom-messenger');
+        const header = document.querySelector('.intercom-header');
+
+        if (header && messenger && container) {
+            // Il cursore è gestito via CSS con .intercom-drag-handle
+            header.addEventListener('mousedown', dragStart, false);
+            document.addEventListener('mousemove', drag, false);
+            document.addEventListener('mouseup', dragEnd, false);
+
+            // Touch events for mobile
+            header.addEventListener('touchstart', dragStart, false);
+            document.addEventListener('touchmove', drag, false);
+            document.addEventListener('touchend', dragEnd, false);
+        }
+
+        function dragStart(e) {
+            // NON attivare drag se si clicca su pulsanti o maniglia resize
+            if (e.target.closest('.intercom-close') ||
+                e.target.closest('.intercom-minimize') ||
+                e.target.closest('.intercom-resize-handle')) {
+                return;
+            }
+
+            if (e.type === "touchstart") {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+            } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+            }
+
+            if (e.target.closest('.intercom-header')) {
+                isDragging = true;
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                if (e.type === "touchmove") {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, container);
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+        }
+    });
+
+    // Scroll to bottom function for chat
+    window.scrollToBottom = (element) => {
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+    };
+</script>

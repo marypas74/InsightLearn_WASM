@@ -1,0 +1,84 @@
+@page "/admin/chatbot/analytics"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Chatbot Analytics - InsightLearn Admin</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="breadcrumb-nav">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/admin" class="breadcrumb-item">Admin</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Chatbot Analytics</span>
+        </nav>
+    </div>
+
+    <div class="page-header">
+        <h1 class="page-title">Chatbot Analytics</h1>
+        <p class="page-description">View chatbot usage analytics</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner spinner-lg"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>@error</h3>
+            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+        </div>
+    }
+    else
+    {
+        <div class="clean-card">
+            <div class="card-header">
+                <h2>Chatbot Analytics</h2>
+            </div>
+            <div class="card-content">
+                <p>View chatbot usage analytics page content goes here.</p>
+                <!-- TODO: Implement ChatbotAnalytics functionality -->
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            // TODO: Implement API call for ChatbotAnalytics
+            await Task.Delay(500); // Placeholder
+
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading data";
+            Toast.ShowError(error);
+            Console.WriteLine($"ChatbotAnalytics error: {ex}");
+            isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,77 @@
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="admin-user-menu">
+    <AuthorizeView>
+        <Authorized>
+            <div class="user-menu-trigger" @onclick="ToggleMenu">
+                <div class="user-avatar">
+                    @if (!string.IsNullOrEmpty(userAvatar))
+                    {
+                        <img src="@userAvatar" alt="@userName" />
+                    }
+                    else
+                    {
+                        <span>@GetInitials(userName)</span>
+                    }
+                </div>
+                <span class="user-name">@userName</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+
+            @if (showMenu)
+            {
+                <div class="user-dropdown-menu">
+                    <a href="/profile" class="menu-item">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
+                    <a href="/settings" class="menu-item">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    <hr />
+                    <button @onclick="HandleLogout" class="menu-item logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <a href="/login" class="login-btn">Login</a>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private bool showMenu = false;
+    private string userName = "User";
+    private string userAvatar = "";
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask != null)
+        {
+            var authState = await AuthenticationStateTask;
+            var user = authState.User;
+            userName = user.Identity?.Name ?? "User";
+        }
+    }
+
+    private void ToggleMenu() => showMenu = !showMenu;
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "U";
+        var names = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return names.Length >= 2 ? $"{names[0][0]}{names[^1][0]}".ToUpper() : names[0][0].ToString().ToUpper();
+    }
+}

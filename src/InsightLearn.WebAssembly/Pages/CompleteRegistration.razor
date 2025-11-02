@@ -1,0 +1,513 @@
+@page "/complete-registration"
+@using InsightLearn.WebAssembly.Services
+@using System.ComponentModel.DataAnnotations
+@inject IAuthService AuthService
+@inject IApiClient ApiClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [Authorize]
+
+<PageTitle>Complete Your Registration - InsightLearn</PageTitle>
+
+<div class="container-fluid min-vh-100 bg-light">
+    <div class="row justify-content-center py-5">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2 class="card-title mb-1">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Complete Your Registration
+                    </h2>
+                    <p class="mb-0 opacity-75">Just a few more details to get started</p>
+                </div>
+
+                <div class="card-body p-5">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @errorMessage
+                        </div>
+                    }
+
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status"></div>
+                            <p class="text-muted">Loading your information...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@registrationModel" OnValidSubmit="@HandleCompleteRegistration">
+                            <DataAnnotationsValidator />
+
+                            <!-- Progress Steps -->
+                            <div class="mb-4">
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: @(currentStep * 33.33)%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted">
+                                    <span class="@(currentStep >= 1 ? "text-primary fw-bold" : "")">Personal Info</span>
+                                    <span class="@(currentStep >= 2 ? "text-primary fw-bold" : "")">Address</span>
+                                    <span class="@(currentStep >= 3 ? "text-primary fw-bold" : "")">Payment</span>
+                                </div>
+                            </div>
+
+                            @if (currentStep == 1)
+                            {
+                                <!-- Step 1: Personal Information -->
+                                <div class="step-content">
+                                    <h4 class="mb-4">
+                                        <i class="fas fa-user me-2 text-primary"></i>
+                                        Personal Information
+                                    </h4>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">First Name *</label>
+                                            <InputText @bind-Value="registrationModel.FirstName" class="form-control form-control-lg" placeholder="Enter your first name" />
+                                            <ValidationMessage For="@(() => registrationModel.FirstName)" class="text-danger small" />
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">Last Name *</label>
+                                            <InputText @bind-Value="registrationModel.LastName" class="form-control form-control-lg" placeholder="Enter your last name" />
+                                            <ValidationMessage For="@(() => registrationModel.LastName)" class="text-danger small" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Phone Number</label>
+                                        <InputText @bind-Value="registrationModel.PhoneNumber" class="form-control form-control-lg" placeholder="Enter your phone number" />
+                                        <ValidationMessage For="@(() => registrationModel.PhoneNumber)" class="text-danger small" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Date of Birth</label>
+                                        <InputDate @bind-Value="registrationModel.DateOfBirth" class="form-control form-control-lg" />
+                                        <ValidationMessage For="@(() => registrationModel.DateOfBirth)" class="text-danger small" />
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label fw-semibold">Bio</label>
+                                        <InputTextArea @bind-Value="registrationModel.Bio" class="form-control" rows="3" placeholder="Tell us about yourself (optional)" />
+                                        <ValidationMessage For="@(() => registrationModel.Bio)" class="text-danger small" />
+                                    </div>
+                                </div>
+                            }
+                            else if (currentStep == 2)
+                            {
+                                <!-- Step 2: Address Information -->
+                                <div class="step-content">
+                                    <h4 class="mb-4">
+                                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                                        Address Information
+                                    </h4>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Street Address *</label>
+                                        <InputText @bind-Value="registrationModel.StreetAddress" class="form-control form-control-lg" placeholder="Enter your street address" />
+                                        <ValidationMessage For="@(() => registrationModel.StreetAddress)" class="text-danger small" />
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">City *</label>
+                                            <InputText @bind-Value="registrationModel.City" class="form-control form-control-lg" placeholder="Enter your city" />
+                                            <ValidationMessage For="@(() => registrationModel.City)" class="text-danger small" />
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">State/Province *</label>
+                                            <InputText @bind-Value="registrationModel.StateProvince" class="form-control form-control-lg" placeholder="Enter your state/province" />
+                                            <ValidationMessage For="@(() => registrationModel.StateProvince)" class="text-danger small" />
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">Postal Code *</label>
+                                            <InputText @bind-Value="registrationModel.PostalCode" class="form-control form-control-lg" placeholder="Enter your postal code" />
+                                            <ValidationMessage For="@(() => registrationModel.PostalCode)" class="text-danger small" />
+                                        </div>
+                                        <div class="col-md-6 mb-4">
+                                            <label class="form-label fw-semibold">Country *</label>
+                                            <InputSelect @bind-Value="registrationModel.Country" class="form-select form-select-lg">
+                                                <option value="">Select your country</option>
+                                                <option value="IT">Italy</option>
+                                                <option value="US">United States</option>
+                                                <option value="GB">United Kingdom</option>
+                                                <option value="DE">Germany</option>
+                                                <option value="FR">France</option>
+                                                <option value="ES">Spain</option>
+                                                <option value="CA">Canada</option>
+                                                <option value="AU">Australia</option>
+                                            </InputSelect>
+                                            <ValidationMessage For="@(() => registrationModel.Country)" class="text-danger small" />
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else if (currentStep == 3)
+                            {
+                                <!-- Step 3: Payment Information -->
+                                <div class="step-content">
+                                    <h4 class="mb-4">
+                                        <i class="fas fa-credit-card me-2 text-primary"></i>
+                                        Payment Information
+                                    </h4>
+
+                                    <div class="alert alert-info mb-4">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Secure Payment:</strong> Your payment information is encrypted and secure. No charges will be made until you purchase a course.
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cardholder Name *</label>
+                                        <InputText @bind-Value="registrationModel.CardholderName" class="form-control form-control-lg" placeholder="Enter cardholder name" />
+                                        <ValidationMessage For="@(() => registrationModel.CardholderName)" class="text-danger small" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Card Number *</label>
+                                        <InputText @bind-Value="registrationModel.CardNumber" class="form-control form-control-lg" placeholder="1234 5678 9012 3456" @oninput="FormatCardNumber" />
+                                        <ValidationMessage For="@(() => registrationModel.CardNumber)" class="text-danger small" />
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">Expiry Date *</label>
+                                            <InputText @bind-Value="registrationModel.ExpiryDate" class="form-control form-control-lg" placeholder="MM/YY" @oninput="FormatExpiryDate" />
+                                            <ValidationMessage For="@(() => registrationModel.ExpiryDate)" class="text-danger small" />
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold">CVV *</label>
+                                            <InputText @bind-Value="registrationModel.CVV" class="form-control form-control-lg" placeholder="123" maxlength="4" />
+                                            <ValidationMessage For="@(() => registrationModel.CVV)" class="text-danger small" />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-check mb-4">
+                                        <InputCheckbox @bind-Value="registrationModel.SavePaymentMethod" class="form-check-input" id="savePayment" />
+                                        <label class="form-check-label" for="savePayment">
+                                            Save this payment method for future purchases
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Navigation Buttons -->
+                            <div class="d-flex justify-content-between mt-4 pt-4 border-top">
+                                @if (currentStep > 1)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-lg" @onclick="PreviousStep">
+                                        <i class="fas fa-arrow-left me-2"></i>
+                                        Previous
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div></div>
+                                }
+
+                                @if (currentStep < 3)
+                                {
+                                    <button type="button" class="btn btn-primary btn-lg" @onclick="NextStep">
+                                        Next
+                                        <i class="fas fa-arrow-right ms-2"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-success btn-lg" disabled="@isSubmitting">
+                                        @if (isSubmitting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <span>Completing...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-check me-2"></i>
+                                            <span>Complete Registration</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+
+                            <!-- Terms and Privacy -->
+                            @if (currentStep == 3)
+                            {
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="form-check">
+                                        <InputCheckbox @bind-Value="registrationModel.AgreeToTerms" class="form-check-input" id="agreeTerms" />
+                                        <label class="form-check-label small" for="agreeTerms">
+                                            I agree to the <a href="/terms" class="text-primary">Terms of Service</a> and <a href="/privacy" class="text-primary">Privacy Policy</a> *
+                                        </label>
+                                        <ValidationMessage For="@(() => registrationModel.AgreeToTerms)" class="text-danger small d-block" />
+                                    </div>
+                                </div>
+                            }
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CompleteRegistrationModel registrationModel = new();
+    private bool isLoading = false;
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+    private int currentStep = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Get current user profile to pre-populate
+            var response = await ApiClient.GetAsync<UserProfileDto>("/api/users/profile");
+            if (response?.Success == true && response.Data != null)
+            {
+                registrationModel.FirstName = response.Data.FirstName ?? "";
+                registrationModel.LastName = response.Data.LastName ?? "";
+                registrationModel.PhoneNumber = response.Data.PhoneNumber ?? "";
+                // Add other fields if available
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user profile: {ex.Message}");
+            errorMessage = "Error loading your information. Please try refreshing the page.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void NextStep()
+    {
+        if (ValidateCurrentStep())
+        {
+            currentStep++;
+            errorMessage = string.Empty;
+            StateHasChanged();
+        }
+        else
+        {
+            errorMessage = "Please fill in all required fields before continuing.";
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (currentStep > 1)
+        {
+            currentStep--;
+            errorMessage = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private bool ValidateCurrentStep()
+    {
+        switch (currentStep)
+        {
+            case 1:
+                return !string.IsNullOrWhiteSpace(registrationModel.FirstName) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.LastName);
+            case 2:
+                return !string.IsNullOrWhiteSpace(registrationModel.StreetAddress) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.City) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.StateProvince) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.PostalCode) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.Country);
+            case 3:
+                return !string.IsNullOrWhiteSpace(registrationModel.CardholderName) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.CardNumber) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.ExpiryDate) &&
+                       !string.IsNullOrWhiteSpace(registrationModel.CVV) &&
+                       registrationModel.AgreeToTerms;
+            default:
+                return true;
+        }
+    }
+
+    private async Task HandleCompleteRegistration()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+            StateHasChanged();
+
+            // Call API to complete registration
+            var request = new CompleteRegistrationRequest
+            {
+                FirstName = registrationModel.FirstName,
+                LastName = registrationModel.LastName,
+                PhoneNumber = registrationModel.PhoneNumber,
+                DateOfBirth = registrationModel.DateOfBirth,
+                Bio = registrationModel.Bio,
+                StreetAddress = registrationModel.StreetAddress,
+                City = registrationModel.City,
+                StateProvince = registrationModel.StateProvince,
+                PostalCode = registrationModel.PostalCode,
+                Country = registrationModel.Country,
+                CardholderName = registrationModel.CardholderName,
+                CardNumber = registrationModel.CardNumber,
+                ExpiryDate = registrationModel.ExpiryDate,
+                CVV = registrationModel.CVV,
+                SavePaymentMethod = registrationModel.SavePaymentMethod
+            };
+
+            var response = await ApiClient.PostAsync<object>("/api/auth/complete-registration", request);
+
+            if (response?.Success == true)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Registration completed successfully! Welcome to InsightLearn!");
+                await Task.Delay(500);
+                Navigation.NavigateTo("/dashboard", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "Failed to complete registration. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error completing registration: {ex.Message}");
+            errorMessage = "An error occurred while completing registration. Please try again.";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FormatCardNumber(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString()?.Replace(" ", "") ?? "";
+        if (value.Length <= 16)
+        {
+            var formatted = string.Join(" ", Enumerable.Range(0, (value.Length + 3) / 4)
+                .Select(i => value.Substring(i * 4, Math.Min(4, value.Length - i * 4))));
+            registrationModel.CardNumber = formatted;
+        }
+    }
+
+    private void FormatExpiryDate(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString()?.Replace("/", "") ?? "";
+        if (value.Length <= 4)
+        {
+            if (value.Length >= 2)
+            {
+                registrationModel.ExpiryDate = value.Substring(0, 2) + "/" + value.Substring(2);
+            }
+            else
+            {
+                registrationModel.ExpiryDate = value;
+            }
+        }
+    }
+
+    // DTOs
+    public class UserProfileDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
+    }
+
+    public class CompleteRegistrationRequest
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string? PhoneNumber { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Bio { get; set; }
+        public string StreetAddress { get; set; } = "";
+        public string City { get; set; } = "";
+        public string StateProvince { get; set; } = "";
+        public string PostalCode { get; set; } = "";
+        public string Country { get; set; } = "";
+        public string CardholderName { get; set; } = "";
+        public string CardNumber { get; set; } = "";
+        public string ExpiryDate { get; set; } = "";
+        public string CVV { get; set; } = "";
+        public bool SavePaymentMethod { get; set; }
+    }
+
+    public class ApiResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+    }
+
+    public class CompleteRegistrationModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(50, ErrorMessage = "First name must be less than 50 characters")]
+        public string FirstName { get; set; } = "";
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(50, ErrorMessage = "Last name must be less than 50 characters")]
+        public string LastName { get; set; } = "";
+
+        [Phone(ErrorMessage = "Invalid phone number format")]
+        public string? PhoneNumber { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+
+        [StringLength(500, ErrorMessage = "Bio must be less than 500 characters")]
+        public string? Bio { get; set; }
+
+        [Required(ErrorMessage = "Street address is required")]
+        [StringLength(100, ErrorMessage = "Street address must be less than 100 characters")]
+        public string StreetAddress { get; set; } = "";
+
+        [Required(ErrorMessage = "City is required")]
+        [StringLength(50, ErrorMessage = "City must be less than 50 characters")]
+        public string City { get; set; } = "";
+
+        [Required(ErrorMessage = "State/Province is required")]
+        [StringLength(50, ErrorMessage = "State/Province must be less than 50 characters")]
+        public string StateProvince { get; set; } = "";
+
+        [Required(ErrorMessage = "Postal code is required")]
+        [StringLength(20, ErrorMessage = "Postal code must be less than 20 characters")]
+        public string PostalCode { get; set; } = "";
+
+        [Required(ErrorMessage = "Country is required")]
+        public string Country { get; set; } = "";
+
+        [Required(ErrorMessage = "Cardholder name is required")]
+        [StringLength(100, ErrorMessage = "Cardholder name must be less than 100 characters")]
+        public string CardholderName { get; set; } = "";
+
+        [Required(ErrorMessage = "Card number is required")]
+        [StringLength(19, ErrorMessage = "Invalid card number")]
+        public string CardNumber { get; set; } = "";
+
+        [Required(ErrorMessage = "Expiry date is required")]
+        [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Invalid expiry date format (MM/YY)")]
+        public string ExpiryDate { get; set; } = "";
+
+        [Required(ErrorMessage = "CVV is required")]
+        [StringLength(4, MinimumLength = 3, ErrorMessage = "CVV must be 3 or 4 digits")]
+        public string CVV { get; set; } = "";
+
+        public bool SavePaymentMethod { get; set; } = false;
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the terms and conditions")]
+        public bool AgreeToTerms { get; set; } = false;
+    }
+}

@@ -1,0 +1,294 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<!-- Skip to main content link for accessibility -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Main Layout Structure -->
+<div class="main-layout" style="overflow-y: auto !important; overflow-x: hidden !important; transform: none !important; perspective: none !important;">
+    <!-- Main Header - Modern 3-Column Grid Layout -->
+    <header class="main-header" role="banner" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; z-index: 99999 !important; background: rgba(255,255,255,0.98) !important; backdrop-filter: blur(12px) !important;">
+        <div class="main-header-container">
+            <!-- Logo Section -->
+            <div class="header-logo-section">
+                <a href="/" class="logo-link">
+                    <img src="images/insightlearn-logo.png" alt="InsightLearn.cloud Logo" class="logo-image" />
+                    <span class="logo-text">InsightLearn</span>
+                </a>
+            </div>
+
+            <!-- Search Section (desktop only) -->
+            <div class="header-search-section desktop-only">
+                <form class="search-form" @onsubmit="HandleSearch">
+                    <div class="search-input-wrapper">
+                        <input type="search"
+                               class="search-input"
+                               placeholder="Search courses, topics, instructors..."
+                               aria-label="Search"
+                               @bind="searchQuery" />
+                        <button type="submit" class="search-submit-btn" aria-label="Search">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="header-actions-section">
+                <!-- Categories Dropdown -->
+                <div class="nav-dropdown categories-dropdown">
+                    <button class="dropdown-trigger categories-trigger"
+                            type="button"
+                            aria-expanded="@isCategoriesOpen"
+                            aria-haspopup="true"
+                            @onclick="ToggleCategories"
+                            aria-label="Browse course categories">
+                        <i class="fas fa-th-large" aria-hidden="true"></i>
+                        <span class="desktop-only">Categories</span>
+                        <i class="fas fa-chevron-down dropdown-arrow @(isCategoriesOpen ? "rotated" : "")" aria-hidden="true"></i>
+                    </button>
+                    <div class="dropdown-menu categories-menu @(isCategoriesOpen ? "show" : "")" role="menu">
+                        <div class="categories-grid">
+                            <a href="/categories/development" class="category-item">
+                                <i class="fas fa-code"></i>
+                                <span>Development</span>
+                            </a>
+                            <a href="/categories/business" class="category-item">
+                                <i class="fas fa-briefcase"></i>
+                                <span>Business</span>
+                            </a>
+                            <a href="/categories/design" class="category-item">
+                                <i class="fas fa-palette"></i>
+                                <span>Design</span>
+                            </a>
+                            <a href="/categories/marketing" class="category-item">
+                                <i class="fas fa-bullhorn"></i>
+                                <span>Marketing</span>
+                            </a>
+                        </div>
+                        <a href="/categories" class="view-all-link">
+                            <i class="fas fa-th"></i>
+                            <span>View All Categories</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Shopping Cart -->
+                <a href="/cart" class="cart-btn" aria-label="Shopping cart with @cartItemCount items">
+                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                    @if (cartItemCount > 0)
+                    {
+                        <span class="cart-badge">@cartItemCount</span>
+                    }
+                </a>
+
+                <AuthorizeView>
+                    <Authorized>
+                        <!-- User Menu -->
+                        <div class="user-menu-container">
+                            <button class="user-menu-trigger"
+                                    type="button"
+                                    aria-expanded="false"
+                                    aria-haspopup="true"
+                                    @onclick="ToggleUserMenu">
+                                <div class="user-avatar">
+                                    <span class="avatar-initials">@GetUserInitials(context.User.Identity?.Name)</span>
+                                </div>
+                                <div class="user-info desktop-only">
+                                    <span class="user-name">@context.User.Identity?.Name</span>
+                                </div>
+                            </button>
+                            @if (isUserMenuOpen)
+                            {
+                                <div class="user-dropdown show">
+                                    <a href="/dashboard" class="dropdown-item">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                        Dashboard
+                                    </a>
+                                    <a href="/profile" class="dropdown-item">
+                                        <i class="fas fa-user"></i>
+                                        My Profile
+                                    </a>
+                                    <a href="/my-courses" class="dropdown-item">
+                                        <i class="fas fa-book"></i>
+                                        My Courses
+                                    </a>
+                                    <hr class="dropdown-divider" />
+                                    <button @onclick="Logout" class="dropdown-item logout-btn">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        Logout
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="auth-buttons">
+                            <a href="/login" class="btn btn-outline">Login</a>
+                            <a href="/register" class="btn btn-primary">Sign Up</a>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content" role="main" id="main-content" style="padding-top: 80px !important;">
+        <div class="content-container">
+            @Body
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer" role="contentinfo" style="background: linear-gradient(180deg, #1a1d23 0%, #0f1115 100%); background-color: #1a1d23; color: #e5e7eb;">
+        <div class="footer-container">
+            <!-- Main Footer Content -->
+            <div class="footer-content">
+                <!-- Company Info -->
+                <div class="footer-section footer-brand">
+                    <div class="footer-logo">
+                        <img src="images/insightlearn-logo.png" alt="InsightLearn.cloud" class="footer-logo-img" style="max-width: 200px; height: auto;" />
+                    </div>
+                    <p class="footer-description">
+                        Empowering learners worldwide with quality education and expert-led courses.
+                        Transform your future through continuous learning.
+                    </p>
+                    <div class="footer-social">
+                        <a href="https://twitter.com/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="https://linkedin.com/company/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://instagram.com/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Platform Links -->
+                <div class="footer-section">
+                    <h4 class="footer-heading">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="/courses" class="footer-link">Browse Courses</a></li>
+                        <li><a href="/categories" class="footer-link">Categories</a></li>
+                        <li><a href="/instructors" class="footer-link">Become an Instructor</a></li>
+                        <li><a href="/enterprise" class="footer-link">Enterprise Solutions</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support Links -->
+                <div class="footer-section">
+                    <h4 class="footer-heading">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="/help" class="footer-link">Help Center</a></li>
+                        <li><a href="/contact" class="footer-link">Contact Us</a></li>
+                        <li><a href="/faq" class="footer-link">FAQs</a></li>
+                        <li><a href="mailto:support@insightlearn.cloud" class="footer-link">support@insightlearn.cloud</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal Links -->
+                <div class="footer-section">
+                    <h4 class="footer-heading">Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="/privacy" class="footer-link">Privacy Policy</a></li>
+                        <li><a href="/terms" class="footer-link">Terms of Service</a></li>
+                        <li><a href="/cookie-policy" class="footer-link">Cookie Policy</a></li>
+                        <li><a href="/accessibility" class="footer-link">Accessibility</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p class="footer-copyright">
+                        &copy; @DateTime.Now.Year InsightLearn. All rights reserved.
+                    </p>
+                    <div class="footer-badges">
+                        <span class="footer-badge">
+                            <i class="fas fa-shield-alt"></i> Secure Platform
+                        </span>
+                        <span class="footer-badge">
+                            <i class="fas fa-globe"></i> 150+ Countries
+                        </span>
+                        <span class="footer-badge">
+                            <i class="fas fa-award"></i> Quality Certified
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<!-- Chatbot Widget - Client-side polling instead of SignalR -->
+@if (!IsAdminPage())
+{
+    <ChatbotWidget />
+}
+
+<!-- Cookie Consent Wall - GDPR Compliance (Blocking Full-Screen) -->
+<CookieConsentWall />
+
+@code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+
+    private bool isUserMenuOpen = false;
+    private bool isCategoriesOpen = false;
+    private int cartItemCount = 0;
+    private string searchQuery = string.Empty;
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/", true);
+    }
+
+    private void ToggleUserMenu()
+    {
+        isUserMenuOpen = !isUserMenuOpen;
+    }
+
+    private void ToggleCategories()
+    {
+        isCategoriesOpen = !isCategoriesOpen;
+    }
+
+    private void HandleSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(searchQuery)}");
+        }
+    }
+
+    private string GetUserInitials(string? userName)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+            return "U";
+
+        var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+
+        return userName[0].ToString().ToUpper();
+    }
+
+    private string GetCurrentPage()
+    {
+        var uri = Navigation.Uri;
+        var path = Navigation.ToBaseRelativePath(uri);
+        return "/" + path;
+    }
+
+    private bool IsAdminPage()
+    {
+        var currentPage = GetCurrentPage();
+        return currentPage.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) ||
+               currentPage.StartsWith("/instructor", StringComparison.OrdinalIgnoreCase);
+    }
+}

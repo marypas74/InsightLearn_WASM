@@ -1,0 +1,148 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using InsightLearn.WebAssembly.Models.Auth
+@inject NavigationManager Navigation
+@inject IToastService Toast
+
+<EditForm Model="loginModel" OnValidSubmit="HandleValidSubmit" class="auth-form">
+    <DataAnnotationsValidator />
+
+    <!-- Email Field -->
+    <div class="form-group">
+        <label for="email-input" class="form-label">
+            Email Address
+            <span class="required-indicator">*</span>
+        </label>
+        <InputText id="email-input"
+                  class="form-control"
+                  @bind-Value="loginModel.Email"
+                  placeholder="Enter your email address"
+                  autocomplete="email" />
+        <ValidationMessage For="@(() => loginModel.Email)" class="field-validation-error" />
+    </div>
+
+    <!-- Password Field -->
+    <div class="form-group">
+        <label for="password-input" class="form-label">
+            Password
+            <span class="required-indicator">*</span>
+        </label>
+        <div class="password-input-container">
+            <InputText id="password-input"
+                      type="@(showPassword ? "text" : "password")"
+                      class="form-control"
+                      @bind-Value="loginModel.Password"
+                      placeholder="Enter your password"
+                      autocomplete="current-password" />
+            <button type="button"
+                    class="password-toggle-btn"
+                    @onclick="TogglePasswordVisibility">
+                <i class="fas @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+            </button>
+        </div>
+        <ValidationMessage For="@(() => loginModel.Password)" class="field-validation-error" />
+    </div>
+
+    <!-- Remember Me -->
+    @if (ShowRememberMe)
+    {
+        <div class="form-group form-check-container">
+            <label class="form-check-label">
+                <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                <span class="checkmark"></span>
+                Keep me signed in
+            </label>
+        </div>
+    }
+
+    <!-- Submit Button -->
+    <button type="submit"
+            class="auth-submit-btn"
+            disabled="@isLoading">
+        @if (isLoading)
+        {
+            <div class="spinner"></div>
+            <span>@LoadingText</span>
+        }
+        else
+        {
+            <i class="fas fa-sign-in-alt"></i>
+            <span>@SubmitText</span>
+        }
+    </button>
+
+    <!-- Forgot Password Link -->
+    @if (ShowForgotPassword)
+    {
+        <div class="form-footer">
+            <a href="/forgot-password" class="forgot-password-link">Forgot your password?</a>
+        </div>
+    }
+</EditForm>
+
+@code {
+    private LoginRequest loginModel = new();
+    private bool isLoading = false;
+    private bool showPassword = false;
+
+    /// <summary>
+    /// Submit button text
+    /// </summary>
+    [Parameter] public string SubmitText { get; set; } = "Sign In";
+
+    /// <summary>
+    /// Loading text
+    /// </summary>
+    [Parameter] public string LoadingText { get; set; } = "Signing in...";
+
+    /// <summary>
+    /// Show remember me checkbox
+    /// </summary>
+    [Parameter] public bool ShowRememberMe { get; set; } = true;
+
+    /// <summary>
+    /// Show forgot password link
+    /// </summary>
+    [Parameter] public bool ShowForgotPassword { get; set; } = true;
+
+    /// <summary>
+    /// Callback when form is submitted
+    /// </summary>
+    [Parameter] public EventCallback<LoginRequest> OnSubmit { get; set; }
+
+    /// <summary>
+    /// Callback when submit fails
+    /// </summary>
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    /// <summary>
+    /// Sets loading state from parent
+    /// </summary>
+    /// <param name="loading">Loading state</param>
+    public void SetLoading(bool loading)
+    {
+        isLoading = loading;
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            isLoading = true;
+            await OnSubmit.InvokeAsync(loginModel);
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = "Login failed. Please try again.";
+            Toast.ShowError(errorMessage);
+            await OnError.InvokeAsync(errorMessage);
+            Console.WriteLine($"Login error: {ex}");
+            isLoading = false;
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+}

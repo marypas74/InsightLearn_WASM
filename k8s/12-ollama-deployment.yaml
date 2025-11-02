@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: insightlearn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-nginx-config
+  namespace: insightlearn
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      server {
+        listen 11435 ssl;
+        server_name ollama-service;
+
+        ssl_certificate /etc/nginx/ssl/tls.crt;
+        ssl_certificate_key /etc/nginx/ssl/tls.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+
+        location / {
+          proxy_pass http://127.0.0.1:11434;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_set_header Host localhost;
+          proxy_set_header X-Real-IP 127.0.0.1;
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header X-Forwarded-For 127.0.0.1;
+          proxy_set_header X-Forwarded-Proto $scheme;
+
+          # Timeout settings for long-running LLM requests
+          proxy_connect_timeout 300s;
+          proxy_send_timeout 300s;
+          proxy_read_timeout 300s;
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: insightlearn
+spec:
+  selector:
+    app: ollama
+  ports:
+  - port: 11434
+    targetPort: 11435
+    name: https
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ollama
+  namespace: insightlearn
+spec:
+  serviceName: ollama-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+          name: http
+        volumeMounts:
+        - name: ollama-data
+          mountPath: /root/.ollama
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "500m"
+          limits:
+            memory: "5Gi"
+            cpu: "1500m"
+        env:
+        - name: OLLAMA_HOST
+          value: "127.0.0.1:11434"
+        - name: OLLAMA_ORIGINS
+          value: "*"
+      - name: nginx-tls-proxy
+        image: nginx:alpine
+        ports:
+        - containerPort: 11435
+          name: https
+        volumeMounts:
+        - name: ollama-tls
+          mountPath: /etc/nginx/ssl
+          readOnly: true
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      - name: ollama-data
+        persistentVolumeClaim:
+          claimName: ollama-pvc
+      - name: ollama-tls
+        secret:
+          secretName: ollama-tls
+      - name: nginx-config
+        configMap:
+          name: ollama-nginx-config
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-tinyllama
+  namespace: insightlearn
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: ollama-pull
+        image: curlimages/curl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Wait for Ollama to be ready (use -k for self-signed cert)
+          until curl -k -s https://ollama-service:11434/api/version > /dev/null; do
+            echo "Waiting for Ollama to start..."
+            sleep 5
+          done
+
+          # Pull tinyllama model
+          curl -k -X POST https://ollama-service:11434/api/pull \
+            -H "Content-Type: application/json" \
+            -d '{"name": "tinyllama"}'

@@ -1,0 +1,46 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@using Microsoft.AspNetCore.Components.Authorization
+@using InsightLearn.WebAssembly.Services.Auth
+
+@code {
+    private AuthenticationStateChangedHandler? authStateChangedHandler;
+
+    protected override void OnInitialized()
+    {
+        if (AuthStateProvider is JwtAuthenticationStateProvider jwtProvider)
+        {
+            authStateChangedHandler = (task) => OnAuthStateChanged(task);
+            jwtProvider.AuthenticationStateChanged += authStateChangedHandler;
+        }
+    }
+
+    private void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        InvokeAsync(async () =>
+        {
+            var authState = await task;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                // User logged in
+                StateHasChanged();
+            }
+            else
+            {
+                // User logged out
+                Navigation.NavigateTo("/login", forceLoad: true);
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        if (AuthStateProvider is JwtAuthenticationStateProvider jwtProvider && authStateChangedHandler != null)
+        {
+            jwtProvider.AuthenticationStateChanged -= authStateChangedHandler;
+        }
+    }
+}

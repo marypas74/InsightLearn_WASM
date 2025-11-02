@@ -1,0 +1,353 @@
+@page "/oauth-callback"
+@using InsightLearn.WebAssembly.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IAuthService AuthService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Completing Sign In - InsightLearn</PageTitle>
+
+<div class="oauth-callback-container">
+    <div class="oauth-callback-content">
+        <div class="oauth-callback-card">
+            @if (isProcessing)
+            {
+                <div class="oauth-processing">
+                    <div class="oauth-spinner-large">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <h2>Completing your sign in...</h2>
+                    <p class="oauth-status-text">@statusMessage</p>
+                    <div class="oauth-progress-bar">
+                        <div class="oauth-progress-fill" style="width: @(progressPercent)%"></div>
+                    </div>
+                </div>
+            }
+            else if (hasError)
+            {
+                <div class="oauth-error">
+                    <div class="oauth-error-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2>Sign In Failed</h2>
+                    <p class="oauth-error-message">@errorMessage</p>
+                    <div class="oauth-error-actions">
+                        <button type="button" class="btn btn-primary" @onclick="RetrySignIn">
+                            <i class="fas fa-redo" aria-hidden="true"></i>
+                            Try Again
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="GoToLogin">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="oauth-success">
+                    <div class="oauth-success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h2>Welcome!</h2>
+                    <p>You have been successfully signed in. Redirecting to your dashboard...</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+.oauth-callback-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    padding: 1rem;
+}
+
+.oauth-callback-content {
+    width: 100%;
+    max-width: 500px;
+}
+
+.oauth-callback-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    padding: 3rem;
+    text-align: center;
+    animation: slideInUp 0.6s ease;
+}
+
+.oauth-processing h2,
+.oauth-error h2,
+.oauth-success h2 {
+    color: #1f2937;
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.oauth-status-text {
+    color: #6b7280;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.oauth-spinner-large {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+}
+
+.spinner-ring {
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    margin: 8px;
+    border: 8px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    border-color: #6366f1 transparent transparent transparent;
+}
+
+.spinner-ring:nth-child(1) { animation-delay: -0.45s; }
+.spinner-ring:nth-child(2) { animation-delay: -0.3s; }
+.spinner-ring:nth-child(3) { animation-delay: -0.15s; }
+
+.oauth-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.oauth-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.oauth-error-icon,
+.oauth-success-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.oauth-error-icon {
+    color: #ef4444;
+}
+
+.oauth-success-icon {
+    color: #10b981;
+    animation: checkmarkBounce 0.6s ease;
+}
+
+.oauth-error-message {
+    color: #6b7280;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.oauth-error-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: #6366f1;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    color: #6b7280;
+    border-color: #d1d5db;
+}
+
+.btn-outline-secondary:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+@@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@@keyframes checkmarkBounce {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@@media (max-width: 480px) {
+    .oauth-callback-card {
+        padding: 2rem;
+        margin: 1rem;
+    }
+
+    .oauth-error-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+@code {
+    private bool isProcessing = true;
+    private bool hasError = false;
+    private string statusMessage = "Validating your credentials...";
+    private string errorMessage = string.Empty;
+    private int progressPercent = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ProcessOAuthCallbackAsync();
+    }
+
+    private async Task ProcessOAuthCallbackAsync()
+    {
+        try
+        {
+            Console.WriteLine("Processing OAuth callback...");
+
+            // Step 1: Get the authorization code from query parameters
+            var uri = new Uri(Navigation.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var code = query["code"];
+            var state = query["state"];
+            var error = query["error"];
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                throw new Exception($"OAuth error: {error}");
+            }
+
+            if (string.IsNullOrEmpty(code))
+            {
+                throw new Exception("Authorization code not found");
+            }
+
+            // Step 1: Initial validation
+            statusMessage = "Validating your credentials...";
+            progressPercent = 20;
+            StateHasChanged();
+            await Task.Delay(500);
+
+            // Step 2: Exchange code for token
+            statusMessage = "Exchanging authorization code...";
+            progressPercent = 40;
+            StateHasChanged();
+
+            var success = await AuthService.HandleOAuthCallbackAsync(code, state);
+
+            if (!success)
+            {
+                throw new Exception("Failed to complete OAuth authentication");
+            }
+
+            // Step 3: Authentication successful
+            statusMessage = "Authentication successful!";
+            progressPercent = 80;
+            StateHasChanged();
+            await Task.Delay(500);
+
+            // Step 4: Preparing dashboard
+            statusMessage = "Preparing your dashboard...";
+            progressPercent = 100;
+            StateHasChanged();
+            await Task.Delay(500);
+
+            // Step 5: Success state
+            isProcessing = false;
+            StateHasChanged();
+
+            Console.WriteLine("OAuth authentication successful");
+
+            // Redirect to dashboard after showing success
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/dashboard", true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"OAuth callback error: {ex.Message}");
+
+            isProcessing = false;
+            hasError = true;
+            errorMessage = "We encountered an issue completing your sign-in. This could be due to a temporary problem with the authentication service.";
+            StateHasChanged();
+        }
+    }
+
+    private async Task RetrySignIn()
+    {
+        isProcessing = true;
+        hasError = false;
+        progressPercent = 0;
+        StateHasChanged();
+
+        await ProcessOAuthCallbackAsync();
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/login", true);
+    }
+}

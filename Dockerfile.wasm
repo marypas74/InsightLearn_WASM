@@ -1,0 +1,202 @@
+# Blazor WebAssembly Dockerfile
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY ["src/InsightLearn.WebAssembly/InsightLearn.WebAssembly.csproj", "src/InsightLearn.WebAssembly/"]
+RUN dotnet restore "src/InsightLearn.WebAssembly/InsightLearn.WebAssembly.csproj"
+
+# Copy source code
+COPY . .
+WORKDIR "/src/src/InsightLearn.WebAssembly"
+
+# Build and publish
+RUN dotnet build "InsightLearn.WebAssembly.csproj" -c Release -o /app/build /maxcpucount:1
+RUN dotnet publish "InsightLearn.WebAssembly.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 2: Serve with nginx
+FROM nginx:alpine AS final
+WORKDIR /usr/share/nginx/html
+
+# Copy published WASM files
+COPY --from=build /app/publish/wwwroot .
+
+# Copy custom JavaScript files (must be done AFTER wwwroot copy)
+COPY --from=build /src/src/InsightLearn.WebAssembly/wwwroot/js/httpClient.js ./js/httpClient.js
+
+# OVERRIDE appsettings.json with RELATIVE API URL (proxied by nginx)
+# IMPORTANTE: BaseUrl "/api" viene gestito dal proxy nginx interno (location /api/)
+# che inoltra a http://api-service.insightlearn.svc.cluster.local:80
+COPY <<EOF /usr/share/nginx/html/appsettings.json
+{
+  "ApiSettings": {
+    "BaseUrl": "/api",
+    "Timeout": 30,
+    "Version": "v1.4.29-dev"
+  },
+  "Authentication": {
+    "TokenKey": "InsightLearn.AuthToken",
+    "RefreshTokenKey": "InsightLearn.RefreshToken",
+    "TokenExpirationMinutes": 60
+  },
+  "Endpoints": {
+    "Auth": {
+      "Login": "api/auth/login",
+      "Register": "api/auth/register",
+      "CompleteRegistration": "api/auth/complete-registration",
+      "Refresh": "api/auth/refresh",
+      "Me": "api/auth/me",
+      "OAuthCallback": "api/auth/oauth-callback"
+    },
+    "Courses": {
+      "GetAll": "api/courses",
+      "GetById": "api/courses/{0}",
+      "Create": "api/courses",
+      "Update": "api/courses/{0}",
+      "Delete": "api/courses/{0}",
+      "Search": "api/courses/search",
+      "GetByCategory": "api/courses/category/{0}"
+    },
+    "Categories": {
+      "GetAll": "api/categories",
+      "GetById": "api/categories/{0}",
+      "Create": "api/categories",
+      "Update": "api/categories/{0}",
+      "Delete": "api/categories/{0}"
+    },
+    "Enrollments": {
+      "GetAll": "api/enrollments",
+      "GetById": "api/enrollments/{0}",
+      "Create": "api/enrollments",
+      "GetByCourse": "api/enrollments/course/{0}",
+      "GetByUser": "api/enrollments/user/{0}"
+    },
+    "Users": {
+      "GetAll": "api/users",
+      "GetById": "api/users/{0}",
+      "Update": "api/users/{0}",
+      "Delete": "api/users/{0}",
+      "GetProfile": "api/users/profile"
+    },
+    "Dashboard": {
+      "GetStats": "api/dashboard/stats",
+      "GetRecentActivity": "api/dashboard/recent-activity"
+    },
+    "Reviews": {
+      "GetAll": "api/reviews",
+      "GetById": "api/reviews/{0}",
+      "Create": "api/reviews",
+      "GetByCourse": "api/reviews/course/{0}"
+    },
+    "Payments": {
+      "CreateCheckout": "api/payments/create-checkout",
+      "GetTransactions": "api/payments/transactions",
+      "GetTransactionById": "api/payments/transactions/{0}"
+    },
+    "Chat": {
+      "SendMessage": "api/chat/message",
+      "GetHistory": "api/chat/history"
+    }
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
+EOF
+
+# Copy custom nginx configuration
+COPY <<EOF /etc/nginx/conf.d/default.conf
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Enable gzip compression for WASM files
+    gzip on;
+    gzip_types application/wasm application/javascript text/css text/html;
+    gzip_min_length 1024;
+
+    # MIME types for Blazor WASM
+    types {
+        application/wasm wasm;
+        application/octet-stream dll;
+        application/json json;
+        application/javascript js;
+        text/css css;
+        text/html html;
+    }
+
+    # JavaScript files (MUST be before location / to prevent SPA fallback)
+    location ~* \.js$ {
+        try_files \$uri =404;
+        add_header Content-Type application/javascript;
+        add_header Cache-Control "public, max-age=3600";
+    }
+
+    # DNS resolver for Kubernetes service discovery (using kube-dns IP)
+    resolver 10.96.0.10 valid=10s;
+
+    # API Proxy - Forward /api requests to backend API (SOLVES CORS!)
+    # Browser sees same origin, nginx forwards to actual API
+    location /api/ {
+        # Use variable to force DNS resolution at request time (not at startup)
+        set \$api_backend "http://api-service.insightlearn.svc.cluster.local:80";
+
+        # Pass the full request URI (includes /api/...)
+        proxy_pass \$api_backend\$request_uri;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$server_name;
+
+        # Timeouts
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+
+        # No caching for API calls
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Serve index.html for all routes (SPA routing)
+    location / {
+        try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Cache static assets (EXCEPT WASM/DLL for development)
+    location ~* \.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # NO CACHE for WASM/DLL/JS during development
+    location ~* \.(wasm|dll|dat|json|js|css)$ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+
+    # Framework files - NO CACHE during development
+    location /_framework/ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+}
+EOF
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+
+EXPOSE 80

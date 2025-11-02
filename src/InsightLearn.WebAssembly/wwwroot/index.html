@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <title>InsightLearn - Online Learning Platform</title>
+    <base href="/" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Bootstrap Framework -->
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="css/design-system-base.css" />
+    <link rel="stylesheet" href="css/design-system-components.css" />
+    <link rel="stylesheet" href="css/design-system-dashboard.css" />
+    <link rel="stylesheet" href="css/design-system-utilities.css" />
+
+    <!-- Component CSS -->
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/header-clean.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/chatbot.css" />
+    <link rel="stylesheet" href="css/cookie-consent-wall.css" />
+
+    <!-- Page-specific CSS -->
+    <link rel="stylesheet" href="css/auth-styles.css" />
+    <!-- REMOVED: login.css - conflicts with auth-styles.css gradient -->
+    <link rel="stylesheet" href="css/modern-registration.css" />
+    <link rel="stylesheet" href="css/homepage-modern.css" />
+    <link rel="stylesheet" href="css/homepage-enhancements.css" />
+    <link rel="stylesheet" href="css/new-home-2025.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+
+    <!-- Site-wide CSS -->
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/connection-handler.css" />
+    <link rel="stylesheet" href="css/app.css" />
+
+    <!-- Global Responsive CSS - MUST load LAST to override everything -->
+    <link rel="stylesheet" href="css/responsive.css" />
+
+    <!-- Scoped Styles -->
+    <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body>
+    <!-- Static GDPR wall shown immediately (before Blazor loads) -->
+    <div id="static-cookie-wall" class="cookie-wall-overlay" style="display: none;">
+        <div class="cookie-wall-container">
+            <div class="cookie-wall-modal">
+                <div class="cookie-modal-content">
+                    <div class="ai-avatar-section">
+                        <div class="ai-avatar-container">
+                            <div class="ai-hologram">
+                                <div class="logo-container">
+                                    <img src="icon-192.png" alt="InsightLearn Logo" class="insightlearn-logo" />
+                                </div>
+                                <div class="ai-glow"></div>
+                            </div>
+                        </div>
+                        <h3 class="ai-name">InsightLearn</h3>
+                        <p class="ai-subtitle">Online Learning Platform</p>
+                        <div class="ai-message">
+                            <p>"Welcome to InsightLearn! We use cookies to personalize your learning experience."</p>
+                            <p class="ai-message-secondary">"Your privacy matters! Please review our cookie policy."</p>
+                        </div>
+                    </div>
+                    <div class="cookie-content-section">
+                        <div class="cookie-wall-header">
+                            <div class="cookie-icon-wrapper">
+                                <span class="cookie-icon">🍪</span>
+                            </div>
+                            <h1 class="cookie-wall-title">We value your privacy</h1>
+                            <p class="cookie-wall-subtitle">
+                                Please wait while we load your personalized experience...
+                            </p>
+                        </div>
+                        <div class="cookie-wall-body">
+                            <div class="cookie-simple-info">
+                                <p class="cookie-description">
+                                    By clicking "Accept All Cookies", you agree to the storing of cookies on your device to enhance site navigation,
+                                    analyze site usage, and assist in our marketing efforts. We respect your privacy and are committed to protecting your data.
+                                </p>
+                                <div class="cookie-features-grid">
+                                    <div class="cookie-feature">
+                                        <span class="feature-icon">🔒</span>
+                                        <span class="feature-text">Secure & Encrypted</span>
+                                    </div>
+                                    <div class="cookie-feature">
+                                        <span class="feature-icon">⚡</span>
+                                        <span class="feature-text">Enhanced Performance</span>
+                                    </div>
+                                    <div class="cookie-feature">
+                                        <span class="feature-icon">🎯</span>
+                                        <span class="feature-text">Personalized Experience</span>
+                                    </div>
+                                    <div class="cookie-feature">
+                                        <span class="feature-icon">📊</span>
+                                        <span class="feature-text">Analytics & Insights</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cookie-wall-footer">
+                            <div class="cookie-links">
+                                <a href="/privacy-policy" target="_blank" class="cookie-link">Privacy Policy</a>
+                                <span class="link-separator">•</span>
+                                <a href="/cookie-policy" target="_blank" class="cookie-link">Cookie Policy</a>
+                            </div>
+                            <div class="cookie-actions">
+                                <button class="btn-cookie-settings" onclick="alert('Please wait for the application to load fully to access detailed settings.')">
+                                    <span class="btn-icon">⚙️</span>
+                                    Cookie Settings
+                                </button>
+                                <button class="btn-cookie-reject" onclick="rejectAllCookiesStatic()">
+                                    <span class="btn-icon">✕</span>
+                                    Reject All
+                                </button>
+                                <button class="btn-cookie-accept" onclick="acceptAllCookiesStatic()">
+                                    <span class="btn-icon">✓</span>
+                                    Accept All Cookies
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" style="opacity: 0; transition: opacity 0.3s;">
+        <!-- Loading removed - GDPR wall shows instead -->
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Show static GDPR wall immediately if no consent -->
+    <script>
+        // Functions for static GDPR wall (before Blazor loads)
+        function acceptAllCookiesStatic() {
+            var consentData = {
+                necessary: true,
+                analytics: true,
+                marketing: true,
+                functional: true,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem('cookie-consent', JSON.stringify(consentData));
+            console.log('[STATIC-GDPR] Consent saved (Accept All)');
+            hideStaticWall();
+        }
+
+        function rejectAllCookiesStatic() {
+            var consentData = {
+                necessary: true,
+                analytics: false,
+                marketing: false,
+                functional: false,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem('cookie-consent', JSON.stringify(consentData));
+            console.log('[STATIC-GDPR] Consent saved (Reject All)');
+            hideStaticWall();
+        }
+
+        function hideStaticWall() {
+            var staticWall = document.getElementById('static-cookie-wall');
+            if (staticWall) {
+                staticWall.style.display = 'none';
+                document.body.style.overflow = '';
+                console.log('[STATIC-GDPR] Static wall hidden');
+            }
+        }
+
+        (function() {
+            // Check for existing consent immediately
+            var hasConsent = false;
+            try {
+                var consentData = localStorage.getItem('cookie-consent');
+                if (consentData) {
+                    var consent = JSON.parse(consentData);
+                    var now = new Date().getTime();
+                    var expiryTime = consent.timestamp + (365 * 24 * 60 * 60 * 1000);
+                    hasConsent = now <= expiryTime;
+                }
+            } catch (e) {
+                console.error('Error checking consent:', e);
+            }
+
+            // Show static GDPR wall immediately if no consent
+            if (!hasConsent) {
+                document.getElementById('static-cookie-wall').style.display = 'flex';
+                // CRITICAL: DO NOT set overflow:hidden on body - breaks position:sticky header
+                // The cookie wall has position:fixed and covers everything already
+                console.log('[STATIC-GDPR] Showing cookie wall immediately (no consent found)');
+            } else {
+                console.log('[STATIC-GDPR] Consent exists, hiding static wall');
+            }
+
+            // Hide static wall when Blazor loads (Blazor component will take over)
+            window.addEventListener('DOMContentLoaded', function() {
+                setTimeout(function() {
+                    var staticWall = document.getElementById('static-cookie-wall');
+                    if (staticWall && !hasConsent) {
+                        // Keep showing until Blazor component renders
+                        console.log('[STATIC-GDPR] Blazor loaded, waiting for component...');
+                    }
+                }, 100);
+            });
+        })();
+    </script>
+
+    <!-- HTTP Client Helper for cross-origin requests -->
+    <script src="js/httpClient.js"></script>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <!-- Sticky Header Enhancement - Dynamic shadow effect -->
+    <!-- DISABLED: JavaScript interferes with CSS position:sticky - Use pure CSS instead -->
+    <!-- <script src="js/sticky-header-enhancement.js"></script> -->
+    <script src="js/cookie-consent-wall.js"></script>
+    <script src="js/new-home-2025.js"></script>
+
+    <!-- Hide static wall and show app after Blazor loads -->
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                // Check consent before hiding GDPR wall
+                var hasConsent = false;
+                try {
+                    var consentData = localStorage.getItem('cookie-consent');
+                    if (consentData) {
+                        var consent = JSON.parse(consentData);
+                        var now = new Date().getTime();
+                        var expiryTime = consent.timestamp + (365 * 24 * 60 * 60 * 1000);
+                        hasConsent = now <= expiryTime;
+                    }
+                } catch (e) {
+                    console.error('[APP] Error checking consent:', e);
+                }
+
+                // Hide static GDPR wall ONLY if consent exists
+                var staticWall = document.getElementById('static-cookie-wall');
+                if (staticWall && hasConsent) {
+                    staticWall.style.display = 'none';
+                    console.log('[STATIC-GDPR] Blazor component ready, consent exists, hiding static wall');
+                } else if (staticWall && !hasConsent) {
+                    console.log('[STATIC-GDPR] Blazor component ready, NO consent, keeping wall visible');
+                    // Blazor component will take over
+                }
+
+                // Show app with fade-in
+                var app = document.getElementById('app');
+                if (app) {
+                    app.style.opacity = '1';
+                    console.log('[APP] Blazor loaded, showing application');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>

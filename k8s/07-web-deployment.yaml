@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  namespace: insightlearn
+spec:
+  selector:
+    app: insightlearn-web
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insightlearn-web
+  namespace: insightlearn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: insightlearn-web
+  template:
+    metadata:
+      labels:
+        app: insightlearn-web
+    spec:
+      containers:
+      - name: web
+        image: insightlearn/web:$IMAGE_VERSION
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: aspnetcore-environment
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: connection-string
+        - name: Redis__ConnectionString
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: redis-connection
+        - name: ApiSettings__BaseUrl
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: api-base-url
+        - name: JwtSettings__SecretKey
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: jwt-secret-key
+        - name: JwtSettings__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-issuer
+        - name: JwtSettings__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-audience
+        - name: JwtSettings__ExpirationDays
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: jwt-expiration-days
+        - name: Logging__LogLevel__Default
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: log-level-default
+        - name: Logging__LogLevel__Microsoft
+          valueFrom:
+            configMapKeyRef:
+              name: insightlearn-config
+              key: log-level-microsoft
+        - name: BLAZOR_DETAILED_ERRORS
+          value: "true"
+        - name: ASPNETCORE_RESPONSE_COMPRESSION_ENABLED
+          value: "true"
+        - name: ASPNETCORE_STATIC_FILE_CACHE_ENABLED
+          value: "true"
+        volumeMounts:
+        - name: web-logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: web-logs
+        emptyDir: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: insightlearn-web-hpa
+  namespace: insightlearn
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: insightlearn-web
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

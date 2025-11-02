@@ -1,0 +1,46 @@
+@page "/test/auth"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Test Authentication - InsightLearn</PageTitle>
+
+<div class="test-page">
+    <h1>Authentication Test Page</h1>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="auth-info">
+                <h2>Authenticated</h2>
+                <p><strong>Name:</strong> @context.User.Identity?.Name</p>
+                <p><strong>Is Authenticated:</strong> @context.User.Identity?.IsAuthenticated</p>
+                <p><strong>Authentication Type:</strong> @context.User.Identity?.AuthenticationType</p>
+
+                <h3>Claims:</h3>
+                <ul>
+                    @foreach (var claim in context.User.Claims)
+                    {
+                        <li><strong>@claim.Type:</strong> @claim.Value</li>
+                    }
+                </ul>
+
+                <button @onclick="HandleLogout" class="btn btn-primary">Logout</button>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="auth-info">
+                <h2>Not Authenticated</h2>
+                <p>You are not currently logged in.</p>
+                <a href="/login" class="btn btn-primary">Login</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

@@ -1,0 +1,301 @@
+/* ===== MAIN LAYOUT STYLES - CRITICAL FOR STICKY HEADER ===== */
+
+.main-layout {
+    display: flex !important;           /* Force flex display */
+    flex-direction: column !important;  /* Force column layout */
+    min-height: 100vh !important;
+    background-color: var(--gray-50, #f7f9fa);
+
+    /* CRITICAL: Ensure sticky header has proper scroll container */
+    overflow-x: hidden !important;  /* Prevent horizontal scroll */
+    /* REMOVED overflow-y: auto - creates double scroll container with body */
+    /* Body already has overflow-y: auto, only ONE scroll container needed */
+
+    /* CRITICAL: NO transform/perspective on scroll container */
+    transform: none !important;
+    perspective: none !important;
+
+    /* CRITICAL: Height must be auto to establish proper scroll context */
+    height: auto !important;
+    min-height: 100vh !important;
+
+    /* CRITICAL: Ensure stacking context for sticky header */
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+
+    /* CRITICAL: Ensure no overflow that breaks sticky */
+    overflow: visible !important;
+    position: relative;  /* Establish stacking context without breaking sticky */
+}
+
+.content-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* ===== PROFESSIONAL FOOTER STYLES ===== */
+/* CRITICAL: Dark background footer - must override everything */
+footer.main-footer,
+.main-footer,
+footer[role="contentinfo"] {
+    background: linear-gradient(180deg, #1a1d23 0%, #0f1115 100%) !important;
+    background-color: #1a1d23 !important;  /* Fallback for gradient */
+    color: #e5e7eb !important;
+    padding: 4rem 0 0 !important;
+    margin-top: auto !important;
+    border-top: 1px solid rgba(164, 53, 240, 0.1) !important;
+}
+
+/* Force all footer child elements to inherit dark theme */
+.main-footer *,
+.main-footer *::before,
+.main-footer *::after {
+    box-sizing: border-box;
+}
+
+/* CRITICAL: Force ALL footer text to be light colored for visibility */
+.main-footer,
+.main-footer p,
+.main-footer h1,
+.main-footer h2,
+.main-footer h3,
+.main-footer h4,
+.main-footer h5,
+.main-footer h6,
+.main-footer span,
+.main-footer div,
+.footer-description,
+.footer-logo-text,
+.footer-heading {
+    color: #e5e7eb !important;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Footer Content Grid */
+.footer-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    /* Removed border-bottom to unify footer background */
+}
+
+/* Footer Brand Section */
+.footer-brand {
+    padding-right: 2rem;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.footer-logo-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.footer-logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.02em;
+}
+
+.footer-description {
+    color: #9ca3af;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+}
+
+/* Social Links */
+.footer-social {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;  /* Center the social icons */
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #9ca3af;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    font-size: 1.125rem;
+}
+
+.social-link:hover {
+    background: rgba(164, 53, 240, 0.1);
+    border-color: rgba(164, 53, 240, 0.3);
+    color: #a435f0;
+    transform: translateY(-2px);
+}
+
+/* Footer Sections */
+.footer-section {
+    min-width: 0;
+}
+
+.footer-heading {
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.01em;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-link,
+.main-footer a,
+.footer-section a {
+    color: #e5e7eb !important;  /* Much lighter gray - better visibility on dark background */
+    text-decoration: none !important;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+    display: inline-block;
+    font-weight: 500;  /* Slightly bolder for better readability */
+}
+
+.footer-link:hover,
+.main-footer a:hover,
+.footer-section a:hover {
+    color: #a435f0 !important;  /* Purple highlight on hover - brand color */
+    transform: translateX(4px);
+    text-decoration: underline !important;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);  /* Subtle separator */
+}
+
+.footer-bottom-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.footer-copyright {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.footer-badges {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.footer-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.footer-badge i {
+    color: #a435f0;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+        padding-right: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .footer-brand {
+        grid-column: 1;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .footer-container {
+        padding: 0 1.5rem;
+    }
+
+    .main-footer {
+        padding: 3rem 0 0;
+    }
+
+    .footer-bottom-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .footer-badges {
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .social-link {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-badges {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .footer-social {
+        justify-content: center;
+    }
+}
