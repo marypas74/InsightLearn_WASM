@@ -1,48 +1,73 @@
-# CLAUDE.md - InsightLearn Blazor WebAssembly
+# CLAUDE.md
 
-Questo file fornisce guidance a Claude Code quando lavora con questa repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
 
-Questa repository contiene **l'applicazione completa InsightLearn** con frontend, backend e infrastruttura.
+**InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione**: v1.4.29-dev
-**Stack**: .NET 8, Blazor WebAssembly + Blazor Server, C# 12
+**Versione corrente**: `1.4.22-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 
-### Componenti Principali
+### Architettura Soluzione
 
-1. **Frontend Blazor WebAssembly** - Client-side execution (`src/InsightLearn.WebAssembly/`)
-2. **Backend API** - .NET 8 REST API (`src/InsightLearn.Application/`)
-3. **Database Layer** - SQL Server, MongoDB, Redis, Elasticsearch
-4. **AI/LLM** - Ollama con modello llama2 per chatbot
-5. **Monitoring** - Grafana + Prometheus
-6. **CI/CD** - Jenkins automation
-7. **Reverse Proxy** - Nginx HTTPS
+La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 progetti:
 
-## Ripristino Rapido su Nuova Piattaforma
+1. **InsightLearn.Core** - Domain entities, interfaces, DTOs (layer condiviso)
+2. **InsightLearn.Infrastructure** - Repository implementations, DbContext, external services
+3. **InsightLearn.Application** - ASP.NET Core Web API backend
+4. **InsightLearn.WebAssembly** - Blazor WebAssembly frontend (client-side)
 
-### Metodo 1: One-Click Deployment (Raccomandato)
+### ⚠️ Problemi Noti Critici
+
+1. **Program.cs mancante originariamente**
+   - [src/InsightLearn.Application/Program.cs](/src/InsightLearn.Application/Program.cs) è stato **creato manualmente**
+   - Il progetto originale era configurato come library (SDK: Microsoft.NET.Sdk)
+   - Ora è configurato come Web app (SDK: Microsoft.NET.Sdk.Web, OutputType: Exe)
+   - Se rebuild fallisce con "Entry point not found", verificare che Program.cs esista
+
+2. **Dockerfile.web build failure**
+   - [Dockerfile.web](/Dockerfile.web) fallisce con `NETSDK1082: no runtime pack for browser-wasm`
+   - Problema noto di .NET SDK con RuntimeIdentifier 'browser-wasm' in container
+   - **Workaround**: usare solo Dockerfile per API, deployare Web separatamente
+
+3. **Rocky Linux 10: Podman vs Docker**
+   - Su Rocky Linux 10, il sistema usa **Podman** nativo, non Docker
+   - Gli script [k8s/build-images.sh](/k8s/build-images.sh) assumono Docker (non funzionano)
+   - **Configurazione minikube richiesta**:
+     - Driver: `podman` (non docker)
+     - Runtime: `cri-o`
+     - Base image: `gcr.io/k8s-minikube/kicbase-rocky:v0.0.48` (Rocky 10 kicbase)
+     - Risorse: `--memory=9216 --cpus=6` (9GB RAM, 6 CPU)
+
+## Build e Deploy
+
+### Comandi Build Locali
 
 ```bash
-# Clone repository
-git clone https://github.com/marypas74/InsightLearn_WASM.git
-cd InsightLearn_WASM
+# Build completa solution
+dotnet build InsightLearn.WASM.sln
 
-# Deploy automatico completo
-./deploy-oneclick.sh
+# Build solo API (funzionante)
+dotnet build src/InsightLearn.Application/InsightLearn.Application.csproj
 
-# L'applicazione sarà disponibile su:
-# https://localhost (frontend + backend)
-# http://localhost:3000 (Grafana monitoring)
-# http://localhost:8080 (Jenkins CI/CD)
+# Build WebAssembly (potrebbe fallire in Docker)
+dotnet build src/InsightLearn.WebAssembly/InsightLearn.WebAssembly.csproj
+
+# Publish API
+dotnet publish src/InsightLearn.Application/InsightLearn.Application.csproj \
+  -c Release -o ./publish
+
+# Run API locale (porta 5000)
+dotnet run --project src/InsightLearn.Application/InsightLearn.Application.csproj
 ```
 
-### Metodo 2: Docker Compose Manuale
+### Deployment Docker Compose (Raccomandato)
 
 ```bash
 # 1. Configura ambiente
 cp .env.example .env
-nano .env  # Configura password
+# Modifica .env con password sicure
 
 # 2. Genera certificati SSL
 mkdir -p nginx/certs
@@ -50,252 +75,225 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout nginx/certs/tls.key -out nginx/certs/tls.crt \
   -subj "/C=IT/O=InsightLearn/CN=localhost"
 
-# 3. Build e avvio
-docker-compose build
-docker-compose up -d
+# 3. Build SOLO API (Web ha problemi)
+docker-compose build api
 
-# 4. Inizializza database
+# 4. Start tutti i servizi (API + databases + monitoring)
+docker-compose up -d sqlserver mongodb redis elasticsearch \
+                    prometheus ollama jenkins api
+
+# 5. Inizializza Ollama LLM
 docker exec insightlearn-ollama ollama pull llama2
-docker exec -it insightlearn-mongodb mongosh -u admin -p PASSWORD << EOF
-use insightlearn
-db.createCollection("videos")
-db.createCollection("chatbot_messages")
-EOF
 
-# 5. Verifica deployment
-./test-chatbot.sh  # Test chatbot funzionante
+# 6. Verifica
+docker-compose ps
+curl http://localhost:7001/health
 ```
 
-### Metodo 3: Kubernetes
+### Deployment Kubernetes (Rocky Linux con Podman)
 
 ```bash
-cd k8s/
-./build-images.sh
-./deploy.sh
-./status.sh
+# 1. Start minikube con Podman (Rocky 10 kicbase)
+minikube config set rootless true
+minikube start --driver=podman --container-runtime=cri-o \
+               --memory=9216 --cpus=6 \
+               --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48
+
+# 2. Enable Ingress
+minikube addons enable ingress
+
+# 3. Build images con Podman in minikube context
+# NOTA: Non usare ./k8s/build-images.sh (assume Docker)
+# Usare Podman direttamente:
+eval $(minikube podman-env)
+podman build -t insightlearn/api:latest -f Dockerfile .
+
+# 4. Load in minikube
+minikube image load insightlearn/api:latest
+
+# 5. Deploy manifests
+kubectl apply -f k8s/
+
+# 6. Verifica status
+./k8s/status.sh
 ```
 
-## File Critici per il Ripristino
+## Versioning e Build Metadata
 
-### Configurazione
+Il versioning è gestito centralmente in [Directory.Build.props](/Directory.Build.props):
 
-- **[.env](/.env)** - Variabili d'ambiente (PASSWORD SICURE!)
-- **[docker-compose.yml](/docker-compose.yml)** - Stack completo (11 servizi)
-- **[config/appsettings.json](/config/appsettings.json)** - Configurazione .NET
+- **VersionPrefix**: `1.4.22` (semantic version Major.Minor.Patch)
+- **VersionSuffix**: `dev` (default, rimosso in release)
+- **Version finale**: `1.4.22-dev`
 
-### Frontend
+Build variables disponibili:
+- `$(VERSION)` - da Directory.Build.props
+- `$(GIT_COMMIT)` - short commit hash
+- `$(BUILD_NUMBER)` - git commit count
 
-- **[src/InsightLearn.WebAssembly/Program.cs](/src/InsightLearn.WebAssembly/Program.cs)** - Entry point WASM
-- **[src/InsightLearn.WebAssembly/Models/Config/EndpointsConfig.cs](/src/InsightLearn.WebAssembly/Models/Config/EndpointsConfig.cs)** - API endpoints
-- **[src/InsightLearn.WebAssembly/wwwroot/appsettings.json](/src/InsightLearn.WebAssembly/wwwroot/appsettings.json)** - Config runtime
-- **[src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor](/src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor)** - Chatbot UI
+Esempio modifica version:
+```xml
+<!-- Directory.Build.props -->
+<VersionPrefix>1.5.0</VersionPrefix>
+<VersionSuffix>beta</VersionSuffix>
+```
 
-### Backend
+## File Critici
 
-- **[src/InsightLearn.Application/Services/](/src/InsightLearn.Application/Services/)** - Business logic
-- **[src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs](/src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs)** - EF Core context
+### Configurazione Core
 
-### Docker & Deploy
+| File | Scopo |
+|------|-------|
+| [.env](/.env) | Password production (⚠️ MAI committare!) |
+| [docker-compose.yml](/docker-compose.yml) | Stack completo 11 servizi |
+| [Directory.Build.props](/Directory.Build.props) | Versioning centralizzato |
+| [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) | Visual Studio solution |
 
-- **[Dockerfile.wasm](/Dockerfile.wasm)** - Frontend WASM build
-- **[Dockerfile](/Dockerfile)** - Backend API build
-- **[Dockerfile.web](/Dockerfile.web)** - Blazor Server build
-- **[deploy-oneclick.sh](/deploy-oneclick.sh)** - Deployment automatico
-- **[test-chatbot.sh](/test-chatbot.sh)** - Test chatbot completo
+### Backend API
 
-### Monitoring
+| File | Scopo |
+|------|-------|
+| [src/InsightLearn.Application/Program.cs](/src/InsightLearn.Application/Program.cs) | ⚠️ API entry point (creato manualmente) |
+| [src/InsightLearn.Application/InsightLearn.Application.csproj](/src/InsightLearn.Application/InsightLearn.Application.csproj) | Project file (SDK.Web) |
+| [src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs](/src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs) | EF Core DbContext |
 
-- **[monitoring/prometheus.yml](/monitoring/prometheus.yml)** - Metrics config
-- **[monitoring/grafana-*.json](/monitoring/)** - 3 dashboard pre-configurate
-- **[monitoring/grafana-provisioning-*.yml](/monitoring/)** - Auto-provisioning
+### Docker
+
+| File | Scopo | Stato |
+|------|-------|-------|
+| [Dockerfile](/Dockerfile) | API build | ✅ Funzionante |
+| [Dockerfile.web](/Dockerfile.web) | Web WASM build | ❌ NETSDK1082 error |
 
 ## Regole Fondamentali
 
-### Endpoint API
+### API Endpoints
 
-1. Tutti gli endpoint API DEVONO avere prefisso `api/`
-2. HttpClient.BaseAddress usa `builder.HostEnvironment.BaseAddress`
-3. Usare sempre `EndpointsConfig` invece di stringhe hardcoded
-4. Test con Python prima del deploy per validare JSON response
+1. Prefisso **obbligatorio**: `/api/`
+2. Base URL frontend: `builder.HostEnvironment.BaseAddress`
+3. Usare `EndpointsConfig` per configurazione centralizzata
+4. Health check: `/health` (per liveness probes)
 
-### Segreti e Sicurezza
+### Sicurezza
 
-1. **MAI** committare file `.env` con password reali
-2. Usare placeholder `YOUR_*` nei file di configurazione
-3. Sostituire con variabili d'ambiente al deployment
-4. Certificati SSL self-signed solo per sviluppo
+1. **MAI** committare `.env` con password reali
+2. Placeholder `YOUR_*` in file di config
+3. Sostituire con env vars al deploy
+4. TLS certs self-signed SOLO per dev
 
-### Database
+### Database Stack
 
-1. SQL Server: database principale (relazionale)
-2. MongoDB: video storage e chatbot messages
-3. Redis: cache e sessioni utente
-4. Elasticsearch: search engine
+| Database | Uso | Porta |
+|----------|-----|-------|
+| SQL Server 2022 | Dati relazionali principali | 1433 |
+| MongoDB 7.0 | Video storage + chatbot messages | 27017 |
+| Redis 7 | Cache + sessioni utente | 6379 |
+| Elasticsearch 8.11 | Search engine | 9200 |
 
-### Chatbot
+### AI/Chatbot
 
-1. Ollama serve il modello LLM (llama2)
-2. MongoDB memorizza conversazioni
-3. API endpoint: `/api/chat/message`
-4. Widget frontend: `ChatbotWidget.razor`
+- **LLM Server**: Ollama (porta 11434)
+- **Model**: llama2 (download: `ollama pull llama2`)
+- **API endpoint**: `/api/chat/message`
+- **Storage**: MongoDB collection `chatbot_messages`
 
-## Verifica Deployment Completo
-
-### Checklist
+## Testing Deployment
 
 ```bash
-# 1. Tutti i container healthy
+# Container health
 docker-compose ps | grep healthy
 
-# 2. Database accessibili
-docker exec insightlearn-sqlserver sqlcmd -S localhost -U sa -P PASSWORD -Q "SELECT 1"
-docker exec insightlearn-mongodb mongosh -u admin -p PASSWORD --eval "db.version()"
-docker exec insightlearn-redis redis-cli -a PASSWORD ping
+# Database connectivity
+docker exec insightlearn-sqlserver /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P "${MSSQL_SA_PASSWORD}" -Q "SELECT 1" -C
 
-# 3. API risponde
+docker exec insightlearn-mongodb mongosh \
+  -u admin -p "${MONGO_PASSWORD}" --eval "db.version()"
+
+docker exec insightlearn-redis redis-cli \
+  -a "${REDIS_PASSWORD}" ping
+
+# API health
 curl http://localhost:7001/health
 
-# 4. Frontend carica
-curl http://localhost:7003
+# API info endpoint
+curl http://localhost:7001/api/info
 
-# 5. Nginx HTTPS funziona
-curl -k https://localhost/health
+# Chatbot test
+curl -X POST http://localhost:7001/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello","contactEmail":"test@example.com"}'
 
-# 6. Chatbot funzionante
-./test-chatbot.sh
-
-# 7. Grafana dashboard
-curl http://localhost:3000/api/health
-
-# 8. Prometheus metrics
-curl http://localhost:9090/-/healthy
+# Monitoring
+curl http://localhost:3000/api/health  # Grafana
+curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
 ```
 
-### Test Funzionali
+## Porte Servizi
 
-```bash
-# Login admin
-curl -k -X POST https://localhost/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@insightlearn.cloud","password":"PASSWORD"}'
+| Servizio | Porta(e) | HTTPS |
+|----------|----------|-------|
+| Nginx Reverse Proxy | 80, 443 | ✅ |
+| API | 7001 (HTTP), 7002 (HTTPS) | ✅ |
+| Web | 7003 | ❌ |
+| SQL Server | 1433 | ❌ |
+| MongoDB | 27017 | ❌ |
+| Redis | 6379 | ❌ |
+| Elasticsearch | 9200 | ❌ |
+| Ollama | 11434 | ❌ |
+| Prometheus | **9091** (⚠️ non 9090!) | ❌ |
+| Grafana | 3000 | ❌ |
+| Jenkins | 8080, 50000 | ❌ |
 
-# Chatbot message
-curl -k -X POST https://localhost/api/chat/message \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Ciao, come stai?","contactEmail":"test@example.com"}'
+**Nota**: Prometheus usa porta 9091 per evitare conflitto con systemd su porta 9090.
 
-# Verifica risposta AI da Ollama
-```
+## Credenziali Default
 
-## Documentazione Completa
+### Application Admin
+- URL: https://localhost
+- Email: `admin@insightlearn.cloud`
+- Password: da file `.env` (`ADMIN_PASSWORD`)
 
-Per informazioni dettagliate, consulta:
+### Services
+- **Grafana**: admin / admin
+- **SQL Server**: sa / `${MSSQL_SA_PASSWORD}`
+- **MongoDB**: admin / `${MONGO_PASSWORD}`
+- **Redis**: password: `${REDIS_PASSWORD}`
 
-### Guide Principali
+## Scripts Kubernetes
 
-- **[README.md](/README.md)** - Panoramica generale progetto
-- **[DEPLOYMENT-COMPLETE-GUIDE.md](/DEPLOYMENT-COMPLETE-GUIDE.md)** - **⭐ Guida deployment completa step-by-step**
-- **[DOCKER-COMPOSE-GUIDE.md](/DOCKER-COMPOSE-GUIDE.md)** - Guida Docker Compose dettagliata
-- **[GITHUB-PUSH-SUCCESS.md](/GITHUB-PUSH-SUCCESS.md)** - Report push GitHub
+| Script | Funzione |
+|--------|----------|
+| [k8s/build-images.sh](/k8s/build-images.sh) | Build Docker images con versioning |
+| [k8s/deploy.sh](/k8s/deploy.sh) | Deploy completo K8s |
+| [k8s/status.sh](/k8s/status.sh) | Status pods/services |
+| [k8s/undeploy.sh](/k8s/undeploy.sh) | Remove deployment |
 
-### Guide Specifiche
-
-- **[k8s/README.md](/k8s/README.md)** - Deployment Kubernetes
-- **[docs/](/docs/)** - Documentazione tecnica WASM
-- **[monitoring/](/monitoring/)** - Guide Grafana e Prometheus
-- **[jenkins/](/jenkins/)** - Setup CI/CD
-
-### Script Utili
-
-- **[deploy-oneclick.sh](/deploy-oneclick.sh)** - Deploy automatico completo
-- **[test-chatbot.sh](/test-chatbot.sh)** - Test chatbot con Ollama
-- **[k8s/build-images.sh](/k8s/build-images.sh)** - Build Docker images
-- **[k8s/deploy.sh](/k8s/deploy.sh)** - Deploy Kubernetes
-- **[k8s/status.sh](/k8s/status.sh)** - Status deployment
-
-## Accesso Applicazione
-
-### Applicazione Principale
-
-- **URL**: https://localhost
-- **Admin**:
-  - Email: `admin@insightlearn.cloud`
-  - Password: (da `.env` file, default: `Admin123!Secure`)
-
-### Servizi di Supporto
-
-| Servizio | URL | Credenziali |
-|----------|-----|-------------|
-| Grafana | http://localhost:3000 | admin / admin |
-| Prometheus | http://localhost:9090 | - |
-| Jenkins | http://localhost:8080 | (vedi password iniziale) |
-| API Diretta | http://localhost:7001 | - |
-| Swagger API | http://localhost:7001/swagger | - |
-
-### Porte Esposte
-
-- **80, 443**: Nginx (HTTP/HTTPS)
-- **1433**: SQL Server
-- **6379**: Redis
-- **9200**: Elasticsearch
-- **27017**: MongoDB
-- **7001, 7002**: API (HTTP/HTTPS)
-- **7003**: Web (HTTP)
-- **3000**: Grafana
-- **9090**: Prometheus
-- **8080, 50000**: Jenkins
-- **11434**: Ollama LLM
-
-## Stack Tecnologico Completo
-
-### Frontend
-- Blazor WebAssembly (.NET 8)
-- Blazor Server (.NET 8)
-- Bootstrap 5
-- SignalR (real-time)
-
-### Backend
-- ASP.NET Core 8 Web API
-- Entity Framework Core 8
-- JWT Authentication
-- Google OAuth 2.0
-
-### Database
-- SQL Server 2022 (relazionale)
-- MongoDB 7.0 (NoSQL - video, chatbot)
-- Redis 7 (cache, sessioni)
-- Elasticsearch 8.11 (search)
-
-### AI/LLM
-- Ollama (LLM server)
-- llama2 (modello AI default)
-- Chatbot integration
-
-### DevOps
-- Docker & Docker Compose
-- Kubernetes (minikube)
-- Jenkins (CI/CD)
-- Nginx (reverse proxy)
-
-### Monitoring
-- Prometheus (metrics)
-- Grafana (dashboards)
-- Serilog (logging)
-
-## Supporto
-
-- **Repository**: https://github.com/marypas74/InsightLearn_WASM
-- **Issues**: https://github.com/marypas74/InsightLearn_WASM/issues
-- **Email**: marcello.pasqui@gmail.com
+⚠️ **Rocky Linux**: Gli script assumono Docker, sostituire con `podman` manualmente.
 
 ## Note per Claude Code
 
 Quando lavori con questa repository:
 
-1. **Sempre leggere questo file prima** di iniziare qualsiasi task
-2. **Utilizzare gli script automatici** (`deploy-oneclick.sh`, `test-chatbot.sh`)
-3. **Verificare file `.env`** prima di deployment
-4. **Consultare [DEPLOYMENT-COMPLETE-GUIDE.md](/DEPLOYMENT-COMPLETE-GUIDE.md)** per procedure complete
-5. **Testare chatbot** con `./test-chatbot.sh` dopo modifiche AI/LLM
-6. **Non modificare** placeholder `YOUR_*` senza documentazione
-7. **Usare sempre** variabili d'ambiente per segreti
+1. **Leggere SEMPRE questo file** all'inizio del task
+2. **Verificare versione** in [Directory.Build.props](/Directory.Build.props) (non hardcodare)
+3. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
+4. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
+5. **Password da .env** - non committare mai password reali
+6. **Prometheus porta 9091** - non 9090 (conflitto systemd)
+7. **Rocky Linux 10 = Podman + kicbase-rocky** - non Docker standard
+   - Minikube: `--driver=podman --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48`
+   - Risorse: `--memory=9216 --cpus=6` (9GB RAM, 6 CPU)
+   - Build: `eval $(minikube podman-env)` poi `podman build`
+8. **Test chatbot** dopo modifiche AI: `docker exec insightlearn-ollama ollama list`
+
+## Documentazione Aggiuntiva
+
+- [DEPLOYMENT-COMPLETE-GUIDE.md](/DEPLOYMENT-COMPLETE-GUIDE.md) - Guida deploy step-by-step
+- [DOCKER-COMPOSE-GUIDE.md](/DOCKER-COMPOSE-GUIDE.md) - Docker Compose dettagliato
+- [k8s/README.md](/k8s/README.md) - Kubernetes deployment
+
+## Repository
+
+- **URL**: https://github.com/marypas74/InsightLearn_WASM
+- **Issues**: https://github.com/marypas74/InsightLearn_WASM/issues
+- **Maintainer**: marcello.pasqui@gmail.com

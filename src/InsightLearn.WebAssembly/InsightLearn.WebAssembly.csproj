@@ -36,9 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Reference shared DTOs and models from Core/Application projects -->
+    <!-- Reference shared DTOs and models -->
     <ProjectReference Include="../InsightLearn.Core/InsightLearn.Core.csproj" />
-    <ProjectReference Include="../InsightLearn.Application/InsightLearn.Application.csproj" />
+    <ProjectReference Include="../InsightLearn.Shared/InsightLearn.Shared.csproj" />
   </ItemGroup>
 
 </Project>

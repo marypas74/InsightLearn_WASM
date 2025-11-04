@@ -1,5 +1,6 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <!-- Full-screen blocking overlay - hidden via CSS if consent exists -->
 <div class="cookie-wall-overlay @(showWall ? "" : "hidden")" @onclick:preventDefault="true">
@@ -525,6 +526,8 @@
 
             // Apply consent to third-party scripts
             await ApplyConsent();
+
+            Console.WriteLine("[COOKIE-WALL] Consent saved successfully, wall hidden");
         }
         catch (Exception ex)
         {

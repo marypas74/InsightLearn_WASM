@@ -1,0 +1,18 @@
+[Unit]
+Description=InsightLearn API Port Forward
+After=network.target
+
+[Service]
+Type=simple
+User=mpasqui
+WorkingDirectory=/home/mpasqui/insightlearn_WASM/InsightLearn_WASM
+Environment="KUBECONFIG=/home/mpasqui/.kube/config"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/mpasqui/.local/bin/kubectl port-forward -n insightlearn --address 0.0.0.0 service/api-service 8080:80
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

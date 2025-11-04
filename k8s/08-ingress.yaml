@@ -14,27 +14,13 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: insightlearn.local
+  - host: wasm.insightlearn.cloud
     http:
       paths:
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 80
-      - path: /new
-        pathType: Prefix
-        backend:
-          service:
-            name: insightlearn-wasm
-            port:
-              number: 80
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: web-service
+            name: api-service
             port:
               number: 80

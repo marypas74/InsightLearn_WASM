@@ -1,4 +1,4 @@
-using InsightLearn.Application.DTOs;
+using InsightLearn.Shared.DTOs;
 using InsightLearn.WebAssembly.Models;
 using InsightLearn.WebAssembly.Models.Config;
 using InsightLearn.WebAssembly.Services.Http;

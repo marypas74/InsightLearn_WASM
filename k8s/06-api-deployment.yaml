@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: insightlearn/api:$IMAGE_VERSION
+        image: localhost/insightlearn/api:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -40,6 +40,8 @@ spec:
         - containerPort: 443
           name: https
         env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:80;https://+:443"
         - name: ASPNETCORE_ENVIRONMENT
           valueFrom:
             configMapKeyRef:

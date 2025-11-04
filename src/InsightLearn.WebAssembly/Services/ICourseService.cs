@@ -1,4 +1,4 @@
-using InsightLearn.Application.DTOs;
+using InsightLearn.Shared.DTOs;
 using InsightLearn.WebAssembly.Models;
 
 namespace InsightLearn.WebAssembly.Services;

@@ -64,9 +64,19 @@ echo "=== Deploying Elasticsearch ==="
 kubectl apply -f "$SCRIPT_DIR/05-elasticsearch-deployment.yaml"
 
 echo ""
+echo "=== Deploying MongoDB ==="
+kubectl apply -f "$SCRIPT_DIR/13-mongodb-statefulset.yaml"
+
+echo ""
+echo "=== Deploying Ollama (LLM) ==="
+kubectl apply -f "$SCRIPT_DIR/12-ollama-deployment.yaml"
+
+echo ""
 echo "Waiting for databases to be ready (this may take a few minutes)..."
 kubectl wait --for=condition=ready pod -l app=sqlserver -n insightlearn --timeout=300s || echo "Warning: SQL Server might not be ready yet"
 kubectl wait --for=condition=ready pod -l app=redis -n insightlearn --timeout=120s || echo "Warning: Redis might not be ready yet"
+kubectl wait --for=condition=ready pod -l app=mongodb -n insightlearn --timeout=120s || echo "Warning: MongoDB might not be ready yet"
+kubectl wait --for=condition=ready pod -l app=ollama -n insightlearn --timeout=180s || echo "Warning: Ollama might not be ready yet"
 
 echo ""
 echo "=== Deploying API ==="
@@ -77,8 +87,16 @@ echo "=== Deploying Web ==="
 envsubst < "$SCRIPT_DIR/07-web-deployment.yaml" | kubectl apply -f -
 
 echo ""
+echo "=== Deploying WASM Frontend ==="
+kubectl apply -f "$SCRIPT_DIR/12-wasm-deployment.yaml"
+
+echo ""
 echo "=== Creating Ingress ==="
 kubectl apply -f "$SCRIPT_DIR/08-ingress.yaml"
+
+echo ""
+echo "=== Creating NodePort Services ==="
+kubectl apply -f "$SCRIPT_DIR/09-nodeport-services.yaml"
 
 echo ""
 echo "=== Deployment completed ==="

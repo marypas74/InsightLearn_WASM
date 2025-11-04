@@ -59,8 +59,13 @@ spec:
     app: ollama
   ports:
   - port: 11434
+    targetPort: 11434
+    name: http
+    protocol: TCP
+  - port: 11435
     targetPort: 11435
     name: https
+    protocol: TCP
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -81,7 +86,7 @@ spec:
     spec:
       containers:
       - name: ollama
-        image: ollama/ollama:latest
+        image: docker.io/ollama/ollama:latest
         ports:
         - containerPort: 11434
           name: http
@@ -97,11 +102,11 @@ spec:
             cpu: "1500m"
         env:
         - name: OLLAMA_HOST
-          value: "127.0.0.1:11434"
+          value: "0.0.0.0:11434"
         - name: OLLAMA_ORIGINS
           value: "*"
       - name: nginx-tls-proxy
-        image: nginx:alpine
+        image: docker.io/library/nginx:alpine
         ports:
         - containerPort: 11435
           name: https
@@ -142,7 +147,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: ollama-pull
-        image: curlimages/curl:latest
+        image: docker.io/curlimages/curl:latest
         command:
         - /bin/sh
         - -c
@@ -153,7 +158,7 @@ spec:
             sleep 5
           done
 
-          # Pull tinyllama model
+          # Pull phi3:mini model (fast and efficient for chatbots)
           curl -k -X POST https://ollama-service:11434/api/pull \
             -H "Content-Type: application/json" \
-            -d '{"name": "tinyllama"}'
+            -d '{"name": "phi3:mini"}'

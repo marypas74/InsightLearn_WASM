@@ -1,0 +1,78 @@
+{
+  "ApiSettings": {
+    "BaseUrl": "/api",
+    "Timeout": 30,
+    "Version": "v1.4.29-dev"
+  },
+  "Authentication": {
+    "TokenKey": "InsightLearn.AuthToken",
+    "RefreshTokenKey": "InsightLearn.RefreshToken",
+    "TokenExpirationMinutes": 60
+  },
+  "Endpoints": {
+    "Auth": {
+      "Login": "api/auth/login",
+      "Register": "api/auth/register",
+      "CompleteRegistration": "api/auth/complete-registration",
+      "Refresh": "api/auth/refresh",
+      "Me": "api/auth/me",
+      "OAuthCallback": "api/auth/oauth-callback"
+    },
+    "Courses": {
+      "GetAll": "api/courses",
+      "GetById": "api/courses/{0}",
+      "Create": "api/courses",
+      "Update": "api/courses/{0}",
+      "Delete": "api/courses/{0}",
+      "Search": "api/courses/search",
+      "GetByCategory": "api/courses/category/{0}"
+    },
+    "Categories": {
+      "GetAll": "api/categories",
+      "GetById": "api/categories/{0}",
+      "Create": "api/categories",
+      "Update": "api/categories/{0}",
+      "Delete": "api/categories/{0}"
+    },
+    "Enrollments": {
+      "GetAll": "api/enrollments",
+      "GetById": "api/enrollments/{0}",
+      "Create": "api/enrollments",
+      "GetByCourse": "api/enrollments/course/{0}",
+      "GetByUser": "api/enrollments/user/{0}"
+    },
+    "Users": {
+      "GetAll": "api/users",
+      "GetById": "api/users/{0}",
+      "Update": "api/users/{0}",
+      "Delete": "api/users/{0}",
+      "GetProfile": "api/users/profile"
+    },
+    "Dashboard": {
+      "GetStats": "api/dashboard/stats",
+      "GetRecentActivity": "api/dashboard/recent-activity"
+    },
+    "Reviews": {
+      "GetAll": "api/reviews",
+      "GetById": "api/reviews/{0}",
+      "Create": "api/reviews",
+      "GetByCourse": "api/reviews/course/{0}"
+    },
+    "Payments": {
+      "CreateCheckout": "api/payments/create-checkout",
+      "GetTransactions": "api/payments/transactions",
+      "GetTransactionById": "api/payments/transactions/{0}"
+    },
+    "Chat": {
+      "SendMessage": "api/chat/message",
+      "GetHistory": "api/chat/history"
+    }
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}

@@ -9,7 +9,7 @@ metadata:
     component: frontend-wasm
     tier: presentation
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: insightlearn-wasm-blazor-webassembly
@@ -22,11 +22,14 @@ spec:
     spec:
       containers:
       - name: wasm-blazor
-        image: insightlearn/wasm:latest
+        image: localhost/insightlearn/wasm:latest
         imagePullPolicy: Never  # Use local minikube image
         ports:
         - containerPort: 80
           name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
           protocol: TCP
         resources:
           requests:
@@ -67,6 +70,10 @@ spec:
     targetPort: 80
     protocol: TCP
     name: http
+  - port: 443
+    targetPort: 443
+    protocol: TCP
+    name: https
   selector:
     app: insightlearn-wasm-blazor-webassembly
 ---
@@ -86,5 +93,10 @@ spec:
     nodePort: 31090
     protocol: TCP
     name: http
+  - port: 443
+    targetPort: 443
+    nodePort: 31443
+    protocol: TCP
+    name: https
   selector:
     app: insightlearn-wasm-blazor-webassembly

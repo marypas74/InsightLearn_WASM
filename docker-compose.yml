@@ -8,7 +8,7 @@ services:
     container_name: insightlearn-sqlserver
     environment:
       ACCEPT_EULA: Y
-      MSSQL_SA_PASSWORD: "YOUR_DB_PASSWORD"
+      MSSQL_SA_PASSWORD: "InsightLearn123@#"
       MSSQL_PID: Developer
       MSSQL_AGENT_ENABLED: true
     ports:
@@ -95,13 +95,13 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80;https://+:443
       - ASPNETCORE_HTTPS_PORT=443
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
-      - ConnectionStrings__MongoDb=mongodb://admin:YOUR_MONGO_PASSWORD@mongodb:27017/insightlearn?authSource=admin
-      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=InsightLearn123@#;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - ConnectionStrings__MongoDb=mongodb://admin:InsightLearn2024!SecureMongo@mongodb:27017/insightlearn?authSource=admin
+      - Redis__ConnectionString=redis:6379,password=InsightLearn2024RedisSecure!
       - Elasticsearch__Url=http://elasticsearch:9200
       - Ollama__Url=http://ollama:11434
       - Ollama__Model=llama2
-      - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
+      - JwtSettings__SecretKey=InsightLearn2024SecureJwtSigningKey123456789!
       - JwtSettings__Issuer=InsightLearn.Api
       - JwtSettings__Audience=InsightLearn.Users
       - JwtSettings__ExpirationDays=30
@@ -155,14 +155,14 @@ services:
       - DOTNET_RUNNING_IN_CONTAINER=true
       # 🔥 CRITICAL FIX: Enable ForwardedHeaders for OAuth redirect_uri fix
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=YOUR_DB_PASSWORD;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
-      - ConnectionStrings__MongoDb=mongodb://admin:YOUR_MONGO_PASSWORD@mongodb:27017/insightlearn?authSource=admin
-      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD:-YOUR_REDIS_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsightLearnDb;User=sa;Password=InsightLearn123@#;TrustServerCertificate=true;MultipleActiveResultSets=true;Connection Timeout=30;Command Timeout=300
+      - ConnectionStrings__MongoDb=mongodb://admin:InsightLearn2024!SecureMongo@mongodb:27017/insightlearn?authSource=admin
+      - Redis__ConnectionString=redis:6379,password=InsightLearn2024RedisSecure!
       # 🔥 CRITICAL FIX: Enhanced API and JWT configuration for secure communication
       - ApiSettings__BaseUrl=http://api:80/
       - Ollama__Url=http://ollama:11434
       - Ollama__Model=llama2
-      - JwtSettings__SecretKey=YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS
+      - JwtSettings__SecretKey=InsightLearn2024SecureJwtSigningKey123456789!
       - JwtSettings__Issuer=InsightLearn.Api
       - JwtSettings__Audience=InsightLearn.Users
       - JwtSettings__ExpirationDays=30
@@ -254,7 +254,7 @@ services:
     container_name: insightlearn-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: YOUR_MONGO_PASSWORD
+      MONGO_INITDB_ROOT_PASSWORD: InsightLearn2024!SecureMongo
       MONGO_INITDB_DATABASE: insightlearn
     ports:
       - "27017:27017"
@@ -325,7 +325,7 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
-      - "9090:9090"
+      - "9091:9090"
     volumes:
       - prometheus-data:/prometheus
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
