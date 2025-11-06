@@ -97,6 +97,8 @@ spec:
             configMapKeyRef:
               name: insightlearn-config
               key: ollama-base-url
+        - name: Ollama__Model
+          value: "qwen2:0.5b"
         - name: ASPNETCORE_Kestrel__Certificates__Default__Path
           value: "/https/tls.crt"
         - name: ASPNETCORE_Kestrel__Certificates__Default__KeyPath

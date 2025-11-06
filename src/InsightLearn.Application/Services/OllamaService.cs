@@ -32,7 +32,7 @@ public class OllamaService : IOllamaService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _httpClient.BaseAddress = new Uri(_baseUrl);
-        _httpClient.Timeout = TimeSpan.FromMinutes(2); // LLM può impiegare tempo
+        _httpClient.Timeout = TimeSpan.FromMinutes(3); // Timeout generoso per LLM (phi3:mini può essere lento)
     }
 
     public async Task<string> GenerateResponseAsync(string prompt, string? model = null, CancellationToken cancellationToken = default)
@@ -53,7 +53,21 @@ public class OllamaService : IOllamaService
             {
                 Model = modelToUse,
                 Prompt = prompt,
-                Stream = false // Non vogliamo streaming per semplicità
+                Stream = false, // Non vogliamo streaming per semplicità
+                System = "You are a helpful assistant for InsightLearn, an online learning platform. " +
+                         "Provide brief, clear, and professional responses. Keep answers concise (2-3 sentences max). " +
+                         "Focus on being helpful and informative about online courses, learning, and educational topics.",
+                Options = new OllamaOptions
+                {
+                    NumPredict = 50,       // Brief responses (chatbot style) - AGGRESSIVE
+                    Temperature = 0.3,     // Lower = faster, more deterministic - AGGRESSIVE
+                    TopK = 20,             // Reduced sampling space - AGGRESSIVE
+                    TopP = 0.85,           // Slightly reduced nucleus - AGGRESSIVE
+                    NumCtx = 1024,         // Half context = 2x faster - AGGRESSIVE
+                    NumThread = 6,         // Match available CPU threads
+                    NumBatch = 128,        // Optimized for CPU (not GPU)
+                    NumGpu = 0             // Force CPU-only (disable GPU detection overhead)
+                }
             };
 
             var json = JsonSerializer.Serialize(request);
@@ -148,6 +162,63 @@ public class OllamaService : IOllamaService
 
         [JsonPropertyName("stream")]
         public bool Stream { get; set; }
+
+        [JsonPropertyName("system")]
+        public string? System { get; set; }
+
+        [JsonPropertyName("options")]
+        public OllamaOptions? Options { get; set; }
+    }
+
+    private class OllamaOptions
+    {
+        /// <summary>
+        /// Maximum number of tokens to generate (lower = faster responses)
+        /// </summary>
+        [JsonPropertyName("num_predict")]
+        public int? NumPredict { get; set; }
+
+        /// <summary>
+        /// Temperature for generation (0.0-1.0). Lower = more deterministic and faster
+        /// </summary>
+        [JsonPropertyName("temperature")]
+        public double? Temperature { get; set; }
+
+        /// <summary>
+        /// Top-k sampling parameter
+        /// </summary>
+        [JsonPropertyName("top_k")]
+        public int? TopK { get; set; }
+
+        /// <summary>
+        /// Top-p (nucleus) sampling parameter
+        /// </summary>
+        [JsonPropertyName("top_p")]
+        public double? TopP { get; set; }
+
+        /// <summary>
+        /// Context window size (lower = faster)
+        /// </summary>
+        [JsonPropertyName("num_ctx")]
+        public int? NumCtx { get; set; }
+
+        /// <summary>
+        /// Number of CPU threads to use
+        /// </summary>
+        [JsonPropertyName("num_thread")]
+        public int? NumThread { get; set; }
+
+        /// <summary>
+        /// Batch size for processing (lower = better for CPU)
+        /// </summary>
+        [JsonPropertyName("num_batch")]
+        public int? NumBatch { get; set; }
+
+        /// <summary>
+        /// Number of GPUs to use (0 = CPU only)
+        /// </summary>
+        [JsonPropertyName("num_gpu")]
+        public int? NumGpu { get; set; }
     }
 
     private class OllamaGenerateResponse

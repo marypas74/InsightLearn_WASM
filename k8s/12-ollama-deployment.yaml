@@ -95,16 +95,27 @@ spec:
           mountPath: /root/.ollama
         resources:
           requests:
-            memory: "3Gi"
+            memory: "4Gi"
             cpu: "500m"
           limits:
-            memory: "5Gi"
+            memory: "8Gi"
             cpu: "1500m"
         env:
         - name: OLLAMA_HOST
           value: "0.0.0.0:11434"
         - name: OLLAMA_ORIGINS
           value: "*"
+        # PERFORMANCE OPTIMIZATIONS for qwen2:0.5b
+        - name: OLLAMA_KEEP_ALIVE
+          value: "-1"  # Keep model loaded forever (no 20-30s reload penalty)
+        - name: OLLAMA_NUM_THREADS
+          value: "6"   # Use all 6 logical threads (1.5 CPU cores with HT)
+        - name: OLLAMA_NUM_PARALLEL
+          value: "1"   # Single chatbot user = no concurrent requests
+        - name: OLLAMA_MAX_LOADED_MODELS
+          value: "1"   # Only load one model at a time (8Gi limit)
+        - name: OLLAMA_MAX_QUEUE
+          value: "64"  # Reduce memory overhead (default 512)
       - name: nginx-tls-proxy
         image: docker.io/library/nginx:alpine
         ports:
@@ -139,7 +150,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ollama-pull-tinyllama
+  name: ollama-pull-qwen2
   namespace: insightlearn
 spec:
   template:
@@ -152,13 +163,15 @@ spec:
         - /bin/sh
         - -c
         - |
-          # Wait for Ollama to be ready (use -k for self-signed cert)
-          until curl -k -s https://ollama-service:11434/api/version > /dev/null; do
+          # Wait for Ollama to be ready (HTTP on port 11434)
+          until curl -s http://ollama-service:11434/api/version > /dev/null; do
             echo "Waiting for Ollama to start..."
             sleep 5
           done
 
-          # Pull phi3:mini model (fast and efficient for chatbots)
-          curl -k -X POST https://ollama-service:11434/api/pull \
+          # Pull qwen2:0.5b model (ultra-fast for chatbots, 5-10s responses)
+          curl -X POST http://ollama-service:11434/api/pull \
             -H "Content-Type: application/json" \
-            -d '{"name": "phi3:mini"}'
+            -d '{"name": "qwen2:0.5b"}'
+
+          echo "qwen2:0.5b model pulled successfully"

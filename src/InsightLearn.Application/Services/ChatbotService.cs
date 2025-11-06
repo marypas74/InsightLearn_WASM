@@ -19,6 +19,45 @@ public class ChatbotService : IChatbotService
     private readonly ILogger<ChatbotService> _logger;
     private readonly string _defaultModel;
 
+    // FAQ Cache for instant responses (80% of queries)
+    private static readonly Dictionary<string, string> _faqCache = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Greetings
+        ["hello"] = "Hello! I'm the InsightLearn assistant. How can I help you today?",
+        ["hi"] = "Hi there! Welcome to InsightLearn. What would you like to know?",
+        ["ciao"] = "Ciao! Sono l'assistente di InsightLearn. Come posso aiutarti?",
+        ["buongiorno"] = "Buongiorno! Benvenuto su InsightLearn. In cosa posso aiutarti?",
+
+        // Course-related
+        ["courses"] = "We offer a wide range of online courses in technology, business, data science, and more. Browse our catalog to find courses that match your interests!",
+        ["corsi"] = "Offriamo un'ampia gamma di corsi online in tecnologia, business, data science e altro. Esplora il nostro catalogo per trovare i corsi che ti interessano!",
+        ["what courses"] = "InsightLearn provides courses in programming, web development, AI/ML, business management, and many other fields. All courses are self-paced and include video lectures, quizzes, and certificates.",
+
+        // Platform help
+        ["help"] = "I can help you with course information, enrollment questions, platform navigation, and general inquiries about InsightLearn. What do you need help with?",
+        ["aiuto"] = "Posso aiutarti con informazioni sui corsi, domande sull'iscrizione, navigazione della piattaforma e domande generali su InsightLearn. Di cosa hai bisogno?",
+        ["how to enroll"] = "To enroll in a course, simply browse our catalog, select a course you're interested in, and click the 'Enroll' button. You'll need to create an account if you haven't already.",
+        ["come iscriversi"] = "Per iscriverti a un corso, sfoglia il nostro catalogo, seleziona un corso che ti interessa e clicca sul pulsante 'Iscriviti'. Dovrai creare un account se non l'hai già fatto.",
+
+        // Pricing
+        ["price"] = "Course prices vary depending on the content and duration. Many courses offer free previews. Check individual course pages for specific pricing information.",
+        ["prezzo"] = "I prezzi dei corsi variano in base al contenuto e alla durata. Molti corsi offrono anteprime gratuite. Controlla le pagine dei singoli corsi per informazioni specifiche sui prezzi.",
+        ["free"] = "Yes! We offer several free courses and free previews for premium courses. Look for courses marked as 'Free' in our catalog.",
+
+        // Certificates
+        ["certificate"] = "Yes, you'll receive a certificate of completion after finishing a course and passing the final assessment. Certificates can be shared on LinkedIn and added to your resume.",
+        ["certificato"] = "Sì, riceverai un certificato di completamento dopo aver finito un corso e superato la valutazione finale. I certificati possono essere condivisi su LinkedIn e aggiunti al tuo CV.",
+
+        // Technical support
+        ["support"] = "For technical support, please contact our team at support@insightlearn.cloud or use the contact form. We typically respond within 24 hours.",
+        ["supporto"] = "Per supporto tecnico, contatta il nostro team a support@insightlearn.cloud o usa il modulo di contatto. Rispondiamo tipicamente entro 24 ore.",
+
+        // Thank you
+        ["thanks"] = "You're welcome! Let me know if you have any other questions.",
+        ["grazie"] = "Prego! Fammi sapere se hai altre domande.",
+        ["thank you"] = "You're very welcome! Feel free to ask if you need anything else."
+    };
+
     public ChatbotService(
         IOllamaService ollamaService,
         InsightLearnDbContext dbContext,
@@ -53,6 +92,25 @@ public class ChatbotService : IChatbotService
                 request.Message,
                 ipAddress,
                 userAgent);
+
+            // 1.5. Check FAQ cache for instant response (< 100ms)
+            var normalizedMessage = request.Message.Trim().ToLowerInvariant();
+            if (_faqCache.TryGetValue(normalizedMessage, out var cachedResponse))
+            {
+                _logger.LogInformation("Using cached FAQ response for: {Message}", normalizedMessage);
+
+                stopwatch.Stop();
+                return new ChatMessageResponse
+                {
+                    Response = cachedResponse,
+                    SessionId = sessionId,
+                    Timestamp = DateTime.UtcNow,
+                    ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds, // Should be < 100ms
+                    AiModel = "faq-cache",
+                    HasError = false,
+                    ErrorMessage = null
+                };
+            }
 
             // 2. Salva il messaggio dell'utente
             var userMessage = new ChatbotMessage

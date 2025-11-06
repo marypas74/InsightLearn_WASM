@@ -1,8 +1,10 @@
 @using System.Net.Http.Json
 @using Microsoft.JSInterop
 @using InsightLearn.WebAssembly.Services
+@using InsightLearn.WebAssembly.Models.Config
 @inject IChatService ChatService
 @inject IJSRuntime JSRuntime
+@inject EndpointsConfig EndpointsConfig
 
 <div class="intercom-container">
     @if (!isOpen)
@@ -65,6 +67,7 @@
             <div class="intercom-header" id="intercom-header">
                 <div class="intercom-header-top intercom-drag-handle">
                     <div class="intercom-logo">IL</div>
+                    <span style="font-size: 10px; color: rgba(255,255,255,0.6); margin-left: 4px;">@CHATBOT_VERSION</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div class="intercom-team-avatars">
                             <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces"
@@ -284,6 +287,9 @@
 </div>
 
 @code {
+    // Chatbot version for debugging
+    private const string CHATBOT_VERSION = "v1.4.22-debug.4";
+
     private ElementReference messengerElement;
     private ElementReference contentElement;
 
@@ -410,6 +416,19 @@
         if (isOpen && contentElement.Id != null)
         {
             await JSRuntime.InvokeVoidAsync("scrollToBottom", contentElement);
+        }
+
+        // Initialize drag functionality when messenger is opened
+        if (isOpen)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("initializeChatbotDrag");
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore inizializzazione drag:", ex.Message);
+            }
         }
     }
 
@@ -585,36 +604,84 @@
 
         try
         {
-            // DEBUG: Log before API call
-            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Calling API with message:", userMessage, "email:", userEmail, "sessionId:", sessionId);
+            // DEBUG: Log API call details
+            var requestEmail = hasProvidedEmail ? userEmail : null;
+            var requestSessionId = !string.IsNullOrEmpty(sessionId) ? sessionId : null;
+
+            // DEBUG: Get endpoint from configuration (not hardcoded)
+            var actualEndpoint = EndpointsConfig.Chat.SendMessage;
+
+            // DEBUG: Show API call in chat window
+            messages.Add(new ChatMessageModel
+            {
+                Text = $"📡 API Call Debug:\nEndpoint (from config): {actualEndpoint}\nRequest: {{ Message: \"{userMessage}\", Email: \"{requestEmail}\", SessionId: \"{requestSessionId}\", CourseId: null }}",
+                IsUser = false,
+                SenderName = "DEBUG"
+            });
+            StateHasChanged();
+
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT {CHATBOT_VERSION}] === API CALL DEBUG ===");
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Endpoint (from config): {actualEndpoint}");
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Request Body:", new {
+                    Message = userMessage,
+                    Email = requestEmail,
+                    SessionId = requestSessionId,
+                    CourseId = (Guid?)null
+                });
 
             // Use the WASM-compatible ChatService with email and sessionId
             var response = await ChatService.SendMessageAsync(
                 userMessage,
-                email: hasProvidedEmail ? userEmail : null,
-                sessionId: !string.IsNullOrEmpty(sessionId) ? sessionId : null
+                email: requestEmail,
+                sessionId: requestSessionId
             );
 
-            // DEBUG: Log response
-            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Response received:",
-                response != null ? "NOT NULL" : "NULL",
-                "Success:", response?.Success ?? false,
-                "Data:", response?.Data != null ? "NOT NULL" : "NULL");
+            // DEBUG: Show API response in chat window
+            var responseDebugText = $"📥 API Response Debug:\nSuccess: {response?.Success ?? false}\nData is null: {response?.Data == null}";
+            if (response?.Data != null)
+            {
+                responseDebugText += $"\nResponse Text: \"{response.Data.Response}\"\nSessionId: \"{response.Data.SessionId}\"\nResponseTime: {response.Data.ResponseTimeMs}ms\nModel: {response.Data.AiModel}";
+            }
+            if (!string.IsNullOrEmpty(response?.Message))
+            {
+                responseDebugText += $"\nMessage: {response.Message}";
+            }
+            if (response?.Errors?.Any() == true)
+            {
+                responseDebugText += $"\nErrors: {string.Join(", ", response.Errors)}";
+            }
+
+            messages.Add(new ChatMessageModel
+            {
+                Text = responseDebugText,
+                IsUser = false,
+                SenderName = "DEBUG"
+            });
+            StateHasChanged();
+
+            // DEBUG: Log full response
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] === RESPONSE DEBUG ===");
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Response object:", response);
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Success: {response?.Success ?? false}");
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Data is null: {response?.Data == null}");
+            await JSRuntime.InvokeVoidAsync("console.log",
+                $"[CHATBOT] Message: {response?.Message}");
 
             // Check if we have a valid response with message
             string botMessage = null;
 
-            if (response?.Data != null && !string.IsNullOrEmpty(response.Data.Message))
+            if (response?.Data != null && !string.IsNullOrEmpty(response.Data.Response))
             {
-                // Response in Data.Message (wrapped format)
-                botMessage = response.Data.Message;
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Data.Message");
-            }
-            else if (response != null && !string.IsNullOrEmpty(response.Message))
-            {
-                // Response in Message (direct API format - this is the current case!)
-                botMessage = response.Message;
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Message (direct API)");
+                // Response in Data.Response (wrapped format)
+                botMessage = response.Data.Response;
+                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Data.Response");
             }
 
             if (!string.IsNullOrEmpty(botMessage))
@@ -666,7 +733,7 @@
                 // DEBUG: Log why it failed
                 var errorMsg = response == null ? "Response is NULL" :
                                response.Data == null ? "Data is NULL" :
-                               string.IsNullOrEmpty(response.Data.Message) ? "Data.Message is empty" :
+                               string.IsNullOrEmpty(response.Data.Response) ? "Data.Response is empty" :
                                "Unknown error";
                 await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] ERROR:", errorMsg, "Full response:", response);
 
@@ -1440,8 +1507,14 @@
 </style>
 
 <script>
-    // Make chatbot draggable
-    window.addEventListener('DOMContentLoaded', (event) => {
+    // Initialize chatbot drag functionality (called from Blazor after render)
+    window.initializeChatbotDrag = function() {
+        // Check if already initialized to avoid duplicate listeners
+        if (window.chatbotDragInitialized) {
+            return;
+        }
+        window.chatbotDragInitialized = true;
+
         let isDragging = false;
         let currentX;
         let currentY;
@@ -1515,7 +1588,7 @@
         function setTranslate(xPos, yPos, el) {
             el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
         }
-    });
+    };
 
     // Scroll to bottom function for chat
     window.scrollToBottom = (element) => {
