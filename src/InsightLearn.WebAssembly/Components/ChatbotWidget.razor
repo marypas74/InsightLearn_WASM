@@ -287,8 +287,8 @@
 </div>
 
 @code {
-    // Chatbot version for debugging
-    private const string CHATBOT_VERSION = "v1.4.22-debug.4";
+    // Chatbot version
+    private const string CHATBOT_VERSION = "v1.4.22";
 
     private ElementReference messengerElement;
     private ElementReference contentElement;
@@ -365,7 +365,6 @@
                         userEmail = storedEmail;
                         sessionId = storedSessionId;
                         hasProvidedEmail = true;
-                        await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Sessione recuperata (consenso functional OK):", storedEmail, storedSessionId);
                     }
                 }
                 else if (!string.IsNullOrEmpty(consentJson))
@@ -375,16 +374,11 @@
                     userEmail = "GDPR - REJECT";
                     hasProvidedEmail = true;
                     isAnonymousMode = true;
-                    await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Modalità ANONIMA attivata (functional REJECT) - Max messaggi:", ANONYMOUS_MAX_MESSAGES);
-                }
-                else
-                {
-                    await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Nessun consenso presente - in attesa decisione utente");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore recupero localStorage:", ex.Message);
+                // Silent fail - localStorage may not be available
             }
 
             // Recupera dimensioni salvate chatbot (UI preference, sempre permesso)
@@ -425,9 +419,9 @@
             {
                 await JSRuntime.InvokeVoidAsync("initializeChatbotDrag");
             }
-            catch (Exception ex)
+            catch
             {
-                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore inizializzazione drag:", ex.Message);
+                // Silent fail - drag not critical
             }
         }
     }
@@ -521,16 +515,11 @@
             try
             {
                 await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_email", userEmail);
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Email salvata in localStorage (consenso functional OK):", userEmail);
             }
-            catch (Exception ex)
+            catch
             {
-                await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore salvataggio email:", ex.Message);
+                // Silent fail - email saving not critical
             }
-        }
-        else
-        {
-            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Consenso functional non presente - email NON salvata");
         }
 
         // Add welcome message
@@ -604,33 +593,8 @@
 
         try
         {
-            // DEBUG: Log API call details
             var requestEmail = hasProvidedEmail ? userEmail : null;
             var requestSessionId = !string.IsNullOrEmpty(sessionId) ? sessionId : null;
-
-            // DEBUG: Get endpoint from configuration (not hardcoded)
-            var actualEndpoint = EndpointsConfig.Chat.SendMessage;
-
-            // DEBUG: Show API call in chat window
-            messages.Add(new ChatMessageModel
-            {
-                Text = $"📡 API Call Debug:\nEndpoint (from config): {actualEndpoint}\nRequest: {{ Message: \"{userMessage}\", Email: \"{requestEmail}\", SessionId: \"{requestSessionId}\", CourseId: null }}",
-                IsUser = false,
-                SenderName = "DEBUG"
-            });
-            StateHasChanged();
-
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT {CHATBOT_VERSION}] === API CALL DEBUG ===");
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Endpoint (from config): {actualEndpoint}");
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Request Body:", new {
-                    Message = userMessage,
-                    Email = requestEmail,
-                    SessionId = requestSessionId,
-                    CourseId = (Guid?)null
-                });
 
             // Use the WASM-compatible ChatService with email and sessionId
             var response = await ChatService.SendMessageAsync(
@@ -639,55 +603,17 @@
                 sessionId: requestSessionId
             );
 
-            // DEBUG: Show API response in chat window
-            var responseDebugText = $"📥 API Response Debug:\nSuccess: {response?.Success ?? false}\nData is null: {response?.Data == null}";
-            if (response?.Data != null)
-            {
-                responseDebugText += $"\nResponse Text: \"{response.Data.Response}\"\nSessionId: \"{response.Data.SessionId}\"\nResponseTime: {response.Data.ResponseTimeMs}ms\nModel: {response.Data.AiModel}";
-            }
-            if (!string.IsNullOrEmpty(response?.Message))
-            {
-                responseDebugText += $"\nMessage: {response.Message}";
-            }
-            if (response?.Errors?.Any() == true)
-            {
-                responseDebugText += $"\nErrors: {string.Join(", ", response.Errors)}";
-            }
-
-            messages.Add(new ChatMessageModel
-            {
-                Text = responseDebugText,
-                IsUser = false,
-                SenderName = "DEBUG"
-            });
-            StateHasChanged();
-
-            // DEBUG: Log full response
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] === RESPONSE DEBUG ===");
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Response object:", response);
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Success: {response?.Success ?? false}");
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Data is null: {response?.Data == null}");
-            await JSRuntime.InvokeVoidAsync("console.log",
-                $"[CHATBOT] Message: {response?.Message}");
-
             // Check if we have a valid response with message
-            string botMessage = null;
+            string? botMessage = null;
 
             if (response?.Data != null && !string.IsNullOrEmpty(response.Data.Response))
             {
                 // Response in Data.Response (wrapped format)
                 botMessage = response.Data.Response;
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Got message from response.Data.Response");
             }
 
             if (!string.IsNullOrEmpty(botMessage))
             {
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] Adding bot message:", botMessage);
-
                 messages.Add(new ChatMessageModel
                 {
                     Text = botMessage,
@@ -695,7 +621,7 @@
                     SenderName = ""
                 });
 
-                // Salva sessionId ricevuto dall'API in localStorage (cookie HTTPS sicuro)
+                // Salva sessionId ricevuto dall'API in localStorage
                 string? receivedSessionId = response?.Data?.SessionId;
 
                 if (!string.IsNullOrEmpty(receivedSessionId))
@@ -709,16 +635,11 @@
                         try
                         {
                             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "chatbot_sessionId", sessionId);
-                            await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] SessionId salvato in localStorage (consenso functional OK):", sessionId);
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Errore salvataggio sessionId:", ex.Message);
+                            // Silent fail - sessionId not critical
                         }
-                    }
-                    else
-                    {
-                        await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT GDPR] Consenso functional non presente - sessionId NON salvato");
                     }
                 }
 
@@ -730,13 +651,6 @@
             }
             else
             {
-                // DEBUG: Log why it failed
-                var errorMsg = response == null ? "Response is NULL" :
-                               response.Data == null ? "Data is NULL" :
-                               string.IsNullOrEmpty(response.Data.Response) ? "Data.Response is empty" :
-                               "Unknown error";
-                await JSRuntime.InvokeVoidAsync("console.log", "[CHATBOT] ERROR:", errorMsg, "Full response:", response);
-
                 messages.Add(new ChatMessageModel
                 {
                     Text = $"Sorry, I'm having trouble connecting right now. Please try again later.",
@@ -747,12 +661,9 @@
         }
         catch (Exception ex)
         {
-            // DEBUG: Log exception
-            await JSRuntime.InvokeVoidAsync("console.error", "[CHATBOT] Exception:", ex.Message, ex.StackTrace);
-
             messages.Add(new ChatMessageModel
             {
-                Text = $"Sorry, an error occurred: {ex.Message}",
+                Text = $"Sorry, an error occurred. Please try again later.",
                 IsUser = false,
                 SenderName = ""
             });
