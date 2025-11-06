@@ -29,7 +29,7 @@ sleep 2
 
 # Start port-forward for WASM (8080 -> 80)
 echo -e "${YELLOW}Starting WASM port-forward...${NC}"
-kubectl port-forward -n insightlearn svc/wasm-blazor-webassembly-service 8080:80 >/dev/null 2>&1 &
+kubectl port-forward -n insightlearn svc/insightlearn-wasm-blazor-webassembly 8080:80 >/dev/null 2>&1 &
 WASM_PID=$!
 echo -e "${GREEN}✓ WASM port-forward started (PID: $WASM_PID)${NC}"
 
