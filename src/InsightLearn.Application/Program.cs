@@ -2,6 +2,9 @@ using InsightLearn.Application.DTOs;
 using InsightLearn.Application.Interfaces;
 using InsightLearn.Application.Services;
 using InsightLearn.Infrastructure.Data;
+using InsightLearn.Infrastructure.Repositories;
+using InsightLearn.Infrastructure.Services;
+using InsightLearn.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -30,6 +33,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure JSON serialization to use PascalCase (ASP.NET Core default)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = null; // null = PascalCase
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -56,6 +66,13 @@ builder.Services.AddDbContext<InsightLearnDbContext>(options =>
 
 // Register HttpClient for services
 builder.Services.AddHttpClient();
+
+// Register MemoryCache for endpoint caching
+builder.Services.AddMemoryCache();
+
+// Register Endpoint Management Services
+builder.Services.AddScoped<ISystemEndpointRepository, SystemEndpointRepository>();
+builder.Services.AddScoped<IEndpointService, EndpointService>();
 
 // Register Ollama Service
 builder.Services.AddScoped<IOllamaService>(sp =>
@@ -150,14 +167,34 @@ app.MapPost("/api/chat/message", async (
 {
     try
     {
+        logger.LogInformation("[CHATBOT] ========== NEW CHAT REQUEST ==========");
         logger.LogInformation("[CHATBOT] Received message from session {SessionId}", request.SessionId);
+        logger.LogInformation("[CHATBOT] Request Message: {Message}", request.Message);
+        logger.LogInformation("[CHATBOT] Request Email: {Email}", request.Email);
+        logger.LogInformation("[CHATBOT] Request CourseId: {CourseId}", request.CourseId);
 
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
 
+        logger.LogInformation("[CHATBOT] Client IP: {IP}", ipAddress);
+        logger.LogInformation("[CHATBOT] User Agent: {UserAgent}", userAgent);
+
         var response = await chatbotService.ProcessMessageAsync(request, ipAddress, userAgent, cancellationToken);
 
         logger.LogInformation("[CHATBOT] Response generated in {ResponseTime}ms", response.ResponseTimeMs);
+
+        // DETAILED LOGGING: Trace DTO before serialization
+        logger.LogInformation("[CHATBOT] DTO Type: {Type}", response.GetType().FullName);
+        logger.LogInformation("[CHATBOT] DTO Response property: {Response}", response.Response);
+        logger.LogInformation("[CHATBOT] DTO SessionId property: {SessionId}", response.SessionId);
+        logger.LogInformation("[CHATBOT] DTO AiModel property: {AiModel}", response.AiModel);
+
+        // Serialize manually to see JSON format
+        var jsonString = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = null // PascalCase
+        });
+        logger.LogInformation("[CHATBOT] Serialized JSON (PascalCase): {Json}", jsonString);
 
         return Results.Ok(response);
     }
@@ -270,6 +307,101 @@ app.MapGet("/api/chat/health", async (
 })
 .WithName("ChatbotHealth")
 .WithTags("Chatbot");
+
+// SYSTEM ENDPOINTS API
+app.MapGet("/api/system/endpoints", async (
+    [FromServices] ISystemEndpointRepository repository,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ENDPOINTS] Fetching all active endpoints");
+        var endpoints = await repository.GetAllActiveAsync();
+
+        // Group by category for frontend
+        var grouped = endpoints
+            .GroupBy(e => e.Category)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(e => e.EndpointKey, e => e.EndpointPath)
+            );
+
+        return Results.Ok(grouped);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENDPOINTS] Error fetching endpoints");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("GetAllEndpoints")
+.WithTags("System");
+
+app.MapGet("/api/system/endpoints/{category}", async (
+    [FromRoute] string category,
+    [FromServices] IEndpointService endpointService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ENDPOINTS] Fetching endpoints for category: {Category}", category);
+        var endpoints = await endpointService.GetCategoryEndpointsAsync(category);
+        return Results.Ok(endpoints);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENDPOINTS] Error fetching category endpoints");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("GetCategoryEndpoints")
+.WithTags("System");
+
+app.MapGet("/api/system/endpoints/{category}/{key}", async (
+    [FromRoute] string category,
+    [FromRoute] string key,
+    [FromServices] IEndpointService endpointService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ENDPOINTS] Fetching endpoint: {Category}.{Key}", category, key);
+        var endpoint = await endpointService.GetEndpointAsync(category, key);
+
+        if (endpoint == null)
+        {
+            return Results.NotFound(new { error = $"Endpoint {category}.{key} not found" });
+        }
+
+        return Results.Ok(new { category, key, path = endpoint });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENDPOINTS] Error fetching endpoint");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("GetEndpoint")
+.WithTags("System");
+
+app.MapPost("/api/system/endpoints/refresh-cache", async (
+    [FromServices] IEndpointService endpointService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ENDPOINTS] Refreshing endpoint cache");
+        await endpointService.RefreshCacheAsync();
+        return Results.Ok(new { message = "Cache refreshed successfully" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENDPOINTS] Error refreshing cache");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("RefreshEndpointCache")
+.WithTags("System");
 
 Console.WriteLine("🚀 InsightLearn API Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");

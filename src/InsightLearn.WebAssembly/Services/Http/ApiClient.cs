@@ -22,7 +22,9 @@ public class ApiClient : IApiClient
         _logger = logger;
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            // CRITICAL: Keep PascalCase for serialization to match ASP.NET backend expectations
+            PropertyNamingPolicy = null  // null = PascalCase (default C#)
         };
     }
 
@@ -51,7 +53,8 @@ public class ApiClient : IApiClient
         try
         {
             await AttachAuthTokenAsync();
-            var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+            // CRITICAL: Pass _jsonOptions to preserve PascalCase (ASP.NET backend expects PascalCase)
+            var response = await _httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions);
             return await HandleResponseAsync<T>(response);
         }
         catch (Exception ex)
@@ -71,7 +74,8 @@ public class ApiClient : IApiClient
         try
         {
             await AttachAuthTokenAsync();
-            var response = await _httpClient.PutAsJsonAsync(endpoint, data);
+            // CRITICAL: Pass _jsonOptions to preserve PascalCase
+            var response = await _httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions);
             return await HandleResponseAsync<T>(response);
         }
         catch (Exception ex)
@@ -180,7 +184,9 @@ public class ApiClient : IApiClient
             {
                 // Try to deserialize as ApiResponse<T> first
                 var apiResponse = JsonSerializer.Deserialize<ApiResponse<T>>(content, _jsonOptions);
-                if (apiResponse != null)
+                // CRITICAL FIX: Only return apiResponse if it actually has Success=true OR Data is not null
+                // This prevents returning empty ApiResponse when backend returns T directly
+                if (apiResponse != null && (apiResponse.Success || apiResponse.Data != null))
                 {
                     return apiResponse;
                 }

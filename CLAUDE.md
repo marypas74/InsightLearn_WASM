@@ -9,6 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Versione corrente**: `1.4.22-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 
+⚠️ **Version Inconsistency**: [Program.cs:136,147](src/InsightLearn.Application/Program.cs#L136) hardcodes version `1.4.29` but [Directory.Build.props](Directory.Build.props) says `1.4.22-dev`. Update hardcoded versions or use `$(VERSION)` variable.
+
 ### Architettura Soluzione
 
 La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 progetti:
@@ -17,6 +19,82 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 2. **InsightLearn.Infrastructure** - Repository implementations, DbContext, external services
 3. **InsightLearn.Application** - ASP.NET Core Web API backend
 4. **InsightLearn.WebAssembly** - Blazor WebAssembly frontend (client-side)
+
+### API Architecture
+
+- **Pattern**: ASP.NET Core **Minimal APIs** (NOT traditional Controllers)
+- **Endpoint Definition**: Inline in [Program.cs:154-220](src/InsightLearn.Application/Program.cs#L154-L220) using `app.MapPost()`, `app.MapGet()`
+- **Dependency Injection**: Services injected via `[FromServices]` attribute
+- **Automatic Swagger**: Available at `/swagger` when running API
+- **Health Check**: `/health` endpoint for Kubernetes liveness/readiness probes
+- **Info Endpoint**: `/api/info` returns version and feature list
+
+### Frontend Architecture (Blazor WebAssembly)
+
+**Service Layer Pattern**:
+- **Centralized API Client**: [ApiClient.cs](src/InsightLearn.WebAssembly/Services/Http/ApiClient.cs) - base HTTP client
+- **Endpoint Configuration**: [appsettings.json](src/InsightLearn.WebAssembly/wwwroot/appsettings.json) defines all API routes with placeholders
+- **Service Interfaces**: IChatService, ICourseService, IAuthService, IDashboardService, IPaymentService, etc.
+- **Authentication**: [TokenService.cs](src/InsightLearn.WebAssembly/Services/Auth/TokenService.cs) manages JWT storage in browser localStorage
+
+**Key Components**:
+- [ChatbotWidget.razor](src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor) - AI chatbot UI with phi3:mini integration
+- [GoogleSignInButton.razor](src/InsightLearn.WebAssembly/Components/GoogleSignInButton.razor) - OAuth Google login
+- [CookieConsent.razor](src/InsightLearn.WebAssembly/Components/CookieConsent.razor) - GDPR compliance
+- [AuthenticationStateHandler.razor](src/InsightLearn.WebAssembly/Components/AuthenticationStateHandler.razor) - Auth state management
+
+### Authentication & Authorization
+
+- **JWT-based authentication**: Tokens stored in browser localStorage
+- **OAuth Support**: Google Sign-In (optional, requires `GOOGLE_CLIENT_ID` in `.env`)
+- **Environment Variables** (configure in `.env`):
+  - `JWT_SECRET_KEY`: Signing key (**MUST match** between API and Web)
+  - `JWT_ISSUER`: `InsightLearn.Api`
+  - `JWT_AUDIENCE`: `InsightLearn.Users`
+  - `JWT_EXPIRATION_DAYS`: Token lifetime (default: 7 days)
+- **API Endpoints**:
+  - `/api/auth/login` - User login
+  - `/api/auth/register` - New user registration
+  - `/api/auth/refresh` - Refresh JWT token
+  - `/api/auth/me` - Get current user info
+  - `/api/auth/oauth-callback` - Google OAuth callback
+
+### 🔴 CRITOCO: Endpoint Configuration (Database-Driven Architecture)
+
+⚠️ **TUTTI GLI ENDPOINT SONO MEMORIZZATI NEL DATABASE** ⚠️
+
+**REGOLA FONDAMENTALE**: Per modificare URL di endpoint, **NON toccare il codice**. Modificare SOLO il database.
+
+#### Architettura
+- **Database**: SQL Server tabella `SystemEndpoints` (seed data in [InsightLearnDbContext.cs:166-227](src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs#L166-L227))
+- **Backend API**: `/api/system/endpoints` endpoint ([Program.cs:160-190](src/InsightLearn.Application/Program.cs#L160-L190))
+- **Caching**: MemoryCache 60 minuti con `IEndpointService`
+- **Frontend**: `EndpointConfigurationService` carica da API con fallback a appsettings.json
+
+#### Come Modificare un Endpoint
+
+```sql
+-- Esempio: Cambiare endpoint chatbot
+UPDATE SystemEndpoints
+SET EndpointPath = 'api/v2/chat/message', LastModified = GETUTCDATE()
+WHERE Category = 'Chat' AND EndpointKey = 'SendMessage';
+
+-- Refresh cache backend (chiamare da API)
+-- oppure attendere scadenza cache (60 minuti)
+```
+
+#### File Coinvolti
+- **Entity**: [SystemEndpoint.cs](src/InsightLearn.Core/Entities/SystemEndpoint.cs) - `Id, Category, EndpointKey, EndpointPath, HttpMethod, IsActive`
+- **Repository**: [SystemEndpointRepository.cs](src/InsightLearn.Infrastructure/Repositories/SystemEndpointRepository.cs) - CRUD operations
+- **Backend Service**: [EndpointService.cs](src/InsightLearn.Infrastructure/Services/EndpointService.cs) - caching + GetCategoryEndpointsAsync()
+- **Frontend Service**: [EndpointConfigurationService.cs](src/InsightLearn.WebAssembly/Services/EndpointConfigurationService.cs) - LoadEndpointsAsync()
+- **Seed Data**: [InsightLearnDbContext.cs:166-227](src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs#L166-L227) - 50+ endpoints iniziali
+
+#### ⚠️ Troubleshooting Endpoint Problems
+1. **Frontend mostra 404/405**: Verificare `SystemEndpoints` nel database
+2. **Endpoint non aggiornato**: Cache 60 min, attendere o restart API pod
+3. **Errore deserializzazione**: Verificare che backend usi PascalCase (Program.cs:38-41)
+4. **Deadlock Blazor WASM**: EndpointsConfig è Scoped, non Singleton (Program.cs:49-62)
 
 ### ⚠️ Problemi Noti Critici
 
@@ -82,8 +160,8 @@ docker-compose build api
 docker-compose up -d sqlserver mongodb redis elasticsearch \
                     prometheus ollama jenkins api
 
-# 5. Inizializza Ollama LLM
-docker exec insightlearn-ollama ollama pull llama2
+# 5. Inizializza Ollama LLM (phi3:mini per performance migliori)
+docker exec insightlearn-ollama ollama pull phi3:mini
 
 # 6. Verifica
 docker-compose ps
@@ -117,6 +195,20 @@ kubectl apply -f k8s/
 # 6. Verifica status
 ./k8s/status.sh
 ```
+
+## Database Initialization
+
+⚠️ **Automatic EF Core migrations on API startup**:
+- **Location**: [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116)
+- **Behavior**: `dbContext.Database.MigrateAsync()` runs on every startup
+- **Retry Policy**: 5 retries, 30-second delay between attempts (configured on line 52-57)
+- **Command Timeout**: 120 seconds for long-running migrations
+- **Error Handling**: Logs errors but **does NOT fail startup** if DB unavailable (health checks handle it)
+
+**Important**:
+- Migrations are applied automatically in production (Kubernetes best practice)
+- No need to run `dotnet ef database update` manually
+- Ensure migrations are tested before deployment
 
 ## Versioning e Build Metadata
 
@@ -182,19 +274,34 @@ Esempio modifica version:
 
 ### Database Stack
 
-| Database | Uso | Porta |
-|----------|-----|-------|
-| SQL Server 2022 | Dati relazionali principali | 1433 |
-| MongoDB 7.0 | Video storage + chatbot messages | 27017 |
-| Redis 7 | Cache + sessioni utente | 6379 |
-| Elasticsearch 8.11 | Search engine | 9200 |
+| Database | Uso | Porta | Status |
+|----------|-----|-------|--------|
+| SQL Server 2022 | Dati relazionali principali + **ChatbotMessages** entity via EF Core | 1433 | ✅ In uso |
+| MongoDB 7.0 | Video storage (GridFS via [MongoVideoStorageService.cs](src/InsightLearn.Application/Services/MongoVideoStorageService.cs)) | 27017 | 🔧 Configured |
+| Redis 7 | Cache + sessioni utente | 6379 | ✅ In uso (MemoryCache nel codice) |
+| Elasticsearch 8.11 | Search engine | 9200 | 🔧 Configured |
+
+**Note**:
+- Chatbot messages sono salvati in SQL Server via [ChatbotService.cs:84](src/InsightLearn.Application/Services/ChatbotService.cs#L84), NON in MongoDB
+- MongoDB è configurato per video storage ma potrebbe non essere attualmente utilizzato
+- EF Core gestisce migrations automatiche al startup (vedi sezione Database Initialization)
 
 ### AI/Chatbot
 
 - **LLM Server**: Ollama (porta 11434)
-- **Model**: llama2 (download: `ollama pull llama2`)
-- **API endpoint**: `/api/chat/message`
-- **Storage**: MongoDB collection `chatbot_messages`
+- **Model**: `phi3:mini` (upgrade da llama2 per risposte più veloci - commit 948b757)
+- **Download model**: `docker exec insightlearn-ollama ollama pull phi3:mini`
+- **API Endpoints**:
+  - `POST /api/chat/message` - Send message and get AI response (see [Program.cs:154-188](src/InsightLearn.Application/Program.cs#L154-L188))
+  - `GET /api/chat/history?sessionId={id}&limit={n}` - Get chat history
+- **Services**:
+  - [OllamaService.cs](src/InsightLearn.Application/Services/OllamaService.cs) - HTTP client for Ollama API
+  - [ChatbotService.cs](src/InsightLearn.Application/Services/ChatbotService.cs) - Business logic + persistence
+- **Storage**: SQL Server `ChatbotMessages` table (via EF Core DbContext), NOT MongoDB
+- **Background Cleanup**: [ChatbotCleanupBackgroundService.cs](src/InsightLearn.Application/Services/ChatbotCleanupBackgroundService.cs) - deletes old messages
+- **Configuration** (in appsettings.json or env vars):
+  - `Ollama:BaseUrl` or `Ollama:Url` - default: `http://ollama-service.insightlearn.svc.cluster.local:11434`
+  - `Ollama:Model` - default: `tinyllama` (⚠️ override to `phi3:mini` for production)
 
 ## Testing Deployment
 
@@ -275,16 +382,22 @@ curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
 Quando lavori con questa repository:
 
 1. **Leggere SEMPRE questo file** all'inizio del task
-2. **Verificare versione** in [Directory.Build.props](/Directory.Build.props) (non hardcodare)
-3. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
-4. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
-5. **Password da .env** - non committare mai password reali
-6. **Prometheus porta 9091** - non 9090 (conflitto systemd)
-7. **Rocky Linux 10 = Podman + kicbase-rocky** - non Docker standard
+2. 🔴 **ENDPOINT NEL DATABASE** - **MAI** modificare endpoint nel codice. Tutti gli URL endpoint sono in SQL Server tabella `SystemEndpoints`. Per problemi 404/405, controllare/aggiornare database, NON codice.
+3. **Verificare versione** in [Directory.Build.props](/Directory.Build.props) (non hardcodare)
+4. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
+5. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
+6. **Password da .env** - non committare mai password reali
+7. **Prometheus porta 9091** - non 9090 (conflitto systemd)
+8. **Rocky Linux 10 = Podman + kicbase-rocky** - non Docker standard
    - Minikube: `--driver=podman --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48`
    - Risorse: `--memory=9216 --cpus=6` (9GB RAM, 6 CPU)
    - Build: `eval $(minikube podman-env)` poi `podman build`
-8. **Test chatbot** dopo modifiche AI: `docker exec insightlearn-ollama ollama list`
+9. **Test chatbot** dopo modifiche AI:
+   - `docker exec insightlearn-ollama ollama list` - verify model downloaded
+   - Ensure model is `phi3:mini` not `llama2`
+10. **Automatic Database Migrations**: L'API applica migrations automaticamente al startup (vedi [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116))
+11. **Minimal APIs**: L'applicazione usa Minimal APIs, NON Controllers tradizionali - tutti gli endpoints sono definiti in Program.cs
+12. **Endpoint API**: `/api/system/endpoints` ritorna tutti gli endpoint dal database (con cache 60 min)
 
 ## Documentazione Aggiuntiva
 

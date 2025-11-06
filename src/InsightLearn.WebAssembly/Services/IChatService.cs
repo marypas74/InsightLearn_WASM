@@ -11,9 +11,27 @@ public class ChatMessage
 
 public class ChatResponse
 {
-    public string Message { get; set; } = string.Empty;
+    // Use camelCase to match backend JSON (backend serializes in camelCase)
+    [System.Text.Json.Serialization.JsonPropertyName("response")]
+    public string Response { get; set; } = string.Empty;
+
+    [System.Text.Json.Serialization.JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+
+    [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; }
-    public string? SessionId { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("responseTimeMs")]
+    public int ResponseTimeMs { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("aiModel")]
+    public string? AiModel { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("hasError")]
+    public bool HasError { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("errorMessage")]
+    public string? ErrorMessage { get; set; }
 }
 
 public interface IChatService

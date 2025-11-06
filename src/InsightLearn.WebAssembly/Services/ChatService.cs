@@ -17,13 +17,16 @@ public class ChatService : IChatService
 
     public async Task<ApiResponse<ChatResponse>> SendMessageAsync(string message, string? email = null, string? sessionId = null, Guid? courseId = null)
     {
-        return await _apiClient.PostAsync<ChatResponse>(_endpoints.Chat.SendMessage, new
+        // IMPORTANT: Use PascalCase property names to match backend DTO (ChatMessageRequest)
+        var request = new
         {
-            Message = message,
-            Email = email,
-            SessionId = sessionId,
-            CourseId = courseId
-        });
+            Message = message,      // Backend expects: Message (PascalCase)
+            Email = email,          // Backend expects: Email (PascalCase)
+            SessionId = sessionId,  // Backend expects: SessionId (PascalCase)
+            CourseId = courseId     // Backend expects: CourseId (PascalCase)
+        };
+
+        return await _apiClient.PostAsync<ChatResponse>(_endpoints.Chat.SendMessage, request);
     }
 
     public async Task<ApiResponse<List<ChatMessage>>> GetChatHistoryAsync()

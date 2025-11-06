@@ -40,9 +40,26 @@ builder.Services.AddScoped(sp => new HttpClient
     Timeout = TimeSpan.FromSeconds(apiTimeout)
 });
 
-// Configure Endpoints from appsettings.json (NO HARDCODED ENDPOINTS!)
-var endpointsConfig = builder.Configuration.GetSection("Endpoints").Get<EndpointsConfig>() ?? new EndpointsConfig();
-builder.Services.AddSingleton(endpointsConfig);
+// Register Endpoint Configuration Service - loads from database via API with fallback to appsettings.json
+builder.Services.AddScoped<IEndpointConfigurationService, EndpointConfigurationService>();
+
+// Configure EndpointsConfig as Scoped to allow async loading from database
+// EndpointConfigurationService.LoadEndpointsAsync() tries database first, then falls back to appsettings.json
+// Scoped lifetime avoids deadlock and allows proper async/await pattern
+builder.Services.AddScoped<EndpointsConfig>(sp =>
+{
+    // Get appsettings.json config as synchronous fallback
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("EndpointsConfig");
+
+    // Load directly from appsettings.json as initial config
+    // EndpointConfigurationService can be used by services that need dynamic loading
+    var config = configuration.GetSection("Endpoints").Get<EndpointsConfig>() ?? new EndpointsConfig();
+
+    logger.LogInformation("[ENDPOINTS] Loaded endpoints from appsettings.json (synchronous fallback)");
+    logger.LogInformation("[ENDPOINTS] Use IEndpointConfigurationService.LoadEndpointsAsync() for database-driven endpoints");
+    return config;
+});
 
 // HTTP Services
 builder.Services.AddScoped<IApiClient, ApiClient>();

@@ -47,6 +47,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<ValidationErrorLog> ValidationErrorLogs { get; set; }
     public DbSet<PerformanceMetric> PerformanceMetrics { get; set; }
     public DbSet<EntityAuditLog> EntityAuditLogs { get; set; }
+
+    // System Configuration
+    public DbSet<SystemEndpoint> SystemEndpoints { get; set; }
     
     // SEO and Management entities
     public DbSet<SeoSettings> SeoSettings { get; set; }
@@ -159,6 +162,69 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
         };
 
         builder.Entity<IdentityRole<Guid>>().HasData(roles);
+
+        // Seed System Endpoints for database-driven endpoint configuration
+        var endpoints = new List<SystemEndpoint>
+        {
+            // Auth endpoints
+            new SystemEndpoint { Id = 1, Category = "Auth", EndpointKey = "Login", EndpointPath = "api/auth/login", HttpMethod = "POST", Description = "User login", IsActive = true },
+            new SystemEndpoint { Id = 2, Category = "Auth", EndpointKey = "Register", EndpointPath = "api/auth/register", HttpMethod = "POST", Description = "User registration", IsActive = true },
+            new SystemEndpoint { Id = 3, Category = "Auth", EndpointKey = "CompleteRegistration", EndpointPath = "api/auth/complete-registration", HttpMethod = "POST", Description = "Complete user registration", IsActive = true },
+            new SystemEndpoint { Id = 4, Category = "Auth", EndpointKey = "Refresh", EndpointPath = "api/auth/refresh", HttpMethod = "POST", Description = "Refresh JWT token", IsActive = true },
+            new SystemEndpoint { Id = 5, Category = "Auth", EndpointKey = "Me", EndpointPath = "api/auth/me", HttpMethod = "GET", Description = "Get current user", IsActive = true },
+            new SystemEndpoint { Id = 6, Category = "Auth", EndpointKey = "OAuthCallback", EndpointPath = "api/auth/oauth-callback", HttpMethod = "POST", Description = "OAuth callback", IsActive = true },
+
+            // Courses endpoints
+            new SystemEndpoint { Id = 10, Category = "Courses", EndpointKey = "GetAll", EndpointPath = "api/courses", HttpMethod = "GET", Description = "Get all courses", IsActive = true },
+            new SystemEndpoint { Id = 11, Category = "Courses", EndpointKey = "GetById", EndpointPath = "api/courses/{0}", HttpMethod = "GET", Description = "Get course by ID", IsActive = true },
+            new SystemEndpoint { Id = 12, Category = "Courses", EndpointKey = "Create", EndpointPath = "api/courses", HttpMethod = "POST", Description = "Create new course", IsActive = true },
+            new SystemEndpoint { Id = 13, Category = "Courses", EndpointKey = "Update", EndpointPath = "api/courses/{0}", HttpMethod = "PUT", Description = "Update course", IsActive = true },
+            new SystemEndpoint { Id = 14, Category = "Courses", EndpointKey = "Delete", EndpointPath = "api/courses/{0}", HttpMethod = "DELETE", Description = "Delete course", IsActive = true },
+            new SystemEndpoint { Id = 15, Category = "Courses", EndpointKey = "Search", EndpointPath = "api/courses/search", HttpMethod = "GET", Description = "Search courses", IsActive = true },
+            new SystemEndpoint { Id = 16, Category = "Courses", EndpointKey = "GetByCategory", EndpointPath = "api/courses/category/{0}", HttpMethod = "GET", Description = "Get courses by category", IsActive = true },
+
+            // Categories endpoints
+            new SystemEndpoint { Id = 20, Category = "Categories", EndpointKey = "GetAll", EndpointPath = "api/categories", HttpMethod = "GET", Description = "Get all categories", IsActive = true },
+            new SystemEndpoint { Id = 21, Category = "Categories", EndpointKey = "GetById", EndpointPath = "api/categories/{0}", HttpMethod = "GET", Description = "Get category by ID", IsActive = true },
+            new SystemEndpoint { Id = 22, Category = "Categories", EndpointKey = "Create", EndpointPath = "api/categories", HttpMethod = "POST", Description = "Create new category", IsActive = true },
+            new SystemEndpoint { Id = 23, Category = "Categories", EndpointKey = "Update", EndpointPath = "api/categories/{0}", HttpMethod = "PUT", Description = "Update category", IsActive = true },
+            new SystemEndpoint { Id = 24, Category = "Categories", EndpointKey = "Delete", EndpointPath = "api/categories/{0}", HttpMethod = "DELETE", Description = "Delete category", IsActive = true },
+
+            // Enrollments endpoints
+            new SystemEndpoint { Id = 30, Category = "Enrollments", EndpointKey = "GetAll", EndpointPath = "api/enrollments", HttpMethod = "GET", Description = "Get all enrollments", IsActive = true },
+            new SystemEndpoint { Id = 31, Category = "Enrollments", EndpointKey = "GetById", EndpointPath = "api/enrollments/{0}", HttpMethod = "GET", Description = "Get enrollment by ID", IsActive = true },
+            new SystemEndpoint { Id = 32, Category = "Enrollments", EndpointKey = "Create", EndpointPath = "api/enrollments", HttpMethod = "POST", Description = "Create enrollment", IsActive = true },
+            new SystemEndpoint { Id = 33, Category = "Enrollments", EndpointKey = "GetByCourse", EndpointPath = "api/enrollments/course/{0}", HttpMethod = "GET", Description = "Get enrollments by course", IsActive = true },
+            new SystemEndpoint { Id = 34, Category = "Enrollments", EndpointKey = "GetByUser", EndpointPath = "api/enrollments/user/{0}", HttpMethod = "GET", Description = "Get enrollments by user", IsActive = true },
+
+            // Users endpoints
+            new SystemEndpoint { Id = 40, Category = "Users", EndpointKey = "GetAll", EndpointPath = "api/users", HttpMethod = "GET", Description = "Get all users", IsActive = true },
+            new SystemEndpoint { Id = 41, Category = "Users", EndpointKey = "GetById", EndpointPath = "api/users/{0}", HttpMethod = "GET", Description = "Get user by ID", IsActive = true },
+            new SystemEndpoint { Id = 42, Category = "Users", EndpointKey = "Update", EndpointPath = "api/users/{0}", HttpMethod = "PUT", Description = "Update user", IsActive = true },
+            new SystemEndpoint { Id = 43, Category = "Users", EndpointKey = "Delete", EndpointPath = "api/users/{0}", HttpMethod = "DELETE", Description = "Delete user", IsActive = true },
+            new SystemEndpoint { Id = 44, Category = "Users", EndpointKey = "GetProfile", EndpointPath = "api/users/profile", HttpMethod = "GET", Description = "Get user profile", IsActive = true },
+
+            // Dashboard endpoints
+            new SystemEndpoint { Id = 50, Category = "Dashboard", EndpointKey = "GetStats", EndpointPath = "api/dashboard/stats", HttpMethod = "GET", Description = "Get dashboard statistics", IsActive = true },
+            new SystemEndpoint { Id = 51, Category = "Dashboard", EndpointKey = "GetRecentActivity", EndpointPath = "api/dashboard/recent-activity", HttpMethod = "GET", Description = "Get recent activity", IsActive = true },
+
+            // Reviews endpoints
+            new SystemEndpoint { Id = 60, Category = "Reviews", EndpointKey = "GetAll", EndpointPath = "api/reviews", HttpMethod = "GET", Description = "Get all reviews", IsActive = true },
+            new SystemEndpoint { Id = 61, Category = "Reviews", EndpointKey = "GetById", EndpointPath = "api/reviews/{0}", HttpMethod = "GET", Description = "Get review by ID", IsActive = true },
+            new SystemEndpoint { Id = 62, Category = "Reviews", EndpointKey = "Create", EndpointPath = "api/reviews", HttpMethod = "POST", Description = "Create review", IsActive = true },
+            new SystemEndpoint { Id = 63, Category = "Reviews", EndpointKey = "GetByCourse", EndpointPath = "api/reviews/course/{0}", HttpMethod = "GET", Description = "Get reviews by course", IsActive = true },
+
+            // Payments endpoints
+            new SystemEndpoint { Id = 70, Category = "Payments", EndpointKey = "CreateCheckout", EndpointPath = "api/payments/create-checkout", HttpMethod = "POST", Description = "Create payment checkout", IsActive = true },
+            new SystemEndpoint { Id = 71, Category = "Payments", EndpointKey = "GetTransactions", EndpointPath = "api/payments/transactions", HttpMethod = "GET", Description = "Get payment transactions", IsActive = true },
+            new SystemEndpoint { Id = 72, Category = "Payments", EndpointKey = "GetTransactionById", EndpointPath = "api/payments/transactions/{0}", HttpMethod = "GET", Description = "Get transaction by ID", IsActive = true },
+
+            // Chat endpoints
+            new SystemEndpoint { Id = 80, Category = "Chat", EndpointKey = "SendMessage", EndpointPath = "api/chat/message", HttpMethod = "POST", Description = "Send chat message", IsActive = true },
+            new SystemEndpoint { Id = 81, Category = "Chat", EndpointKey = "GetHistory", EndpointPath = "api/chat/history", HttpMethod = "GET", Description = "Get chat history", IsActive = true }
+        };
+
+        builder.Entity<SystemEndpoint>().HasData(endpoints);
     }
 
     public override int SaveChanges()
