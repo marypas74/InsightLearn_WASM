@@ -98,3 +98,8 @@ coverage/
 .env
 k8s/privkey.pem
 *.pem
+
+# Build artifacts
+publish/
+database/
+restart-after-reboot.sh
