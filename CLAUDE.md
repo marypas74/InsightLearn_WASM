@@ -559,10 +559,12 @@ tail -f /tmp/insightlearn-watchdog.log
 | Elasticsearch | 9200 | ❌ |
 | Ollama | 11434 | ❌ |
 | Prometheus | **9091** (⚠️ non 9090!) | ❌ |
-| Grafana | 3000 | ❌ |
-| Jenkins | 8080, 50000 | ❌ |
+| Grafana | 3000 (port-forward), 31300 (NodePort) | ❌ |
+| Jenkins | **32000** (NodePort), 50000 (JNLP) | ❌ |
 
-**Nota**: Prometheus usa porta 9091 per evitare conflitto con systemd su porta 9090.
+**Note**:
+- Prometheus usa porta 9091 per evitare conflitto con systemd su porta 9090
+- Jenkins: Porta corretta è **32000** (NON 8080 come da docs obsolete)
 
 ## Credenziali Default
 
@@ -579,6 +581,73 @@ tail -f /tmp/insightlearn-watchdog.log
   - App User: insightlearn / (da Secret `mongodb-password`) (Kubernetes)
   - Database: `insightlearn_videos`
 - **Redis**: password: `${REDIS_PASSWORD}` (da Secret `redis-password`)
+- **Jenkins**: Nessuna autenticazione (development mode)
+
+## Jenkins CI/CD & Automated Testing
+
+**Status**: ✅ Deployato su Kubernetes (namespace: jenkins)
+
+### Configurazione
+
+- **Versione**: Jenkins 2.528.1 (Alpine LTS)
+- **Deployment**: Lightweight (384Mi-768Mi RAM, 250m-500m CPU)
+- **Storage**: PVC 20Gi (local-path StorageClass)
+- **Autenticazione**: **Disabilitata** per ambiente sviluppo (`authorizationStrategy: Unsecured`)
+- **Porte**:
+  - HTTP UI: **NodePort 32000** (⚠️ NON 8080!)
+  - JNLP Agents: 50000
+
+### Accesso
+
+```bash
+# Via NodePort (raccomandato)
+http://localhost:32000
+
+# Via minikube IP
+http://$(minikube ip):32000
+```
+
+**⚠️ IMPORTANTE**: Documentazione obsoleta indica porta 8080, ma la porta corretta è **32000** (NodePort).
+
+### Pipeline & Testing Scripts
+
+**Jenkinsfile** - 9 stage di test automatici:
+1. Preparation - Inizializzazione environment
+2. Health Check - Verifica endpoints principali
+3. Page Availability Test - Controllo 404 errors
+4. Performance Benchmarking - Average response time
+5. Load Testing - Simulazione 50 concurrent users
+6. Asset Validation - CSS/JS/images integrity
+7. Security Headers Check - Security headers validation
+8. Backend API Monitoring - Kubernetes pod status
+9. Generate Report - Summary report
+
+**Testing Scripts** ([jenkins/scripts/](jenkins/scripts/)):
+- `load-test.sh` - Load testing con 4 profili (light/medium/heavy/stress)
+- `site-monitor.sh` - Continuous monitoring con alerting
+- `test-email-notification.sh` - Email notification testing
+
+### Deployment
+
+```bash
+# Deploy Jenkins (con fix PVC per local-path)
+kubectl apply -f k8s/12-jenkins-namespace.yaml
+kubectl apply -f k8s/13-jenkins-rbac.yaml
+kubectl apply -f k8s/14-jenkins-pvc.yaml
+kubectl apply -f k8s/15-jenkins-deployment-lightweight.yaml
+
+# Oppure usa lo script (richiede minikube)
+./k8s/deploy-jenkins.sh
+```
+
+**Problemi Comuni**:
+- ❌ PVC Pending: Cambiare `storageClassName: standard` → `local-path` in 14-jenkins-pvc.yaml
+- ❌ Porta 8080 non risponde: Usare porta **32000** (NodePort)
+
+### Documentazione
+
+- [jenkins/README.md](jenkins/README.md) - Setup completo e guida configurazione
+- [Jenkinsfile](Jenkinsfile) - Pipeline definition
 
 ## Scripts Kubernetes
 
@@ -588,8 +657,27 @@ tail -f /tmp/insightlearn-watchdog.log
 | [k8s/deploy.sh](/k8s/deploy.sh) | Deploy completo K8s |
 | [k8s/status.sh](/k8s/status.sh) | Status pods/services |
 | [k8s/undeploy.sh](/k8s/undeploy.sh) | Remove deployment |
+| [k8s/deploy-jenkins.sh](/k8s/deploy-jenkins.sh) | Deploy Jenkins CI/CD (automated testing) |
+| [k8s/grafana-port-forward-persistent.sh](/k8s/grafana-port-forward-persistent.sh) | Port-forward persistente Grafana (localhost:3000) |
+| [k8s/api-port-forward-persistent.sh](/k8s/api-port-forward-persistent.sh) | Port-forward persistente API (localhost:8081) |
+| [k8s/service-watchdog.sh](/k8s/service-watchdog.sh) | Service monitoring & auto-healing (60s check interval) |
 
 ⚠️ **Rocky Linux**: Gli script assumono Docker, sostituire con `podman` manualmente.
+
+### Port-Forward Persistenti
+
+Per mantenere i servizi sempre accessibili su localhost:
+
+```bash
+# Grafana (background, auto-restart)
+./k8s/grafana-port-forward-persistent.sh &
+
+# API (background, auto-restart)
+./k8s/api-port-forward-persistent.sh &
+
+# Verifica port-forwards attivi
+ps aux | grep "kubectl port-forward"
+```
 
 ## Note per Claude Code
 
