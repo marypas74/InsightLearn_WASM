@@ -12,4 +12,8 @@ public interface ICourseService
     Task<ApiResponse<CourseDto>> CreateCourseAsync(CourseDto course);
     Task<ApiResponse<CourseDto>> UpdateCourseAsync(Guid id, CourseDto course);
     Task<ApiResponse> DeleteCourseAsync(Guid id);
+
+    // New methods for Browse Courses page
+    Task<ApiResponse<CourseSearchResultDto>> SearchCoursesAsync(CourseSearchDto searchDto);
+    Task<ApiResponse<bool>> IsEnrolledAsync(Guid courseId);
 }

@@ -1,0 +1,27 @@
+@* Course Skeleton Loader Component *@
+@* Shows loading placeholders while courses are being fetched *@
+
+<div class="courses-grid grid-view">
+    @for (int i = 0; i < Count; i++)
+    {
+        <div class="course-card skeleton-loader">
+            <div class="course-thumbnail skeleton-shimmer">
+                <div class="skeleton-box" style="height: 203px;"></div>
+            </div>
+            <div class="course-content">
+                <div class="skeleton-box" style="width: 60%; height: 12px; margin-bottom: 12px;"></div>
+                <div class="skeleton-box" style="width: 100%; height: 20px; margin-bottom: 8px;"></div>
+                <div class="skeleton-box" style="width: 40%; height: 14px; margin-bottom: 16px;"></div>
+                <div class="skeleton-box" style="width: 80%; height: 16px; margin-bottom: 8px;"></div>
+                <div class="skeleton-box" style="width: 30%; height: 24px;"></div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Number of skeleton cards to display
+    /// </summary>
+    [Parameter] public int Count { get; set; } = 12;
+}

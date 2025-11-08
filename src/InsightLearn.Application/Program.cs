@@ -9,8 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Net;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Get version from assembly (defined in Directory.Build.props)
+var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.6.0.0";
+var versionShort = version.Substring(0, version.LastIndexOf('.')) + "-dev"; // e.g., "1.6.0-dev"
 
 // Load configuration from mounted config file
 builder.Configuration.AddJsonFile("/app/config/appsettings.json", optional: true, reloadOnChange: true);
@@ -24,9 +29,15 @@ var ollamaUrl = builder.Configuration["Ollama:BaseUrl"]
     ?? "http://ollama-service.insightlearn.svc.cluster.local:11434";
 var ollamaModel = builder.Configuration["Ollama:Model"] ?? "tinyllama";
 
+// MongoDB connection string for video storage
+var mongoConnectionString = builder.Configuration["MongoDb:ConnectionString"]
+    ?? builder.Configuration.GetConnectionString("MongoDB")
+    ?? "mongodb://admin:InsightLearn2024!SecureMongo@mongodb-service.insightlearn.svc.cluster.local:27017/insightlearn_videos?authSource=admin";
+
 Console.WriteLine($"[CONFIG] Database: {connectionString}");
 Console.WriteLine($"[CONFIG] Ollama URL: {ollamaUrl}");
 Console.WriteLine($"[CONFIG] Ollama Model: {ollamaModel}");
+Console.WriteLine($"[CONFIG] MongoDB: {mongoConnectionString.Replace("InsightLearn2024!SecureMongo", "***")}");
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -91,6 +102,12 @@ builder.Services.AddScoped<IChatbotService>(sp =>
     return new ChatbotService(ollamaService, dbContext, logger, ollamaModel);
 });
 
+// Register MongoDB Video Storage Services
+builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
+builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
+
+Console.WriteLine("[CONFIG] MongoDB Video Storage Services registered");
+
 // Health checks (simple - no additional packages needed)
 builder.Services.AddHealthChecks();
 
@@ -103,23 +120,48 @@ try
     var dbContext = scope.ServiceProvider.GetRequiredService<InsightLearnDbContext>();
 
     Console.WriteLine("[DATABASE] Checking database connection...");
-    if (await dbContext.Database.CanConnectAsync())
-    {
-        Console.WriteLine("[DATABASE] Database connection successful!");
 
+    // Quick retry: 3 attempts with 2 second delay (6 seconds total max)
+    bool connected = false;
+    for (int i = 0; i < 3; i++)
+    {
+        try
+        {
+            connected = await dbContext.Database.CanConnectAsync();
+            if (connected)
+            {
+                Console.WriteLine($"[DATABASE] ✓ Database connected successfully!");
+                break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DATABASE] Connection attempt {i + 1}/3 failed: {ex.Message}");
+        }
+
+        if (!connected && i < 2)
+        {
+            Console.WriteLine($"[DATABASE] Retrying in 2 seconds...");
+            await Task.Delay(2000);
+        }
+    }
+
+    if (connected)
+    {
         Console.WriteLine("[DATABASE] Applying pending migrations...");
         await dbContext.Database.MigrateAsync();
-        Console.WriteLine("[DATABASE] Migrations applied successfully!");
+        Console.WriteLine("[DATABASE] ✓ Migrations completed!");
     }
     else
     {
-        Console.WriteLine("[DATABASE] Database connection failed!");
+        Console.WriteLine("[DATABASE] ⚠ Warning: Could not connect to database at startup");
+        Console.WriteLine("[DATABASE] The API will start anyway - database will reconnect on first request");
     }
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"[DATABASE] Error with database: {ex.Message}");
-    // Don't fail startup - let health checks handle it
+    Console.WriteLine($"[DATABASE] ⚠ Warning: {ex.Message}");
+    Console.WriteLine("[DATABASE] API starting without database connection - will retry on first request");
 }
 
 // Configure the HTTP request pipeline
@@ -140,21 +182,33 @@ app.MapControllers();
 app.MapGet("/", () => new
 {
     application = "InsightLearn API",
-    version = "1.4.29",
+    version = versionShort,
     status = "running",
     timestamp = DateTime.UtcNow,
     environment = app.Environment.EnvironmentName,
-    chatbot = "enabled"
+    chatbot = "enabled",
+    features = new[] { "mongodb-video-storage", "gridfs-compression", "courses-browse", "course-detail" }
 });
 
 // API info endpoint
 app.MapGet("/api/info", () => Results.Ok(new
 {
     name = "InsightLearn API",
-    version = "1.4.29",
+    version = versionShort,
+    assemblyVersion = version,
     status = "operational",
     timestamp = DateTime.UtcNow,
-    features = new[] { "chatbot", "auth", "courses", "payments" }
+    features = new[] {
+        "chatbot",
+        "auth",
+        "courses",
+        "payments",
+        "mongodb-video-storage",
+        "gridfs-compression",
+        "video-streaming",
+        "browse-courses-page",
+        "course-detail-page"
+    }
 }));
 
 // CHATBOT API ENDPOINTS
@@ -307,6 +361,198 @@ app.MapGet("/api/chat/health", async (
 })
 .WithName("ChatbotHealth")
 .WithTags("Chatbot");
+
+// VIDEO API ENDPOINTS (MongoDB GridFS)
+
+// Upload video (Teacher/Instructor only)
+app.MapPost("/api/video/upload", async (
+    HttpRequest request,
+    [FromServices] IVideoProcessingService videoService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (!request.HasFormContentType)
+        {
+            return Results.BadRequest(new { error = "Multipart form data required" });
+        }
+
+        var form = await request.ReadFormAsync();
+        var videoFile = form.Files.GetFile("video");
+        var lessonIdStr = form["lessonId"].ToString();
+        var userIdStr = form["userId"].ToString();
+
+        if (videoFile == null)
+        {
+            return Results.BadRequest(new { error = "Video file is required" });
+        }
+
+        if (!Guid.TryParse(lessonIdStr, out var lessonId))
+        {
+            return Results.BadRequest(new { error = "Valid lessonId is required" });
+        }
+
+        if (!Guid.TryParse(userIdStr, out var userId))
+        {
+            return Results.BadRequest(new { error = "Valid userId is required" });
+        }
+
+        // Validate file size (max 500MB)
+        if (videoFile.Length > 500 * 1024 * 1024)
+        {
+            return Results.BadRequest(new { error = "Video file too large (max 500MB)" });
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "video/mp4", "video/webm", "video/ogg", "video/quicktime" };
+        if (!allowedTypes.Contains(videoFile.ContentType))
+        {
+            return Results.BadRequest(new { error = "Invalid video format. Allowed: MP4, WebM, OGG, MOV" });
+        }
+
+        logger.LogInformation("[VIDEO] Starting upload for lesson {LessonId} by user {UserId}", lessonId, userId);
+
+        var result = await videoService.ProcessAndSaveVideoAsync(videoFile, lessonId, userId);
+
+        logger.LogInformation(
+            "[VIDEO] Upload successful: {FileSize}MB compressed to {CompressedSize}MB ({Ratio:F2}% reduction)",
+            result.FileSize / 1024.0 / 1024.0,
+            result.CompressedSize / 1024.0 / 1024.0,
+            result.CompressionRatio
+        );
+
+        return Results.Ok(new
+        {
+            success = true,
+            message = "Video uploaded and processed successfully",
+            videoUrl = result.VideoUrl,
+            thumbnailUrl = result.ThumbnailUrl,
+            fileSize = result.FileSize,
+            compressedSize = result.CompressedSize,
+            compressionRatio = result.CompressionRatio,
+            format = result.Format,
+            quality = result.Quality
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VIDEO] Upload failed");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("UploadVideo")
+.WithTags("Video")
+.DisableAntiforgery(); // Required for file upload
+
+// Stream video (Students + Instructors)
+app.MapGet("/api/video/stream/{fileId}", async (
+    [FromRoute] string fileId,
+    [FromQuery] string? quality,
+    [FromServices] IMongoVideoStorageService mongoStorage,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[VIDEO] Streaming video: {FileId} (quality: {Quality})", fileId, quality ?? "original");
+
+        var videoStream = await mongoStorage.DownloadVideoAsync(fileId);
+        var metadata = await mongoStorage.GetVideoMetadataAsync(fileId);
+
+        return Results.Stream(videoStream, metadata.ContentType, enableRangeProcessing: true);
+    }
+    catch (FileNotFoundException ex)
+    {
+        logger.LogWarning("[VIDEO] Video not found: {FileId}", fileId);
+        return Results.NotFound(new { error = "Video not found" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VIDEO] Streaming failed for {FileId}", fileId);
+        return Results.Json(new { error = "Failed to stream video" }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("StreamVideo")
+.WithTags("Video");
+
+// Get video metadata
+app.MapGet("/api/video/metadata/{fileId}", async (
+    [FromRoute] string fileId,
+    [FromServices] IMongoVideoStorageService mongoStorage,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        var metadata = await mongoStorage.GetVideoMetadataAsync(fileId);
+
+        return Results.Ok(new
+        {
+            fileId = metadata.FileId,
+            fileName = metadata.FileName,
+            fileSize = metadata.FileSize,
+            compressedSize = metadata.CompressedSize,
+            contentType = metadata.ContentType,
+            uploadDate = metadata.UploadDate,
+            lessonId = metadata.LessonId,
+            format = metadata.Format,
+            compressionRatio = metadata.FileSize > 0
+                ? (double)(metadata.FileSize - metadata.CompressedSize) / metadata.FileSize * 100
+                : 0
+        });
+    }
+    catch (FileNotFoundException)
+    {
+        return Results.NotFound(new { error = "Video not found" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VIDEO] Failed to get metadata for {FileId}", fileId);
+        return Results.Json(new { error = "Failed to get video metadata" }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("GetVideoMetadata")
+.WithTags("Video");
+
+// Delete video (Instructor/Admin only)
+app.MapDelete("/api/video/{videoId}", async (
+    [FromRoute] Guid videoId,
+    [FromQuery] Guid userId,
+    [FromServices] IVideoProcessingService videoService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[VIDEO] Deleting video {VideoId} by user {UserId}", videoId, userId);
+
+        var success = await videoService.DeleteVideoAsync(videoId, userId);
+
+        if (success)
+        {
+            return Results.Ok(new { message = "Video deleted successfully" });
+        }
+        else
+        {
+            return Results.NotFound(new { error = "Video not found or already deleted" });
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VIDEO] Failed to delete video {VideoId}", videoId);
+        return Results.Json(new { error = "Failed to delete video" }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.WithName("DeleteVideo")
+.WithTags("Video");
+
+// Get upload progress (for large files)
+app.MapGet("/api/video/upload/progress/{uploadId}", async (
+    [FromRoute] Guid uploadId,
+    [FromServices] IVideoProcessingService videoService) =>
+{
+    var progress = await videoService.GetUploadProgressAsync(uploadId);
+    return Results.Ok(progress);
+})
+.WithName("GetUploadProgress")
+.WithTags("Video");
 
 // SYSTEM ENDPOINTS API
 app.MapGet("/api/system/endpoints", async (

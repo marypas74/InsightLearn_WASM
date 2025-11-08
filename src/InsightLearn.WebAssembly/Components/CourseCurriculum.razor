@@ -1,0 +1,132 @@
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.Core.Entities
+
+<div class="course-curriculum">
+    @if (Sections != null && Sections.Any())
+    {
+        @foreach (var courseSection in Sections)
+        {
+            <div class="curriculum-section @(expandedSections.Contains(courseSection.Id) ? "expanded" : "")">
+                <button class="section-header" @onclick="@(() => ToggleSection(courseSection.Id))">
+                    <div class="section-info">
+                        <i class="fas fa-chevron-@(expandedSections.Contains(courseSection.Id) ? "down" : "right")"></i>
+                        <h4>@courseSection.Title</h4>
+                    </div>
+                    <div class="section-meta">
+                        <span>@courseSection.TotalLessons lessons</span>
+                        <span>•</span>
+                        <span>@FormatDuration(courseSection.TotalDurationMinutes)</span>
+                    </div>
+                </button>
+
+                @if (expandedSections.Contains(courseSection.Id))
+                {
+                    <div class="section-content">
+                        @if (courseSection.Lessons != null && courseSection.Lessons.Any())
+                        {
+                            @foreach (var lesson in courseSection.Lessons)
+                            {
+                                <div class="lesson-item @(lesson.IsFree ? "free-preview" : "")">
+                                    <div class="lesson-info">
+                                        <i class="@GetLessonIcon(lesson.Type)"></i>
+                                        <span class="lesson-title">@lesson.Title</span>
+                                        @if (lesson.IsFree)
+                                        {
+                                            <button class="preview-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))">
+                                                <i class="fas fa-play-circle"></i>
+                                                Preview
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="lesson-meta">
+                                        @if (lesson.IsCompleted)
+                                        {
+                                            <i class="fas fa-check-circle completed-icon"></i>
+                                        }
+                                        <span class="lesson-duration">@FormatDuration(lesson.DurationMinutes)</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="empty-section">
+                                <p>No lessons in this section</p>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-curriculum">
+            <p>No curriculum available</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<SectionDto> Sections { get; set; } = new();
+    [Parameter] public EventCallback<Guid> OnPreviewClick { get; set; }
+
+    private HashSet<Guid> expandedSections = new();
+
+    protected override void OnInitialized()
+    {
+        // Expand first section by default
+        if (Sections?.Any() == true)
+        {
+            expandedSections.Add(Sections.First().Id);
+        }
+    }
+
+    private void ToggleSection(Guid sectionId)
+    {
+        if (expandedSections.Contains(sectionId))
+        {
+            expandedSections.Remove(sectionId);
+        }
+        else
+        {
+            expandedSections.Add(sectionId);
+        }
+    }
+
+    private async Task HandlePreviewClick(Guid lessonId)
+    {
+        await OnPreviewClick.InvokeAsync(lessonId);
+    }
+
+    private string GetLessonIcon(LessonType type)
+    {
+        return type switch
+        {
+            LessonType.Video => "fas fa-play-circle",
+            LessonType.Text => "fas fa-file-alt",
+            LessonType.Quiz => "fas fa-question-circle",
+            LessonType.Assignment => "fas fa-clipboard-check",
+            LessonType.Download => "fas fa-download",
+            LessonType.LiveSession => "fas fa-video",
+            _ => "fas fa-circle"
+        };
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 1)
+            return "< 1 min";
+        else if (minutes < 60)
+            return $"{minutes} min";
+        else
+        {
+            var hours = minutes / 60;
+            var remainingMinutes = minutes % 60;
+            if (remainingMinutes == 0)
+                return $"{hours}h";
+            else
+                return $"{hours}h {remainingMinutes}m";
+        }
+    }
+}

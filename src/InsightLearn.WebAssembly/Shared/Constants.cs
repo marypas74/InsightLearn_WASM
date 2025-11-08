@@ -118,7 +118,7 @@ public static class StorageKeys
 public static class AppConstants
 {
     public const string AppName = "InsightLearn";
-    public const string AppVersion = "1.0.0";
+    public const string AppVersion = "1.6.0-dev"; // Synced with Directory.Build.props
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
     public const int TokenExpirationMinutes = 60;

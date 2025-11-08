@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `1.4.22-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `1.6.0-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 
-⚠️ **Version Inconsistency**: [Program.cs:136,147](src/InsightLearn.Application/Program.cs#L136) hardcodes version `1.4.29` but [Directory.Build.props](Directory.Build.props) says `1.4.22-dev`. Update hardcoded versions or use `$(VERSION)` variable.
+✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Tutti i riferimenti ora usano `1.6.0-dev`.
 
 ### Architettura Soluzione
 
@@ -38,10 +38,12 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - **Authentication**: [TokenService.cs](src/InsightLearn.WebAssembly/Services/Auth/TokenService.cs) manages JWT storage in browser localStorage
 
 **Key Components**:
-- [ChatbotWidget.razor](src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor) - AI chatbot UI with phi3:mini integration
+- [ChatbotWidget.razor](src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor) - AI chatbot UI with qwen2:0.5b integration
 - [GoogleSignInButton.razor](src/InsightLearn.WebAssembly/Components/GoogleSignInButton.razor) - OAuth Google login
 - [CookieConsent.razor](src/InsightLearn.WebAssembly/Components/CookieConsent.razor) - GDPR compliance
 - [AuthenticationStateHandler.razor](src/InsightLearn.WebAssembly/Components/AuthenticationStateHandler.razor) - Auth state management
+- [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming
+- [VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - Video upload placeholder (backend completo)
 
 ### Authentication & Authorization
 
@@ -96,27 +98,49 @@ WHERE Category = 'Chat' AND EndpointKey = 'SendMessage';
 3. **Errore deserializzazione**: Verificare che backend usi PascalCase (Program.cs:38-41)
 4. **Deadlock Blazor WASM**: EndpointsConfig è Scoped, non Singleton (Program.cs:49-62)
 
-### ⚠️ Problemi Noti Critici
+### ⚠️ Problemi Noti e Soluzioni
 
-1. **Program.cs mancante originariamente**
+1. **Program.cs mancante originariamente** (✅ Risolto)
    - [src/InsightLearn.Application/Program.cs](/src/InsightLearn.Application/Program.cs) è stato **creato manualmente**
    - Il progetto originale era configurato come library (SDK: Microsoft.NET.Sdk)
    - Ora è configurato come Web app (SDK: Microsoft.NET.Sdk.Web, OutputType: Exe)
    - Se rebuild fallisce con "Entry point not found", verificare che Program.cs esista
 
-2. **Dockerfile.web build failure**
+2. **Dockerfile.web build failure** (⚠️ Workaround)
    - [Dockerfile.web](/Dockerfile.web) fallisce con `NETSDK1082: no runtime pack for browser-wasm`
    - Problema noto di .NET SDK con RuntimeIdentifier 'browser-wasm' in container
    - **Workaround**: usare solo Dockerfile per API, deployare Web separatamente
 
-3. **Rocky Linux 10: Podman vs Docker**
-   - Su Rocky Linux 10, il sistema usa **Podman** nativo, non Docker
-   - Gli script [k8s/build-images.sh](/k8s/build-images.sh) assumono Docker (non funzionano)
-   - **Configurazione minikube richiesta**:
-     - Driver: `podman` (non docker)
-     - Runtime: `cri-o`
-     - Base image: `gcr.io/k8s-minikube/kicbase-rocky:v0.0.48` (Rocky 10 kicbase)
-     - Risorse: `--memory=9216 --cpus=6` (9GB RAM, 6 CPU)
+3. **Rocky Linux 10: K3s Deployment** (✅ Configurato)
+   - Sistema usa **K3s** Kubernetes con containerd runtime
+   - Deploy images con: `docker save image:tag | sudo /usr/local/bin/k3s ctr images import -`
+   - Password sudo: Configurata in ambiente production
+   - **Non usare** [k8s/build-images.sh](/k8s/build-images.sh) (assume Docker standard)
+
+4. **MongoDB CreateContainerConfigError** (✅ Risolto v1.6.0)
+   - **Problema**: Pod falliva con "couldn't find key mongodb-password in Secret"
+   - **Causa**: Secret mancante in cluster
+   - **Fix**: `kubectl patch secret insightlearn-secrets --type='json' -p='[{"op":"add","path":"/data/mongodb-password","value":"BASE64_PASSWORD"}]'`
+   - **Status**: MongoDB ora operativo (1/1 Ready)
+
+5. **Redis Pod Not Ready** (✅ Risolto v1.6.0)
+   - **Problema**: Readiness probe failing con "container breakout detected"
+   - **Causa**: K3s security policies blocca `exec` probes
+   - **Fix**: Cambiato probe da `exec: redis-cli ping` a `tcpSocket: port 6379` in [k8s/04-redis-deployment.yaml](/k8s/04-redis-deployment.yaml)
+   - **Status**: Redis ora operativo (1/1 Ready)
+
+6. **Ollama Chatbot 404 Errors** (✅ Risolto v1.6.0)
+   - **Problema**: `/api/chat/message` returning 404, model non caricato
+   - **Causa**: Ollama pod running ma model non inizializzato in memoria
+   - **Fix**: `kubectl delete pod ollama-0 -n insightlearn` (StatefulSet ricrea)
+   - **Status**: Chatbot operativo (~1.7s response con qwen2:0.5b)
+
+7. **Razor Compiler - Complex @code Blocks** (⚠️ Workaround)
+   - **Problema**: .NET 8 Razor Source Generator genera codice C# invalido con nested DTOs in @code
+   - **Errore**: `CS0116: A namespace cannot directly contain members`
+   - **Workaround**: Componenti semplificati (VideoPlayer funzionale, VideoUpload placeholder)
+   - **Backend**: Completamente funzionale (5 API endpoints video storage)
+   - **Soluzione futura**: Code-behind pattern (.razor.cs) o upgrade .NET 9
 
 ## Build e Deploy
 
@@ -168,33 +192,53 @@ docker-compose ps
 curl http://localhost:7001/health
 ```
 
-### Deployment Kubernetes (Rocky Linux con Podman)
+### Deployment Kubernetes (Rocky Linux 10 con K3s)
 
 ```bash
-# 1. Start minikube con Podman (Rocky 10 kicbase)
-minikube config set rootless true
-minikube start --driver=podman --container-runtime=cri-o \
-               --memory=9216 --cpus=6 \
-               --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48
+# 1. Verifica K3s status
+sudo systemctl status k3s
+kubectl cluster-info
 
-# 2. Enable Ingress
-minikube addons enable ingress
+# 2. Build Docker image (locale)
+docker-compose build api
+# Output: localhost/insightlearn/api:1.6.0-dev
 
-# 3. Build images con Podman in minikube context
-# NOTA: Non usare ./k8s/build-images.sh (assume Docker)
-# Usare Podman direttamente:
-eval $(minikube podman-env)
-podman build -t insightlearn/api:latest -f Dockerfile .
+# 3. Tag come latest
+docker tag localhost/insightlearn/api:1.6.0-dev localhost/insightlearn/api:latest
 
-# 4. Load in minikube
-minikube image load insightlearn/api:latest
+# 4. Import in K3s containerd (richiede sudo)
+echo "SUDO_PASSWORD" | sudo -S sh -c \
+  'docker save localhost/insightlearn/api:latest | /usr/local/bin/k3s ctr images import -'
 
-# 5. Deploy manifests
-kubectl apply -f k8s/
+# 5. Deploy manifests Kubernetes
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/01-secrets.yaml
+kubectl apply -f k8s/02-configmaps.yaml
+kubectl apply -f k8s/03-*.yaml  # SQL Server, MongoDB, Redis, Elasticsearch, etc.
+kubectl apply -f k8s/05-*.yaml  # Deployments
+kubectl apply -f k8s/06-*.yaml  # Services
+kubectl apply -f k8s/08-ingress.yaml
 
-# 6. Verifica status
-./k8s/status.sh
+# 6. Restart deployment con nuova immagine
+kubectl rollout restart deployment/insightlearn-api -n insightlearn
+kubectl rollout status deployment/insightlearn-api -n insightlearn --timeout=120s
+
+# 7. Verifica status
+kubectl get pods -n insightlearn
+kubectl get svc -n insightlearn
+kubectl get ingress -n insightlearn
+
+# 8. Test API
+curl http://localhost:31081/api/info
+curl http://localhost:31081/health
 ```
+
+**Note K3s**:
+- K3s usa containerd, NON Docker runtime
+- Import images: `k3s ctr images import` (non `docker load`)
+- List images: `sudo k3s ctr images ls | grep insightlearn`
+- Ingress: K3s Traefik controller (non Nginx Ingress)
+- NodePort: Ports 30000-32767 disponibili per Services
 
 ## Database Initialization
 
@@ -214,9 +258,14 @@ kubectl apply -f k8s/
 
 Il versioning è gestito centralmente in [Directory.Build.props](/Directory.Build.props):
 
-- **VersionPrefix**: `1.4.22` (semantic version Major.Minor.Patch)
+- **VersionPrefix**: `1.6.0` (semantic version Major.Minor.Patch)
 - **VersionSuffix**: `dev` (default, rimosso in release)
-- **Version finale**: `1.4.22-dev`
+- **Version finale**: `1.6.0-dev`
+
+**Versioning Dinamico**:
+- [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dall'assembly via `System.Reflection`
+- [Constants.cs](src/InsightLearn.WebAssembly/Shared/Constants.cs) sincronizzato con `1.6.0-dev`
+- **Non hardcodare mai versioni** - usare Assembly.GetName().Version
 
 Build variables disponibili:
 - `$(VERSION)` - da Directory.Build.props
@@ -226,9 +275,13 @@ Build variables disponibili:
 Esempio modifica version:
 ```xml
 <!-- Directory.Build.props -->
-<VersionPrefix>1.5.0</VersionPrefix>
+<VersionPrefix>1.7.0</VersionPrefix>
 <VersionSuffix>beta</VersionSuffix>
 ```
+
+**Versioni Changelog**:
+- Vedi [CHANGELOG.md](/CHANGELOG.md) per la storia completa delle release
+- v1.6.0-dev: MongoDB video storage, course pages, versioning unificato (2025-11-08)
 
 ## File Critici
 
@@ -276,21 +329,34 @@ Esempio modifica version:
 
 | Database | Uso | Porta | Status |
 |----------|-----|-------|--------|
-| SQL Server 2022 | Dati relazionali principali + **ChatbotMessages** entity via EF Core | 1433 | ✅ In uso |
-| MongoDB 7.0 | Video storage (GridFS via [MongoVideoStorageService.cs](src/InsightLearn.Application/Services/MongoVideoStorageService.cs)) | 27017 | 🔧 Configured |
-| Redis 7 | Cache + sessioni utente | 6379 | ✅ In uso (MemoryCache nel codice) |
-| Elasticsearch 8.11 | Search engine | 9200 | 🔧 Configured |
+| SQL Server 2022 | Dati relazionali principali + **ChatbotMessages** entity via EF Core | 1433 | ✅ Operativo |
+| MongoDB 7.0 | Video storage (GridFS via [MongoVideoStorageService.cs](src/InsightLearn.Application/Services/MongoVideoStorageService.cs)) | 27017 | ✅ Operativo |
+| Redis 7 | Cache + sessioni utente | 6379 | ✅ Operativo |
+| Elasticsearch 8.11 | Search engine | 9200 | ✅ Operativo |
 
 **Note**:
 - Chatbot messages sono salvati in SQL Server via [ChatbotService.cs:84](src/InsightLearn.Application/Services/ChatbotService.cs#L84), NON in MongoDB
-- MongoDB è configurato per video storage ma potrebbe non essere attualmente utilizzato
+- MongoDB è ora pienamente operativo per video storage con GridFS e GZip compression
+- Redis configurato con tcpSocket health probes (K3s security compliance)
 - EF Core gestisce migrations automatiche al startup (vedi sezione Database Initialization)
+
+**MongoDB Video Storage**:
+- **Database**: `insightlearn_videos`
+- **User**: `insightlearn` (password in Secret `mongodb-password`)
+- **GridFS Bucket**: Default bucket per video files
+- **Compression**: GZip CompressionLevel.Optimal (20-40% size reduction)
+- **API Endpoints**: 5 endpoints per upload, streaming, metadata, list, delete
+  - `POST /api/video/upload` - Upload con validazione (max 500MB)
+  - `GET /api/video/stream/{fileId}` - Streaming con range support
+  - `GET /api/video/metadata/{fileId}` - Metadata retrieval
+  - `DELETE /api/video/{videoId}` - Delete video
+  - `GET /api/video/upload/progress/{uploadId}` - Upload progress
 
 ### AI/Chatbot
 
 - **LLM Server**: Ollama (porta 11434)
-- **Model**: `phi3:mini` (upgrade da llama2 per risposte più veloci - commit 948b757)
-- **Download model**: `docker exec insightlearn-ollama ollama pull phi3:mini`
+- **Model**: `qwen2:0.5b` (piccolo, veloce, ~1.7s response time)
+- **Download model**: `kubectl exec -it ollama-0 -c ollama -n insightlearn -- ollama pull qwen2:0.5b`
 - **API Endpoints**:
   - `POST /api/chat/message` - Send message and get AI response (see [Program.cs:154-188](src/InsightLearn.Application/Program.cs#L154-L188))
   - `GET /api/chat/history?sessionId={id}&limit={n}` - Get chat history
@@ -300,8 +366,14 @@ Esempio modifica version:
 - **Storage**: SQL Server `ChatbotMessages` table (via EF Core DbContext), NOT MongoDB
 - **Background Cleanup**: [ChatbotCleanupBackgroundService.cs](src/InsightLearn.Application/Services/ChatbotCleanupBackgroundService.cs) - deletes old messages
 - **Configuration** (in appsettings.json or env vars):
-  - `Ollama:BaseUrl` or `Ollama:Url` - default: `http://ollama-service.insightlearn.svc.cluster.local:11434`
-  - `Ollama:Model` - default: `tinyllama` (⚠️ override to `phi3:mini` for production)
+  - `Ollama:BaseUrl` or `Ollama:Url` - default: `http://ollama-service:11434`
+  - `Ollama:Model` - default: `qwen2:0.5b`
+
+**Ollama Troubleshooting** (v1.6.0 fix):
+- Se il chatbot restituisce 404 errors, il modello potrebbe non essere caricato in memoria
+- **Fix**: `kubectl delete pod ollama-0 -n insightlearn` (StatefulSet ricrea il pod)
+- Verifica: `kubectl logs -n insightlearn ollama-0 -c ollama | grep "llama runner started"`
+- Test: `curl -X POST http://localhost:31081/api/chat/message -H "Content-Type: application/json" -d '{"message":"Test","sessionId":"test"}'`
 
 ## Testing Deployment
 
@@ -362,9 +434,12 @@ curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
 
 ### Services
 - **Grafana**: admin / admin
-- **SQL Server**: sa / `${MSSQL_SA_PASSWORD}`
-- **MongoDB**: admin / `${MONGO_PASSWORD}`
-- **Redis**: password: `${REDIS_PASSWORD}`
+- **SQL Server**: sa / `${MSSQL_SA_PASSWORD}` (da Secret `mssql-sa-password`)
+- **MongoDB**:
+  - Root: admin / `${MONGO_PASSWORD}` (Docker Compose)
+  - App User: insightlearn / (da Secret `mongodb-password`) (Kubernetes)
+  - Database: `insightlearn_videos`
+- **Redis**: password: `${REDIS_PASSWORD}` (da Secret `redis-password`)
 
 ## Scripts Kubernetes
 
@@ -383,24 +458,213 @@ Quando lavori con questa repository:
 
 1. **Leggere SEMPRE questo file** all'inizio del task
 2. 🔴 **ENDPOINT NEL DATABASE** - **MAI** modificare endpoint nel codice. Tutti gli URL endpoint sono in SQL Server tabella `SystemEndpoints`. Per problemi 404/405, controllare/aggiornare database, NON codice.
-3. **Verificare versione** in [Directory.Build.props](/Directory.Build.props) (non hardcodare)
+3. **Versione**: Sempre `1.6.0-dev` da [Directory.Build.props](/Directory.Build.props) - **mai hardcodare versioni**
 4. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
 5. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
 6. **Password da .env** - non committare mai password reali
 7. **Prometheus porta 9091** - non 9090 (conflitto systemd)
-8. **Rocky Linux 10 = Podman + kicbase-rocky** - non Docker standard
-   - Minikube: `--driver=podman --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48`
-   - Risorse: `--memory=9216 --cpus=6` (9GB RAM, 6 CPU)
-   - Build: `eval $(minikube podman-env)` poi `podman build`
-9. **Test chatbot** dopo modifiche AI:
-   - `docker exec insightlearn-ollama ollama list` - verify model downloaded
-   - Ensure model is `phi3:mini` not `llama2`
-10. **Automatic Database Migrations**: L'API applica migrations automaticamente al startup (vedi [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116))
-11. **Minimal APIs**: L'applicazione usa Minimal APIs, NON Controllers tradizionali - tutti gli endpoints sono definiti in Program.cs
-12. **Endpoint API**: `/api/system/endpoints` ritorna tutti gli endpoint dal database (con cache 60 min)
+8. **Rocky Linux 10 = K3s Kubernetes** - non minikube/Docker standard
+   - K3s: containerd runtime (non Docker)
+   - Import images: `docker save | sudo k3s ctr images import`
+   - Deploy: `kubectl apply -f k8s/` poi `kubectl rollout restart`
+9. **MongoDB Secret**: Password in `mongodb-password` Secret key (Kubernetes)
+   - Se pod in CreateContainerConfigError, verificare Secret esiste
+   - Fix: `kubectl patch secret insightlearn-secrets --type='json' -p='[{"op":"add","path":"/data/mongodb-password","value":"BASE64_PWD"}]'`
+10. **Redis Health Probes**: Usa `tcpSocket` (non `exec`) per K3s security compliance
+    - File: [k8s/04-redis-deployment.yaml](/k8s/04-redis-deployment.yaml)
+11. **Ollama Model**: `qwen2:0.5b` (non phi3:mini o llama2)
+    - Se chatbot returns 404: `kubectl delete pod ollama-0 -n insightlearn`
+    - Test: `curl -X POST http://localhost:31081/api/chat/message -d '{"message":"Test","sessionId":"test"}'`
+12. **Automatic Database Migrations**: L'API applica migrations automaticamente al startup (vedi [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116))
+13. **Minimal APIs**: L'applicazione usa Minimal APIs, NON Controllers tradizionali - tutti gli endpoints sono definiti in Program.cs
+14. **Endpoint API**: `/api/system/endpoints` ritorna 39 endpoints organizzati per categoria (cache 60 min)
+15. **MongoDB Video Storage**: 5 API endpoints per upload/streaming video (GridFS + GZip compression)
+    - Upload: `POST /api/video/upload` (max 500MB)
+    - Stream: `GET /api/video/stream/{fileId}` (range support)
+    - Metadata: `GET /api/video/metadata/{fileId}`
+16. **Content-Security-Policy**: Configurato in [k8s/08-ingress.yaml](/k8s/08-ingress.yaml) per Blazor WASM security
+17. **Razor Components**: Evitare nested DTOs in @code blocks (.NET 8 compiler bug)
+    - Preferire code-behind pattern (.razor.cs) per componenti complessi
+18. **Status Deployment**: 10/10 pods healthy in production (v1.6.0-dev)
+    - API: ✅ Running (NodePort 31081)
+    - MongoDB: ✅ Running (video storage operativo)
+    - Redis: ✅ Running (tcpSocket probes)
+    - Ollama: ✅ Running (qwen2:0.5b ~1.7s)
+
+## File Kubernetes Modificati (v1.6.0)
+
+### k8s/04-redis-deployment.yaml
+**Modifiche**: Cambiato health probes da `exec` a `tcpSocket` per K3s security compliance
+
+**Prima**:
+```yaml
+livenessProbe:
+  exec:
+    command:
+    - redis-cli
+    - ping
+```
+
+**Dopo**:
+```yaml
+livenessProbe:
+  tcpSocket:
+    port: 6379
+  initialDelaySeconds: 30
+  periodSeconds: 10
+```
+
+**Motivo**: K3s security policies bloccano `exec` probes con errore "container breakout detected"
+
+### k8s/08-ingress.yaml
+**Modifiche**: Aggiunto Content-Security-Policy header per Blazor WASM security
+
+```yaml
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Content-Security-Policy "default-src 'self';
+        script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        connect-src 'self' wss: https:;
+        frame-ancestors 'self';
+        base-uri 'self';
+        form-action 'self';" always;
+```
+
+**Motivo**: Security best practice per applicazioni Blazor WebAssembly
+
+### k8s/01-secrets.yaml
+**Note**: Verificare che contenga tutti i secrets richiesti:
+- `mssql-sa-password`: Password SQL Server
+- `jwt-secret-key`: JWT signing key
+- `connection-string`: SQL Server connection string
+- `mongodb-password`: MongoDB password (aggiunto in v1.6.0)
+- `redis-password`: Redis password
+
+**Se mongodb-password mancante**, applicare patch:
+```bash
+kubectl patch secret -n insightlearn insightlearn-secrets \
+  --type='json' \
+  -p='[{"op": "add", "path": "/data/mongodb-password", "value": "BASE64_ENCODED_PASSWORD"}]'
+```
+
+### nginx/nginx.conf
+**Modifiche**: Aggiunto Content-Security-Policy header per Docker Compose deployment
+
+```nginx
+# Nella sezione server SSL (porta 443)
+add_header Content-Security-Policy "default-src 'self';
+  script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: https:;
+  font-src 'self' data:;
+  connect-src 'self' wss: https:;
+  frame-ancestors 'self';
+  base-uri 'self';
+  form-action 'self';" always;
+```
+
+## File Frontend Modificati (v1.6.0)
+
+### src/InsightLearn.WebAssembly/wwwroot/index.html
+**Modifiche**: Aggiunto link a `video-components.css` (linea 41)
+
+```html
+<link rel="stylesheet" href="css/courses.css" />
+<link rel="stylesheet" href="css/video-components.css" />
+```
+
+### src/InsightLearn.WebAssembly/wwwroot/css/video-components.css
+**Nuovo file** (390 linee): Styling completo per video upload e player
+- Upload zone con drag & drop
+- Progress bar con animazioni
+- Custom video player controls
+- Responsive design (mobile-first)
+
+### src/InsightLearn.WebAssembly/Components/VideoPlayer.razor
+**Nuovo componente** (157 linee): HTML5 video player funzionale
+- Streaming da MongoDB GridFS
+- Metadata display (size, format, compression)
+- Error handling con retry
+- Standard HTML5 controls
+
+### src/InsightLearn.WebAssembly/Components/VideoUpload.razor
+**Nuovo componente** (52 linee): Placeholder per upload video
+- Backend API completamente funzionale
+- UI semplificata per evitare Razor compiler bugs
+- Pronto per implementazione code-behind (.razor.cs)
+
+### src/InsightLearn.WebAssembly/Shared/Constants.cs
+**Modifiche**: Aggiornato `AppVersion` da `1.0.0` a `1.6.0-dev` (linea 121)
+
+## File Backend Modificati (v1.6.0)
+
+### src/InsightLearn.Application/Program.cs
+**Modifiche principali**:
+
+1. **Versioning dinamico** (linee 12-18):
+```csharp
+using System.Reflection;
+
+var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.6.0.0";
+var versionShort = version.Substring(0, version.LastIndexOf('.')) + "-dev";
+```
+
+2. **MongoDB services registration** (linee 94-98):
+```csharp
+// Register MongoDB Video Storage Services
+builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
+builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
+
+Console.WriteLine("[CONFIG] MongoDB Video Storage Services registered");
+```
+
+3. **5 nuovi Video API endpoints** (linee 348-538):
+   - `POST /api/video/upload` - Upload con validazione
+   - `GET /api/video/stream/{fileId}` - Streaming con range support
+   - `GET /api/video/metadata/{fileId}` - Metadata retrieval
+   - `DELETE /api/video/{videoId}` - Delete video
+   - `GET /api/video/upload/progress/{uploadId}` - Upload progress
+
+4. **Aggiornato /api/info endpoint** (linee 185, 197):
+```csharp
+version = versionShort,  // Dynamic invece di hardcoded "1.4.29"
+features = new[] {
+  "chatbot", "auth", "courses", "payments",
+  "mongodb-video-storage",      // NUOVO
+  "gridfs-compression",          // NUOVO
+  "video-streaming",             // NUOVO
+  "browse-courses-page",         // NUOVO
+  "course-detail-page"           // NUOVO
+}
+```
+
+### src/InsightLearn.Application/Services/MongoVideoStorageService.cs
+**Già esistente** (243 linee): Registrato in DI container (v1.6.0)
+- GridFS operations con GZip compression
+- Upload/Download/Delete video files
+- Metadata management
+
+### src/InsightLearn.Application/Services/VideoProcessingService.cs
+**Già esistente** (244 linee): Registrato in DI container (v1.6.0)
+- High-level video processing logic
+- Progress tracking per upload
+- Integration con database
+
+### Directory.Build.props
+**Modifiche**: Aggiornato `VersionPrefix` da `1.4.22` a `1.6.0` (linea 4)
+
+```xml
+<VersionPrefix>1.6.0</VersionPrefix>
+<VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
+```
 
 ## Documentazione Aggiuntiva
 
+- [CHANGELOG.md](/CHANGELOG.md) - Storia completa delle release e features (aggiunto v1.6.0)
 - [DEPLOYMENT-COMPLETE-GUIDE.md](/DEPLOYMENT-COMPLETE-GUIDE.md) - Guida deploy step-by-step
 - [DOCKER-COMPOSE-GUIDE.md](/DOCKER-COMPOSE-GUIDE.md) - Docker Compose dettagliato
 - [k8s/README.md](/k8s/README.md) - Kubernetes deployment

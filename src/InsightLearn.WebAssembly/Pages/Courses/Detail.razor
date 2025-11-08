@@ -1,0 +1,347 @@
+@page "/courses/{CourseId:guid}"
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.Core.Entities
+@inject ICourseService CourseService
+@inject IEnrollmentService EnrollmentService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>@(course?.Title ?? "Course") - InsightLearn</PageTitle>
+
+@if (isLoading)
+{
+    <div class="loading-container">
+        <div class="spinner-large"></div>
+        <p>Loading course details...</p>
+    </div>
+}
+else if (course == null)
+{
+    <div class="error-state">
+        <div class="error-icon">❌</div>
+        <h2>Course not found</h2>
+        <p>The course you're looking for doesn't exist or has been removed.</p>
+        <a href="/courses" class="btn btn-primary">Browse Courses</a>
+    </div>
+}
+else
+{
+    @* Breadcrumb *@
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+        <div class="container">
+            <a href="/">Home</a>
+            <span class="separator">/</span>
+            <a href="/courses">Courses</a>
+            <span class="separator">/</span>
+            <a href="/courses?category=@course.CategoryId">@course.CategoryName</a>
+            <span class="separator">/</span>
+            <span class="current">@course.Title</span>
+        </div>
+    </nav>
+
+    @* Hero Section *@
+    <section class="course-hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-info">
+                <h1>@course.Title</h1>
+                <p class="subtitle">@course.ShortDescription</p>
+                <div class="meta-info">
+                    <span class="instructor">
+                        @if (!string.IsNullOrEmpty(course.InstructorImageUrl))
+                        {
+                            <img src="@course.InstructorImageUrl" alt="@course.InstructorName" />
+                        }
+                        else
+                        {
+                            <div class="instructor-initials">@GetInstructorInitials()</div>
+                        }
+                        @course.InstructorName
+                    </span>
+                    <span class="rating">
+                        <span class="stars">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="fas fa-star @(i <= course.AverageRating ? "filled" : "")"></i>
+                            }
+                        </span>
+                        @course.AverageRating.ToString("0.0")
+                        <span class="review-count">(@course.ReviewCount.ToString("N0") reviews)</span>
+                    </span>
+                    <span class="students">
+                        <i class="fas fa-user-graduate"></i>
+                        @course.EnrollmentCount.ToString("N0") students
+                    </span>
+                    <span class="updated">
+                        <i class="fas fa-sync-alt"></i>
+                        Updated @((course.UpdatedAt ?? course.CreatedAt).ToString("MMMM yyyy"))
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Main Content *@
+    <div class="course-detail-container">
+        <div class="course-detail-layout">
+            @* Main Content (70%) *@
+            <main class="course-main-content">
+                @* What You'll Learn *@
+                @if (!string.IsNullOrEmpty(course.WhatYouWillLearn))
+                {
+                    <section class="section what-you-learn">
+                        <h2>What you'll learn</h2>
+                        <div class="learning-outcomes">
+                            @foreach (var outcome in ParseListString(course.WhatYouWillLearn))
+                            {
+                                <div class="outcome-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>@outcome</span>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+
+                @* Course Content / Curriculum *@
+                @if (course.Sections?.Any() == true)
+                {
+                    <section class="section course-content">
+                        <h2>Course content</h2>
+                        <div class="content-summary">
+                            @course.SectionCount sections •
+                            @course.LessonCount lectures •
+                            @FormatDuration(course.EstimatedDurationMinutes) total length
+                        </div>
+
+                        <CourseCurriculum Sections="@course.Sections"
+                                          OnPreviewClick="HandlePreviewClick" />
+                    </section>
+                }
+
+                @* Requirements *@
+                @if (!string.IsNullOrEmpty(course.Requirements))
+                {
+                    <section class="section requirements">
+                        <h2>Requirements</h2>
+                        <ul class="requirements-list">
+                            @foreach (var requirement in ParseListString(course.Requirements))
+                            {
+                                <li>@requirement</li>
+                            }
+                        </ul>
+                    </section>
+                }
+
+                @* Description *@
+                <section class="section description">
+                    <h2>Description</h2>
+                    <div class="description-content @(descriptionExpanded ? "expanded" : "collapsed")">
+                        @course.Description
+                    </div>
+                    @if (course.Description.Length > 500)
+                    {
+                        <button class="btn-ghost" @onclick="ToggleDescription">
+                            @(descriptionExpanded ? "Show less" : "Read more")
+                            <i class="fas fa-chevron-@(descriptionExpanded ? "up" : "down")"></i>
+                        </button>
+                    }
+                </section>
+
+                @* Reviews Section *@
+                @if (course.Reviews?.Any() == true)
+                {
+                    <section class="section reviews-section">
+                        <h2>Student reviews</h2>
+                        <div class="reviews-grid">
+                            @foreach (var review in course.Reviews.Take(5))
+                            {
+                                <div class="review-card">
+                                    <div class="review-header">
+                                        <div class="reviewer-info">
+                                            <div class="reviewer-avatar">@GetUserInitials(review.UserName)</div>
+                                            <div>
+                                                <div class="reviewer-name">@review.UserName</div>
+                                                <div class="review-date">@review.CreatedAt.ToString("MMM dd, yyyy")</div>
+                                            </div>
+                                        </div>
+                                        <div class="review-rating">
+                                            @for (int i = 0; i < review.Rating; i++)
+                                            {
+                                                <i class="fas fa-star"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(review.Comment))
+                                    {
+                                        <p class="review-comment">@review.Comment</p>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+            </main>
+
+            @* Sticky Sidebar (30%) *@
+            <aside class="course-sidebar">
+                <EnrollmentCard Course="@course"
+                                IsEnrolled="@isEnrolled"
+                                OnEnroll="HandleEnroll"
+                                OnAddToCart="HandleAddToCart"
+                                OnAddToWishlist="HandleAddToWishlist" />
+            </aside>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CourseId { get; set; }
+
+    private CourseDto? course;
+    private bool isLoading = true;
+    private bool isEnrolled = false;
+    private bool descriptionExpanded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourseAsync();
+    }
+
+    private async Task LoadCourseAsync()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await CourseService.GetCourseByIdAsync(CourseId);
+
+            if (response.Success && response.Data != null)
+            {
+                course = response.Data;
+
+                // Check if user is enrolled
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                    isEnrolled = enrollmentResponse.Data;
+                }
+            }
+            else
+            {
+                course = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading course: {ex.Message}");
+            course = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleEnroll()
+    {
+        if (course == null) return;
+
+        try
+        {
+            if (course.IsFree)
+            {
+                // Free course - enroll directly
+                var enrollmentDto = new EnrollmentDto
+                {
+                    CourseId = course.Id,
+                    EnrolledAt = DateTime.UtcNow
+                };
+                // await EnrollmentService.EnrollAsync(enrollmentDto);
+                Navigation.NavigateTo($"/my-courses");
+            }
+            else
+            {
+                // Paid course - go to checkout
+                Navigation.NavigateTo($"/checkout?courseId={course.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error enrolling: {ex.Message}");
+        }
+    }
+
+    private async Task HandleAddToCart()
+    {
+        if (course == null) return;
+        // TODO: Implement cart service
+        await JS.InvokeVoidAsync("alert", "Course added to cart!");
+    }
+
+    private async Task HandleAddToWishlist()
+    {
+        if (course == null) return;
+        // TODO: Implement wishlist service
+        await JS.InvokeVoidAsync("alert", "Course added to wishlist!");
+    }
+
+    private void HandlePreviewClick(Guid lessonId)
+    {
+        // Open lesson preview modal or navigate to preview page
+        Navigation.NavigateTo($"/courses/{CourseId}/preview/{lessonId}");
+    }
+
+    private void ToggleDescription()
+    {
+        descriptionExpanded = !descriptionExpanded;
+    }
+
+    private string GetInstructorInitials()
+    {
+        if (string.IsNullOrEmpty(course?.InstructorName)) return "I";
+
+        var names = course.InstructorName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+            return $"{names[0][0]}{names[1][0]}".ToUpper();
+        else if (names.Length == 1)
+            return names[0][0].ToString().ToUpper();
+
+        return "I";
+    }
+
+    private string GetUserInitials(string userName)
+    {
+        if (string.IsNullOrEmpty(userName)) return "U";
+
+        var names = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (names.Length >= 2)
+            return $"{names[0][0]}{names[1][0]}".ToUpper();
+        else if (names.Length == 1)
+            return names[0][0].ToString().ToUpper();
+
+        return "U";
+    }
+
+    private List<string> ParseListString(string listString)
+    {
+        if (string.IsNullOrEmpty(listString)) return new List<string>();
+
+        return listString.Split(new[] { ';', '\n', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                         .Select(s => s.Trim())
+                         .Where(s => !string.IsNullOrEmpty(s))
+                         .ToList();
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes} minutes";
+        else
+        {
+            var hours = minutes / 60.0;
+            return $"{hours:0.#} hours";
+        }
+    }
+}

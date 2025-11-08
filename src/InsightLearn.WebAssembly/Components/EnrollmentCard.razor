@@ -1,0 +1,151 @@
+@using InsightLearn.Shared.DTOs
+@inject IJSRuntime JS
+
+<div class="enrollment-card" id="enrollmentCard">
+    <div class="card-header">
+        <div class="price-section">
+            @if (Course.DiscountPercentage > 0 && Course.Price > Course.CurrentPrice)
+            {
+                <div class="current-price">$@Course.CurrentPrice.ToString("0.00")</div>
+                <div class="original-price">$@Course.Price.ToString("0.00")</div>
+                <div class="discount-badge">@((int)Course.DiscountPercentage)% off</div>
+            }
+            else if (Course.IsFree)
+            {
+                <div class="current-price">Free</div>
+            }
+            else
+            {
+                <div class="current-price">$@Course.Price.ToString("0.00")</div>
+            }
+        </div>
+
+        @if (PromotionEndsAt.HasValue && PromotionEndsAt > DateTime.UtcNow)
+        {
+            <div class="urgency-banner">
+                <i class="fas fa-clock"></i>
+                <span>@GetCountdownText() left at this price</span>
+            </div>
+        }
+    </div>
+
+    <div class="card-actions">
+        @if (IsEnrolled)
+        {
+            <a href="/my-courses" class="btn btn-primary btn-lg">
+                <i class="fas fa-play-circle"></i>
+                Go to Course
+            </a>
+        }
+        else if (Course.IsFree)
+        {
+            <button @onclick="HandleEnroll" class="btn btn-primary btn-lg">
+                <i class="fas fa-gift"></i>
+                Enroll for Free
+            </button>
+        }
+        else
+        {
+            <button @onclick="HandleEnroll" class="btn btn-primary btn-lg">
+                Buy Now
+            </button>
+            <button @onclick="HandleAddToCart" class="btn btn-secondary btn-lg">
+                <i class="fas fa-shopping-cart"></i>
+                Add to Cart
+            </button>
+        }
+
+        <button @onclick="HandleAddToWishlist" class="btn-ghost">
+            <i class="@(isInWishlist ? "fas" : "far") fa-heart"></i>
+            @(isInWishlist ? "Saved" : "Add to Wishlist")
+        </button>
+    </div>
+
+    <div class="card-includes">
+        <h4>This course includes:</h4>
+        <ul>
+            <li>
+                <i class="fas fa-infinity"></i>
+                Full lifetime access
+            </li>
+            <li>
+                <i class="fas fa-clock"></i>
+                @FormatDuration(Course.EstimatedDurationMinutes) on-demand video
+            </li>
+            <li>
+                <i class="fas fa-mobile-alt"></i>
+                Access on mobile and desktop
+            </li>
+            @if (Course.HasCertificate)
+            {
+                <li>
+                    <i class="fas fa-certificate"></i>
+                    Certificate of completion
+                </li>
+            }
+            <li>
+                <i class="fas fa-language"></i>
+                @(Course.Language ?? "English")
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-guarantee">
+        <i class="fas fa-shield-alt"></i>
+        30-Day Money-Back Guarantee
+    </div>
+</div>
+
+@code {
+    [Parameter] public CourseDto Course { get; set; } = null!;
+    [Parameter] public bool IsEnrolled { get; set; }
+    [Parameter] public DateTime? PromotionEndsAt { get; set; }
+    [Parameter] public EventCallback OnEnroll { get; set; }
+    [Parameter] public EventCallback OnAddToCart { get; set; }
+    [Parameter] public EventCallback OnAddToWishlist { get; set; }
+
+    private bool isInWishlist = false;
+
+    private async Task HandleEnroll()
+    {
+        await OnEnroll.InvokeAsync();
+    }
+
+    private async Task HandleAddToCart()
+    {
+        await OnAddToCart.InvokeAsync();
+        await JS.InvokeVoidAsync("alert", "Course added to cart!"); // TODO: Replace with toast notification
+    }
+
+    private async Task HandleAddToWishlist()
+    {
+        isInWishlist = !isInWishlist;
+        await OnAddToWishlist.InvokeAsync();
+        await JS.InvokeVoidAsync("alert", isInWishlist ? "Added to wishlist!" : "Removed from wishlist!");
+    }
+
+    private string GetCountdownText()
+    {
+        if (!PromotionEndsAt.HasValue) return "";
+
+        var timeLeft = PromotionEndsAt.Value - DateTime.UtcNow;
+
+        if (timeLeft.TotalDays >= 1)
+            return $"{(int)timeLeft.TotalDays} days";
+        else if (timeLeft.TotalHours >= 1)
+            return $"{(int)timeLeft.TotalHours} hours";
+        else
+            return $"{(int)timeLeft.TotalMinutes} minutes";
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes} minutes";
+        else
+        {
+            var hours = minutes / 60.0;
+            return $"{hours:0.#} hours";
+        }
+    }
+}

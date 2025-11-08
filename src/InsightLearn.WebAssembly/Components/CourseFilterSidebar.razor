@@ -1,0 +1,220 @@
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.Core.Entities
+@inject ICategoryService CategoryService
+
+<div class="filter-sidebar" id="filterSidebar">
+    <div class="sidebar-header">
+        <h3>Filters</h3>
+        <button @onclick="ClearAllFilters" class="btn-ghost">Clear All</button>
+    </div>
+
+    @* Category Filter *@
+    <div class="filter-section">
+        <h4 class="filter-title">Category</h4>
+        <div class="filter-options">
+            @if (categories != null && categories.Any())
+            {
+                @foreach (var category in categories)
+                {
+                    <label class="filter-option">
+                        <input type="radio"
+                               name="category"
+                               value="@category.Id"
+                               checked="@(Filters.CategoryId == category.Id)"
+                               @onchange="@(() => SelectCategory(category.Id))" />
+                        <span>@category.Name</span>
+                        <span class="filter-count">(@category.CourseCount)</span>
+                    </label>
+                }
+            }
+        </div>
+    </div>
+
+    @* Level Filter *@
+    <div class="filter-section">
+        <h4 class="filter-title">Level</h4>
+        <div class="filter-options">
+            <label class="filter-option">
+                <input type="radio"
+                       name="level"
+                       value=""
+                       checked="@(!Filters.Level.HasValue)"
+                       @onchange="@(() => SelectLevel(null))" />
+                <span>All Levels</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="level"
+                       value="@CourseLevel.Beginner"
+                       checked="@(Filters.Level == CourseLevel.Beginner)"
+                       @onchange="@(() => SelectLevel(CourseLevel.Beginner))" />
+                <span>Beginner</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="level"
+                       value="@CourseLevel.Intermediate"
+                       checked="@(Filters.Level == CourseLevel.Intermediate)"
+                       @onchange="@(() => SelectLevel(CourseLevel.Intermediate))" />
+                <span>Intermediate</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="level"
+                       value="@CourseLevel.Advanced"
+                       checked="@(Filters.Level == CourseLevel.Advanced)"
+                       @onchange="@(() => SelectLevel(CourseLevel.Advanced))" />
+                <span>Advanced</span>
+            </label>
+        </div>
+    </div>
+
+    @* Price Range Filter *@
+    <div class="filter-section">
+        <h4 class="filter-title">Price</h4>
+        <div class="filter-options">
+            <label class="filter-option">
+                <input type="radio"
+                       name="price"
+                       checked="@(!Filters.MinPrice.HasValue && !Filters.MaxPrice.HasValue)"
+                       @onchange="@(() => SelectPriceRange(null, null))" />
+                <span>All Prices</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="price"
+                       checked="@(Filters.MaxPrice == 0)"
+                       @onchange="@(() => SelectPriceRange(0, 0))" />
+                <span>Free</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="price"
+                       checked="@(Filters.MinPrice == 0 && Filters.MaxPrice == 50)"
+                       @onchange="@(() => SelectPriceRange(0, 50))" />
+                <span>Under $50</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="price"
+                       checked="@(Filters.MinPrice == 50 && Filters.MaxPrice == 100)"
+                       @onchange="@(() => SelectPriceRange(50, 100))" />
+                <span>$50 - $100</span>
+            </label>
+            <label class="filter-option">
+                <input type="radio"
+                       name="price"
+                       checked="@(Filters.MinPrice == 100)"
+                       @onchange="@(() => SelectPriceRange(100, null))" />
+                <span>Over $100</span>
+            </label>
+        </div>
+    </div>
+
+    @* Rating Filter *@
+    <div class="filter-section">
+        <h4 class="filter-title">Rating</h4>
+        <div class="filter-options">
+            @for (int rating = 5; rating >= 1; rating--)
+            {
+                var currentRating = rating;
+                <label class="filter-option">
+                    <input type="radio"
+                           name="rating"
+                           checked="@(Filters.MinRating == currentRating)"
+                           @onchange="@(() => SelectRating(currentRating))" />
+                    <span class="rating-stars">
+                        @for (int i = 0; i < currentRating; i++)
+                        {
+                            <i class="fas fa-star"></i>
+                        }
+                    </span>
+                    <span>& Up</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    @* Features Filter *@
+    <div class="filter-section">
+        <h4 class="filter-title">Features</h4>
+        <div class="filter-options">
+            <label class="filter-option checkbox-option">
+                <input type="checkbox"
+                       checked="@(Filters.HasCertificate == true)"
+                       @onchange="@((e) => ToggleCertificate((bool)e.Value!))" />
+                <span>Certificate Included</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public CourseSearchDto Filters { get; set; } = new();
+    [Parameter] public EventCallback OnFilterChanged { get; set; }
+
+    private List<CategoryDto> categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var response = await CategoryService.GetAllCategoriesAsync();
+            if (response.Success && response.Data != null)
+            {
+                categories = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading categories: {ex.Message}");
+        }
+    }
+
+    private async Task SelectCategory(Guid? categoryId)
+    {
+        Filters.CategoryId = categoryId;
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task SelectLevel(CourseLevel? level)
+    {
+        Filters.Level = level;
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task SelectPriceRange(decimal? min, decimal? max)
+    {
+        Filters.MinPrice = min;
+        Filters.MaxPrice = max;
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task SelectRating(double rating)
+    {
+        Filters.MinRating = rating;
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task ToggleCertificate(bool value)
+    {
+        Filters.HasCertificate = value ? true : null;
+        await OnFilterChanged.InvokeAsync();
+    }
+
+    private async Task ClearAllFilters()
+    {
+        Filters.CategoryId = null;
+        Filters.Level = null;
+        Filters.MinPrice = null;
+        Filters.MaxPrice = null;
+        Filters.MinRating = null;
+        Filters.HasCertificate = null;
+        await OnFilterChanged.InvokeAsync();
+    }
+}

@@ -1,0 +1,317 @@
+@page "/courses"
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.Core.Entities
+@inject ICourseService CourseService
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+
+<PageTitle>Browse Courses - InsightLearn</PageTitle>
+
+<div class="courses-page-wrapper">
+    @* Hero Section *@
+    <section class="courses-hero">
+        <div class="container">
+            <h1 class="text-5xl font-bold text-gray-900">Explore 1,200+ Expert-Led Courses</h1>
+            <p class="text-xl text-gray-600">Learn from industry professionals at your own pace</p>
+
+            @* Search Bar *@
+            <div class="search-bar-large">
+                <input type="search"
+                       placeholder="Search courses, topics, instructors..."
+                       @bind="searchQuery"
+                       @bind:event="oninput"
+                       @onkeyup="OnSearchKeyUp" />
+                <button class="btn btn-primary" @onclick="HandleSearch">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            @* Quick Filter Pills *@
+            <div class="filter-pills">
+                <button class="pill @(selectedCategoryId == null ? "active" : "")"
+                        @onclick="@(() => SelectQuickCategory(null))">
+                    All Courses
+                </button>
+                @if (quickCategories != null)
+                {
+                    @foreach (var category in quickCategories.Take(5))
+                    {
+                        <button class="pill @(selectedCategoryId == category.Id ? "active" : "")"
+                                @onclick="@(() => SelectQuickCategory(category.Id))">
+                            @category.Name
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+    </section>
+
+    @* Main Content *@
+    <div class="courses-page-container">
+        <div class="courses-layout">
+            @* Filter Sidebar *@
+            <aside class="filter-sidebar-wrapper">
+                <CourseFilterSidebar Filters="@searchFilters"
+                                     OnFilterChanged="ApplyFiltersAsync" />
+            </aside>
+
+            @* Main Content Area *@
+            <main class="courses-main">
+                @* Results Header *@
+                <div class="results-header">
+                    <div class="results-count">
+                        @if (searchResult != null)
+                        {
+                            <text>Showing @searchResult.Courses.Count of @searchResult.TotalCount courses</text>
+                        }
+                        else
+                        {
+                            <text>Loading courses...</text>
+                        }
+                    </div>
+                    <div class="results-controls">
+                        <select @bind="sortBy" @bind:event="onchange" class="sort-dropdown">
+                            <option value="Popular">Most Popular</option>
+                            <option value="Rating">Highest Rated</option>
+                            <option value="Newest">Newest First</option>
+                            <option value="Price">Price: Low to High</option>
+                        </select>
+
+                        <div class="view-toggle">
+                            <button @onclick='@(() => viewMode = "grid")'
+                                    class="@(viewMode == "grid" ? "active" : "")"
+                                    aria-label="Grid view">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button @onclick='@(() => viewMode = "list")'
+                                    class="@(viewMode == "list" ? "active" : "")"
+                                    aria-label="List view">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @* Course Grid/List *@
+                @if (isLoading && searchResult == null)
+                {
+                    <CourseSkeletonLoader Count="12" />
+                }
+                else if (searchResult?.Courses.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <h3>No courses found</h3>
+                        <p>Try adjusting your filters or search terms</p>
+                        <button @onclick="ClearAllFilters" class="btn btn-primary">
+                            Clear All Filters
+                        </button>
+                    </div>
+                }
+                else if (searchResult != null)
+                {
+                    <div class="courses-grid @viewMode-view">
+                        @foreach (var course in searchResult.Courses)
+                        {
+                            <CourseCard Course="@ConvertToCourse(course)"
+                                        ThumbnailUrl="@(course.ThumbnailUrl ?? "/images/default-course.jpg")"
+                                        InstructorName="@course.InstructorName"
+                                        InstructorAvatar="@course.InstructorImageUrl"
+                                        Price="@course.CurrentPrice"
+                                        DiscountedPrice="@(course.DiscountPercentage > 0 ? course.CurrentPrice : null)"
+                                        Rating="@course.AverageRating"
+                                        ReviewCount="@course.ReviewCount"
+                                        Duration="@FormatDuration(course.EstimatedDurationMinutes)" />
+                        }
+                    </div>
+
+                    @* Load More Button *@
+                    @if (searchResult.HasNextPage)
+                    {
+                        <div class="load-more-section">
+                            <button @onclick="LoadMoreAsync"
+                                    class="btn btn-secondary btn-lg"
+                                    disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-sm"></span>
+                                    <span>Loading...</span>
+                                }
+                                else
+                                {
+                                    <span>Load More Courses</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                }
+            </main>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CourseSearchDto searchFilters = new() { Page = 1, PageSize = 12 };
+    private CourseSearchResultDto? searchResult;
+    private List<CategoryDto> quickCategories = new();
+
+    private string searchQuery = "";
+    private string sortBy = "Popular";
+    private string viewMode = "grid";
+    private Guid? selectedCategoryId = null;
+    private bool isLoading = true;
+    private System.Timers.Timer? searchDebounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+        await LoadCoursesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var response = await CategoryService.GetAllCategoriesAsync();
+            if (response.Success && response.Data != null)
+            {
+                quickCategories = response.Data.Take(6).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading categories: {ex.Message}");
+        }
+    }
+
+    private async Task LoadCoursesAsync()
+    {
+        try
+        {
+            isLoading = true;
+            searchFilters.Query = searchQuery;
+            searchFilters.SortBy = sortBy;
+
+            var response = await CourseService.SearchCoursesAsync(searchFilters);
+
+            if (response.Success && response.Data != null)
+            {
+                if (searchFilters.Page == 1)
+                {
+                    searchResult = response.Data;
+                }
+                else if (searchResult != null)
+                {
+                    searchResult.Courses.AddRange(response.Data.Courses);
+                    searchResult.CurrentPage = response.Data.CurrentPage;
+                    searchResult.HasNextPage = response.Data.HasNextPage;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading courses: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        searchFilters.Page = 1;
+        searchResult = null;
+        await LoadCoursesAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        if (!isLoading && searchResult?.HasNextPage == true)
+        {
+            searchFilters.Page++;
+            await LoadCoursesAsync();
+        }
+    }
+
+    private void SelectQuickCategory(Guid? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        searchFilters.CategoryId = categoryId;
+        searchFilters.Page = 1;
+        searchResult = null;
+        _ = LoadCoursesAsync();
+    }
+
+    private async Task HandleSearch()
+    {
+        searchFilters.Page = 1;
+        searchResult = null;
+        await LoadCoursesAsync();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _ = HandleSearch();
+            return;
+        }
+
+        searchDebounceTimer?.Stop();
+        searchDebounceTimer = new System.Timers.Timer(500);
+        searchDebounceTimer.Elapsed += async (sender, args) =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await HandleSearch();
+                StateHasChanged();
+            });
+            searchDebounceTimer.Dispose();
+        };
+        searchDebounceTimer.Start();
+    }
+
+    private async Task ClearAllFilters()
+    {
+        searchFilters = new CourseSearchDto { Page = 1, PageSize = 12 };
+        searchQuery = "";
+        sortBy = "Popular";
+        selectedCategoryId = null;
+        searchResult = null;
+        await LoadCoursesAsync();
+    }
+
+    private Course ConvertToCourse(CourseDto dto)
+    {
+        return new Course
+        {
+            Id = dto.Id,
+            Title = dto.Title,
+            Description = dto.Description,
+            Price = dto.Price,
+            DiscountPercentage = dto.DiscountPercentage,
+            ThumbnailUrl = dto.ThumbnailUrl,
+            Level = dto.Level,
+            AverageRating = dto.AverageRating,
+            ReviewCount = dto.ReviewCount,
+            EnrollmentCount = dto.EnrollmentCount
+        };
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes}m";
+        else
+        {
+            var hours = minutes / 60.0;
+            return $"{hours:0.#}h";
+        }
+    }
+
+    public void Dispose()
+    {
+        searchDebounceTimer?.Dispose();
+    }
+}
