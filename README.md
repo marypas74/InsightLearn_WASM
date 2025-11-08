@@ -2,17 +2,65 @@
 
 Enterprise Learning Management System con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione**: 1.4.22-dev
+**Versione**: 1.6.0-dev
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, SQL Server, MongoDB, Redis
+**Deploy**: Kubernetes su Rocky Linux 10 con Podman
+**Monitoring**: Grafana + Prometheus con dashboards personalizzati
 
-## Caratteristiche
+## 🎯 Caratteristiche Principali
 
-- **Frontend**: Blazor WebAssembly con componenti interattivi
-- **Backend**: ASP.NET Core 8 Web API con Minimal APIs
-- **Database**: SQL Server 2022 (dati relazionali), MongoDB 7.0 (video/chat), Redis 7 (cache)
-- **AI Chatbot**: Ollama con modello qwen2:0.5b per risposte rapide
-- **Deployment**: Kubernetes (Minikube) su Rocky Linux con driver Podman
-- **Endpoints Database-Driven**: Tutti gli endpoint configurabili da database senza rebuild
+### Frontend & UX
+- **Blazor WebAssembly** con componenti interattivi e routing client-side
+- **VideoUpload Component** con drag & drop, validazione file, progress tracking
+- **VideoPlayer Component** con streaming MongoDB GridFS
+- **AI Chatbot Widget** con Ollama (qwen2:0.5b) per supporto real-time
+- **Cookie Consent Wall** GDPR-compliant con UI moderna
+- **Responsive Design** mobile-first con breakpoints ottimizzati
+
+### Backend & API
+- **ASP.NET Core 8** con Minimal APIs pattern
+- **Endpoints Database-Driven**: 50+ endpoint configurabili da SQL Server senza rebuild
+- **MongoDB GridFS**: Video storage con GZip compression (20-40% riduzione dimensione)
+- **Automatic Database Migrations**: EF Core migrations al startup (no downtime)
+- **JWT Authentication**: Token-based auth con refresh token support
+- **Health Checks**: `/health` endpoint per Kubernetes liveness/readiness probes
+
+### Database & Storage
+- **SQL Server 2022**: Dati relazionali (utenti, corsi, iscrizioni, chatbot messages)
+- **MongoDB 7.0**: Video storage GridFS con compression, metadata indexing
+- **Redis 7**: Cache distribuita, session storage
+- **Elasticsearch 8.11**: Full-text search (configurato)
+
+### AI & Machine Learning
+- **Ollama LLM Server**: Modello qwen2:0.5b (1.7s avg response time)
+- **Chatbot persistente**: Conversazioni salvate in SQL Server
+- **Context-aware responses**: History-based conversation flow
+
+### Monitoring & Observability
+- **Grafana Dashboards**: "InsightLearn Platform Monitoring" con metriche real-time
+  - Pod CPU/Memory usage
+  - Network I/O statistics
+  - Pod health status
+  - Service availability
+- **Prometheus**: Metrics collection con 30s scrape interval
+- **Service Watchdog**: Auto-healing system che monitora e riavvia servizi failed
+- **Persistent Port-Forwarding**: Script auto-restart per Grafana (http://localhost:3000)
+
+### Security & Compliance
+- ✅ **Security Patches Applied** (2025-01-08):
+  - CVE-2024-43483 (HIGH) - Microsoft.Extensions.Caching.Memory patched
+  - CVE-2024-43485 (HIGH) - System.Text.Json patched
+  - Tutte le dipendenze transitive aggiornate
+- **GDPR Compliance**: Cookie consent wall, privacy policy
+- **TLS/SSL**: Certificati self-signed per dev, Let's Encrypt ready per prod
+- **JWT Secret Rotation**: Configurabile via environment variables
+
+### Deployment & DevOps
+- **Kubernetes-Native**: StatefulSets, Deployments, Services, ConfigMaps, Secrets
+- **Horizontal Pod Autoscaling**: CPU/Memory-based scaling (min 1, max 5 replicas)
+- **Health Probes**: Liveness, Readiness, Startup probes per tutti i servizi
+- **Rolling Updates**: Zero-downtime deployments
+- **Podman Support**: Native container runtime su Rocky Linux 10
 
 ## Quick Start
 
@@ -44,16 +92,44 @@ nano .env
 ./start-all.sh
 ```
 
-### Accesso Applicazione
+### 🌐 Accesso Applicazione
 
-Dopo il deployment, l'applicazione è accessibile su:
+Dopo il deployment, i servizi sono accessibili su:
 
-- **Frontend WASM**: http://localhost:8080
-- **Backend API**: http://localhost:8081
-- **API Health**: http://localhost:8081/health
-- **Swagger**: http://localhost:8081/swagger
+#### Applicazione
+- **Frontend WASM**: http://localhost:8080 (o https://wasm.insightlearn.cloud via Cloudflare)
+- **Backend API**: http://localhost:31081 (NodePort) o http://localhost:8081 (port-forward)
+- **API Health**: http://localhost:31081/health
+- **Swagger**: http://localhost:31081/swagger
 
-### Cloudflare Tunnel (Opzionale)
+#### Monitoring & Admin
+- **Grafana**: http://localhost:3000 (port-forward persistente) o http://localhost:31300 (NodePort)
+  - Login: `admin/admin` (cambiare al primo accesso)
+  - Dashboard: http://localhost:3000/d/insightlearn-main/insightlearn-platform-monitoring
+- **Prometheus**: http://localhost:9091 (⚠️ porta 9091, non 9090)
+
+#### Port-Forward Persistente
+
+Per avere Grafana sempre accessibile su http://localhost:3000:
+
+```bash
+# Avvia port-forward persistente con auto-restart
+./k8s/grafana-port-forward-persistent.sh &
+```
+
+#### Service Watchdog
+
+Per monitorare e riavviare automaticamente i servizi failed:
+
+```bash
+# Avvia watchdog in background
+./k8s/service-watchdog.sh &
+
+# Verifica log
+tail -f /tmp/insightlearn-watchdog.log
+```
+
+#### Cloudflare Tunnel (Produzione)
 
 Per esporre l'applicazione su Internet con HTTPS:
 
@@ -65,7 +141,7 @@ Per esporre l'applicazione su Internet con HTTPS:
 cloudflared tunnel run insightlearn
 ```
 
-Accesso pubblico: https://wasm.insightlearn.cloud
+**Accesso pubblico**: https://wasm.insightlearn.cloud
 
 ## Architettura
 
