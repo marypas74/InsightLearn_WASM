@@ -385,6 +385,12 @@ dotnet list package --vulnerable --include-transitive
   - `GET /api/video/metadata/{fileId}` - Metadata retrieval
   - `DELETE /api/video/{videoId}` - Delete video
   - `GET /api/video/upload/progress/{uploadId}` - Upload progress
+- **Connection String**: Configurata in [k8s/06-api-deployment.yaml](k8s/06-api-deployment.yaml) come env var `MongoDb__ConnectionString`
+- **E2E Test Status** (2025-01-08): ✅ GridFS operativo, validazioni funzionanti
+  - ✅ Content-type validation: MP4, WebM, OGG, MOV
+  - ✅ File size validation: max 500MB
+  - ✅ UUID validation: lessonId, userId
+  - ⚠️ Business logic validation: require existing Lesson in SQL Server
 
 ### AI/Chatbot
 
