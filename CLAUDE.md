@@ -325,6 +325,40 @@ Esempio modifica version:
 3. Sostituire con env vars al deploy
 4. TLS certs self-signed SOLO per dev
 
+#### 🛡️ Security Patches Applied (2025-01-08)
+
+**Status**: ✅ Tutte le vulnerabilità HIGH risolte
+
+**Vulnerabilità Patched**:
+- ✅ **CVE-2024-43483** (HIGH): Microsoft.Extensions.Caching.Memory 8.0.0 → 8.0.1
+  - Hash flooding DoS attack vulnerability
+  - Applicato a: Core, Infrastructure, Application, WebAssembly
+- ✅ **CVE-2024-43485** (HIGH): System.Text.Json 8.0.4 → 8.0.5
+  - JsonExtensionData vulnerability
+  - Applicato a: Infrastructure, Application
+- ✅ System.Formats.Asn1 8.0.0 → 8.0.1 (security patch)
+- ✅ System.IO.Packaging 8.0.0 → 8.0.1 (security patch)
+- ✅ Azure.Identity 1.10.3 → 1.13.1 (MODERATE severity patches)
+- ✅ Microsoft.Extensions.DependencyInjection.Abstractions 8.0.1 → 8.0.2 (dependency requirement)
+
+**Remaining Vulnerabilities**:
+- ⚠️ BouncyCastle.Cryptography 2.2.1 (3x MODERATE) - Transitive da itext7, non critico
+
+**File Modificati**:
+- [src/InsightLearn.Core/InsightLearn.Core.csproj](src/InsightLearn.Core/InsightLearn.Core.csproj) - 1 patch
+- [src/InsightLearn.Infrastructure/InsightLearn.Infrastructure.csproj](src/InsightLearn.Infrastructure/InsightLearn.Infrastructure.csproj) - 5 patches
+- [src/InsightLearn.Application/InsightLearn.Application.csproj](src/InsightLearn.Application/InsightLearn.Application.csproj) - 5 patches
+- [src/InsightLearn.WebAssembly/InsightLearn.WebAssembly.csproj](src/InsightLearn.WebAssembly/InsightLearn.WebAssembly.csproj) - 1 patch
+
+**Verifica Security Patches**:
+```bash
+# Check vulnerabilities
+dotnet list package --vulnerable --include-transitive
+
+# Expected output: No HIGH or CRITICAL vulnerabilities
+# Only 3 MODERATE (BouncyCastle) remain
+```
+
 ### Database Stack
 
 | Database | Uso | Porta | Status |

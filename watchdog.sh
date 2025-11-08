@@ -33,8 +33,8 @@ while true; do
     ###########################################################################
     if ! minikube status | grep -q "Running"; then
         log_error "Minikube not running, restarting..."
-        minikube start --driver=podman --memory=9216 --cpus=6 \
-                       --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48 \
+        minikube start --driver=podman --container-runtime=cri-o --memory=14336 --cpus=6 \
+                        \
                        >> "$LOG_FILE" 2>&1
         log_success "Minikube restarted"
         sleep 60  # Wait for pods to stabilize

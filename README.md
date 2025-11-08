@@ -128,7 +128,7 @@ dotnet build InsightLearn.WASM.sln -c Release
 # Rocky Linux con Podman
 minikube config set rootless true
 minikube start --driver=podman --container-runtime=cri-o \
-               --memory=9216 --cpus=6 \
+               --memory=14336 --cpus=6 \
                --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48
 
 # Abilita Ingress

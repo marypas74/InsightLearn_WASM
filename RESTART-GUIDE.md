@@ -30,7 +30,7 @@ Quando il server si riavvia, automaticamente:
 1. **Systemd avvia il servizio** `insightlearn-startup.service`
 2. **Lo script verifica minikube**
    - Se non è running, lo avvia
-   - Parametri: podman driver, 13GB RAM, 6 CPU
+   - Parametri: podman driver, 14GB RAM, 6 CPU
 3. **Attende che i pod siano pronti**
    - API pods: `app=insightlearn-api`
    - Ollama pod: `app=ollama`
@@ -123,7 +123,7 @@ minikube stop
 
 # Start manuale
 minikube start --driver=podman --container-runtime=cri-o \
-               --memory=9216 --cpus=6 \
+               --memory=14336 --cpus=6 \
                --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48
 ```
 
@@ -194,7 +194,7 @@ minikube logs
 
 1. **Tempo di Avvio**: 3-5 minuti dopo il boot del server
 2. **Cloudflare Tunnel**: Richiede cloudflared installato e configurato
-3. **Resources**: 9GB RAM, 6 CPU assegnati a minikube
+3. **Resources**: 14GB RAM, 6 CPU assegnati a minikube
 4. **Persistence**: I dati dei database (SQL, Mongo, Redis) sono persistenti
 5. **No Manual Intervention**: Tutto riparte automaticamente
 
@@ -215,7 +215,7 @@ ps aux | grep port-forward | grep -v grep
 # Restart completo (se necessario)
 pkill -f port-forward
 minikube stop
-minikube start --driver=podman --memory=9216 --cpus=6
+minikube start --driver=podman --memory=14336 --cpus=6
 ./start-all.sh
 ```
 

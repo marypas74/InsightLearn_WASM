@@ -34,8 +34,9 @@ if minikube status | grep -q "Running"; then
     print_success "Minikube is already running"
 else
     print_warning "Minikube not running, starting it..."
-    minikube start --driver=podman --memory=13312 --cpus=6 \
-      --base-image=gcr.io/k8s-minikube/kicbase-rocky:v0.0.48
+    minikube start --driver=podman --container-runtime=cri-o \
+      --memory=14336 --cpus=6 \
+      
     print_success "Minikube started"
 fi
 
