@@ -447,6 +447,42 @@ curl http://localhost:3000/api/health  # Grafana
 curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
 ```
 
+### 📊 Grafana Dashboard Configuration (2025-01-08)
+
+**Status**: ✅ Dashboard "InsightLearn Platform Monitoring" disponibile
+
+**Accesso**:
+- **URL locale**: http://localhost:3000 (richiede port-forward)
+- **Port forward**: `kubectl port-forward -n insightlearn svc/grafana 3000:3000`
+- **NodePort**: http://HOST_IP:31300 (accesso diretto dal cluster)
+- **Credenziali default**: admin/admin (cambiare al primo login)
+
+**Dashboard Incluse**:
+1. **InsightLearn Platform Monitoring** (uid: `insightlearn-main`)
+   - API Request Rate (req/s per endpoint)
+   - API Response Time (p50, p95 latency)
+   - Health Status: API, MongoDB, SQL Server, Redis
+   - Ollama Inference Time (p50, p95)
+   - Pod CPU/Memory Usage
+   - MongoDB Video Storage Size
+
+**File**:
+- [k8s/grafana-dashboard-insightlearn.json](k8s/grafana-dashboard-insightlearn.json) - Dashboard JSON
+- [k8s/17-grafana-dashboard-configmap.yaml](k8s/17-grafana-dashboard-configmap.yaml) - ConfigMap auto-load
+
+**Import Dashboard**:
+```bash
+# Via ConfigMap (già applicato)
+kubectl apply -f k8s/17-grafana-dashboard-configmap.yaml
+
+# Via Grafana UI
+# 1. Login: http://localhost:3000 (admin/admin)
+# 2. Dashboards → Import → Upload JSON file
+# 3. Seleziona: k8s/grafana-dashboard-insightlearn.json
+```
+
+**Data Source**: Prometheus (http://prometheus:9090) - configurato automaticamente
+
 ## Porte Servizi
 
 | Servizio | Porta(e) | HTTPS |
