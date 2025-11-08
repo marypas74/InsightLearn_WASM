@@ -452,9 +452,9 @@ curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
 **Status**: ✅ Dashboard "InsightLearn Platform Monitoring" disponibile
 
 **Accesso**:
-- **URL locale**: http://localhost:3000 (richiede port-forward)
-- **Port forward**: `kubectl port-forward -n insightlearn svc/grafana 3000:3000`
-- **NodePort**: http://HOST_IP:31300 (accesso diretto dal cluster)
+- **URL locale**: http://localhost:3000 (port-forward persistente ✅)
+- **Script persistente**: `./k8s/grafana-port-forward-persistent.sh` (auto-restart se disconnesso)
+- **NodePort alternativo**: http://localhost:31300 (no port-forward richiesto)
 - **Credenziali default**: admin/admin (cambiare al primo login)
 
 **Dashboard Incluse**:
@@ -482,6 +482,69 @@ kubectl apply -f k8s/17-grafana-dashboard-configmap.yaml
 ```
 
 **Data Source**: Prometheus (http://prometheus:9090) - configurato automaticamente
+
+### 🔧 Service Watchdog (2025-01-08)
+
+**Status**: ✅ Watchdog automatico attivo
+
+**Funzionalità**:
+- Monitora health di tutti i servizi ogni 60 secondi
+- Riavvia automaticamente i pod che falliscono health checks
+- Verifica HTTP endpoints (API, Grafana)
+- Verifica Kubernetes pod readiness (MongoDB, SQL Server, Redis, Ollama, WebAssembly)
+- Log dettagliato in `/tmp/insightlearn-watchdog.log`
+
+**Servizi monitorati**:
+1. API (pod + HTTP /health)
+2. Grafana (pod + HTTP /api/health)
+3. Prometheus (pod)
+4. MongoDB (pod)
+5. SQL Server (pod)
+6. Redis (pod)
+7. Ollama (pod)
+8. WebAssembly frontend (pod)
+
+**Avvio watchdog**:
+```bash
+# Avvio manuale
+./k8s/service-watchdog.sh &
+
+# Verifica log
+tail -f /tmp/insightlearn-watchdog.log
+```
+
+**File**: [k8s/service-watchdog.sh](k8s/service-watchdog.sh)
+
+### 📹 VideoUpload Component (2025-01-08)
+
+**Status**: ✅ Implementazione completa con code-behind pattern
+
+**Funzionalità**:
+- File selection con drag & drop
+- Validazione tipo file (MP4, WebM, OGG, MOV)
+- Validazione dimensione (max 500MB configurabile)
+- Upload progress tracking
+- Error handling con retry
+- Success/error notifications
+- MongoDB GridFS integration via API
+
+**File**:
+- [src/InsightLearn.WebAssembly/Components/VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - UI Markup
+- [src/InsightLearn.WebAssembly/Components/VideoUpload.razor.cs](src/InsightLearn.WebAssembly/Components/VideoUpload.razor.cs) - Code-behind logic
+- [src/InsightLearn.WebAssembly/wwwroot/css/video-components.css](src/InsightLearn.WebAssembly/wwwroot/css/video-components.css) - Styling
+
+**Uso**:
+```razor
+<VideoUpload
+    LessonId="@lessonGuid"
+    UserId="@userGuid"
+    Title="Upload Video Lesson"
+    MaxFileSize="524288000"
+    OnUploadComplete="@HandleUploadComplete"
+    OnUploadError="@HandleUploadError" />
+```
+
+**API Backend**: Completamente funzionale (MongoDB GridFS configurato)
 
 ## Porte Servizi
 

@@ -1,52 +1,72 @@
-@*
-    VideoUpload Component - Placeholder
-
-    This is a simplified placeholder component that compiles successfully.
-    The component structure is ready for implementation but has Razor compiler issues
-    with the full inline @code block implementation.
-
-    To implement fully:
-    1. Use code-behind file pattern (VideoUpload.razor.cs) OR
-    2. Create separate DTO classes outside @code block OR
-    3. Wait for .NET 9 Razor compiler improvements
-
-    Backend API endpoints are ready at:
-    - POST /api/video/upload
-    - GET /api/video/stream/{id}
-    - GET /api/video/metadata/{id}
-    - GET /api/video/list/{lessonId}
-    - DELETE /api/video/{id}
-*@
+@* VideoUpload Component - Full Implementation with Code-Behind *@
 
 <div class="video-upload-container">
     <h3 class="upload-title">@Title</h3>
 
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i>
-        <p>Video upload component is available. Backend API is fully functional.</p>
-        <p><strong>Note:</strong> Full UI implementation requires code-behind pattern to avoid Razor compiler issues.</p>
-    </div>
-
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-error">
+        <div class="alert alert-danger">
             <i class="fas fa-exclamation-circle"></i>
             <span>@errorMessage</span>
         </div>
     }
 
-    <div class="upload-zone" style="padding: 40px; border: 2px dashed #ccc; text-align: center; margin: 20px 0;">
-        <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #999; margin-bottom: 16px;"></i>
-        <p>Video Upload Feature</p>
-        <p style="color: #666; font-size: 14px;">Backend ready - Full UI coming soon</p>
-    </div>
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            <span>@successMessage</span>
+        </div>
+    }
+
+    @if (isUploading)
+    {
+        <div class="upload-progress">
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: @(uploadProgress)%"></div>
+            </div>
+            <p class="progress-text">Uploading... @(uploadProgress.ToString("F0"))%</p>
+        </div>
+    }
+    else
+    {
+        <div class="upload-zone @(selectedFile != null ? "has-file" : "")"
+             ondragover="event.preventDefault();"
+             ondrop="event.preventDefault();">
+
+            @if (selectedFile == null)
+            {
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <p class="upload-instructions">Drag & drop video file here or click to browse</p>
+                <p class="upload-hint">Maximum file size: @(MaxFileSize / 1024 / 1024)MB | Supported: MP4, WebM, OGG, MOV</p>
+
+                <InputFile OnChange="OnFileSelected"
+                           accept="video/*"
+                           class="file-input"
+                           id="video-file-input" />
+                <label for="video-file-input" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i> Choose File
+                </label>
+            }
+            else
+            {
+                <div class="file-selected">
+                    <i class="fas fa-file-video file-icon"></i>
+                    <div class="file-info">
+                        <p class="file-name">@selectedFileName</p>
+                        <p class="file-size">@((selectedFileSize / 1024.0 / 1024.0).ToString("F2")) MB</p>
+                    </div>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="btn btn-success" @onclick="UploadVideo" disabled="@isUploading">
+                        <i class="fas fa-upload"></i> Upload Video
+                    </button>
+                    <button class="btn btn-secondary" @onclick="CancelUpload" disabled="@isUploading">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            }
+        </div>
+    }
 </div>
-
-@code {
-    [Parameter] public Guid LessonId { get; set; }
-    [Parameter] public Guid UserId { get; set; }
-    [Parameter] public string Title { get; set; } = "Upload Video";
-    [Parameter] public EventCallback<string> OnUploadComplete { get; set; }
-
-    private string errorMessage = "";
-}
