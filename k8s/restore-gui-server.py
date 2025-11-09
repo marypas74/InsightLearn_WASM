@@ -770,6 +770,9 @@ class RestoreHandler(BaseHTTPRequestHandler):
                 infoBox.innerHTML = `<strong>Backup selezionato:</strong> ${backupName}<br>
                                      <strong>Risorse disponibili:</strong> ${Object.keys(backupContents).length} tipi`;
 
+                // Enable full restore button
+                document.getElementById('restore-full-btn').disabled = false;
+
                 // Populate resource types
                 const typeSelect = document.getElementById('resource-type-select');
                 typeSelect.disabled = false;
@@ -947,6 +950,7 @@ class RestoreHandler(BaseHTTPRequestHandler):
             document.getElementById('resource-name-select').disabled = true;
             document.getElementById('resource-name-select').innerHTML = '<option value="">Prima seleziona un tipo</option>';
             document.getElementById('restore-btn').disabled = true;
+            document.getElementById('restore-full-btn').disabled = true;
             document.getElementById('backup-info').style.display = 'none';
             hideMessages();
         }
