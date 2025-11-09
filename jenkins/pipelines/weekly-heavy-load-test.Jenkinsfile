@@ -165,75 +165,27 @@ EOF
 
     post {
         success {
-            emailext(
-                subject: "✅ Weekly Load Test PASSED - Build #${env.BUILD_NUMBER}",
-                body: """
-Weekly heavy load testing completed successfully!
-
-Build: #${env.BUILD_NUMBER}
-Site: ${env.SITE_URL}
-Load Level: ${env.LOAD_LEVEL}
-Timestamp: ${env.TIMESTAMP}
-
-All stages passed. Check Jenkins for detailed results:
-${env.BUILD_URL}
-
-View archived reports:
-${env.BUILD_URL}artifact/
-
----
-InsightLearn Automated Testing System
-                """,
-                to: "${params.EMAIL_RECIPIENTS}",
-                attachLog: true
-            )
+            script {
+                echo "✅ Weekly Load Test PASSED"
+                echo "Build: #${env.BUILD_NUMBER}"
+                echo "Site: ${env.SITE_URL}"
+                echo "Load Level: ${env.LOAD_LEVEL}"
+            }
         }
 
         failure {
-            emailext(
-                subject: "❌ Weekly Load Test FAILED - Build #${env.BUILD_NUMBER}",
-                body: """
-Weekly heavy load testing FAILED!
-
-Build: #${env.BUILD_NUMBER}
-Site: ${env.SITE_URL}
-Load Level: ${env.LOAD_LEVEL}
-Timestamp: ${env.TIMESTAMP}
-
-Check Jenkins console output for details:
-${env.BUILD_URL}console
-
-Immediate action required!
-
----
-InsightLearn Automated Testing System
-                """,
-                to: "${params.EMAIL_RECIPIENTS}",
-                attachLog: true
-            )
+            script {
+                echo "❌ Weekly Load Test FAILED"
+                echo "Build: #${env.BUILD_NUMBER}"
+                echo "Check console: ${env.BUILD_URL}console"
+            }
         }
 
         unstable {
-            emailext(
-                subject: "⚠️ Weekly Load Test UNSTABLE - Build #${env.BUILD_NUMBER}",
-                body: """
-Weekly heavy load testing completed with warnings!
-
-Build: #${env.BUILD_NUMBER}
-Site: ${env.SITE_URL}
-Load Level: ${env.LOAD_LEVEL}
-Timestamp: ${env.TIMESTAMP}
-
-Some tests passed but performance may be degraded.
-Check Jenkins for details:
-${env.BUILD_URL}
-
----
-InsightLearn Automated Testing System
-                """,
-                to: "${params.EMAIL_RECIPIENTS}",
-                attachLog: true
-            )
+            script {
+                echo "⚠️ Weekly Load Test UNSTABLE"
+                echo "Build: #${env.BUILD_NUMBER}"
+            }
         }
 
         always {
