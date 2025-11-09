@@ -1,0 +1,79 @@
+jenkins:
+  systemMessage: "InsightLearn WASM - Automated Testing & CI/CD Platform"
+  numExecutors: 2
+  mode: NORMAL
+  scmCheckoutRetryCount: 3
+
+unclassified:
+  location:
+    url: http://localhost:32000
+
+jobs:
+  - script: >
+      pipelineJob('insightlearn-automated-tests') {
+        description('InsightLearn WASM - Comprehensive Automated Testing Pipeline')
+
+        triggers {
+          cron('H * * * *')  // Run every hour
+        }
+
+        parameters {
+          stringParam('SITE_URL', 'https://wasm.insightlearn.cloud', 'Target URL for testing')
+          stringParam('EMAIL_RECIPIENTS', 'marcello.pasqui@gmail.com', 'Email addresses for notifications')
+        }
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/marypas74/InsightLearn_WASM.git')
+                }
+                branches('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+
+        logRotator {
+          numToKeep(30)
+          artifactNumToKeep(10)
+        }
+      }
+
+  - script: >
+      pipelineJob('insightlearn-weekly-heavy-load-test') {
+        description('InsightLearn WASM - Weekly Heavy Load Testing (Sundays 2:00 AM)')
+
+        triggers {
+          cron('0 2 * * 0')  // Every Sunday at 2:00 AM
+        }
+
+        parameters {
+          stringParam('SITE_URL', 'https://wasm.insightlearn.cloud', 'Target URL for load testing')
+          choice('LOAD_LEVEL', ['heavy', 'medium', 'light', 'stress'], 'Load testing intensity level')
+          stringParam('EMAIL_RECIPIENTS', 'marcello.pasqui@gmail.com', 'Email addresses for test results')
+        }
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/marypas74/InsightLearn_WASM.git')
+                }
+                branches('*/main')
+              }
+            }
+            scriptPath('jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile')
+            lightweight(true)
+          }
+        }
+
+        logRotator {
+          numToKeep(52)  // Keep 1 year of weekly tests
+          artifactNumToKeep(12)
+        }
+      }

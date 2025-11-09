@@ -1,0 +1,372 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "insightlearn-testing",
+    "title": "InsightLearn - Automated Testing Metrics",
+    "tags": ["insightlearn", "testing", "performance", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": { "x": 0, "y": 0, "w": 24, "h": 3 },
+        "type": "stat",
+        "title": "Overall System Status",
+        "targets": [],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": "100", "text": "✅ ALL SYSTEMS OPERATIONAL" },
+              { "type": "range", "from": 80, "to": 99, "text": "⚠️ DEGRADED PERFORMANCE" },
+              { "type": "range", "from": 0, "to": 79, "text": "🔴 CRITICAL ISSUES" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 80, "color": "yellow" },
+                { "value": 100, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": { "x": 0, "y": 3, "w": 6, "h": 8 },
+        "type": "graph",
+        "title": "Frontend Response Time",
+        "description": "Average response time for homepage in milliseconds",
+        "targets": [
+          {
+            "expr": "avg(http_request_duration_seconds{job=\"insightlearn-wasm\",path=\"/\"}) * 1000",
+            "legendFormat": "Homepage (ms)",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(http_request_duration_seconds{job=\"insightlearn-wasm\",path=\"/courses\"}) * 1000",
+            "legendFormat": "Courses Page (ms)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "ms", "label": "Response Time" },
+          { "format": "short" }
+        ],
+        "xaxis": { "mode": "time" },
+        "thresholds": [
+          { "value": 200, "colorMode": "critical", "op": "gt", "fill": true, "line": true }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": { "x": 6, "y": 3, "w": 6, "h": 8 },
+        "type": "graph",
+        "title": "API Response Status",
+        "description": "HTTP status codes from API endpoints",
+        "targets": [
+          {
+            "expr": "sum by (code) (rate(http_requests_total{job=\"insightlearn-api\"}[5m]))",
+            "legendFormat": "HTTP {{code}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Requests/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": { "x": 12, "y": 3, "w": 6, "h": 8 },
+        "type": "stat",
+        "title": "Success Rate",
+        "description": "Percentage of successful requests (2xx responses)",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{job=\"insightlearn-api\",code=~\"2..\"}[5m])) / sum(rate(http_requests_total{job=\"insightlearn-api\"}[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 95, "color": "yellow" },
+                { "value": 99, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": { "x": 18, "y": 3, "w": 6, "h": 8 },
+        "type": "stat",
+        "title": "Uptime",
+        "description": "System uptime percentage (last 24h)",
+        "targets": [
+          {
+            "expr": "avg_over_time(up{job=\"insightlearn-api\"}[24h]) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 99, "color": "yellow" },
+                { "value": 99.9, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": { "x": 0, "y": 11, "w": 12, "h": 8 },
+        "type": "graph",
+        "title": "Load Test Results",
+        "description": "Concurrent requests and response times during load tests",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"load-test\"}[1m])",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"load-test\"}[1m])) * 1000",
+            "legendFormat": "P95 Latency (ms)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "short" },
+          { "format": "ms" }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": { "x": 12, "y": 11, "w": 6, "h": 8 },
+        "type": "piechart",
+        "title": "Test Results Distribution",
+        "description": "Pass/Fail ratio of automated tests",
+        "targets": [
+          {
+            "expr": "sum(jenkins_job_success_total{job=\"insightlearn-automated-tests\"})",
+            "legendFormat": "Passed",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(jenkins_job_failure_total{job=\"insightlearn-automated-tests\"})",
+            "legendFormat": "Failed",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          }
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": { "x": 18, "y": 11, "w": 6, "h": 8 },
+        "type": "stat",
+        "title": "Last Jenkins Build",
+        "description": "Status of last automated test run",
+        "targets": [
+          {
+            "expr": "jenkins_job_last_build_result_ordinal{job=\"insightlearn-automated-tests\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": "0", "text": "✅ SUCCESS" },
+              { "type": "value", "value": "1", "text": "⚠️ UNSTABLE" },
+              { "type": "value", "value": "2", "text": "❌ FAILURE" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 2, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": { "x": 0, "y": 19, "w": 8, "h": 7 },
+        "type": "table",
+        "title": "Page Availability Status",
+        "description": "HTTP status codes for main pages",
+        "targets": [
+          {
+            "expr": "group by (path) (http_requests_total{job=\"insightlearn-wasm\"})",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Status" },
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    { "type": "value", "value": "200", "displayText": "✅ OK", "color": "green" },
+                    { "type": "value", "value": "404", "displayText": "❌ Not Found", "color": "red" },
+                    { "type": "value", "value": "502", "displayText": "⚠️ Bad Gateway", "color": "orange" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": { "x": 8, "y": 19, "w": 8, "h": 7 },
+        "type": "bargauge",
+        "title": "Asset Load Times",
+        "description": "Time to load static assets (CSS, JS, images)",
+        "targets": [
+          {
+            "expr": "avg by (asset_type) (http_request_duration_seconds{job=\"insightlearn-wasm\",type=\"asset\"}) * 1000",
+            "legendFormat": "{{asset_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "min": 0,
+            "max": 1000,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 500, "color": "yellow" },
+                { "value": 1000, "color": "red" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 11,
+        "gridPos": { "x": 16, "y": 19, "w": 8, "h": 7 },
+        "type": "stat",
+        "title": "Pod Health Status",
+        "description": "Status of Kubernetes pods",
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase{namespace=\"insightlearn\",pod=~\"insightlearn-api.*\",phase=\"Running\"}",
+            "legendFormat": "API Pods",
+            "refId": "A"
+          },
+          {
+            "expr": "kube_pod_status_phase{namespace=\"insightlearn\",pod=~\"ollama.*\",phase=\"Running\"}",
+            "legendFormat": "Ollama",
+            "refId": "B"
+          },
+          {
+            "expr": "kube_pod_status_phase{namespace=\"insightlearn\",pod=~\"mongodb.*\",phase=\"Running\"}",
+            "legendFormat": "MongoDB",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": "1", "text": "✅ Running" },
+              { "type": "value", "value": "0", "text": "❌ Down" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "orientation": "vertical",
+          "textMode": "value_and_name"
+        }
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "enable": true,
+          "iconColor": "blue",
+          "tags": ["deployment"],
+          "type": "tags"
+        },
+        {
+          "name": "Test Runs",
+          "datasource": "Prometheus",
+          "enable": true,
+          "iconColor": "green",
+          "tags": ["jenkins", "test"],
+          "type": "tags"
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}
