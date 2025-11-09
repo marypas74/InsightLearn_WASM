@@ -20,26 +20,105 @@
 @code {
     private bool showBanner = false;
     private const string CookieConsentKey = "cookie-consent";
+    private bool _isInitialized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && !_isInitialized)
         {
-            var consent = await LocalStorage.GetItemAsStringAsync(CookieConsentKey);
-            showBanner = string.IsNullOrEmpty(consent);
-            StateHasChanged();
+            _isInitialized = true;
+
+            try
+            {
+                // Check if consent exists in localStorage (JSON format with timestamp)
+                var consentJson = await LocalStorage.GetItemAsStringAsync(CookieConsentKey);
+
+                if (!string.IsNullOrEmpty(consentJson))
+                {
+                    // Parse consent to check expiration (365 days)
+                    try
+                    {
+                        var consent = System.Text.Json.JsonSerializer.Deserialize<ConsentData>(consentJson);
+                        if (consent != null)
+                        {
+                            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            var expiryTime = consent.timestamp + (365L * 24 * 60 * 60 * 1000);
+
+                            if (now <= expiryTime)
+                            {
+                                // Valid consent exists - hide banner
+                                showBanner = false;
+                                StateHasChanged();
+                                return;
+                            }
+                            else
+                            {
+                                // Consent expired - remove it
+                                await LocalStorage.RemoveItemAsync(CookieConsentKey);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Invalid JSON format - assume old format "accepted"/"declined"
+                        // Keep it for backwards compatibility
+                        showBanner = false;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+
+                // No valid consent - show banner
+                showBanner = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[COOKIE-CONSENT] Error checking consent: {ex.Message}");
+                showBanner = true;
+                StateHasChanged();
+            }
         }
     }
 
     private async Task AcceptCookies()
     {
-        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, "accepted");
+        var consentData = new ConsentData
+        {
+            necessary = true,
+            analytics = true,
+            marketing = true,
+            functional = true,
+            timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(consentData);
+        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, json);
         showBanner = false;
     }
 
     private async Task DeclineCookies()
     {
-        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, "declined");
+        var consentData = new ConsentData
+        {
+            necessary = true,
+            analytics = false,
+            marketing = false,
+            functional = false,
+            timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(consentData);
+        await LocalStorage.SetItemAsStringAsync(CookieConsentKey, json);
         showBanner = false;
+    }
+
+    private class ConsentData
+    {
+        public bool necessary { get; set; }
+        public bool analytics { get; set; }
+        public bool marketing { get; set; }
+        public bool functional { get; set; }
+        public long timestamp { get; set; }
     }
 }

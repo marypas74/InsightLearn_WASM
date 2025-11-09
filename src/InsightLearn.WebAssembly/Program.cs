@@ -83,6 +83,11 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
+// Admin Services
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IAdminDashboardService, InsightLearn.WebAssembly.Services.Admin.AdminDashboardService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IUserManagementService, InsightLearn.WebAssembly.Services.Admin.UserManagementService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.ICourseManagementService, InsightLearn.WebAssembly.Services.Admin.CourseManagementService>();
+
 Log.Information("InsightLearn WebAssembly application starting...");
 Log.Information("Base Address: {BaseAddress}", builder.HostEnvironment.BaseAddress);
 

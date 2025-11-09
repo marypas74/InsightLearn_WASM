@@ -14,7 +14,7 @@ This directory contains Jenkins pipeline configuration and testing scripts for I
 
 ### 1. Access Jenkins
 
-Jenkins is accessible at: **http://localhost:8080**
+Jenkins is accessible at: **http://localhost:32000**
 
 Default credentials (if configured):
 - Username: `admin`
@@ -22,7 +22,7 @@ Default credentials (if configured):
 
 ### 2. Create Jenkins Pipeline Job
 
-1. Open Jenkins: http://localhost:8080
+1. Open Jenkins: http://localhost:32000
 2. Click **"New Item"**
 3. Enter name: `insightlearn-automated-tests`
 4. Select **"Pipeline"**

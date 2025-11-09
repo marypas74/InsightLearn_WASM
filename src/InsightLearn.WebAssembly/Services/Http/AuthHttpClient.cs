@@ -41,8 +41,21 @@ public class AuthHttpClient : IAuthHttpClient
             _logger.LogInformation("🔍 DEBUG POST - BaseAddress: {BaseAddress}, Endpoint: {Endpoint}, Full URL: {FullUrl}",
                 _httpClient.BaseAddress, endpoint, fullUrl);
 
-            // Use standard HttpClient - CORS is now solved by nginx proxy in same origin
-            var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+            // Configure JSON options to use PascalCase (matching backend)
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = null, // null = PascalCase
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
+
+            // Serialize with explicit JSON options
+            var jsonContent = System.Text.Json.JsonSerializer.Serialize(data, jsonOptions);
+            var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            _logger.LogInformation("📤 Sending JSON: {JsonContent}", jsonContent);
+
+            var response = await _httpClient.PostAsync(endpoint, content);
 
             _logger.LogInformation("✅ Response Status: {StatusCode} from {FullUrl}", response.StatusCode, fullUrl);
 
@@ -55,10 +68,7 @@ public class AuthHttpClient : IAuthHttpClient
             }
 
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<T>(new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return await response.Content.ReadFromJsonAsync<T>(jsonOptions);
         }
         catch (HttpRequestException ex)
         {
@@ -78,7 +88,15 @@ public class AuthHttpClient : IAuthHttpClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+            // Configure JSON options to use PascalCase (matching backend)
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = null, // null = PascalCase
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(endpoint, data, jsonOptions);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

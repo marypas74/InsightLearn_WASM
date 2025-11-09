@@ -84,14 +84,36 @@ window.cookieConsentWall = {
 
     // Block user interaction with page
     blockInteraction: function() {
+        // Only block if not on an auth page
+        const currentPath = window.location.pathname.toLowerCase();
+        if (currentPath.includes('/login') ||
+            currentPath.includes('/register') ||
+            currentPath.includes('/forgot-password') ||
+            currentPath.includes('/reset-password')) {
+            console.log('[COOKIE-WALL-JS] On auth page - not blocking interaction');
+            return;
+        }
+
         console.log('[COOKIE-WALL-JS] Blocking page interaction');
         document.body.style.overflow = 'hidden';
+
+        // Add pointer-events blocking for better isolation
+        const overlay = document.querySelector('.cookie-wall-overlay');
+        if (overlay) {
+            overlay.style.pointerEvents = 'auto';
+        }
     },
 
     // Unblock user interaction
     unblockInteraction: function() {
         console.log('[COOKIE-WALL-JS] Unblocking page interaction');
         document.body.style.overflow = '';
+
+        // Remove pointer-events blocking
+        const overlay = document.querySelector('.cookie-wall-overlay');
+        if (overlay) {
+            overlay.style.pointerEvents = 'none';
+        }
     },
 
     // Load Google Analytics (if consent given)

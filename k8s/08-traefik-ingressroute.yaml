@@ -1,0 +1,32 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: insightlearn-ingressroute
+  namespace: insightlearn
+spec:
+  entryPoints:
+    - web
+  routes:
+    # API routes - MUST come first (more specific)
+    - match: Host(`wasm.insightlearn.cloud`) && PathPrefix(`/api`)
+      kind: Rule
+      services:
+        - name: api-service
+          port: 80
+      priority: 100
+
+    # Health endpoint
+    - match: Host(`wasm.insightlearn.cloud`) && PathPrefix(`/health`)
+      kind: Rule
+      services:
+        - name: api-service
+          port: 80
+      priority: 99
+
+    # Frontend - catch all other paths
+    - match: Host(`wasm.insightlearn.cloud`)
+      kind: Rule
+      services:
+        - name: insightlearn-wasm-blazor-webassembly
+          port: 80
+      priority: 1

@@ -117,6 +117,34 @@ WHERE Category = 'Chat' AND EndpointKey = 'SendMessage';
    - Password sudo: Configurata in ambiente production
    - **Non usare** [k8s/build-images.sh](/k8s/build-images.sh) (assume Docker standard)
 
+3bis. **🔥 ZFS File System per K3s Storage** (✅ Implementato 2025-11-09)
+   - **Pool**: `k3spool` (50GB file-based pool in `/home/zfs-k3s-pool.img`)
+   - **Mountpoint**: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
+   - **Compression**: **lz4** (compression ratio medio: **1.37x**, fino a **4.14x** su server data)
+   - **Datasets**:
+     - `k3spool/data` → K3s containerd data (compression 2.01x)
+     - `k3spool/server` → K3s server config/certs (compression 6.07x)
+     - `k3spool/storage` → Persistent volumes (compression 4.10x)
+   - **Storage Savings**: 7.44GB logical → 5.24GB physical (**risparmio ~30%**)
+   - **Autoload**: Systemd service `zfs-import-k3spool.service` (enabled at boot)
+   - **Version**: OpenZFS 2.4.99-1 (compilato da sorgente per kernel 6.12.0)
+   - **Comandi ZFS**:
+     ```bash
+     # Check pool status
+     sudo /usr/local/sbin/zpool status k3spool
+
+     # Check compression ratio
+     sudo /usr/local/sbin/zfs get compressratio -r k3spool
+
+     # List all datasets
+     sudo /usr/local/sbin/zfs list -r k3spool
+
+     # Monitor I/O performance
+     sudo /usr/local/sbin/zpool iostat k3spool 5
+     ```
+   - **⚠️ IMPORTANTE**: ZFS binaries sono in `/usr/local/sbin/` (non nel PATH standard)
+   - **Backup Original Data**: Rimosso `/var/lib/rancher/k3s.backup-old` (6.5GB liberati)
+
 4. **MongoDB CreateContainerConfigError** (✅ Risolto v1.6.0)
    - **Problema**: Pod falliva con "couldn't find key mongodb-password in Secret"
    - **Causa**: Secret mancante in cluster
@@ -317,6 +345,117 @@ Esempio modifica version:
 2. Base URL frontend: `builder.HostEnvironment.BaseAddress`
 3. Usare `EndpointsConfig` per configurazione centralizzata
 4. Health check: `/health` (per liveness probes)
+
+#### 📋 Endpoint Completi (46 totali, 27 implementati)
+
+**Legenda**: ✅ = Implementato | ❌ = NON Implementato (solo configurato in DB)
+
+##### Authentication (6 endpoint - 5 implementati)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/auth/login` | POST | ✅ | Login funzionante |
+| `api/auth/register` | POST | ✅ | Registrazione utente |
+| `api/auth/refresh` | POST | ✅ | Refresh JWT token |
+| `api/auth/me` | GET | ✅ | Current user info |
+| `api/auth/oauth-callback` | POST | ✅ | Google OAuth |
+| `api/auth/complete-registration` | POST | ❌ | Complete OAuth registration |
+
+##### Chat (4 endpoint - 4 implementati)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/chat/message` | POST | ✅ | Send message to AI chatbot |
+| `api/chat/history` | GET | ✅ | Get chat history |
+| `api/chat/history/{sessionId}` | DELETE | ✅ | Delete session history |
+| `api/chat/health` | GET | ✅ | Chatbot health check |
+
+##### Video (5 endpoint - 5 implementati)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/video/upload` | POST | ✅ | Upload video (max 500MB) |
+| `api/video/stream/{fileId}` | GET | ✅ | Stream video with range support |
+| `api/video/metadata/{fileId}` | GET | ✅ | Get video metadata |
+| `api/video/{videoId}` | DELETE | ✅ | Delete video |
+| `api/video/upload/progress/{uploadId}` | GET | ✅ | Get upload progress |
+
+##### System (4 endpoint - 4 implementati)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/system/endpoints` | GET | ✅ | Get all endpoints (cached 60min) |
+| `api/system/endpoints/{category}` | GET | ✅ | Get endpoints by category |
+| `api/system/endpoints/{category}/{key}` | GET | ✅ | Get specific endpoint |
+| `api/system/endpoints/refresh-cache` | POST | ✅ | Refresh endpoint cache |
+
+##### Categories (5 endpoint - 0 implementati) 🔴 PRIORITÀ ALTA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/categories` | GET | ❌ | List all categories |
+| `api/categories` | POST | ❌ | Create category |
+| `api/categories/{id}` | GET | ❌ | Get category by ID |
+| `api/categories/{id}` | PUT | ❌ | Update category |
+| `api/categories/{id}` | DELETE | ❌ | Delete category |
+
+##### Courses (7 endpoint - 0 implementati) 🔴 PRIORITÀ CRITICA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/courses` | GET | ❌ | List all courses |
+| `api/courses` | POST | ❌ | Create course |
+| `api/courses/{id}` | GET | ❌ | Get course by ID |
+| `api/courses/{id}` | PUT | ❌ | Update course |
+| `api/courses/{id}` | DELETE | ❌ | Delete course |
+| `api/courses/category/{id}` | GET | ❌ | Get courses by category |
+| `api/courses/search` | GET | ❌ | Search courses |
+
+##### Enrollments (5 endpoint - 0 implementati) 🔴 PRIORITÀ CRITICA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/enrollments` | GET | ❌ | List all enrollments |
+| `api/enrollments` | POST | ❌ | Enroll user to course |
+| `api/enrollments/{id}` | GET | ❌ | Get enrollment by ID |
+| `api/enrollments/course/{id}` | GET | ❌ | Get enrollments for course |
+| `api/enrollments/user/{id}` | GET | ❌ | Get user enrollments |
+
+##### Payments (3 endpoint - 0 implementati) 🔴 PRIORITÀ CRITICA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/payments/create-checkout` | POST | ❌ | Create Stripe checkout |
+| `api/payments/transactions` | GET | ❌ | List transactions |
+| `api/payments/transactions/{id}` | GET | ❌ | Get transaction by ID |
+
+##### Reviews (4 endpoint - 0 implementati)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/reviews` | GET | ❌ | List all reviews |
+| `api/reviews` | POST | ❌ | Create review |
+| `api/reviews/{id}` | GET | ❌ | Get review by ID |
+| `api/reviews/course/{id}` | GET | ❌ | Get course reviews |
+
+##### Users (5 endpoint - 0 implementati) 🔴 PRIORITÀ ALTA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/users` | GET | ❌ | List all users (admin) |
+| `api/users/{id}` | GET | ❌ | Get user by ID |
+| `api/users/{id}` | PUT | ❌ | Update user |
+| `api/users/{id}` | DELETE | ❌ | Delete user |
+| `api/users/profile` | GET | ❌ | Get current user profile |
+
+##### Dashboard (2 endpoint - 0 implementati) 🔴 PRIORITÀ ALTA
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/dashboard/stats` | GET | ❌ | Get dashboard statistics |
+| `api/dashboard/recent-activity` | GET | ❌ | Get recent activity |
+
+**⚠️ NOTA IMPORTANTE**: Mancano 19 endpoint critici per la funzionalità LMS. Senza Courses, Enrollments e Payments, la piattaforma NON è funzionante come LMS completo.
 
 ### Sicurezza
 
@@ -685,38 +824,51 @@ Quando lavori con questa repository:
 
 1. **Leggere SEMPRE questo file** all'inizio del task
 2. 🔴 **ENDPOINT NEL DATABASE** - **MAI** modificare endpoint nel codice. Tutti gli URL endpoint sono in SQL Server tabella `SystemEndpoints`. Per problemi 404/405, controllare/aggiornare database, NON codice.
-3. **Versione**: Sempre `1.6.0-dev` da [Directory.Build.props](/Directory.Build.props) - **mai hardcodare versioni**
-4. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
-5. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
-6. **Password da .env** - non committare mai password reali
-7. **Prometheus porta 9091** - non 9090 (conflitto systemd)
-8. **Rocky Linux 10 = K3s Kubernetes** - non minikube/Docker standard
+3. 🔴🔴🔴 **LEGGE FONDAMENTALE - SINCRONIZZAZIONE AUTOMATICA ENDPOINT** 🔴🔴🔴
+   - **OGNI VOLTA** che aggiungi/modifichi/elimini endpoint nel database `SystemEndpoints`, **DEVI AGGIORNARE CLAUDE.md** nella sezione "📋 Endpoint Completi"
+   - **NON È OPZIONALE** - È una **LEGGE ASSOLUTA**
+   - Verificare SEMPRE coerenza: DB ↔ CLAUDE.md ↔ Program.cs
+   - Usare script: `./scripts/sync-endpoints-to-claude.sh` (se esiste) oppure manuale
+   - **NESSUNA ECCEZIONE PERMESSA**
+4. **Versione**: Sempre `1.6.0-dev` da [Directory.Build.props](/Directory.Build.props) - **mai hardcodare versioni**
+5. **Program.cs esiste?** Se manca in src/InsightLearn.Application/, il build fallirà
+6. **Non usare Dockerfile.web** - ha un bug noto (NETSDK1082)
+7. **Password da .env** - non committare mai password reali
+8. **Prometheus porta 9091** - non 9090 (conflitto systemd)
+9. **Rocky Linux 10 = K3s Kubernetes** - non minikube/Docker standard
    - K3s: containerd runtime (non Docker)
    - Import images: `docker save | sudo k3s ctr images import`
    - Deploy: `kubectl apply -f k8s/` poi `kubectl rollout restart`
-9. **MongoDB Secret**: Password in `mongodb-password` Secret key (Kubernetes)
-   - Se pod in CreateContainerConfigError, verificare Secret esiste
-   - Fix: `kubectl patch secret insightlearn-secrets --type='json' -p='[{"op":"add","path":"/data/mongodb-password","value":"BASE64_PWD"}]'`
-10. **Redis Health Probes**: Usa `tcpSocket` (non `exec`) per K3s security compliance
+10. **MongoDB Secret**: Password in `mongodb-password` Secret key (Kubernetes)
+    - Se pod in CreateContainerConfigError, verificare Secret esiste
+    - Fix: `kubectl patch secret insightlearn-secrets --type='json' -p='[{"op":"add","path":"/data/mongodb-password","value":"BASE64_PWD"}]'`
+11. **Redis Health Probes**: Usa `tcpSocket` (non `exec`) per K3s security compliance
     - File: [k8s/04-redis-deployment.yaml](/k8s/04-redis-deployment.yaml)
-11. **Ollama Model**: `qwen2:0.5b` (non phi3:mini o llama2)
+12. **Ollama Model**: `qwen2:0.5b` (non phi3:mini o llama2)
     - Se chatbot returns 404: `kubectl delete pod ollama-0 -n insightlearn`
     - Test: `curl -X POST http://localhost:31081/api/chat/message -d '{"message":"Test","sessionId":"test"}'`
-12. **Automatic Database Migrations**: L'API applica migrations automaticamente al startup (vedi [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116))
-13. **Minimal APIs**: L'applicazione usa Minimal APIs, NON Controllers tradizionali - tutti gli endpoints sono definiti in Program.cs
-14. **Endpoint API**: `/api/system/endpoints` ritorna 39 endpoints organizzati per categoria (cache 60 min)
-15. **MongoDB Video Storage**: 5 API endpoints per upload/streaming video (GridFS + GZip compression)
+13. **Automatic Database Migrations**: L'API applica migrations automaticamente al startup (vedi [Program.cs:93-116](src/InsightLearn.Application/Program.cs#L93-L116))
+14. **Minimal APIs**: L'applicazione usa Minimal APIs, NON Controllers tradizionali - tutti gli endpoints sono definiti in Program.cs
+15. **Endpoint API**: `/api/system/endpoints` ritorna tutti gli endpoints organizzati per categoria (cache 60 min) - **TOTALE: 46 endpoint configurati, 27 implementati**
+16. **MongoDB Video Storage**: 5 API endpoints per upload/streaming video (GridFS + GZip compression)
     - Upload: `POST /api/video/upload` (max 500MB)
     - Stream: `GET /api/video/stream/{fileId}` (range support)
     - Metadata: `GET /api/video/metadata/{fileId}`
-16. **Content-Security-Policy**: Configurato in [k8s/08-ingress.yaml](/k8s/08-ingress.yaml) per Blazor WASM security
-17. **Razor Components**: Evitare nested DTOs in @code blocks (.NET 8 compiler bug)
+17. **Content-Security-Policy**: Configurato in [k8s/08-ingress.yaml](/k8s/08-ingress.yaml) per Blazor WASM security
+18. **Razor Components**: Evitare nested DTOs in @code blocks (.NET 8 compiler bug)
     - Preferire code-behind pattern (.razor.cs) per componenti complessi
-18. **Status Deployment**: 10/10 pods healthy in production (v1.6.0-dev)
+19. **Status Deployment**: 10/10 pods healthy in production (v1.6.0-dev)
     - API: ✅ Running (NodePort 31081)
     - MongoDB: ✅ Running (video storage operativo)
     - Redis: ✅ Running (tcpSocket probes)
     - Ollama: ✅ Running (qwen2:0.5b ~1.7s)
+20. **🔥 ZFS File System**: K3s storage ora su ZFS per compression e reliability (implementato 2025-11-09)
+    - Pool: `k3spool` (50GB in `/home/zfs-k3s-pool.img`)
+    - K3s data: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
+    - Compression: **lz4** (ratio 1.37x medio, fino a 6.07x su certs)
+    - ZFS comandi: `/usr/local/sbin/zpool` e `/usr/local/sbin/zfs` (non nel PATH standard)
+    - Autoload: `systemctl status zfs-import-k3spool.service`
+    - ⚠️ **NON modificare /var/lib/rancher/k3s direttamente** - è un symlink a ZFS mountpoint
 
 ## File Kubernetes Modificati (v1.6.0)
 

@@ -232,7 +232,10 @@
 }
 
 <!-- Cookie Consent Wall - GDPR Compliance (Blocking Full-Screen) -->
-<CookieConsentWall />
+@if (!IsAuthPage())
+{
+    <CookieConsentWall />
+}
 
 @code {
     [Inject] private IAuthService AuthService { get; set; } = default!;
@@ -290,5 +293,16 @@
         var currentPage = GetCurrentPage();
         return currentPage.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) ||
                currentPage.StartsWith("/instructor", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsAuthPage()
+    {
+        var currentPage = GetCurrentPage().ToLower();
+        return currentPage == "/login" ||
+               currentPage.StartsWith("/login?") ||
+               currentPage == "/register" ||
+               currentPage.StartsWith("/register?") ||
+               currentPage == "/forgot-password" ||
+               currentPage.StartsWith("/reset-password");
     }
 }

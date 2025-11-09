@@ -3,7 +3,7 @@
 
 set -e
 
-JENKINS_URL="${JENKINS_URL:-http://localhost:8080}"
+JENKINS_URL="${JENKINS_URL:-http://localhost:32000}"
 JOB_NAME="insightlearn-automated-tests"
 JOB_CONFIG="jenkins/config/job-config.xml"
 

@@ -116,7 +116,8 @@
             if (response.Success)
             {
                 ToastService.ShowSuccess("Registration successful! Welcome to InsightLearn!");
-                Navigation.NavigateTo("/complete-registration", true);
+                // Remove 'true' to avoid forced reload and auth state loss
+                Navigation.NavigateTo("/complete-registration");
             }
             else
             {

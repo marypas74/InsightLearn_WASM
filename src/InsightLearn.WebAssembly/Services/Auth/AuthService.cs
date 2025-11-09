@@ -42,14 +42,19 @@ public class AuthService : IAuthService
 
             if (response?.Success == true && !string.IsNullOrEmpty(response.Token))
             {
+                _logger.LogInformation("📝 Saving JWT token to localStorage (length: {Length})", response.Token.Length);
                 await _tokenService.SetTokenAsync(response.Token);
+
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
+                    _logger.LogInformation("📝 Saving refresh token to localStorage");
                     await _tokenService.SetRefreshTokenAsync(response.RefreshToken);
                 }
 
+                _logger.LogInformation("🔔 Notifying authentication state changed");
                 _authStateProvider.NotifyAuthenticationStateChanged();
-                _logger.LogInformation("✅ Login successful for {Email}", request.Email);
+
+                _logger.LogInformation("✅ Login successful for {Email} - Token saved, auth state updated", request.Email);
             }
 
             return response ?? new AuthResponse

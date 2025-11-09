@@ -1,0 +1,24 @@
+[Unit]
+Description=Cloudflare Tunnel for InsightLearn WASM
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mpasqui
+Group=mpasqui
+ExecStart=/usr/local/bin/cloudflared tunnel --config /home/mpasqui/.cloudflared/config.yml run
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Environment
+Environment="HOME=/home/mpasqui"
+
+[Install]
+WantedBy=multi-user.target

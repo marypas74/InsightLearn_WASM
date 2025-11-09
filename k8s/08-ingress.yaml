@@ -11,19 +11,33 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    # Content Security Policy for Blazor WebAssembly
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
 spec:
   ingressClassName: nginx
   rules:
   - host: wasm.insightlearn.cloud
     http:
       paths:
-      - path: /
+      # API routes - must come first (more specific)
+      - path: /api
         pathType: Prefix
         backend:
           service:
             name: api-service
+            port:
+              number: 80
+      # Health endpoint
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80
+      # Frontend - catch all other paths
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: insightlearn-wasm-blazor-webassembly
             port:
               number: 80

@@ -1,6 +1,9 @@
 @using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IDisposable
 
 <!-- Full-screen blocking overlay - hidden via CSS if consent exists -->
 <div class="cookie-wall-overlay @(showWall ? "" : "hidden")" @onclick:preventDefault="true">
@@ -391,11 +394,12 @@
 </div>
 
 @code {
-    private bool showWall = true; // Show by default, hide if consent exists
+    private bool showWall = false; // Initialize as hidden, will be set by CheckConsent if needed
     private bool showDetailedSettings = false;
     private bool analyticsEnabled = false;
     private bool marketingEnabled = false;
     private bool functionalEnabled = false;
+    private bool _isInitialized = false;
 
     // Policy modal state
     private bool showPrivacyModal = false;
@@ -409,20 +413,38 @@
 
     protected override void OnInitialized()
     {
-        Console.WriteLine($"[COOKIE-WALL] OnInitialized - Component created, showWall={showWall}");
+        Console.WriteLine("[COOKIE-WALL] OnInitialized - Component created");
+
+        // Subscribe to navigation events
+        Navigation.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Console.WriteLine($"[COOKIE-WALL] OnAfterRenderAsync - firstRender={firstRender}, showWall={showWall}");
-
-        if (firstRender)
+        if (firstRender && !_isInitialized)
         {
             Console.WriteLine("[COOKIE-WALL] First render - calling CheckConsent()");
+            _isInitialized = true;
+
+            // Hide static GDPR wall from index.html (Blazor component takes over)
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                    const staticWall = document.getElementById('static-cookie-wall');
+                    if (staticWall) {
+                        staticWall.style.display = 'none';
+                        console.log('[COOKIE-WALL] Static wall hidden - Blazor component taking over');
+                    }
+                ");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[COOKIE-WALL] Warning: Could not hide static wall: {ex.Message}");
+            }
+
             await CheckConsent();
             Console.WriteLine($"[COOKIE-WALL] After CheckConsent - showWall={showWall}");
             StateHasChanged();
-            Console.WriteLine("[COOKIE-WALL] StateHasChanged called");
         }
     }
 
@@ -430,17 +452,44 @@
     {
         try
         {
+            // Check if we're on an auth-related page
+            var currentPath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
+            if (currentPath.StartsWith("login") || currentPath.StartsWith("register") ||
+                currentPath.StartsWith("forgot-password") || currentPath.StartsWith("reset-password"))
+            {
+                Console.WriteLine("[COOKIE-WALL] On auth page - not showing wall");
+                showWall = false;
+                return;
+            }
+
             Console.WriteLine("[COOKIE-WALL] CheckConsent - Calling JS hasValidConsent()");
             var hasConsent = await JSRuntime.InvokeAsync<bool>("cookieConsentWall.hasValidConsent");
             Console.WriteLine($"[COOKIE-WALL] JS returned hasConsent={hasConsent}");
 
             if (!hasConsent)
             {
+                // Check authentication state before showing wall
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var isAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
+
+                // Delay showing the wall if user just authenticated to avoid interfering with navigation
+                if (isAuthenticated)
+                {
+                    Console.WriteLine("[COOKIE-WALL] User is authenticated - delaying wall display");
+                    await Task.Delay(1000); // Give navigation time to complete
+                }
+
                 // No valid consent - show blocking wall
                 Console.WriteLine("[COOKIE-WALL] No consent - showing wall");
                 showWall = true;
-                await JSRuntime.InvokeVoidAsync("cookieConsentWall.blockInteraction");
-                Console.WriteLine("[COOKIE-WALL] blockInteraction() called");
+
+                // Only block interaction after a delay to avoid interfering with navigation
+                await Task.Delay(500);
+                if (showWall) // Check again in case it was hidden during the delay
+                {
+                    await JSRuntime.InvokeVoidAsync("cookieConsentWall.blockInteraction");
+                    Console.WriteLine("[COOKIE-WALL] blockInteraction() called");
+                }
             }
             else
             {
@@ -655,5 +704,26 @@
         public bool Analytics { get; set; }
         public bool Marketing { get; set; }
         public bool Functional { get; set; }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Check if navigating to an auth page
+        var currentPath = Navigation.ToBaseRelativePath(e.Location).ToLower();
+        if (currentPath.StartsWith("login") || currentPath.StartsWith("register") ||
+            currentPath.StartsWith("forgot-password") || currentPath.StartsWith("reset-password"))
+        {
+            Console.WriteLine("[COOKIE-WALL] Navigated to auth page - hiding wall");
+            if (showWall)
+            {
+                showWall = false;
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

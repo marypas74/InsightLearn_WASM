@@ -1,0 +1,24 @@
+=========================================
+Endpoint: /
+Concurrent: 10 | Total: 50
+=========================================
+Total requests: 50
+Successful: 50
+Failed: 0
+Duration: 6s
+Requests/sec: 8.33
+Avg response time: 0.636666s
+Min/Max: 0.101708s / 5.385404s
+
+=========================================
+Endpoint: /courses
+Concurrent: 5 | Total: 20
+=========================================
+Total requests: 20
+Successful: 20
+Failed: 0
+Duration: 1s
+Requests/sec: 20.00
+Avg response time: 0.111872s
+Min/Max: 0.102288s / 0.135604s
+

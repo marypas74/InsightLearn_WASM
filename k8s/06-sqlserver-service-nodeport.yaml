@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver-service-nodeport
+  namespace: insightlearn
+  labels:
+    app: sqlserver
+    tier: database
+spec:
+  type: NodePort
+  selector:
+    app: sqlserver
+  ports:
+    - port: 1433
+      targetPort: 1433
+      nodePort: 31433  # Porta accessibile su localhost:31433
+      protocol: TCP
+      name: sqlserver

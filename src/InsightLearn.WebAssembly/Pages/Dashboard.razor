@@ -75,6 +75,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Check if user is Admin and redirect to admin dashboard
+        var isAdmin = await AuthService.IsInRoleAsync("Admin");
+        if (isAdmin)
+        {
+            Navigation.NavigateTo("/admin/dashboard", true);
+            return;
+        }
+
         await LoadDashboard();
     }
 
@@ -86,15 +94,10 @@
         {
             // Determine user role and load appropriate dashboard
             var isInstructor = await AuthService.IsInRoleAsync("Instructor");
-            var isAdmin = await AuthService.IsInRoleAsync("Administrator");
 
             ApiResponse<DashboardData> response;
 
-            if (isAdmin)
-            {
-                response = await DashboardService.GetAdminDashboardAsync();
-            }
-            else if (isInstructor)
+            if (isInstructor)
             {
                 response = await DashboardService.GetInstructorDashboardAsync();
             }

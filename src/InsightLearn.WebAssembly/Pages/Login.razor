@@ -180,11 +180,19 @@
             {
                 ToastService.ShowSuccess("Login successful!");
 
+                // Add logging to debug authentication flow
+                Console.WriteLine($"[LOGIN] Login successful for user");
+                Console.WriteLine($"[LOGIN] Token saved to localStorage");
+                Console.WriteLine($"[LOGIN] Auth state updated");
+
                 // FIX: L'API non restituisce IsProfileComplete nel UserDto
                 // Quindi andiamo direttamente alla dashboard per utenti già registrati
                 // La registrazione completa è solo per nuovi utenti che arrivano da /register
                 var redirectUrl = ReturnUrl ?? "/dashboard";
-                Navigation.NavigateTo(redirectUrl, true);
+
+                // CRITICAL FIX: Remove 'true' parameter to avoid forced page reload
+                // Forced reload causes auth state to be lost temporarily
+                Navigation.NavigateTo(redirectUrl);
             }
             else
             {
@@ -211,6 +219,7 @@
     {
         // OAuth flow - redirect to API endpoint that handles Google OAuth
         var returnUrl = ReturnUrl ?? "/dashboard";
+        // Note: OAuth requires full navigation to external auth provider, so 'true' is correct here
         Navigation.NavigateTo($"/api/auth/google-login?returnUrl={Uri.EscapeDataString(returnUrl)}", true);
     }
 }

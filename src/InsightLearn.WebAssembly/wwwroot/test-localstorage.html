@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Auth Test - InsightLearn</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #A435F0;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #A435F0;
+        }
+        button {
+            background: #A435F0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #8e2ed0;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        .output {
+            margin-top: 10px;
+            padding: 10px;
+            background: #2b2d42;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 50px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 InsightLearn Authentication Test</h1>
+
+        <div class="status info" id="browserStatus">
+            Checking browser capabilities...
+        </div>
+
+        <div class="test-section">
+            <h2>1. LocalStorage Status</h2>
+            <button onclick="checkLocalStorage()">Check LocalStorage</button>
+            <button onclick="listAllTokens()">List All Tokens</button>
+            <button class="danger" onclick="clearAll()">Clear All Storage</button>
+            <div class="output" id="storageOutput">Click a button to start...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test Token Operations</h2>
+            <input type="text" id="testToken" placeholder="Paste JWT token here (or use Generate Test Token)" />
+            <div class="grid">
+                <button onclick="generateTestToken()">Generate Test Token</button>
+                <button onclick="saveTestToken()">Save to LocalStorage</button>
+                <button onclick="readToken()">Read Token</button>
+                <button onclick="decodeToken()">Decode JWT</button>
+            </div>
+            <div class="output" id="tokenOutput">Token operations output...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Authentication State</h2>
+            <button onclick="checkAuthState()">Check Current Auth State</button>
+            <button onclick="simulateLogin()">Simulate Login Flow</button>
+            <button onclick="simulateLogout()">Simulate Logout</button>
+            <div class="output" id="authOutput">Auth state output...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Network Test</h2>
+            <button onclick="testApiHealth()">Test API Health</button>
+            <button onclick="testAuthEndpoint()">Test Auth Endpoint</button>
+            <div class="output" id="networkOutput">Network test output...</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const TOKEN_KEY = 'InsightLearn.AuthToken';
+        const REFRESH_TOKEN_KEY = 'InsightLearn.RefreshToken';
+        const API_BASE = window.location.origin;
+
+        // Helper function to log output
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = isError ? '❌' : '✅';
+            element.textContent = `[${timestamp}] ${prefix} ${message}\n` + element.textContent;
+        }
+
+        // Check browser capabilities
+        window.onload = function() {
+            const status = document.getElementById('browserStatus');
+            try {
+                if (typeof(Storage) !== "undefined") {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    status.className = 'status success';
+                    status.textContent = '✅ Browser supports localStorage and it is working correctly';
+                } else {
+                    status.className = 'status error';
+                    status.textContent = '❌ Browser does not support localStorage';
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = '❌ localStorage is disabled or blocked. Error: ' + e.message;
+            }
+        };
+
+        function checkLocalStorage() {
+            try {
+                const token = localStorage.getItem(TOKEN_KEY);
+                const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+                const totalItems = localStorage.length;
+
+                let message = `Storage Status:\n`;
+                message += `- Total items: ${totalItems}\n`;
+                message += `- Auth Token: ${token ? `Present (${token.length} chars)` : 'NOT FOUND'}\n`;
+                message += `- Refresh Token: ${refreshToken ? `Present (${refreshToken.length} chars)` : 'NOT FOUND'}`;
+
+                log('storageOutput', message);
+            } catch (e) {
+                log('storageOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function listAllTokens() {
+            try {
+                let items = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    if (key.toLowerCase().includes('token') || key.toLowerCase().includes('auth')) {
+                        items.push(`${key}: ${value.substring(0, 50)}...`);
+                    }
+                }
+
+                if (items.length > 0) {
+                    log('storageOutput', 'Found tokens:\n' + items.join('\n'));
+                } else {
+                    log('storageOutput', 'No auth-related items found in localStorage');
+                }
+            } catch (e) {
+                log('storageOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function clearAll() {
+            if (confirm('This will clear all localStorage data. Continue?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                log('storageOutput', 'All storage cleared successfully');
+            }
+        }
+
+        function generateTestToken() {
+            // Generate a mock JWT token for testing
+            const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+            const payload = btoa(JSON.stringify({
+                sub: '123456',
+                email: 'test@insightlearn.cloud',
+                name: 'Test User',
+                role: 'Admin',
+                exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days
+                iat: Math.floor(Date.now() / 1000),
+                iss: 'InsightLearn.Api',
+                aud: 'InsightLearn.Users'
+            }));
+            const signature = btoa('test-signature');
+            const token = `${header}.${payload}.${signature}`;
+
+            document.getElementById('testToken').value = token;
+            log('tokenOutput', `Generated test token (${token.length} chars)`);
+        }
+
+        function saveTestToken() {
+            try {
+                const token = document.getElementById('testToken').value;
+                if (!token) {
+                    log('tokenOutput', 'Please enter or generate a token first', true);
+                    return;
+                }
+
+                localStorage.setItem(TOKEN_KEY, token);
+                log('tokenOutput', `Token saved to localStorage["${TOKEN_KEY}"]`);
+
+                // Verify it was saved
+                const saved = localStorage.getItem(TOKEN_KEY);
+                if (saved === token) {
+                    log('tokenOutput', 'Verification: Token successfully saved and retrieved');
+                } else {
+                    log('tokenOutput', 'Verification failed: Token mismatch', true);
+                }
+            } catch (e) {
+                log('tokenOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function readToken() {
+            try {
+                const token = localStorage.getItem(TOKEN_KEY);
+                if (token) {
+                    log('tokenOutput', `Token found:\n${token.substring(0, 100)}...`);
+                } else {
+                    log('tokenOutput', 'No token found in localStorage', true);
+                }
+            } catch (e) {
+                log('tokenOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function decodeToken() {
+            try {
+                const token = localStorage.getItem(TOKEN_KEY) || document.getElementById('testToken').value;
+                if (!token) {
+                    log('tokenOutput', 'No token to decode', true);
+                    return;
+                }
+
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    log('tokenOutput', 'Invalid JWT format (should have 3 parts)', true);
+                    return;
+                }
+
+                const payload = JSON.parse(atob(parts[1]));
+                const exp = new Date(payload.exp * 1000);
+                const iat = new Date(payload.iat * 1000);
+
+                let info = 'Decoded JWT:\n';
+                info += `- Email: ${payload.email || 'N/A'}\n`;
+                info += `- Name: ${payload.name || 'N/A'}\n`;
+                info += `- Role: ${payload.role || 'N/A'}\n`;
+                info += `- Issued: ${iat.toLocaleString()}\n`;
+                info += `- Expires: ${exp.toLocaleString()}\n`;
+                info += `- Valid: ${exp > new Date() ? 'YES' : 'NO (EXPIRED)'}`;
+
+                log('tokenOutput', info);
+            } catch (e) {
+                log('tokenOutput', 'Error decoding token: ' + e.message, true);
+            }
+        }
+
+        function checkAuthState() {
+            try {
+                const token = localStorage.getItem(TOKEN_KEY);
+                const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+
+                let state = 'Authentication State:\n';
+
+                if (!token) {
+                    state += '- Status: NOT AUTHENTICATED\n';
+                    state += '- Action needed: User must login';
+                } else {
+                    const parts = token.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        const exp = new Date(payload.exp * 1000);
+                        const isValid = exp > new Date();
+
+                        state += `- Status: ${isValid ? 'AUTHENTICATED' : 'TOKEN EXPIRED'}\n`;
+                        state += `- User: ${payload.email || 'Unknown'}\n`;
+                        state += `- Role: ${payload.role || 'Unknown'}\n`;
+                        state += `- Token expires: ${exp.toLocaleString()}\n`;
+                        state += `- Refresh token: ${refreshToken ? 'Present' : 'Missing'}`;
+                    } else {
+                        state += '- Status: INVALID TOKEN FORMAT';
+                    }
+                }
+
+                log('authOutput', state);
+            } catch (e) {
+                log('authOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function simulateLogin() {
+            try {
+                // Generate and save tokens
+                generateTestToken();
+                const token = document.getElementById('testToken').value;
+                localStorage.setItem(TOKEN_KEY, token);
+                localStorage.setItem(REFRESH_TOKEN_KEY, 'refresh-token-12345');
+
+                log('authOutput', 'Login simulation:\n1. Token generated\n2. Saved to localStorage\n3. Refresh token saved\n4. Auth state: AUTHENTICATED');
+
+                // Show what would happen next
+                setTimeout(() => {
+                    log('authOutput', 'Next step: Navigate to /dashboard (without page reload)');
+                }, 1000);
+            } catch (e) {
+                log('authOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        function simulateLogout() {
+            try {
+                localStorage.removeItem(TOKEN_KEY);
+                localStorage.removeItem(REFRESH_TOKEN_KEY);
+                log('authOutput', 'Logout simulation:\n1. Auth token removed\n2. Refresh token removed\n3. Auth state: NOT AUTHENTICATED\n4. Would redirect to /login');
+            } catch (e) {
+                log('authOutput', 'Error: ' + e.message, true);
+            }
+        }
+
+        async function testApiHealth() {
+            try {
+                log('networkOutput', 'Testing API health endpoint...');
+                const response = await fetch(`${API_BASE}/health`);
+                const text = await response.text();
+
+                if (response.ok) {
+                    log('networkOutput', `API Health: ${response.status} ${response.statusText}\nResponse: ${text}`);
+                } else {
+                    log('networkOutput', `API Health check failed: ${response.status}`, true);
+                }
+            } catch (e) {
+                log('networkOutput', `Network error: ${e.message}`, true);
+            }
+        }
+
+        async function testAuthEndpoint() {
+            try {
+                log('networkOutput', 'Testing auth endpoint configuration...');
+                const response = await fetch(`${API_BASE}/api/system/endpoints/Auth`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('networkOutput', `Auth endpoints loaded: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log('networkOutput', `Failed to load auth endpoints: ${response.status}`, true);
+                }
+            } catch (e) {
+                log('networkOutput', `Network error: ${e.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

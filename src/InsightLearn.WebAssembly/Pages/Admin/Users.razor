@@ -1,0 +1,413 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+@inject InsightLearn.WebAssembly.Services.Admin.IUserManagementService UserService
+@inject NavigationManager Navigation
+@inject Blazored.Toast.Services.IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+@using InsightLearn.WebAssembly.Models.Admin
+@using InsightLearn.WebAssembly.Components.Admin
+
+<PageTitle>User Management - InsightLearn Admin</PageTitle>
+
+<div class="admin-page-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">User Management</h1>
+            <p class="page-description">Manage platform users, roles, and permissions</p>
+        </div>
+    </div>
+
+    <div class="admin-toolbar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text"
+                   placeholder="Search users..."
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp" />
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" @onclick="RefreshData">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <DataTable TItem="UserListItem"
+               Items="@users"
+               CurrentPage="@currentPage"
+               PageSize="@pageSize"
+               TotalCount="@totalCount"
+               TotalPages="@totalPages"
+               IsLoading="@isLoading"
+               EmptyMessage="No users found"
+               OnPageChanged="LoadPage">
+        <TableHeader>
+            <th>User</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Courses</th>
+            <th>Actions</th>
+        </TableHeader>
+        <RowTemplate Context="user">
+            <td>
+                <div class="user-cell">
+                    <div class="user-avatar">
+                        @GetInitials(user.FirstName, user.LastName)
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">@user.FullName</div>
+                        @if (user.IsInstructor)
+                        {
+                            <span class="badge badge-instructor">
+                                <i class="fas fa-chalkboard-teacher"></i> Instructor
+                            </span>
+                        }
+                    </div>
+                </div>
+            </td>
+            <td>@user.Email</td>
+            <td>
+                <div class="roles-cell">
+                    @foreach (var role in user.Roles)
+                    {
+                        <span class="role-badge">@role</span>
+                    }
+                </div>
+            </td>
+            <td>
+                @if (user.IsVerified)
+                {
+                    <span class="status-badge status-verified">
+                        <i class="fas fa-circle"></i> Verified
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge status-pending">
+                        <i class="fas fa-circle"></i> Pending
+                    </span>
+                }
+            </td>
+            <td>@user.DateJoined.ToString("MMM dd, yyyy")</td>
+            <td>
+                <div class="stats-cell">
+                    <span title="Created Courses">
+                        <i class="fas fa-book"></i> @user.TotalCourses
+                    </span>
+                    <span title="Enrollments">
+                        <i class="fas fa-graduation-cap"></i> @user.TotalEnrollments
+                    </span>
+                </div>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-icon btn-primary"
+                            @onclick="() => ViewUser(user.Id)"
+                            title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-icon btn-danger"
+                            @onclick="() => ShowDeleteConfirm(user)"
+                            title="Delete User">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </RowTemplate>
+    </DataTable>
+</div>
+
+<ConfirmDialog IsVisible="@showDeleteDialog"
+               Title="Delete User"
+               Message="@deleteConfirmMessage"
+               Type="danger"
+               ConfirmText="Delete"
+               CancelText="Cancel"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+<style>
+    .admin-page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+
+    .page-header {
+        margin-bottom: 32px;
+    }
+
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 8px 0;
+    }
+
+    .page-description {
+        font-size: 16px;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .admin-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        gap: 16px;
+    }
+
+    .search-box {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 16px 12px 44px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .toolbar-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .badge-instructor {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: #dbeafe;
+        color: #1e40af;
+        font-size: 11px;
+        border-radius: 4px;
+    }
+
+    .roles-cell {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .role-badge {
+        padding: 4px 10px;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 12px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .stats-cell {
+        display: flex;
+        gap: 12px;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .stats-cell span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .stats-cell i {
+        font-size: 12px;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        .admin-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        .toolbar-actions {
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+@code {
+    private List<UserListItem> users = new();
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount = 0;
+    private int totalPages = 0;
+    private bool isLoading = false;
+    private string searchTerm = "";
+    private System.Threading.Timer? searchTimer;
+
+    private bool showDeleteDialog = false;
+    private UserListItem? userToDelete;
+    private string deleteConfirmMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPage(1);
+    }
+
+    private async Task LoadPage(int page)
+    {
+        try
+        {
+            isLoading = true;
+            currentPage = page;
+
+            var result = await UserService.GetUsersAsync(page, pageSize, string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm);
+
+            if (result != null)
+            {
+                users = result.Items;
+                totalCount = result.TotalCount;
+                totalPages = result.TotalPages;
+            }
+            else
+            {
+                Toast.ShowError("Failed to load users");
+                users = new List<UserListItem>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error loading users: {ex.Message}");
+            users = new List<UserListItem>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadPage(1);
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadPage(currentPage);
+    }
+
+    private void ViewUser(Guid userId)
+    {
+        Navigation.NavigateTo($"/admin/users/{userId}");
+    }
+
+    private void ShowDeleteConfirm(UserListItem user)
+    {
+        userToDelete = user;
+        deleteConfirmMessage = $"Are you sure you want to delete user '{user.FullName}' ({user.Email})? This action cannot be undone.";
+        showDeleteDialog = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (userToDelete != null)
+        {
+            var success = await UserService.DeleteUserAsync(userToDelete.Id);
+
+            if (success)
+            {
+                Toast.ShowSuccess($"User '{userToDelete.FullName}' deleted successfully");
+                await LoadPage(currentPage);
+            }
+            else
+            {
+                Toast.ShowError($"Failed to delete user '{userToDelete.FullName}'");
+            }
+        }
+
+        showDeleteDialog = false;
+        userToDelete = null;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteDialog = false;
+        userToDelete = null;
+    }
+
+    private string GetInitials(string firstName, string lastName)
+    {
+        var first = !string.IsNullOrEmpty(firstName) ? firstName[0].ToString().ToUpper() : "";
+        var last = !string.IsNullOrEmpty(lastName) ? lastName[0].ToString().ToUpper() : "";
+        return first + last;
+    }
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+    }
+}

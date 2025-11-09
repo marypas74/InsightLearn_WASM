@@ -1,0 +1,91 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║   SQL SERVER INSIGHTLEARN - ACCESSO INTRANET                     ║
+║   Quick Reference Card (da stampare)                             ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────┐
+│  CONFIGURAZIONE SSMS                                              │
+└───────────────────────────────────────────────────────────────────┘
+
+   Da questo server (192.168.1.114):
+
+      Server name:     localhost,31433
+      Authentication:  SQL Server Authentication
+      Login:           sa
+      Password:        dScIG9pSAbO5OAZka03nz0m79cT0p9OS
+
+      ☑ Trust server certificate
+
+
+   Da altri PC nella intranet:
+
+      Server name:     192.168.1.114,31433
+      Authentication:  SQL Server Authentication
+      Login:           sa
+      Password:        dScIG9pSAbO5OAZka03nz0m79cT0p9OS
+
+      ☑ Trust server certificate
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  ATTENZIONE                                                       │
+└───────────────────────────────────────────────────────────────────┘
+
+   ⚠️  Porta 31433 (NON 1433!)
+   ⚠️  Usa VIRGOLA prima della porta (non due punti)
+   ⚠️  Esempio corretto:   192.168.1.114,31433
+   ⚠️  Esempio errato:     192.168.1.114:31433
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  DATABASE DISPONIBILE                                             │
+└───────────────────────────────────────────────────────────────────┘
+
+   InsightLearn_DB
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  CONNECTION STRING (.NET)                                         │
+└───────────────────────────────────────────────────────────────────┘
+
+   Server=192.168.1.114,31433;
+   Database=InsightLearn_DB;
+   User Id=sa;
+   Password=dScIG9pSAbO5OAZka03nz0m79cT0p9OS;
+   TrustServerCertificate=True;
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  TEST CONNESSIONE (PowerShell da PC Windows)                      │
+└───────────────────────────────────────────────────────────────────┘
+
+   Test-NetConnection -ComputerName 192.168.1.114 -Port 31433
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  CARATTERISTICHE                                                  │
+└───────────────────────────────────────────────────────────────────┘
+
+   ✅ Sempre disponibile (no script da avviare)
+   ✅ Accessibile da tutti i PC della rete locale
+   ✅ NON esposto su Internet (solo intranet)
+   ✅ Porta fissa 31433
+   ✅ Configurazione persistente
+
+
+┌───────────────────────────────────────────────────────────────────┐
+│  SUPPORTO                                                         │
+└───────────────────────────────────────────────────────────────────┘
+
+   Email: marcello.pasqui@gmail.com
+   Docs:  /home/mpasqui/insightlearn_WASM/InsightLearn_WASM/docs/
+          SQLSERVER-INTRANET-ACCESS.md
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  Configurato: 2025-11-09                                          ║
+║  Tipo: NodePort (Kubernetes)                                      ║
+║  Status: ✅ OPERATIVO                                             ║
+╚═══════════════════════════════════════════════════════════════════╝

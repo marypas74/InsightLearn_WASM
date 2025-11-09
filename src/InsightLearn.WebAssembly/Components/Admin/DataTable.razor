@@ -1,0 +1,100 @@
+@typeparam TItem
+
+<div class="data-table-container">
+    @if (IsLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner spinner-lg"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (Items == null || !Items.Any())
+    {
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>@EmptyMessage</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table data-table">
+                <thead>
+                    <tr>
+                        @TableHeader
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Items)
+                    {
+                        <tr>
+                            @RowTemplate(item)
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (TotalPages > 1)
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing @((CurrentPage - 1) * PageSize + 1) to @Math.Min(CurrentPage * PageSize, TotalCount) of @TotalCount items
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn"
+                            @onclick="() => ChangePage(1)"
+                            disabled="@(CurrentPage == 1)">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button class="pagination-btn"
+                            @onclick="() => ChangePage(CurrentPage - 1)"
+                            disabled="@(CurrentPage == 1)">
+                        <i class="fas fa-angle-left"></i>
+                    </button>
+
+                    @for (int i = Math.Max(1, CurrentPage - 2); i <= Math.Min(TotalPages, CurrentPage + 2); i++)
+                    {
+                        var page = i;
+                        <button class="pagination-btn @(CurrentPage == page ? "active" : "")"
+                                @onclick="() => ChangePage(page)">
+                            @(page)
+                        </button>
+                    }
+
+                    <button class="pagination-btn"
+                            @onclick="() => ChangePage(CurrentPage + 1)"
+                            disabled="@(CurrentPage >= TotalPages)">
+                        <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button class="pagination-btn"
+                            @onclick="() => ChangePage(TotalPages)"
+                            disabled="@(CurrentPage >= TotalPages)">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public List<TItem>? Items { get; set; }
+    [Parameter] public RenderFragment? TableHeader { get; set; }
+    [Parameter] public RenderFragment<TItem>? RowTemplate { get; set; }
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int TotalPages { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string EmptyMessage { get; set; } = "No items found";
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+    private async Task ChangePage(int page)
+    {
+        if (page >= 1 && page <= TotalPages && page != CurrentPage)
+        {
+            await OnPageChanged.InvokeAsync(page);
+        }
+    }
+}

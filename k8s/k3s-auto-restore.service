@@ -1,0 +1,26 @@
+[Unit]
+Description=K3s Cluster Auto-Restore Service
+Documentation=https://github.com/marypas74/InsightLearn_WASM
+After=k3s.service
+Wants=k3s.service
+ConditionPathExists=/var/backups/k3s-cluster/k3s-cluster-snapshot.tar.gz
+
+[Service]
+Type=oneshot
+ExecStart=/home/mpasqui/insightlearn_WASM/InsightLearn_WASM/k8s/restore-cluster-state.sh
+StandardOutput=journal
+StandardError=journal
+Restart=no
+RemainAfterExit=yes
+
+# Security settings
+PrivateTmp=yes
+NoNewPrivileges=no
+ProtectSystem=strict
+ReadWritePaths=/var/backups /var/log /var/lib /tmp
+
+# Timeout settings (max 10 minutes for restore)
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
