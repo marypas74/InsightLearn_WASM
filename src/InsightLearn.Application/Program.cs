@@ -22,6 +22,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +80,94 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+
+// Helper method to extract client IP (handles proxies)
+static string GetClientIp(HttpContext context)
+{
+    // Check X-Forwarded-For first (Nginx/Traefik/Cloudflare proxy)
+    var forwarded = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(forwarded))
+        return forwarded.Split(',')[0].Trim();
+
+    // Check X-Real-IP (alternative proxy header)
+    var realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(realIp))
+        return realIp;
+
+    // Fallback to direct connection
+    return context.Connection.RemoteIpAddress?.ToString()
+        ?? "unknown-" + Guid.NewGuid().ToString();
+}
+
+// Configure Rate Limiting (DDoS protection)
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit: 200 requests per minute per IP (Blazor WASM initial load ~15-20 requests)
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: GetClientIp(httpContext),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 200, // Increased from 100 (architect recommendation)
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Authentication endpoints: 5 requests per minute per IP (prevent brute force)
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: GetClientIp(httpContext),
+            factory: partition => new SlidingWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6 // 10-second segments (prevents double-dipping attacks)
+            }));
+
+    // API endpoints: 50 requests per minute per user (authenticated)
+    options.AddPolicy("api", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? GetClientIp(httpContext),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 50, // Increased from 30 (architect recommendation)
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = 429; // Too Many Requests
+
+        // Add Retry-After header if available
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers["Retry-After"] = ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Rate limit exceeded",
+            retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry)
+                ? $"{(int)retry.TotalSeconds} seconds"
+                : "60 seconds"
+        }, cancellationToken: cancellationToken);
+
+        // Security audit logging
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(
+            "[SECURITY] Rate limit exceeded. IP: {IpAddress}, Endpoint: {Endpoint}, Method: {Method}",
+            GetClientIp(context.HttpContext),
+            context.HttpContext.Request.Path,
+            context.HttpContext.Request.Method);
+    };
+});
+
+Console.WriteLine("[SECURITY] Rate limiting configured:");
+Console.WriteLine("[SECURITY] - Global: 200 req/min per IP (proxy-aware)");
+Console.WriteLine("[SECURITY] - Auth endpoints: 5 req/min per IP (sliding window, brute force protection)");
+Console.WriteLine("[SECURITY] - API endpoints: 50 req/min per user");
 
 // Configure Entity Framework with SQL Server
 builder.Services.AddDbContext<InsightLearnDbContext>(options =>
@@ -479,9 +568,24 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter(); // DDoS protection with 3 policies (global, auth, api)
 
-// Health check endpoint
-app.MapHealthChecks("/health");
+// Add rate limit headers to all responses (X-RateLimit-*)
+app.Use(async (context, next) =>
+{
+    await next();
+
+    // Add standard rate limit headers for API clients
+    if (context.Response.StatusCode != 429 && context.Request.Path.StartsWithSegments("/api"))
+    {
+        // Note: Headers are estimates - actual limits depend on GlobalLimiter/policy applied
+        context.Response.Headers.TryAdd("X-RateLimit-Limit", "200");
+        context.Response.Headers.TryAdd("X-RateLimit-Policy", "global");
+    }
+});
+
+// Health check endpoint (exempt from rate limiting for K8s probes)
+app.MapHealthChecks("/health").DisableRateLimiting();
 
 app.MapControllers();
 
@@ -554,6 +658,7 @@ app.MapPost("/api/auth/login", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
+.RequireRateLimiting("auth") // Brute force protection: 5 req/min per IP
 .Accepts<LoginDto>("application/json")
 .Produces<AuthResultDto>(200)
 .Produces(400)
@@ -585,7 +690,8 @@ app.MapPost("/api/auth/register", async (
         logger.LogError(ex, "[AUTH] Error during registration for user: {Email}", registerDto.Email);
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
-});
+})
+.RequireRateLimiting("auth"); // Brute force protection: 5 req/min per IP
 
 app.MapPost("/api/auth/refresh", async (
     HttpContext httpContext,
@@ -620,7 +726,8 @@ app.MapPost("/api/auth/refresh", async (
         logger.LogError(ex, "[AUTH] Error during token refresh");
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
-});
+})
+.RequireRateLimiting("auth"); // Brute force protection: 5 req/min per IP
 
 app.MapGet("/api/auth/me", async (
     HttpContext httpContext,
@@ -655,7 +762,9 @@ app.MapGet("/api/auth/me", async (
         logger.LogError(ex, "[AUTH] Error getting current user");
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
-}).RequireAuthorization();
+})
+.RequireRateLimiting("auth") // Brute force protection: 5 req/min per IP
+.RequireAuthorization();
 
 app.MapPost("/api/auth/oauth-callback", async (
     [FromBody] GoogleLoginDto googleLoginDto,
@@ -682,7 +791,8 @@ app.MapPost("/api/auth/oauth-callback", async (
         logger.LogError(ex, "[AUTH] Error during Google OAuth");
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
-});
+})
+.RequireRateLimiting("auth"); // Brute force protection: 5 req/min per IP
 
 // CHATBOT API ENDPOINTS
 app.MapPost("/api/chat/message", async (
