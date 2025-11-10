@@ -2953,7 +2953,7 @@ app.MapGet("/api/dashboard/stats", async (
     }
 })
 .RequireAuthorization(policy => policy.RequireRole("Admin"))
-.WithName("GetDashboardStats")
+.WithName("GetLMSDashboardStats")
 .WithTags("Dashboard")
 .Produces<InsightLearn.Application.DTOs.AdminDashboardDto>(200)
 .Produces(401)
@@ -2983,7 +2983,7 @@ app.MapGet("/api/dashboard/recent-activity", async (
     }
 })
 .RequireAuthorization(policy => policy.RequireRole("Admin"))
-.WithName("GetRecentActivity")
+.WithName("GetLMSRecentActivity")
 .WithTags("Dashboard")
 .Produces<IEnumerable<InsightLearn.Application.DTOs.RecentActivityDto>>(200)
 .Produces(401)
