@@ -6,6 +6,12 @@ using InsightLearn.Infrastructure.Repositories;
 using InsightLearn.Infrastructure.Services;
 using InsightLearn.Core.Interfaces;
 using InsightLearn.Core.Entities;
+using InsightLearn.Core.DTOs.Admin;
+using InsightLearn.Core.DTOs.Category;
+using InsightLearn.Core.DTOs.Course;
+using InsightLearn.Core.DTOs.Enrollment;
+using InsightLearn.Core.DTOs.Payment;
+using InsightLearn.Core.DTOs.Review;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +19,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +109,18 @@ builder.Services.AddDbContextFactory<InsightLearnDbContext>(options =>
 // Register HttpClient for services
 builder.Services.AddHttpClient();
 
+// Configure HttpClient for Prometheus
+builder.Services.AddHttpClient("Prometheus", client =>
+{
+    var prometheusUrl = builder.Configuration["Prometheus:Url"]
+        ?? "http://prometheus:9090"; // K8s internal service
+    client.BaseAddress = new Uri(prometheusUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Register Prometheus Service
+builder.Services.AddScoped<IPrometheusService, PrometheusService>();
+
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 {
@@ -121,10 +142,34 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 .AddEntityFrameworkStores<InsightLearnDbContext>()
 .AddDefaultTokenProviders();
 
-// Register Auth Services
+// Get JWT configuration
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT_SECRET_KEY"] ?? "your-very-long-and-secure-secret-key-minimum-32-characters-long!!";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JWT_ISSUER"] ?? "InsightLearn.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["JWT_AUDIENCE"] ?? "InsightLearn.Users";
+
+// Configure JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Configure Authorization
+builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IUserLockoutService, UserLockoutService>();
@@ -176,7 +221,50 @@ builder.Services.AddScoped<IChatbotService>(sp =>
 builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
 builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
 
+// Register Enhanced Dashboard Service
+builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>();
+
+// Register Core LMS Repositories
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ISectionRepository, SectionRepository>();
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<ICouponRepository, CouponRepository>();
+builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+
+// Register Student Services
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+Console.WriteLine("[CONFIG] Student Services (Enrollment, Review) registered");
+
+// Register Enhanced Payment Service
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.IPaymentService, EnhancedPaymentService>();
+Console.WriteLine("[CONFIG] Enhanced Payment Service registered with Stripe & PayPal support");
+
+// Register Core LMS Services
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.ICourseService, CourseService>();
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.ICategoryService, CategoryService>();
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.ISectionService, SectionService>();
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.ILessonService, LessonService>();
+builder.Services.AddScoped<InsightLearn.Core.Interfaces.ICouponService, CouponService>();
+Console.WriteLine("[CONFIG] Core LMS Services registered (Course, Category, Section, Lesson, Coupon)");
+
+// Register Admin Services
+builder.Services.AddScoped<InsightLearn.Application.Interfaces.IAdminService, InsightLearn.Application.Services.AdminService>();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
+builder.Services.AddScoped<IDashboardPublicService, DashboardPublicService>();
+Console.WriteLine("[CONFIG] Admin Services registered (Admin, UserAdmin, DashboardPublic)");
+
+// Register Certificate Service
+builder.Services.AddScoped<ICertificateService, CertificateService>();
+Console.WriteLine("[CONFIG] Certificate Service registered (Phase 3 stub - PDF generation in Phase 4)");
+
 Console.WriteLine("[CONFIG] MongoDB Video Storage Services registered");
+Console.WriteLine("[CONFIG] Enhanced Dashboard Service registered");
+Console.WriteLine("[CONFIG] Core LMS Repositories registered (8 repositories)");
 
 // Health checks (simple - no additional packages needed)
 builder.Services.AddHealthChecks();
@@ -1097,6 +1185,95 @@ app.MapGet("/api/admin/dashboard/recent-activity", async (
 .WithName("GetRecentActivity")
 .WithTags("Admin");
 
+// Enhanced Dashboard Statistics
+app.MapGet("/api/admin/dashboard/enhanced-stats", async (
+    [FromServices] IEnhancedDashboardService dashboardService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching enhanced dashboard stats");
+        var stats = await dashboardService.GetEnhancedStatsAsync();
+        logger.LogInformation("[ADMIN] Enhanced dashboard stats retrieved successfully");
+        return Results.Ok(stats);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching enhanced dashboard stats");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetEnhancedDashboardStats")
+.WithTags("Admin");
+
+// Dashboard Chart Data
+app.MapGet("/api/admin/dashboard/charts/{chartType}", async (
+    [FromServices] IEnhancedDashboardService dashboardService,
+    [FromServices] ILogger<Program> logger,
+    string chartType,
+    [FromQuery] int days = 30) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching chart data for {ChartType} (days: {Days})", chartType, days);
+        var chartData = await dashboardService.GetChartDataAsync(chartType, days);
+        return Results.Ok(chartData);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching chart data");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetDashboardCharts")
+.WithTags("Admin");
+
+// Enhanced Activity Feed
+app.MapGet("/api/admin/dashboard/activity", async (
+    [FromServices] IEnhancedDashboardService dashboardService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int limit = 20,
+    [FromQuery] int offset = 0) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching enhanced activity (limit: {Limit}, offset: {Offset})", limit, offset);
+        var activities = await dashboardService.GetRecentActivityAsync(limit, offset);
+        return Results.Ok(activities);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching activity");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetDashboardActivity")
+.WithTags("Admin");
+
+// Real-time Metrics
+app.MapGet("/api/admin/dashboard/realtime-metrics", async (
+    [FromServices] IEnhancedDashboardService dashboardService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching real-time metrics");
+        var metrics = await dashboardService.GetRealTimeMetricsAsync();
+        return Results.Ok(metrics);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching real-time metrics");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetRealTimeMetrics")
+.WithTags("Admin");
+
 // USER MANAGEMENT ENDPOINTS
 
 // Get all users with pagination and search
@@ -1354,7 +1531,7 @@ app.MapGet("/api/admin/courses", async (
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new CourseDto
+            .Select(c => new InsightLearn.Application.DTOs.CourseDto
             {
                 Id = c.Id,
                 Title = c.Title,
@@ -1379,7 +1556,7 @@ app.MapGet("/api/admin/courses", async (
             })
             .ToListAsync();
 
-        var result = new PagedResultDto<CourseDto>
+        var result = new PagedResultDto<InsightLearn.Application.DTOs.CourseDto>
         {
             Items = courses,
             TotalCount = totalCount,
@@ -1402,7 +1579,7 @@ app.MapGet("/api/admin/courses", async (
 
 // Create course
 app.MapPost("/api/admin/courses", async (
-    [FromBody] CreateCourseDto createDto,
+    [FromBody] InsightLearn.Application.DTOs.CreateCourseDto createDto,
     [FromServices] InsightLearnDbContext dbContext,
     [FromServices] ILogger<Program> logger) =>
 {
@@ -1470,7 +1647,7 @@ app.MapPost("/api/admin/courses", async (
 // Update course
 app.MapPut("/api/admin/courses/{id:guid}", async (
     Guid id,
-    [FromBody] UpdateCourseDto updateDto,
+    [FromBody] InsightLearn.Application.DTOs.UpdateCourseDto updateDto,
     [FromServices] InsightLearnDbContext dbContext,
     [FromServices] ILogger<Program> logger) =>
 {
@@ -1569,6 +1746,1249 @@ app.MapDelete("/api/admin/courses/{id:guid}", async (
 .RequireAuthorization(policy => policy.RequireRole("Admin"))
 .WithName("DeleteAdminCourse")
 .WithTags("Admin");
+
+// PROMETHEUS METRICS API ENDPOINTS
+
+// Get infrastructure metrics (CPU, Memory, Disk, Pod health)
+app.MapGet("/api/admin/metrics/infrastructure", async (
+    [FromServices] IPrometheusService prometheusService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[PROMETHEUS] Fetching infrastructure metrics");
+        var metrics = await prometheusService.GetInfrastructureMetricsAsync();
+        logger.LogInformation("[PROMETHEUS] Retrieved {Count} infrastructure metrics", metrics.Count);
+        return Results.Ok(metrics);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROMETHEUS] Error fetching infrastructure metrics");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetInfrastructureMetrics")
+.WithTags("Metrics");
+
+// Get API performance metrics (request rate, response time, error rate)
+app.MapGet("/api/admin/metrics/api", async (
+    [FromServices] IPrometheusService prometheusService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[PROMETHEUS] Fetching API metrics");
+        var metrics = await prometheusService.GetApiMetricsAsync();
+        logger.LogInformation("[PROMETHEUS] Retrieved {Count} API metrics", metrics.Count);
+        return Results.Ok(metrics);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROMETHEUS] Error fetching API metrics");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetApiMetrics")
+.WithTags("Metrics");
+
+// Get pod-level metrics
+app.MapGet("/api/admin/metrics/pods", async (
+    [FromServices] IPrometheusService prometheusService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[PROMETHEUS] Fetching pod metrics");
+        var metrics = await prometheusService.GetPodMetricsAsync();
+        logger.LogInformation("[PROMETHEUS] Retrieved metrics for {Count} pods", metrics.Count);
+        return Results.Ok(metrics);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROMETHEUS] Error fetching pod metrics");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetPodMetrics")
+.WithTags("Metrics");
+
+// Custom Prometheus query endpoint
+app.MapPost("/api/admin/metrics/query", async (
+    [FromServices] IPrometheusService prometheusService,
+    [FromServices] ILogger<Program> logger,
+    [FromBody] PrometheusQueryRequest request) =>
+{
+    try
+    {
+        logger.LogInformation("[PROMETHEUS] Executing custom query: {Query}", request.Query);
+
+        if (string.IsNullOrWhiteSpace(request.Query))
+        {
+            return Results.BadRequest(new { error = "Query is required" });
+        }
+
+        if (request.IsRangeQuery)
+        {
+            var start = request.Start ?? DateTime.UtcNow.AddHours(-1);
+            var end = request.End ?? DateTime.UtcNow;
+            var step = request.Step ?? "15s";
+
+            var result = await prometheusService.QueryRangeAsync(request.Query, start, end, step);
+            return Results.Ok(result);
+        }
+        else
+        {
+            var result = await prometheusService.QueryAsync(request.Query);
+            return Results.Ok(result);
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROMETHEUS] Error executing query");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("QueryPrometheus")
+.WithTags("Metrics");
+
+// ===== CATEGORIES API ENDPOINTS =====
+
+app.MapGet("/api/categories", async (
+    [FromServices] InsightLearn.Core.Interfaces.ICategoryService categoryService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[CATEGORIES] Getting all categories");
+        var categories = await categoryService.GetAllCategoriesAsync();
+        return Results.Ok(categories);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CATEGORIES] Error getting all categories");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetAllCategories")
+.WithTags("Categories")
+.Produces<IEnumerable<InsightLearn.Core.DTOs.Category.CategoryDto>>(200);
+
+app.MapGet("/api/categories/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICategoryService categoryService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[CATEGORIES] Getting category {CategoryId}", id);
+        var category = await categoryService.GetCategoryByIdAsync(id);
+
+        if (category == null)
+        {
+            logger.LogWarning("[CATEGORIES] Category {CategoryId} not found", id);
+            return Results.NotFound(new { message = $"Category {id} not found" });
+        }
+
+        return Results.Ok(category);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CATEGORIES] Error getting category {CategoryId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCategoryById")
+.WithTags("Categories")
+.Produces<InsightLearn.Core.DTOs.Category.CategoryDto>(200)
+.Produces(404);
+
+app.MapPost("/api/categories", async (
+    [FromBody] CreateCategoryDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.ICategoryService categoryService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[CATEGORIES] Creating new category: {Name}", dto.Name);
+        var category = await categoryService.CreateCategoryAsync(dto);
+        return Results.Created($"/api/categories/{category.Id}", category);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CATEGORIES] Error creating category: {Name}", dto.Name);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("CreateCategory")
+.WithTags("Categories")
+.Produces<InsightLearn.Core.DTOs.Category.CategoryDto>(201)
+.Produces(401)
+.Produces(403);
+
+app.MapPut("/api/categories/{id:guid}", async (
+    Guid id,
+    [FromBody] UpdateCategoryDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.ICategoryService categoryService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[CATEGORIES] Updating category {CategoryId}", id);
+        var category = await categoryService.UpdateCategoryAsync(id, dto);
+
+        if (category == null)
+        {
+            logger.LogWarning("[CATEGORIES] Category {CategoryId} not found for update", id);
+            return Results.NotFound(new { message = $"Category {id} not found" });
+        }
+
+        return Results.Ok(category);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CATEGORIES] Error updating category {CategoryId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("UpdateCategory")
+.WithTags("Categories")
+.Produces<InsightLearn.Core.DTOs.Category.CategoryDto>(200)
+.Produces(404)
+.Produces(401)
+.Produces(403);
+
+app.MapDelete("/api/categories/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICategoryService categoryService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[CATEGORIES] Deleting category {CategoryId}", id);
+        var result = await categoryService.DeleteCategoryAsync(id);
+
+        if (!result)
+        {
+            logger.LogWarning("[CATEGORIES] Category {CategoryId} not found for deletion", id);
+            return Results.NotFound(new { message = $"Category {id} not found" });
+        }
+
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CATEGORIES] Error deleting category {CategoryId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("DeleteCategory")
+.WithTags("Categories")
+.Produces(204)
+.Produces(404)
+.Produces(401)
+.Produces(403);
+
+// ===== COURSES API ENDPOINTS =====
+
+// Get all courses (paginated, public access)
+app.MapGet("/api/courses", async (
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] Guid? categoryId = null) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Getting all courses (page: {Page}, pageSize: {PageSize}, categoryId: {CategoryId})",
+            page, pageSize, categoryId);
+        var courses = await courseService.GetCoursesAsync(page, pageSize, categoryId);
+        return Results.Ok(courses);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error getting all courses");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetAllCourses")
+.WithTags("Courses")
+.Produces<IEnumerable<InsightLearn.Core.DTOs.Course.CourseDto>>(200);
+
+// Get course by ID (public access)
+app.MapGet("/api/courses/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Getting course {CourseId}", id);
+        var course = await courseService.GetCourseByIdAsync(id);
+
+        if (course == null)
+        {
+            logger.LogWarning("[COURSES] Course {CourseId} not found", id);
+            return Results.NotFound(new { message = $"Course {id} not found" });
+        }
+
+        return Results.Ok(course);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error getting course {CourseId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCourseById")
+.WithTags("Courses")
+.Produces<InsightLearn.Core.DTOs.Course.CourseDto>(200)
+.Produces(404);
+
+// Get courses by category (public access)
+app.MapGet("/api/courses/category/{id:guid}", async (
+    [FromRoute] Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Getting courses by category {CategoryId} (page: {Page}, pageSize: {PageSize})",
+            id, page, pageSize);
+        var courses = await courseService.GetCoursesByCategoryAsync(id, page, pageSize);
+        return Results.Ok(courses);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error getting courses by category {CategoryId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCoursesByCategory")
+.WithTags("Courses")
+.Produces<IEnumerable<InsightLearn.Core.DTOs.Course.CourseDto>>(200);
+
+// Search courses (public access)
+app.MapGet("/api/courses/search", async (
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] string? query = null,
+    [FromQuery] Guid? categoryId = null,
+    [FromQuery] string? level = null,
+    [FromQuery] decimal? minPrice = null,
+    [FromQuery] decimal? maxPrice = null,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Searching courses (query: {Query}, categoryId: {CategoryId}, level: {Level}, page: {Page})",
+            query ?? "none", categoryId, level ?? "any", page);
+
+        var searchDto = new InsightLearn.Core.DTOs.Course.CourseSearchDto
+        {
+            Query = query,
+            CategoryId = categoryId,
+            Level = level,
+            MinPrice = minPrice,
+            MaxPrice = maxPrice,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        var courses = await courseService.SearchCoursesAsync(searchDto);
+        return Results.Ok(courses);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error searching courses");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("SearchCourses")
+.WithTags("Courses")
+.Produces<IEnumerable<InsightLearn.Core.DTOs.Course.CourseDto>>(200);
+
+// Create course (Admin or Instructor only)
+app.MapPost("/api/courses", async (
+    [FromBody] InsightLearn.Core.DTOs.Course.CreateCourseDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Creating new course: {Title}", dto.Title);
+        var course = await courseService.CreateCourseAsync(dto);
+        return Results.Created($"/api/courses/{course.Id}", course);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error creating course: {Title}", dto.Title);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("CreateCourse")
+.WithTags("Courses")
+.Produces<InsightLearn.Core.DTOs.Course.CourseDto>(201)
+.Produces(401)
+.Produces(403);
+
+// Update course (Admin or Instructor only)
+app.MapPut("/api/courses/{id:guid}", async (
+    Guid id,
+    [FromBody] InsightLearn.Core.DTOs.Course.UpdateCourseDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Updating course {CourseId}", id);
+        var course = await courseService.UpdateCourseAsync(id, dto);
+
+        if (course == null)
+        {
+            logger.LogWarning("[COURSES] Course {CourseId} not found for update", id);
+            return Results.NotFound(new { message = $"Course {id} not found" });
+        }
+
+        return Results.Ok(course);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error updating course {CourseId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("UpdateCourse")
+.WithTags("Courses")
+.Produces<InsightLearn.Core.DTOs.Course.CourseDto>(200)
+.Produces(404)
+.Produces(401)
+.Produces(403);
+
+// Delete course (Admin only)
+app.MapDelete("/api/courses/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Deleting course {CourseId}", id);
+        var result = await courseService.DeleteCourseAsync(id);
+
+        if (!result)
+        {
+            logger.LogWarning("[COURSES] Course {CourseId} not found for deletion", id);
+            return Results.NotFound(new { message = $"Course {id} not found" });
+        }
+
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error deleting course {CourseId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("DeleteCourse")
+.WithTags("Courses")
+.Produces(204)
+.Produces(404)
+.Produces(401)
+.Produces(403);
+
+// ===========================
+// REVIEWS API ENDPOINTS
+// ===========================
+
+// GET /api/reviews/course/{courseId:guid} - Get reviews for a specific course with pagination
+app.MapGet("/api/reviews/course/{courseId:guid}", async (
+    Guid courseId,
+    [FromServices] InsightLearn.Core.Interfaces.IReviewService reviewService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[REVIEWS] Getting reviews for course {CourseId}, Page: {Page}",
+            courseId, page);
+
+        var reviewList = await reviewService.GetCourseReviewsAsync(courseId, page, pageSize);
+
+        logger.LogInformation("[REVIEWS] Found {Count} reviews for course {CourseId} (Total: {Total})",
+            reviewList.Reviews.Count, courseId, reviewList.TotalCount);
+
+        return Results.Ok(reviewList);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REVIEWS] Error getting reviews for course {CourseId}", courseId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCourseReviews")
+.WithTags("Reviews")
+.Produces<InsightLearn.Core.DTOs.Review.ReviewListDto>(200)
+.Produces(500);
+
+// GET /api/reviews/{id:guid} - Get review by ID
+app.MapGet("/api/reviews/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.IReviewService reviewService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[REVIEWS] Getting review {ReviewId}", id);
+        var review = await reviewService.GetReviewByIdAsync(id);
+
+        if (review == null)
+        {
+            logger.LogWarning("[REVIEWS] Review {ReviewId} not found", id);
+            return Results.NotFound(new { message = $"Review {id} not found" });
+        }
+
+        logger.LogInformation("[REVIEWS] Found review {ReviewId}", id);
+        return Results.Ok(review);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REVIEWS] Error getting review {ReviewId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetReviewById")
+.WithTags("Reviews")
+.Produces<InsightLearn.Core.DTOs.Review.ReviewDto>(200)
+.Produces(404)
+.Produces(500);
+
+// POST /api/reviews - Create a new review
+app.MapPost("/api/reviews", async (
+    [FromBody] InsightLearn.Core.DTOs.Review.CreateReviewDto reviewDto,
+    [FromServices] InsightLearn.Core.Interfaces.IReviewService reviewService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        logger.LogInformation("[REVIEWS] Creating review for course {CourseId} by user {UserId}",
+            reviewDto.CourseId, reviewDto.UserId);
+
+        // Validate user authorization (can only review own enrollments)
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) ||
+            !Guid.TryParse(userIdClaim, out var authenticatedUserId) ||
+            authenticatedUserId != reviewDto.UserId)
+        {
+            logger.LogWarning("[REVIEWS] Unauthorized review creation attempt by user {AuthUserId} for user {RequestedUserId}",
+                userIdClaim, reviewDto.UserId);
+            return Results.Forbid();
+        }
+
+        var createdReview = await reviewService.CreateReviewAsync(reviewDto);
+
+        logger.LogInformation("[REVIEWS] Created review {ReviewId} for course {CourseId}",
+            createdReview.Id, reviewDto.CourseId);
+
+        return Results.Created($"/api/reviews/{createdReview.Id}", createdReview);
+    }
+    catch (InvalidOperationException ex)
+    {
+        logger.LogWarning(ex, "[REVIEWS] Invalid review creation - {Message}", ex.Message);
+        return Results.BadRequest(new { message = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REVIEWS] Error creating review");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CreateReview")
+.WithTags("Reviews")
+.Produces<InsightLearn.Core.DTOs.Review.ReviewDto>(201)
+.Produces(400)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// ============================================================================
+// ENROLLMENTS API - Managing course enrollments and student progress
+// ============================================================================
+
+// Get all enrollments (Admin only) with pagination
+app.MapGet("/api/enrollments", async (
+    [FromServices] InsightLearn.Core.Interfaces.IEnrollmentService enrollmentService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[ENROLLMENTS] Admin getting all enrollments, Page: {Page}, PageSize: {PageSize}", page, pageSize);
+
+        // Note: GetAllEnrollmentsAsync not available in interface - returning 501
+        return Results.Problem(
+            detail: "GetAllEnrollmentsAsync method needs to be added to IEnrollmentService for pagination support",
+            statusCode: 501,
+            title: "Not Implemented");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENTS] Error getting all enrollments");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetAllEnrollments")
+.WithTags("Enrollments")
+.Produces<IEnumerable<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>>(200)
+.ProducesProblem(500);
+
+// Create new enrollment (authenticated user)
+app.MapPost("/api/enrollments", async (
+    [FromBody] InsightLearn.Core.DTOs.Enrollment.CreateEnrollmentDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.IEnrollmentService enrollmentService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            logger.LogWarning("[ENROLLMENTS] User ID not found in claims");
+            return Results.Unauthorized();
+        }
+
+        var userGuid = Guid.Parse(userId);
+        var isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin && dto.UserId != userGuid)
+        {
+            logger.LogWarning("[ENROLLMENTS] User {UserId} attempted to enroll another user {TargetUserId}",
+                userGuid, dto.UserId);
+            return Results.Forbid();
+        }
+
+        var isEnrolled = await enrollmentService.IsUserEnrolledAsync(dto.UserId, dto.CourseId);
+        if (isEnrolled)
+        {
+            logger.LogWarning("[ENROLLMENTS] User {UserId} already enrolled in course {CourseId}",
+                dto.UserId, dto.CourseId);
+            return Results.BadRequest(new { error = "User is already enrolled in this course" });
+        }
+
+        logger.LogInformation("[ENROLLMENTS] Creating enrollment for user {UserId} in course {CourseId}",
+            dto.UserId, dto.CourseId);
+
+        var enrollment = await enrollmentService.EnrollUserAsync(dto);
+
+        logger.LogInformation("[ENROLLMENTS] Successfully created enrollment {EnrollmentId}", enrollment.Id);
+        return Results.Created($"/api/enrollments/{enrollment.Id}", enrollment);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENTS] Error creating enrollment");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CreateEnrollment")
+.WithTags("Enrollments")
+.Produces<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>(201)
+.ProducesProblem(400)
+.ProducesProblem(500);
+
+// Get enrollment by ID
+app.MapGet("/api/enrollments/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.IEnrollmentService enrollmentService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        logger.LogInformation("[ENROLLMENTS] Getting enrollment {EnrollmentId}", id);
+
+        var enrollment = await enrollmentService.GetEnrollmentByIdAsync(id);
+        if (enrollment == null)
+        {
+            logger.LogWarning("[ENROLLMENTS] Enrollment {EnrollmentId} not found", id);
+            return Results.NotFound(new { error = "Enrollment not found" });
+        }
+
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin && enrollment.UserId.ToString() != userId)
+        {
+            logger.LogWarning("[ENROLLMENTS] User {UserId} attempted to access enrollment {EnrollmentId} belonging to user {EnrollmentUserId}",
+                userId, id, enrollment.UserId);
+            return Results.Forbid();
+        }
+
+        logger.LogInformation("[ENROLLMENTS] Successfully retrieved enrollment {EnrollmentId}", id);
+        return Results.Ok(enrollment);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENTS] Error getting enrollment {EnrollmentId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetEnrollmentById")
+.WithTags("Enrollments")
+.Produces<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>(200)
+.ProducesProblem(404)
+.ProducesProblem(500);
+
+// Get enrollments for a specific course
+app.MapGet("/api/enrollments/course/{courseId:guid}", async (
+    Guid courseId,
+    [FromServices] InsightLearn.Core.Interfaces.IEnrollmentService enrollmentService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var isAdmin = user.IsInRole("Admin");
+        var isInstructor = user.IsInRole("Instructor");
+
+        if (!isAdmin && !isInstructor)
+        {
+            logger.LogWarning("[ENROLLMENTS] Unauthorized access attempt to course enrollments for course {CourseId}", courseId);
+            return Results.Forbid();
+        }
+
+        logger.LogInformation("[ENROLLMENTS] Getting enrollments for course {CourseId}", courseId);
+
+        var enrollments = await enrollmentService.GetCourseEnrollmentsAsync(courseId);
+
+        logger.LogInformation("[ENROLLMENTS] Found {Count} enrollments for course {CourseId}",
+            enrollments.Count, courseId);
+        return Results.Ok(enrollments);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENTS] Error getting enrollments for course {CourseId}", courseId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GetCourseEnrollments")
+.WithTags("Enrollments")
+.Produces<List<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>>(200)
+.ProducesProblem(500);
+
+// Get user's enrollments
+app.MapGet("/api/enrollments/user/{userId:guid}", async (
+    Guid userId,
+    [FromServices] InsightLearn.Core.Interfaces.IEnrollmentService enrollmentService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin && userId.ToString() != currentUserId)
+        {
+            logger.LogWarning("[ENROLLMENTS] User {CurrentUserId} attempted to access enrollments for user {TargetUserId}",
+                currentUserId, userId);
+            return Results.Forbid();
+        }
+
+        logger.LogInformation("[ENROLLMENTS] Getting enrollments for user {UserId}", userId);
+
+        var enrollments = await enrollmentService.GetUserEnrollmentsAsync(userId);
+
+        logger.LogInformation("[ENROLLMENTS] Found {Count} enrollments for user {UserId}",
+            enrollments.Count, userId);
+        return Results.Ok(enrollments);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENTS] Error getting enrollments for user {UserId}", userId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetUserEnrollments")
+.WithTags("Enrollments")
+.Produces<List<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>>(200)
+.ProducesProblem(500);
+
+// ===========================
+// PAYMENTS API ENDPOINTS
+// ===========================
+
+// POST /api/payments/create-checkout - Create Stripe checkout session
+app.MapPost("/api/payments/create-checkout", async (
+    [FromBody] InsightLearn.Core.DTOs.Payment.CreatePaymentDto dto,
+    [FromServices] InsightLearn.Core.Interfaces.IPaymentService paymentService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            logger.LogWarning("[PAYMENTS] Unauthorized checkout attempt - no user ID in token");
+            return Results.Unauthorized();
+        }
+
+        if (dto.UserId != Guid.Parse(userId))
+        {
+            logger.LogWarning("[PAYMENTS] User {UserId} attempted to create checkout for different user {RequestedUserId}",
+                userId, dto.UserId);
+            return Results.Forbid();
+        }
+
+        logger.LogInformation("[PAYMENTS] Creating Stripe checkout for user {UserId}, course {CourseId}, amount {Amount} {Currency}",
+            dto.UserId, dto.CourseId, dto.Amount, dto.Currency);
+
+        var checkout = await paymentService.CreateStripeCheckoutAsync(dto);
+
+        logger.LogInformation("[PAYMENTS] Checkout session created successfully: {SessionId}", checkout.SessionId);
+
+        return Results.Ok(checkout);
+    }
+    catch (InvalidOperationException ex)
+    {
+        logger.LogWarning(ex, "[PAYMENTS] Invalid checkout request");
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PAYMENTS] Failed to create checkout session");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CreateStripeCheckout")
+.WithTags("Payments")
+.Produces<InsightLearn.Core.DTOs.Payment.StripeCheckoutDto>(200)
+.Produces(400)
+.Produces(500);
+
+// GET /api/payments/transactions - List payment transactions
+app.MapGet("/api/payments/transactions", async (
+    [FromServices] InsightLearn.Core.Interfaces.IPaymentService paymentService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] InsightLearn.Core.Entities.PaymentStatus? status = null) =>
+{
+    try
+    {
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            logger.LogWarning("[PAYMENTS] Unauthorized transaction list attempt - no user ID");
+            return Results.Unauthorized();
+        }
+
+        var userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var isAdmin = userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        logger.LogInformation("[PAYMENTS] Fetching transactions - User: {UserId}, Role: {Role}, Page: {Page}, Status: {Status}",
+            userId, userRole, page, status);
+
+        InsightLearn.Core.DTOs.Payment.TransactionListDto transactions;
+
+        if (isAdmin)
+        {
+            transactions = await paymentService.GetAllTransactionsAsync(page, pageSize, status);
+            logger.LogInformation("[PAYMENTS] Admin retrieved {Count} transactions (total: {Total})",
+                transactions.Transactions.Count, transactions.TotalCount);
+        }
+        else
+        {
+            var userTransactions = await paymentService.GetUserTransactionsAsync(Guid.Parse(userId));
+
+            if (status.HasValue)
+            {
+                userTransactions = userTransactions
+                    .Where(t => t.Status.Equals(status.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            var paginatedTransactions = userTransactions
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            transactions = new InsightLearn.Core.DTOs.Payment.TransactionListDto
+            {
+                Transactions = paginatedTransactions,
+                TotalCount = userTransactions.Count,
+                TotalRevenue = userTransactions.Sum(t => t.Amount),
+                Page = page,
+                PageSize = pageSize
+            };
+
+            logger.LogInformation("[PAYMENTS] User {UserId} retrieved {Count} transactions",
+                userId, transactions.Transactions.Count);
+        }
+
+        return Results.Ok(transactions);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PAYMENTS] Failed to fetch transactions");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTransactions")
+.WithTags("Payments")
+.Produces<InsightLearn.Core.DTOs.Payment.TransactionListDto>(200)
+.Produces(500);
+
+// GET /api/payments/transactions/{id:guid} - Get transaction by ID
+app.MapGet("/api/payments/transactions/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.IPaymentService paymentService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            logger.LogWarning("[PAYMENTS] Unauthorized transaction access attempt - no user ID");
+            return Results.Unauthorized();
+        }
+
+        var userRole = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var isAdmin = userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) ?? false;
+
+        logger.LogInformation("[PAYMENTS] Fetching transaction {TransactionId} for user {UserId} (Admin: {IsAdmin})",
+            id, userId, isAdmin);
+
+        var payment = await paymentService.GetPaymentByIdAsync(id);
+
+        if (payment == null)
+        {
+            logger.LogWarning("[PAYMENTS] Transaction {TransactionId} not found", id);
+            return Results.NotFound(new { error = "Transaction not found" });
+        }
+
+        if (!isAdmin && payment.UserId != Guid.Parse(userId))
+        {
+            logger.LogWarning("[PAYMENTS] User {UserId} attempted to access transaction {TransactionId} belonging to user {OwnerId}",
+                userId, id, payment.UserId);
+            return Results.Forbid();
+        }
+
+        logger.LogInformation("[PAYMENTS] Successfully retrieved transaction {TransactionId} for user {UserId}",
+            id, userId);
+
+        return Results.Ok(payment);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PAYMENTS] Failed to fetch transaction {TransactionId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTransactionById")
+.WithTags("Payments")
+.Produces<InsightLearn.Core.DTOs.Payment.PaymentDto>(200)
+.Produces(404)
+.Produces(500);
+
+// ========================================
+// USER ADMIN API ENDPOINTS
+// ========================================
+
+// GET /api/users - List all users with pagination (Admin only)
+app.MapGet("/api/users", async (
+    [FromServices] InsightLearn.Core.Interfaces.IUserAdminService userAdminService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[USERS] Getting all users, Page: {Page}, PageSize: {PageSize}", page, pageSize);
+
+        var users = await userAdminService.GetAllUsersAsync(page, pageSize);
+
+        logger.LogInformation("[USERS] Retrieved {Count} users", users.Users.Count());
+        return Results.Ok(users);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[USERS] Error getting users");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetAllUsers")
+.WithTags("Users")
+.Produces<InsightLearn.Core.DTOs.User.UserListDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/users/{id:guid} - Get user by ID (Admin or self)
+app.MapGet("/api/users/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.IUserAdminService userAdminService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        logger.LogInformation("[USERS] Getting user by ID: {UserId}", id);
+
+        var currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin && currentUserId != id.ToString())
+        {
+            logger.LogWarning("[USERS] Unauthorized access attempt by user {CurrentUserId} to user {TargetUserId}",
+                currentUserId, id);
+            return Results.Forbid();
+        }
+
+        var userDetail = await userAdminService.GetUserByIdAsync(id);
+
+        if (userDetail == null)
+        {
+            logger.LogWarning("[USERS] User not found: {UserId}", id);
+            return Results.NotFound($"User with ID {id} not found");
+        }
+
+        logger.LogInformation("[USERS] Successfully retrieved user: {UserId}", id);
+        return Results.Ok(userDetail);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[USERS] Error getting user {UserId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetUserById")
+.WithTags("Users")
+.Produces<InsightLearn.Core.DTOs.User.UserDetailDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(404)
+.Produces(500);
+
+// PUT /api/users/{id:guid} - Update user (Admin or self)
+app.MapPut("/api/users/{id:guid}", async (
+    Guid id,
+    [FromBody] InsightLearn.Core.DTOs.User.UpdateUserDto updateDto,
+    [FromServices] InsightLearn.Core.Interfaces.IUserAdminService userAdminService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        logger.LogInformation("[USERS] Updating user: {UserId}", id);
+
+        var currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin && currentUserId != id.ToString())
+        {
+            logger.LogWarning("[USERS] Unauthorized update attempt by user {CurrentUserId} on user {TargetUserId}",
+                currentUserId, id);
+            return Results.Forbid();
+        }
+
+        var updatedUser = await userAdminService.UpdateUserAsync(id, updateDto);
+
+        if (updatedUser == null)
+        {
+            logger.LogWarning("[USERS] User not found for update: {UserId}", id);
+            return Results.NotFound($"User with ID {id} not found");
+        }
+
+        logger.LogInformation("[USERS] Successfully updated user: {UserId}", id);
+        return Results.Ok(updatedUser);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[USERS] Error updating user {UserId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("UpdateUser")
+.WithTags("Users")
+.Produces<InsightLearn.Core.DTOs.User.UserDetailDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(404)
+.Produces(500);
+
+// DELETE /api/users/{id:guid} - Delete user (Admin only)
+app.MapDelete("/api/users/{id:guid}", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.IUserAdminService userAdminService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[USERS] Deleting user: {UserId}", id);
+
+        var result = await userAdminService.DeleteUserAsync(id);
+
+        if (!result)
+        {
+            logger.LogWarning("[USERS] User not found for deletion: {UserId}", id);
+            return Results.NotFound($"User with ID {id} not found");
+        }
+
+        logger.LogInformation("[USERS] Successfully deleted user: {UserId}", id);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[USERS] Error deleting user {UserId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("DeleteUser")
+.WithTags("Users")
+.Produces(204)
+.Produces(401)
+.Produces(403)
+.Produces(404)
+.Produces(500);
+
+// GET /api/users/profile - Get current user profile
+app.MapGet("/api/users/profile", async (
+    [FromServices] InsightLearn.Core.Interfaces.IUserAdminService userAdminService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            logger.LogWarning("[USERS] Invalid or missing user ID in token");
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[USERS] Getting profile for user: {UserId}", userId);
+
+        var userDetail = await userAdminService.GetUserByIdAsync(userId);
+
+        if (userDetail == null)
+        {
+            logger.LogWarning("[USERS] Profile not found for user: {UserId}", userId);
+            return Results.NotFound("User profile not found");
+        }
+
+        logger.LogInformation("[USERS] Successfully retrieved profile for user: {UserId}", userId);
+        return Results.Ok(userDetail);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[USERS] Error getting user profile");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetCurrentUserProfile")
+.WithTags("Users")
+.Produces<InsightLearn.Core.DTOs.User.UserDetailDto>(200)
+.Produces(401)
+.Produces(404)
+.Produces(500);
+
+// ========================================
+// DASHBOARD API ENDPOINTS
+// ========================================
+
+// GET /api/dashboard/stats - Get dashboard statistics (Admin only)
+app.MapGet("/api/dashboard/stats", async (
+    [FromServices] InsightLearn.Application.Interfaces.IAdminService adminService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[DASHBOARD] Getting dashboard statistics");
+
+        var stats = await adminService.GetDashboardStatisticsAsync();
+
+        logger.LogInformation("[DASHBOARD] Successfully retrieved dashboard statistics");
+        return Results.Ok(stats);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[DASHBOARD] Error getting dashboard statistics");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetDashboardStats")
+.WithTags("Dashboard")
+.Produces<InsightLearn.Application.DTOs.AdminDashboardDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/dashboard/recent-activity - Get recent activity (Admin only)
+app.MapGet("/api/dashboard/recent-activity", async (
+    [FromServices] InsightLearn.Application.Interfaces.IAdminService adminService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int count = 10) =>
+{
+    try
+    {
+        logger.LogInformation("[DASHBOARD] Getting recent activity, Count: {Count}", count);
+
+        var activities = await adminService.GetRecentActivityAsync(count);
+
+        logger.LogInformation("[DASHBOARD] Successfully retrieved {Count} recent activities",
+            activities.Count());
+        return Results.Ok(activities);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[DASHBOARD] Error getting recent activity");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetRecentActivity")
+.WithTags("Dashboard")
+.Produces<IEnumerable<InsightLearn.Application.DTOs.RecentActivityDto>>(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
 
 Console.WriteLine("🚀 InsightLearn API Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");

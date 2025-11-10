@@ -38,6 +38,11 @@ public class SystemEndpoint
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Whether this endpoint has been implemented in the API
+    /// </summary>
+    public bool IsImplemented { get; set; } = false;
+
+    /// <summary>
     /// Last modified timestamp
     /// </summary>
     public DateTime LastModified { get; set; } = DateTime.UtcNow;
