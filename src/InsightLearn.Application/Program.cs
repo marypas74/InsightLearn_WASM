@@ -142,10 +142,39 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 .AddEntityFrameworkStores<InsightLearnDbContext>()
 .AddDefaultTokenProviders();
 
-// Get JWT configuration
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT_SECRET_KEY"] ?? "your-very-long-and-secure-secret-key-minimum-32-characters-long!!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JWT_ISSUER"] ?? "InsightLearn.Api";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["JWT_AUDIENCE"] ?? "InsightLearn.Users";
+// Get JWT configuration with validation (no fallback for production security)
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT_SECRET_KEY"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    throw new InvalidOperationException(
+        "JWT Secret is not configured. Please set JWT_SECRET_KEY environment variable or Jwt:Secret in appsettings.json. " +
+        "The secret must be at least 32 characters long for security.");
+}
+
+if (jwtSecret.Length < 32)
+{
+    throw new InvalidOperationException(
+        $"JWT Secret is too short ({jwtSecret.Length} characters). Minimum length is 32 characters for security.");
+}
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JWT_ISSUER"];
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    throw new InvalidOperationException(
+        "JWT Issuer is not configured. Please set JWT_ISSUER environment variable or Jwt:Issuer in appsettings.json.");
+}
+
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["JWT_AUDIENCE"];
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException(
+        "JWT Audience is not configured. Please set JWT_AUDIENCE environment variable or Jwt:Audience in appsettings.json.");
+}
+
+Console.WriteLine("[SECURITY] JWT configuration validated successfully");
+Console.WriteLine($"[SECURITY] - Issuer: {jwtIssuer}");
+Console.WriteLine($"[SECURITY] - Audience: {jwtAudience}");
+Console.WriteLine($"[SECURITY] - Secret length: {jwtSecret.Length} characters (minimum: 32)");
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>

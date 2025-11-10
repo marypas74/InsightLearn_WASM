@@ -62,17 +62,17 @@ spec:
             configMapKeyRef:
               name: insightlearn-config
               key: elasticsearch-url
-        - name: JwtSettings__SecretKey
+        - name: JWT_SECRET_KEY
           valueFrom:
             secretKeyRef:
               name: insightlearn-secrets
               key: jwt-secret-key
-        - name: JwtSettings__Issuer
+        - name: JWT_ISSUER
           valueFrom:
             configMapKeyRef:
               name: insightlearn-config
               key: jwt-issuer
-        - name: JwtSettings__Audience
+        - name: JWT_AUDIENCE
           valueFrom:
             configMapKeyRef:
               name: insightlearn-config
@@ -97,6 +97,8 @@ spec:
             configMapKeyRef:
               name: insightlearn-config
               key: ollama-base-url
+        - name: Prometheus__Url
+          value: "http://prometheus:9090"
         - name: Ollama__Model
           value: "qwen2:0.5b"
         - name: MongoDb__ConnectionString
