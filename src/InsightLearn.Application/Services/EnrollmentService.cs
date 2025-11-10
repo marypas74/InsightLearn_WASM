@@ -36,6 +36,25 @@ public class EnrollmentService : IEnrollmentService
 
     #region Query Methods
 
+    public async Task<EnrollmentListDto> GetAllEnrollmentsAsync(int page = 1, int pageSize = 10)
+    {
+        _logger.LogInformation("[EnrollmentService] Getting all enrollments - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+
+        // Get paginated enrollments from repository (repository handles pagination)
+        var enrollments = await _enrollmentRepository.GetAllAsync(page, pageSize);
+
+        // Get total count separately for accurate pagination metadata
+        var totalCount = await _enrollmentRepository.GetTotalCountAsync();
+
+        return new EnrollmentListDto
+        {
+            Enrollments = enrollments.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<EnrollmentDto?> GetEnrollmentByIdAsync(Guid id)
     {
         _logger.LogInformation("[EnrollmentService] Getting enrollment {EnrollmentId}", id);

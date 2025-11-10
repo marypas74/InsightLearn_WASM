@@ -10,6 +10,11 @@ public interface IEnrollmentService
     // Query methods
 
     /// <summary>
+    /// Gets all enrollments with pagination (Admin only)
+    /// </summary>
+    Task<EnrollmentListDto> GetAllEnrollmentsAsync(int page = 1, int pageSize = 10);
+
+    /// <summary>
     /// Gets enrollment details by ID
     /// </summary>
     Task<EnrollmentDto?> GetEnrollmentByIdAsync(Guid id);

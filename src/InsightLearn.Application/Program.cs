@@ -235,6 +235,20 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<ICouponRepository, CouponRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 
+// Register SaaS Subscription Model Repositories
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+builder.Services.AddScoped<ICourseEngagementRepository, CourseEngagementRepository>();
+builder.Services.AddScoped<IInstructorPayoutRepository, InstructorPayoutRepository>();
+builder.Services.AddScoped<ISubscriptionRevenueRepository, SubscriptionRevenueRepository>();
+builder.Services.AddScoped<IInstructorConnectAccountRepository, InstructorConnectAccountRepository>();
+Console.WriteLine("[CONFIG] SaaS Subscription Repositories registered (6 repositories)");
+
+// Register SaaS Subscription Services
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IEngagementTrackingService, EngagementTrackingService>();
+Console.WriteLine("[CONFIG] SaaS Subscription Services registered (2 services)");
+
 // Register Student Services
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
@@ -2340,13 +2354,19 @@ app.MapGet("/api/enrollments", async (
 {
     try
     {
+        // Validate input parameters
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 100) pageSize = 100; // Max page size limit (prevent DoS)
+
         logger.LogInformation("[ENROLLMENTS] Admin getting all enrollments, Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
-        // Note: GetAllEnrollmentsAsync not available in interface - returning 501
-        return Results.Problem(
-            detail: "GetAllEnrollmentsAsync method needs to be added to IEnrollmentService for pagination support",
-            statusCode: 501,
-            title: "Not Implemented");
+        var enrollments = await enrollmentService.GetAllEnrollmentsAsync(page, pageSize);
+
+        logger.LogInformation("[ENROLLMENTS] Successfully retrieved {Count} enrollments (Page {Page}/{TotalPages})",
+            enrollments.Enrollments.Count, page, enrollments.TotalPages);
+
+        return Results.Ok(enrollments);
     }
     catch (Exception ex)
     {
@@ -2357,7 +2377,7 @@ app.MapGet("/api/enrollments", async (
 .RequireAuthorization(policy => policy.RequireRole("Admin"))
 .WithName("GetAllEnrollments")
 .WithTags("Enrollments")
-.Produces<IEnumerable<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>>(200)
+.Produces<InsightLearn.Core.DTOs.Enrollment.EnrollmentListDto>(200)
 .ProducesProblem(500);
 
 // Create new enrollment (authenticated user)
