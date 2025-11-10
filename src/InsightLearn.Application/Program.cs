@@ -566,6 +566,74 @@ app.UseSwaggerUI();
 
 app.UseCors();
 
+// Add security headers middleware (OWASP Top 10 compliance)
+app.Use(async (context, next) =>
+{
+    // Prevent clickjacking attacks
+    context.Response.Headers.TryAdd("X-Frame-Options", "DENY");
+
+    // Prevent MIME-sniffing attacks
+    context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
+
+    // NOTE: X-XSS-Protection is DEPRECATED (removed from Chrome 78+, Firefox, Safari)
+    // Modern browsers use CSP instead. Kept for legacy IE11 support only.
+    // context.Response.Headers.TryAdd("X-XSS-Protection", "1; mode=block");
+
+    // Strict Transport Security (HSTS) - force HTTPS for 1 year (production only)
+    if (!app.Environment.IsDevelopment())
+    {
+        context.Response.Headers.TryAdd("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    }
+
+    // Content Security Policy - allow Blazor WASM requirements + violation reporting
+    context.Response.Headers.TryAdd("Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; " +  // Blazor WASM needs unsafe-eval
+        "style-src 'self' 'unsafe-inline'; " +                     // Blazor needs inline styles
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self' wss: https:; " +                       // WebSocket + HTTPS APIs
+        "frame-ancestors 'self'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'; " +
+        "object-src 'none'; " +                                    // Block plugins (Flash, Java, etc.)
+        "media-src 'self' data:; " +                               // Audio/video from same origin
+        "worker-src 'self' blob:; " +                              // Web workers
+        "manifest-src 'self'; " +                                  // PWA manifest
+        "report-uri /api/csp-violations");                         // CSP violation reporting
+
+    // Referrer Policy - balance privacy with analytics
+    context.Response.Headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Permissions Policy (formerly Feature-Policy) - enable LMS features, disable risky ones
+    context.Response.Headers.TryAdd("Permissions-Policy",
+        "geolocation=(), " +
+        "microphone=(), " +
+        "camera=(), " +
+        "payment=(), " +
+        "usb=(), " +
+        "magnetometer=(), " +
+        "clipboard-read=(self), " +                                // Copy/paste in forms
+        "clipboard-write=(self), " +                               // Copy/paste in code editors
+        "fullscreen=(self), " +                                    // Fullscreen for video player
+        "autoplay=(self)");                                        // Autoplay for video courses
+
+    // Cross-Origin Isolation headers (defense-in-depth)
+    context.Response.Headers.TryAdd("Cross-Origin-Embedder-Policy", "require-corp");
+    context.Response.Headers.TryAdd("Cross-Origin-Opener-Policy", "same-origin");
+    context.Response.Headers.TryAdd("Cross-Origin-Resource-Policy", "same-origin");
+
+    await next();
+});
+
+Console.WriteLine("[SECURITY] Security headers configured:");
+Console.WriteLine("[SECURITY] - X-Frame-Options: DENY (clickjacking protection)");
+Console.WriteLine("[SECURITY] - X-Content-Type-Options: nosniff (MIME-sniffing protection)");
+Console.WriteLine("[SECURITY] - Strict-Transport-Security: " + (app.Environment.IsDevelopment() ? "disabled (dev)" : "enabled (production)"));
+Console.WriteLine("[SECURITY] - Content-Security-Policy: Blazor WASM compatible + CSP reporting");
+Console.WriteLine("[SECURITY] - Permissions-Policy: LMS features enabled (clipboard, fullscreen, autoplay)");
+Console.WriteLine("[SECURITY] - Cross-Origin-*-Policy: Isolation enabled");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter(); // DDoS protection with 3 policies (global, auth, api)
@@ -586,6 +654,34 @@ app.Use(async (context, next) =>
 
 // Health check endpoint (exempt from rate limiting for K8s probes)
 app.MapHealthChecks("/health").DisableRateLimiting();
+
+// CSP violation reporting endpoint (exempt from rate limiting)
+app.MapPost("/api/csp-violations", async (HttpContext context, [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        var clientIp = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                        ?? context.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown";
+
+        logger.LogWarning(
+            "[CSP VIOLATION] IP: {IpAddress}, UserAgent: {UserAgent}, Report: {Report}",
+            clientIp,
+            context.Request.Headers["User-Agent"].ToString(),
+            body);
+
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CSP VIOLATION] Error processing CSP report");
+        return Results.NoContent(); // Always return 204 even on error
+    }
+})
+.DisableRateLimiting()
+.WithName("CSP-Violations")
+.WithTags("Security");
 
 app.MapControllers();
 
