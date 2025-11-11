@@ -1,15 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using InsightLearn.Core.Validation; // For DateGreaterThan
 
 namespace InsightLearn.Core.DTOs.Payment;
 
 /// <summary>
-/// DTO for coupon/discount code information
+/// Input DTO for coupon creation (prevents over-posting attacks)
+/// Separates user input from system-managed fields (Id, IsActive, UsedCount)
 /// </summary>
-public class CouponDto
+public class CreateCouponDto
 {
-    [Required(ErrorMessage = "Coupon ID is required")]
-    public Guid Id { get; set; }
-
     [Required(ErrorMessage = "Coupon code is required")]
     [StringLength(50, MinimumLength = 3, ErrorMessage = "Coupon code must be between 3 and 50 characters")]
     [RegularExpression(@"^[A-Z0-9-]+$", ErrorMessage = "Coupon code must contain only uppercase letters, numbers, and hyphens")]
@@ -19,7 +18,6 @@ public class CouponDto
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Coupon type is required")]
-    [StringLength(50, ErrorMessage = "Type cannot exceed 50 characters")]
     [RegularExpression(@"^(Percentage|FixedAmount)$", ErrorMessage = "Type must be 'Percentage' or 'FixedAmount'")]
     public string Type { get; set; } = string.Empty;
 
@@ -36,16 +34,10 @@ public class CouponDto
     [Range(1, int.MaxValue, ErrorMessage = "Usage limit must be at least 1")]
     public int? UsageLimit { get; set; }
 
-    [Range(0, int.MaxValue, ErrorMessage = "Used count cannot be negative")]
-    public int UsedCount { get; set; }
-
     [Required(ErrorMessage = "Valid from date is required")]
     public DateTime ValidFrom { get; set; }
 
     [Required(ErrorMessage = "Valid until date is required")]
+    [DateGreaterThan(nameof(ValidFrom), ErrorMessage = "Valid until must be after valid from date")]
     public DateTime ValidUntil { get; set; }
-
-    public bool IsActive { get; set; }
-
-    public bool IsValid { get; set; }
 }

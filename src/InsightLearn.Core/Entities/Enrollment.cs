@@ -40,6 +40,10 @@ public class Enrollment
     public virtual Course Course { get; set; } = null!;
     public virtual Lesson? CurrentLesson { get; set; }
     public virtual Certificate? Certificate { get; set; }
+
+    // Subscription support
+    public Guid? SubscriptionId { get; set; }
+    public virtual UserSubscription? Subscription { get; set; }
     
     public double ProgressPercentage
     {

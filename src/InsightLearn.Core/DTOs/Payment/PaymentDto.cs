@@ -14,7 +14,7 @@ public class PaymentDto
     public string Currency { get; set; } = "USD";
     public PaymentStatus Status { get; set; }
     public PaymentMethodType? PaymentMethod { get; set; }
-    public PaymentGateway? PaymentGateway { get; set; }
+    public string? PaymentGatewayId { get; set; }
     public string? TransactionId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ProcessedAt { get; set; }

@@ -88,6 +88,10 @@ public class User : IdentityUser<Guid>
     public virtual ICollection<LessonProgress> LessonProgress { get; set; } = new List<LessonProgress>();
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
     public virtual ICollection<Coupon> CreatedCoupons { get; set; } = new List<Coupon>();
+    public virtual ICollection<UserSubscription> Subscriptions { get; set; } = new List<UserSubscription>();
+    public virtual ICollection<CourseEngagement> CourseEngagements { get; set; } = new List<CourseEngagement>();
+    public virtual ICollection<InstructorPayout> InstructorPayouts { get; set; } = new List<InstructorPayout>();
+    public virtual InstructorConnectAccount? ConnectAccount { get; set; }
     
     public string FullName => $"{FirstName} {LastName}";
     

@@ -54,9 +54,11 @@ public class Course
     public string? Language { get; set; } = "English";
     
     public bool HasCertificate { get; set; } = true;
-    
+
     public bool IsActive { get; set; } = true;
-    
+
+    public bool IsSubscriptionOnly { get; set; } = false;
+
     // SEO and Analytics
     [StringLength(160)]
     public string? MetaDescription { get; set; }
@@ -80,6 +82,7 @@ public class Course
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
     public virtual ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
+    public virtual ICollection<CourseEngagement> CourseEngagements { get; set; } = new List<CourseEngagement>();
     
     public decimal CurrentPrice => Price * (1 - DiscountPercentage / 100);
     
