@@ -36,6 +36,7 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<AccessLog> AccessLogs { get; set; }
     public DbSet<ErrorLog> ErrorLogs { get; set; }
     public DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
     
     // Enhanced Logging System entities
     public DbSet<LoginAttempt> LoginAttempts { get; set; }
@@ -63,6 +64,13 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<ChatbotContact> ChatbotContacts { get; set; }
     public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
 
+    // SaaS Subscription Model entities
+    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+    public DbSet<UserSubscription> UserSubscriptions { get; set; }
+    public DbSet<CourseEngagement> CourseEngagements { get; set; }
+    public DbSet<InstructorPayout> InstructorPayouts { get; set; }
+    public DbSet<SubscriptionRevenue> SubscriptionRevenues { get; set; }
+    public DbSet<InstructorConnectAccount> InstructorConnectAccounts { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -121,6 +129,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
         {
             entity.ToTable("UserTokens");
         });
+
+        // Configure SaaS Subscription Model relationships
+        ConfigureSubscriptionEntities(builder);
 
         // Apply EF Core optimizations using extension methods
         builder.ConfigureGlobalQueryFilters();
@@ -281,5 +292,150 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
                 }
             }
         }
+    }
+
+    private void ConfigureSubscriptionEntities(ModelBuilder builder)
+    {
+        // SubscriptionPlan configuration
+        builder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PriceMonthly).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.PriceYearly).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.StripeProductId).HasMaxLength(255);
+            entity.Property(e => e.StripePriceMonthlyId).HasMaxLength(255);
+            entity.Property(e => e.StripePriceYearlyId).HasMaxLength(255);
+
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.StripeProductId);
+            entity.HasIndex(e => new { e.IsActive, e.PriceMonthly });
+        });
+
+        // UserSubscription configuration
+        builder.Entity<UserSubscription>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.BillingInterval).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.StripeSubscriptionId).HasMaxLength(255);
+            entity.Property(e => e.StripeCustomerId).HasMaxLength(255);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Subscriptions)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Plan)
+                .WithMany(p => p.UserSubscriptions)
+                .HasForeignKey(e => e.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.StripeSubscriptionId).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.CurrentPeriodEnd });
+        });
+
+        // CourseEngagement configuration
+        builder.Entity<CourseEngagement>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EngagementType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ValidationScore).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.IpAddress).HasMaxLength(45);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.Property(e => e.DeviceFingerprint).HasMaxLength(255);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.CourseEngagements)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.CourseEngagements)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.UserId, e.CourseId, e.StartedAt });
+            entity.HasIndex(e => new { e.CountsForPayout, e.StartedAt });
+            entity.HasIndex(e => e.CourseId);
+        });
+
+        // InstructorPayout configuration
+        builder.Entity<InstructorPayout>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TotalPlatformRevenue).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.EngagementPercentage).HasColumnType("decimal(8,6)");
+            entity.Property(e => e.PlatformCommissionRate).HasColumnType("decimal(3,2)");
+            entity.Property(e => e.PayoutAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StripeTransferId).HasMaxLength(255);
+
+            entity.HasOne(e => e.Instructor)
+                .WithMany(u => u.InstructorPayouts)
+                .HasForeignKey(e => e.InstructorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.InstructorId, e.Month, e.Year }).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.Month, e.Year });
+            entity.HasIndex(e => e.StripeTransferId);
+        });
+
+        // SubscriptionRevenue configuration
+        builder.Entity<SubscriptionRevenue>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("EUR");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StripeInvoiceId).HasMaxLength(255);
+            entity.Property(e => e.StripePaymentIntentId).HasMaxLength(255);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+            entity.Property(e => e.CardLast4).HasMaxLength(4);
+            entity.Property(e => e.CardBrand).HasMaxLength(50);
+            entity.Property(e => e.RefundAmount).HasColumnType("decimal(10,2)");
+
+            entity.HasOne(e => e.Subscription)
+                .WithMany(s => s.SubscriptionRevenues)
+                .HasForeignKey(e => e.SubscriptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.StripeInvoiceId).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.PaidAt });
+            entity.HasIndex(e => new { e.BillingPeriodStart, e.BillingPeriodEnd });
+        });
+
+        // InstructorConnectAccount configuration
+        builder.Entity<InstructorConnectAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.StripeAccountId).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.OnboardingStatus).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Country).HasMaxLength(2);
+            entity.Property(e => e.Currency).HasMaxLength(3);
+            entity.Property(e => e.TotalPaidOut).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.VerificationStatus).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Instructor)
+                .WithOne(u => u.ConnectAccount)
+                .HasForeignKey<InstructorConnectAccount>(e => e.InstructorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.StripeAccountId).IsUnique();
+            entity.HasIndex(e => e.InstructorId).IsUnique();
+            entity.HasIndex(e => new { e.OnboardingStatus, e.PayoutsEnabled });
+        });
+
+        // Update Enrollment to support subscriptions
+        builder.Entity<Enrollment>(entity =>
+        {
+            entity.HasOne(e => e.Subscription)
+                .WithMany()
+                .HasForeignKey(e => e.SubscriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SubscriptionId);
+        });
     }
 }

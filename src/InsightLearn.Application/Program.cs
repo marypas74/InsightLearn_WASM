@@ -212,6 +212,10 @@ builder.Services.AddHttpClient("Prometheus", client =>
 // Register Prometheus Service
 builder.Services.AddScoped<IPrometheusService, PrometheusService>();
 
+// Register Audit Service (database-backed audit logging)
+builder.Services.AddScoped<IAuditService, AuditService>();
+Console.WriteLine("[CONFIG] Audit Service registered (database-backed compliance logging)");
+
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 {
@@ -648,6 +652,11 @@ Console.WriteLine("[SECURITY] Request validation middleware registered (SQL inje
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
+// Positioned AFTER authentication to capture user context (userId, email, roles)
+app.UseMiddleware<AuditLoggingMiddleware>();
+Console.WriteLine("[SECURITY] Audit logging middleware registered (auth, authorization, validation, admin operations)");
 
 // Add rate limit headers to all responses (X-RateLimit-*)
 app.Use(async (context, next) =>
