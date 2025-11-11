@@ -1,5 +1,7 @@
 using InsightLearn.Application.DTOs;
+using InsightLearn.Application.Endpoints;
 using InsightLearn.Application.Interfaces;
+using InsightLearn.Application.Middleware;
 using InsightLearn.Application.Services;
 using InsightLearn.Infrastructure.Data;
 using InsightLearn.Infrastructure.Repositories;
@@ -365,7 +367,8 @@ Console.WriteLine("[CONFIG] SaaS Subscription Repositories registered (6 reposit
 // Register SaaS Subscription Services
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IEngagementTrackingService, EngagementTrackingService>();
-Console.WriteLine("[CONFIG] SaaS Subscription Services registered (2 services)");
+builder.Services.AddScoped<IPayoutCalculationService, PayoutCalculationService>();
+Console.WriteLine("[CONFIG] SaaS Subscription Services registered (3 services)");
 
 // Register Student Services
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
@@ -634,9 +637,17 @@ Console.WriteLine("[SECURITY] - Content-Security-Policy: Blazor WASM compatible 
 Console.WriteLine("[SECURITY] - Permissions-Policy: LMS features enabled (clipboard, fullscreen, autoplay)");
 Console.WriteLine("[SECURITY] - Cross-Origin-*-Policy: Isolation enabled");
 
+// Rate limiting BEFORE validation (protects validation layer from DoS attacks)
+app.UseRateLimiter(); // DDoS protection with 3 policies (global, auth, api)
+Console.WriteLine("[SECURITY] Rate limiting enabled (protects validation layer from DoS)");
+
+// Request Validation Middleware - Protects against SQL injection, XSS, and path traversal
+// Positioned AFTER rate limiting to prevent attackers from exhausting resources
+app.UseMiddleware<RequestValidationMiddleware>();
+Console.WriteLine("[SECURITY] Request validation middleware registered (SQL injection, XSS, path traversal, request body validation)");
+
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter(); // DDoS protection with 3 policies (global, auth, api)
 
 // Add rate limit headers to all responses (X-RateLimit-*)
 app.Use(async (context, next) =>
@@ -3244,6 +3255,21 @@ app.MapGet("/api/dashboard/recent-activity", async (
 .Produces(401)
 .Produces(403)
 .Produces(500);
+
+// ========================================
+// SAAS SUBSCRIPTION SYSTEM ENDPOINTS
+// ========================================
+// Register SaaS Subscription endpoints (Week 3 - API Layer)
+app.MapSubscriptionEndpoints();      // 8 endpoints: /api/subscriptions/*
+app.MapEngagementEndpoints();        // 6 endpoints: /api/engagement/*
+app.MapPayoutEndpoints();            // 8 endpoints: /api/payouts/*
+app.MapStripeWebhookEndpoints();     // 5 endpoints: /api/webhooks/stripe/*
+
+Console.WriteLine("[ENDPOINTS] SaaS Subscription System endpoints registered (27 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Subscription Management: /api/subscriptions/* (8 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Engagement Tracking: /api/engagement/* (6 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Instructor Payouts: /api/payouts/* (8 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Stripe Webhooks: /api/webhooks/stripe/* (5 endpoints)");
 
 Console.WriteLine("🚀 InsightLearn API Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
