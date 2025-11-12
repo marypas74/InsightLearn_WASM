@@ -386,6 +386,106 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.ToTable("ApplicationSettings");
                 });
 
+            modelBuilder.Entity("InsightLearn.Core.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("HttpMethod")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Referer")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("StatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("UserEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserRoles")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Action")
+                        .HasDatabaseName("IX_AuditLogs_Action");
+
+                    b.HasIndex("EntityId")
+                        .HasDatabaseName("IX_AuditLogs_EntityId")
+                        .HasFilter("[EntityId] IS NOT NULL");
+
+                    b.HasIndex("RequestId")
+                        .HasDatabaseName("IX_AuditLogs_RequestId")
+                        .HasFilter("[RequestId] IS NOT NULL");
+
+                    b.HasIndex("Timestamp")
+                        .IsDescending()
+                        .HasDatabaseName("IX_AuditLogs_Timestamp");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_AuditLogs_UserId");
+
+                    b.HasIndex("Action", "Timestamp")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_AuditLogs_Action_Timestamp");
+
+                    b.HasIndex("UserId", "Timestamp")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_AuditLogs_UserId_Timestamp");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("InsightLearn.Core.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -454,7 +554,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             ColorCode = "#007bff",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2778),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2325),
                             IconUrl = "fas fa-code",
                             IsActive = true,
                             IsFeatured = false,
@@ -466,7 +566,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
                             ColorCode = "#28a745",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2808),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2371),
                             IconUrl = "fas fa-briefcase",
                             IsActive = true,
                             IsFeatured = false,
@@ -478,7 +578,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
                             ColorCode = "#17a2b8",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2814),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2377),
                             IconUrl = "fas fa-laptop",
                             IsActive = true,
                             IsFeatured = false,
@@ -490,7 +590,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("44444444-4444-4444-4444-444444444444"),
                             ColorCode = "#e83e8c",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2820),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2384),
                             IconUrl = "fas fa-paint-brush",
                             IsActive = true,
                             IsFeatured = false,
@@ -502,7 +602,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("55555555-5555-5555-5555-555555555555"),
                             ColorCode = "#fd7e14",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2826),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2391),
                             IconUrl = "fas fa-bullhorn",
                             IsActive = true,
                             IsFeatured = false,
@@ -514,7 +614,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("66666666-6666-6666-6666-666666666666"),
                             ColorCode = "#6f42c1",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2831),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2399),
                             IconUrl = "fas fa-camera",
                             IsActive = true,
                             IsFeatured = false,
@@ -526,7 +626,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("77777777-7777-7777-7777-777777777777"),
                             ColorCode = "#20c997",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2837),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2404),
                             IconUrl = "fas fa-music",
                             IsActive = true,
                             IsFeatured = false,
@@ -538,7 +638,7 @@ namespace InsightLearn.Infrastructure.Migrations
                         {
                             Id = new Guid("88888888-8888-8888-8888-888888888888"),
                             ColorCode = "#dc3545",
-                            CreatedAt = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(2841),
+                            CreatedAt = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(2409),
                             IconUrl = "fas fa-dumbbell",
                             IsActive = true,
                             IsFeatured = false,
@@ -828,6 +928,9 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsSubscriptionOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Language")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -906,6 +1009,73 @@ namespace InsightLearn.Infrastructure.Migrations
                         .HasFilter("[IsActive] = 1 AND [Status] = 2");
 
                     b.ToTable("Courses");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.CourseEngagement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("CountsForPayout")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceFingerprint")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EngagementType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MetaData")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("ValidationScore")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("CountsForPayout", "StartedAt");
+
+                    b.HasIndex("UserId", "CourseId", "StartedAt");
+
+                    b.ToTable("CourseEngagements");
                 });
 
             modelBuilder.Entity("InsightLearn.Core.Entities.DatabaseErrorLog", b =>
@@ -1237,10 +1407,16 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("TotalWatchedMinutes")
                         .HasColumnType("int");
 
                     b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UserSubscriptionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1252,6 +1428,10 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.HasIndex("EnrolledAt");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("UserSubscriptionId");
 
                     b.HasIndex("UserId", "CourseId")
                         .IsUnique();
@@ -1534,6 +1714,172 @@ namespace InsightLearn.Infrastructure.Migrations
                         .HasDatabaseName("IX_GoogleIntegrations_ServiceName");
 
                     b.ToTable("GoogleIntegrations", (string)null);
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.InstructorConnectAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("ChargesEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("DefaultPayoutMethod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("DisabledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisabledReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LastPayoutAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("OnboardingCompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OnboardingStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("OnboardingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("PayoutsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Requirements")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StripeAccountId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal>("TotalPaidOut")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VerificationStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId")
+                        .IsUnique();
+
+                    b.HasIndex("StripeAccountId")
+                        .IsUnique();
+
+                    b.HasIndex("OnboardingStatus", "PayoutsEnabled");
+
+                    b.ToTable("InstructorConnectAccounts");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.InstructorPayout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActiveCoursesCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CourseEngagementBreakdown")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("EngagementPercentage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("PayoutAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PlatformCommissionRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("PlatformTotalEngagementMinutes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StripeTransferId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long>("TotalEngagementMinutes")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("TotalPlatformRevenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UniqueStudentCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StripeTransferId");
+
+                    b.HasIndex("InstructorId", "Month", "Year")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "Month", "Year");
+
+                    b.ToTable("InstructorPayouts");
                 });
 
             modelBuilder.Entity("InsightLearn.Core.Entities.Lesson", b =>
@@ -2894,6 +3240,172 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.ToTable("Sitemaps", (string)null);
                 });
 
+            modelBuilder.Entity("InsightLearn.Core.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AllowOfflineDownload")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Features")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MaxDevices")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MaxVideoQuality")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("PriceMonthly")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PriceYearly")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("StripePriceMonthlyId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StripePriceYearlyId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StripeProductId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("StripeProductId");
+
+                    b.HasIndex("IsActive", "PriceMonthly");
+
+                    b.ToTable("SubscriptionPlans");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.SubscriptionRevenue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("BillingPeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("BillingPeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CardBrand")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CardLast4")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("EUR");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("InvoiceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("RefundAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RefundReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StripeInvoiceId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StripePaymentIntentId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StripeInvoiceId")
+                        .IsUnique()
+                        .HasFilter("[StripeInvoiceId] IS NOT NULL");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("BillingPeriodStart", "BillingPeriodEnd");
+
+                    b.HasIndex("Status", "PaidAt");
+
+                    b.ToTable("SubscriptionRevenues");
+                });
+
             modelBuilder.Entity("InsightLearn.Core.Entities.SystemEndpoint", b =>
                 {
                     b.Property<int>("Id")
@@ -2929,6 +3441,9 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsImplemented")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("LastModified")
                         .HasColumnType("datetime2");
 
@@ -2950,7 +3465,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/login",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3052)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3034)
                         },
                         new
                         {
@@ -2961,7 +3477,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/register",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3060)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3048)
                         },
                         new
                         {
@@ -2972,7 +3489,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/complete-registration",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3061)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3049)
                         },
                         new
                         {
@@ -2983,7 +3501,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/refresh",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3063)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3050)
                         },
                         new
                         {
@@ -2994,7 +3513,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/me",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3064)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3052)
                         },
                         new
                         {
@@ -3005,7 +3525,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/auth/oauth-callback",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3065)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3054)
                         },
                         new
                         {
@@ -3016,7 +3537,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3067)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3055)
                         },
                         new
                         {
@@ -3027,7 +3549,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3068)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3056)
                         },
                         new
                         {
@@ -3038,7 +3561,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3069)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3060)
                         },
                         new
                         {
@@ -3049,7 +3573,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses/{0}",
                             HttpMethod = "PUT",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3071)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3109)
                         },
                         new
                         {
@@ -3060,7 +3585,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses/{0}",
                             HttpMethod = "DELETE",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3072)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3111)
                         },
                         new
                         {
@@ -3071,7 +3597,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses/search",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3073)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3113)
                         },
                         new
                         {
@@ -3082,7 +3609,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/courses/category/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3074)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3115)
                         },
                         new
                         {
@@ -3093,7 +3621,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/categories",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3075)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3116)
                         },
                         new
                         {
@@ -3104,7 +3633,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/categories/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3076)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3117)
                         },
                         new
                         {
@@ -3115,7 +3645,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/categories",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3077)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3119)
                         },
                         new
                         {
@@ -3126,7 +3657,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/categories/{0}",
                             HttpMethod = "PUT",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3078)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3120)
                         },
                         new
                         {
@@ -3137,7 +3669,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/categories/{0}",
                             HttpMethod = "DELETE",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3080)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3122)
                         },
                         new
                         {
@@ -3148,7 +3681,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/enrollments",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3081)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3123)
                         },
                         new
                         {
@@ -3159,7 +3693,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/enrollments/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3082)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3124)
                         },
                         new
                         {
@@ -3170,7 +3705,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/enrollments",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3083)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3125)
                         },
                         new
                         {
@@ -3181,7 +3717,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/enrollments/course/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3093)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3136)
                         },
                         new
                         {
@@ -3192,7 +3729,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/enrollments/user/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3112)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3138)
                         },
                         new
                         {
@@ -3203,7 +3741,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/users",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3113)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3139)
                         },
                         new
                         {
@@ -3214,7 +3753,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/users/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3114)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3140)
                         },
                         new
                         {
@@ -3225,7 +3765,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/users/{0}",
                             HttpMethod = "PUT",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3115)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3141)
                         },
                         new
                         {
@@ -3236,7 +3777,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/users/{0}",
                             HttpMethod = "DELETE",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3117)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3142)
                         },
                         new
                         {
@@ -3247,7 +3789,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/users/profile",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3118)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3143)
                         },
                         new
                         {
@@ -3258,7 +3801,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/dashboard/stats",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3119)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3144)
                         },
                         new
                         {
@@ -3269,7 +3813,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/dashboard/recent-activity",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3120)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3146)
                         },
                         new
                         {
@@ -3280,7 +3825,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/reviews",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3121)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3147)
                         },
                         new
                         {
@@ -3291,7 +3837,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/reviews/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3122)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3148)
                         },
                         new
                         {
@@ -3302,7 +3849,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/reviews",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3123)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3149)
                         },
                         new
                         {
@@ -3313,7 +3861,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/reviews/course/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3125)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3151)
                         },
                         new
                         {
@@ -3324,7 +3873,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/payments/create-checkout",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3126)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3152)
                         },
                         new
                         {
@@ -3335,7 +3885,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/payments/transactions",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3128)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3153)
                         },
                         new
                         {
@@ -3346,7 +3897,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/payments/transactions/{0}",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3130)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3155)
                         },
                         new
                         {
@@ -3357,7 +3909,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/chat/message",
                             HttpMethod = "POST",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3131)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3156)
                         },
                         new
                         {
@@ -3368,7 +3921,8 @@ namespace InsightLearn.Infrastructure.Migrations
                             EndpointPath = "api/chat/history",
                             HttpMethod = "GET",
                             IsActive = true,
-                            LastModified = new DateTime(2025, 11, 7, 10, 22, 16, 112, DateTimeKind.Utc).AddTicks(3132)
+                            IsImplemented = false,
+                            LastModified = new DateTime(2025, 11, 12, 21, 30, 23, 331, DateTimeKind.Utc).AddTicks(3157)
                         });
                 });
 
@@ -3742,6 +4296,83 @@ namespace InsightLearn.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_UserSessions_JWT_Consistency", "([JwtTokenId] IS NULL AND [JwtToken] IS NULL) OR ([JwtTokenId] IS NOT NULL AND [JwtToken] IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.UserSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AutoRenew")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("BillingInterval")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CancellationFeedback")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CurrentPeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CurrentPeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("StripeSubscriptionId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("StripeSubscriptionId")
+                        .IsUnique()
+                        .HasFilter("[StripeSubscriptionId] IS NOT NULL");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "CurrentPeriodEnd");
+
+                    b.ToTable("UserSubscriptions");
                 });
 
             modelBuilder.Entity("InsightLearn.Core.Entities.ValidationErrorLog", b =>
@@ -4131,6 +4762,31 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Navigation("Instructor");
                 });
 
+            modelBuilder.Entity("InsightLearn.Core.Entities.CourseEngagement", b =>
+                {
+                    b.HasOne("InsightLearn.Core.Entities.Course", "Course")
+                        .WithMany("CourseEngagements")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InsightLearn.Core.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId");
+
+                    b.HasOne("InsightLearn.Core.Entities.User", "User")
+                        .WithMany("CourseEngagements")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InsightLearn.Core.Entities.DatabaseErrorLog", b =>
                 {
                     b.HasOne("InsightLearn.Core.Entities.User", "User")
@@ -4243,15 +4899,26 @@ namespace InsightLearn.Infrastructure.Migrations
                         .HasForeignKey("CurrentLessonId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("InsightLearn.Core.Entities.UserSubscription", "Subscription")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("InsightLearn.Core.Entities.User", "User")
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("InsightLearn.Core.Entities.UserSubscription", null)
+                        .WithMany("Enrollments")
+                        .HasForeignKey("UserSubscriptionId");
+
                     b.Navigation("Course");
 
                     b.Navigation("CurrentLesson");
+
+                    b.Navigation("Subscription");
 
                     b.Navigation("User");
                 });
@@ -4263,6 +4930,28 @@ namespace InsightLearn.Infrastructure.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.InstructorConnectAccount", b =>
+                {
+                    b.HasOne("InsightLearn.Core.Entities.User", "Instructor")
+                        .WithOne("ConnectAccount")
+                        .HasForeignKey("InsightLearn.Core.Entities.InstructorConnectAccount", "InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.InstructorPayout", b =>
+                {
+                    b.HasOne("InsightLearn.Core.Entities.User", "Instructor")
+                        .WithMany("InstructorPayouts")
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
                 });
 
             modelBuilder.Entity("InsightLearn.Core.Entities.Lesson", b =>
@@ -4507,6 +5196,17 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Navigation("Setting");
                 });
 
+            modelBuilder.Entity("InsightLearn.Core.Entities.SubscriptionRevenue", b =>
+                {
+                    b.HasOne("InsightLearn.Core.Entities.UserSubscription", "Subscription")
+                        .WithMany("SubscriptionRevenues")
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Subscription");
+                });
+
             modelBuilder.Entity("InsightLearn.Core.Entities.UserSession", b =>
                 {
                     b.HasOne("InsightLearn.Core.Entities.User", "User")
@@ -4514,6 +5214,25 @@ namespace InsightLearn.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.UserSubscription", b =>
+                {
+                    b.HasOne("InsightLearn.Core.Entities.SubscriptionPlan", "Plan")
+                        .WithMany("UserSubscriptions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InsightLearn.Core.Entities.User", "User")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
 
                     b.Navigation("User");
                 });
@@ -4594,6 +5313,8 @@ namespace InsightLearn.Infrastructure.Migrations
                 {
                     b.Navigation("Coupons");
 
+                    b.Navigation("CourseEngagements");
+
                     b.Navigation("Discussions");
 
                     b.Navigation("Enrollments");
@@ -4646,9 +5367,18 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Navigation("Lessons");
                 });
 
+            modelBuilder.Entity("InsightLearn.Core.Entities.SubscriptionPlan", b =>
+                {
+                    b.Navigation("UserSubscriptions");
+                });
+
             modelBuilder.Entity("InsightLearn.Core.Entities.User", b =>
                 {
                     b.Navigation("Certificates");
+
+                    b.Navigation("ConnectAccount");
+
+                    b.Navigation("CourseEngagements");
 
                     b.Navigation("CreatedCoupons");
 
@@ -4664,6 +5394,8 @@ namespace InsightLearn.Infrastructure.Migrations
 
                     b.Navigation("Enrollments");
 
+                    b.Navigation("InstructorPayouts");
+
                     b.Navigation("LessonProgress");
 
                     b.Navigation("Notes");
@@ -4673,6 +5405,15 @@ namespace InsightLearn.Infrastructure.Migrations
                     b.Navigation("ReviewVotes");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("Subscriptions");
+                });
+
+            modelBuilder.Entity("InsightLearn.Core.Entities.UserSubscription", b =>
+                {
+                    b.Navigation("Enrollments");
+
+                    b.Navigation("SubscriptionRevenues");
                 });
 #pragma warning restore 612, 618
         }

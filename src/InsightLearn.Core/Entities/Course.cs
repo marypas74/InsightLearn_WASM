@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -74,14 +75,29 @@ public class Course
     
     public int EnrollmentCount { get; set; }
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual User Instructor { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual Category Category { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
+
+    [JsonIgnore]
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+
+    [JsonIgnore]
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+    [JsonIgnore]
     public virtual ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
+
+    [JsonIgnore]
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
+
+    [JsonIgnore]
     public virtual ICollection<CourseEngagement> CourseEngagements { get; set; } = new List<CourseEngagement>();
     
     public decimal CurrentPrice => Price * (1 - DiscountPercentage / 100);

@@ -1,0 +1,137 @@
+@using InsightLearn.Core.DTOs.Admin
+
+<div class="kpi-card @(GetColorClass())">
+    <div class="kpi-card-icon">
+        <i class="fas fa-@Icon"></i>
+    </div>
+    <div class="kpi-card-content">
+        <div class="kpi-card-label">@Label</div>
+        <div class="kpi-card-value">
+            @if (!string.IsNullOrEmpty(ValueFormat) && Value is IFormattable formattable)
+            {
+                @formattable.ToString(ValueFormat, System.Globalization.CultureInfo.CurrentCulture)
+            }
+            else
+            {
+                @Value
+            }
+        </div>
+        @if (Trend != null)
+        {
+            <TrendIndicator Trend="@Trend" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "chart-line";
+    [Parameter] public string IconColor { get; set; } = "primary";
+    [Parameter] public string Label { get; set; } = "Metric";
+    [Parameter] public object Value { get; set; } = 0;
+    [Parameter] public string? ValueFormat { get; set; }
+    [Parameter] public TrendData? Trend { get; set; }
+
+    private string GetColorClass()
+    {
+        return IconColor switch
+        {
+            "primary" => "kpi-card-primary",
+            "success" => "kpi-card-success",
+            "info" => "kpi-card-info",
+            "warning" => "kpi-card-warning",
+            "danger" => "kpi-card-danger",
+            _ => "kpi-card-default"
+        };
+    }
+}
+
+<style>
+    .kpi-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .kpi-card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .kpi-card-primary .kpi-card-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .kpi-card-success .kpi-card-icon {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+    }
+
+    .kpi-card-info .kpi-card-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+    }
+
+    .kpi-card-warning .kpi-card-icon {
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        color: white;
+    }
+
+    .kpi-card-danger .kpi-card-icon {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+
+    .kpi-card-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .kpi-card-label {
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .kpi-card-value {
+        color: #1e293b;
+        font-size: 1.875rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
+    }
+
+    @@media (max-width: 768px) {
+        .kpi-card {
+            padding: 1rem;
+        }
+
+        .kpi-card-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+
+        .kpi-card-value {
+            font-size: 1.5rem;
+        }
+    }
+}</style>

@@ -20,20 +20,14 @@ data:
         static_configs:
           - targets: ['localhost:9090']
 
-      # kube-state-metrics (kube_* metrics)
+      # kube-state-metrics (kube_* metrics) - FIXED namespace
       - job_name: 'kube-state-metrics'
-        kubernetes_sd_configs:
-          - role: endpoints
-            namespaces:
-              names:
-                - kube-system
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_service_name]
+        static_configs:
+          - targets: ['kube-state-metrics.insightlearn.svc.cluster.local:8080']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'kube_(pod|deployment|statefulset|daemonset|replicaset|node|persistentvolume).*'
             action: keep
-            regex: kube-state-metrics
-          - source_labels: [__meta_kubernetes_endpoint_port_name]
-            action: keep
-            regex: http-metrics
 
       # Kubelet cAdvisor (container_* metrics)
       - job_name: 'kubernetes-cadvisor'
@@ -66,6 +60,68 @@ data:
         relabel_configs:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
+
+      # MongoDB Exporter - NEW
+      - job_name: 'mongodb'
+        static_configs:
+          - targets: ['mongodb-exporter.insightlearn.svc.cluster.local:9216']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'mongodb_.*'
+            action: keep
+
+      # Redis Exporter - NEW
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis-exporter.insightlearn.svc.cluster.local:9121']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'redis_.*'
+            action: keep
+
+      # InsightLearn API - Discover pods with prometheus annotations
+      - job_name: 'insightlearn-api'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - insightlearn
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: kubernetes_pod_name
+
+      # Grafana metrics
+      - job_name: 'grafana'
+        static_configs:
+          - targets: ['grafana.insightlearn.svc.cluster.local:3000']
+        metrics_path: '/metrics'
+
+      # Disaster Recovery Metrics - Host-based service
+      - job_name: 'insightlearn-disaster-recovery'
+        static_configs:
+          - targets: ['192.168.1.114:9101']
+            labels:
+              service: 'disaster-recovery'
+              environment: 'production'
+        scrape_interval: 60s
+        scrape_timeout: 30s
+        metrics_path: '/metrics'
 
 ---
 # Prometheus Deployment
@@ -106,11 +162,11 @@ spec:
           protocol: TCP
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
             memory: "512Mi"
-            cpu: "500m"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
         volumeMounts:
         - name: config
           mountPath: /etc/prometheus
@@ -127,9 +183,10 @@ spec:
           httpGet:
             path: /-/ready
             port: 9090
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
       volumes:
       - name: config
         configMap:

@@ -1,204 +1,553 @@
 @page "/admin"
 @page "/admin/dashboard"
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 @inject NavigationManager Navigation
-@inject InsightLearn.WebAssembly.Services.Admin.IAdminDashboardService DashboardService
+@inject InsightLearn.WebAssembly.Services.Admin.IEnhancedDashboardService DashboardService
+@inject InsightLearn.WebAssembly.Services.Admin.IPrometheusMetricsService PrometheusService
 @inject Blazored.Toast.Services.IToastService Toast
+@inject IJSRuntime JSRuntime
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.Core.DTOs.Admin
+@using InsightLearn.WebAssembly.Components.Admin
 @using InsightLearn.WebAssembly.Models.Admin
 
 <PageTitle>Admin Dashboard - InsightLearn</PageTitle>
 
-<div class="dashboard-layout">
-    <div class="breadcrumb-nav">
-        <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item">Home</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Admin Dashboard</span>
-        </nav>
+<div class="enhanced-dashboard">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Dashboard Overview</h1>
+            <p class="dashboard-subtitle">Welcome back! Here's what's happening with your platform today.</p>
+        </div>
+        <div class="header-actions">
+            @if (lastUpdated != null)
+            {
+                <span class="last-updated">
+                    <i class="far fa-clock"></i>
+                    Last updated: @lastUpdated.Value.ToString("HH:mm:ss")
+                </span>
+            }
+            <button class="btn-refresh" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                @(isLoading ? "Refreshing..." : "Refresh")
+            </button>
+        </div>
     </div>
 
-    <div class="page-header">
-        <h1 class="page-title">Admin Dashboard</h1>
-        <p class="page-description">Monitor and manage your learning platform</p>
-    </div>
-
-    @if (isLoading)
+    @if (isInitialLoading)
     {
-        <div class="loading-state">
-            <div class="spinner spinner-lg"></div>
-            <p>Loading dashboard...</p>
+        <div class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h3>Loading Dashboard</h3>
+                <p>Fetching your platform analytics...</p>
+            </div>
         </div>
     }
     else if (error != null)
     {
-        <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadDashboard">Retry</button>
+        <div class="error-container">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3>Unable to Load Dashboard</h3>
+            <p>@error</p>
+            <button class="btn btn-primary" @onclick="RefreshData">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
         </div>
     }
     else if (stats != null)
     {
-        <!-- Metrics Grid -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-icon users">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">@stats.TotalUsers</div>
-                    <div class="metric-label">Total Users</div>
-                </div>
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+            <KpiCard Icon="users"
+                     IconColor="primary"
+                     Label="Total Users"
+                     Value="@stats.TotalUsers"
+                     ValueFormat="N0"
+                     Trend="@stats.UsersTrend" />
+
+            <KpiCard Icon="user-check"
+                     IconColor="success"
+                     Label="Active Users Now"
+                     Value="@stats.ActiveUsersNow"
+                     ValueFormat="N0" />
+
+            <KpiCard Icon="chalkboard-teacher"
+                     IconColor="info"
+                     Label="Total Instructors"
+                     Value="@stats.TotalInstructors"
+                     ValueFormat="N0"
+                     Trend="@stats.InstructorsTrend" />
+
+            <KpiCard Icon="book-open"
+                     IconColor="warning"
+                     Label="Total Courses"
+                     Value="@stats.TotalCourses"
+                     ValueFormat="N0"
+                     Trend="@stats.CoursesTrend" />
+
+            <KpiCard Icon="user-graduate"
+                     IconColor="success"
+                     Label="Active Enrollments"
+                     Value="@stats.ActiveEnrollments"
+                     ValueFormat="N0"
+                     Trend="@stats.EnrollmentsTrend" />
+
+            <KpiCard Icon="dollar-sign"
+                     IconColor="primary"
+                     Label="Total Revenue"
+                     Value="@stats.TotalRevenue"
+                     ValueFormat="C2"
+                     Trend="@stats.RevenueTrend" />
+
+            <KpiCard Icon="server"
+                     IconColor="@(stats.PlatformStatus == "healthy" ? "success" : "danger")"
+                     Label="Platform Status"
+                     Value="@stats.PlatformStatus.ToUpper()" />
+
+            <KpiCard Icon="database"
+                     IconColor="info"
+                     Label="Storage Used"
+                     Value="@stats.Storage.TotalUsedFormatted" />
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats-row">
+            <div class="stat-item">
+                <span class="stat-label">New Users Today</span>
+                <span class="stat-value">@stats.NewUsersToday</span>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon courses">
-                    <i class="fas fa-book"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">@stats.TotalCourses</div>
-                    <div class="metric-label">Total Courses</div>
-                </div>
+            <div class="stat-item">
+                <span class="stat-label">New This Week</span>
+                <span class="stat-value">@stats.NewUsersThisWeek</span>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon enrollments">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">@stats.TotalEnrollments</div>
-                    <div class="metric-label">Enrollments</div>
-                </div>
+            <div class="stat-item">
+                <span class="stat-label">Published Courses</span>
+                <span class="stat-value">@stats.PublishedCourses</span>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon revenue">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">€@stats.TotalRevenue.ToString("N2")</div>
-                    <div class="metric-label">Total Revenue</div>
-                </div>
+            <div class="stat-item">
+                <span class="stat-label">Draft Courses</span>
+                <span class="stat-value">@stats.DraftCourses</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Completed</span>
+                <span class="stat-value">@stats.CompletedEnrollments</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Response Time</span>
+                <span class="stat-value">@stats.AverageResponseTime.ToString("0")ms</span>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Quick Actions</h2>
-            </div>
-            <div class="card-content">
-                <div class="quick-actions-grid">
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/users")'>
-                        <i class="fas fa-users"></i>
-                        <span>Manage Users</span>
-                    </button>
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/courses")'>
-                        <i class="fas fa-book"></i>
-                        <span>Manage Courses</span>
-                    </button>
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/categories")'>
-                        <i class="fas fa-tags"></i>
-                        <span>Manage Categories</span>
-                    </button>
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/analytics")'>
-                        <i class="fas fa-chart-line"></i>
-                        <span>View Analytics</span>
-                    </button>
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/reports")'>
-                        <i class="fas fa-file-alt"></i>
-                        <span>Generate Reports</span>
-                    </button>
-                    <button class="action-button" @onclick='() => Navigation.NavigateTo("/admin/settings")'>
-                        <i class="fas fa-cog"></i>
-                        <span>System Settings</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Recent Activity</h2>
-            </div>
-            <div class="card-content">
-                @if (recentActivity?.Any() == true)
-                {
-                    <div class="activity-list">
-                        @foreach (var activity in recentActivity)
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>User Growth</h3>
+                        <span class="chart-subtitle">Last 30 Days</span>
+                    </div>
+                    <div class="chart-body">
+                        @if (userGrowthData != null)
                         {
-                            <div class="activity-item">
-                                <div class="activity-icon">
-                                    <i class="fas fa-@activity.Icon"></i>
-                                </div>
-                                <div class="activity-content">
-                                    <p class="activity-text">@activity.Description</p>
-                                    <span class="activity-time">@FormatRelativeTime(activity.Timestamp)</span>
-                                </div>
+                            <LineChart Data="@userGrowthData" Height="250px" />
+                        }
+                        else
+                        {
+                            <div class="chart-loading">
+                                <div class="spinner-border spinner-border-sm"></div>
+                                <span>Loading chart...</span>
                             </div>
                         }
                     </div>
-                }
-                else
-                {
-                    <p class="empty-text">No recent activity</p>
-                }
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Revenue Trends</h3>
+                        <span class="chart-subtitle">Last 6 Months</span>
+                    </div>
+                    <div class="chart-body">
+                        @if (revenueData != null)
+                        {
+                            <AreaChart Data="@revenueData" Height="250px" />
+                        }
+                        else
+                        {
+                            <div class="chart-loading">
+                                <div class="spinner-border spinner-border-sm"></div>
+                                <span>Loading chart...</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h3>Top Courses by Enrollment</h3>
+                    <span class="chart-subtitle">Top 10 Performers</span>
+                </div>
+                <div class="chart-body">
+                    @if (topCoursesData != null)
+                    {
+                        <BarChart Data="@topCoursesData" Height="300px" Horizontal="true" />
+                    }
+                    else
+                    {
+                        <div class="chart-loading">
+                            <div class="spinner-border spinner-border-sm"></div>
+                            <span>Loading chart...</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Prometheus Metrics Section -->
+        <div class="prometheus-section">
+            <h2 class="section-title">
+                <i class="fas fa-server"></i>
+                Infrastructure & Performance Metrics
+            </h2>
+
+            <div class="prometheus-grid">
+                <PrometheusMetricsCard
+                    Title="API Performance"
+                    IconClass="fas fa-tachometer-alt"
+                    LoadMetrics="@(() => PrometheusService.GetApiMetricsAsync())"
+                    RefreshIntervalSeconds="30" />
+
+                <PrometheusMetricsCard
+                    Title="Infrastructure Health"
+                    IconClass="fas fa-heartbeat"
+                    LoadMetrics="@(() => PrometheusService.GetInfrastructureMetricsAsync())"
+                    RefreshIntervalSeconds="30" />
+            </div>
+
+            <!-- Pod Metrics Section -->
+            <div class="pod-metrics-section">
+                <h3 class="subsection-title">
+                    <i class="fas fa-cubes"></i>
+                    Pod Resource Usage
+                </h3>
+                <div class="pod-metrics-grid">
+                    @if (podMetrics != null && podMetrics.Any())
+                    {
+                        @foreach (var pod in podMetrics.GroupBy(p => p.Key.Split('_')[0]))
+                        {
+                            <div class="pod-metric-card">
+                                <div class="pod-name">@pod.Key</div>
+                                @foreach (var metric in pod)
+                                {
+                                    var metricType = metric.Key.Contains("cpu") ? "CPU" : "Memory";
+                                    var value = metric.Key.Contains("cpu") ? $"{metric.Value:F1}%" : $"{metric.Value:F0} MB";
+                                    <div class="pod-metric-item">
+                                        <span class="metric-type">@metricType:</span>
+                                        <span class="metric-value">@value</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-pod-metrics">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Pod metrics not available</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity and Actions -->
+        <div class="bottom-section">
+            <div class="activity-section">
+                <ActivityFeed
+                    Items="@activityItems"
+                    OnItemClick="HandleActivityClick"
+                    OnRefresh="RefreshActivity"
+                    OnLoadMore="LoadMoreActivity"
+                    ShowLoadMore="@(activityItems?.Count >= 20)"
+                    IsLoading="@isLoadingActivity" />
+            </div>
+
+            <div class="quick-actions-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-buttons">
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/users")'>
+                                <i class="fas fa-users"></i>
+                                <span>Manage Users</span>
+                            </button>
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/courses/create")'>
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Create Course</span>
+                            </button>
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/instructors")'>
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                <span>Instructors</span>
+                            </button>
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/analytics")'>
+                                <i class="fas fa-chart-line"></i>
+                                <span>Analytics</span>
+                            </button>
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/payments")'>
+                                <i class="fas fa-credit-card"></i>
+                                <span>Payments</span>
+                            </button>
+                            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/settings")'>
+                                <i class="fas fa-cog"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Health Mini Card -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3>System Health</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="health-metrics">
+                            <div class="health-item">
+                                <span class="health-label">Uptime</span>
+                                <span class="health-value">@stats.Uptime.ToString("0.##")%</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">Errors (24h)</span>
+                                <span class="health-value">@stats.ErrorsLast24Hours</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">Videos</span>
+                                <span class="health-value">@stats.Storage.TotalVideos</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     }
 </div>
 
 @code {
-    private bool isLoading = true;
+    private bool isInitialLoading = true;
+    private bool isLoading = false;
+    private bool isLoadingActivity = false;
     private string? error;
-    private DashboardStats? stats;
-    private List<RecentActivity>? recentActivity;
+    private DateTime? lastUpdated;
+
+    // Data models
+    private EnhancedDashboardStatsDto? stats;
+    private List<ActivityItemDto>? activityItems;
+    private ChartDataDto? userGrowthData;
+    private ChartDataDto? revenueData;
+    private ChartDataDto? topCoursesData;
+
+    // Prometheus metrics
+    private Dictionary<string, double>? podMetrics;
+    private System.Threading.Timer? metricsRefreshTimer;
+
+    private int activityOffset = 0;
+    private const int ACTIVITY_PAGE_SIZE = 20;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboard();
+        await LoadDashboardData();
+        await LoadPodMetrics();
+
+        // Setup timer for refreshing pod metrics
+        metricsRefreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadPodMetrics();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
     }
 
-    private async Task LoadDashboard()
+    private async Task LoadDashboardData()
     {
         try
         {
-            isLoading = true;
+            isInitialLoading = true;
             error = null;
 
-            stats = await DashboardService.GetStatsAsync();
-            recentActivity = await DashboardService.GetRecentActivityAsync(10);
+            // Load main stats
+            stats = await DashboardService.GetEnhancedStatsAsync();
 
             if (stats == null)
             {
-                error = "Failed to load dashboard statistics";
-                Toast.ShowError(error);
+                error = "Unable to load dashboard statistics. Please try again later.";
+                return;
+            }
+
+            // Load activity feed
+            var activityResult = await DashboardService.GetRecentActivityAsync(ACTIVITY_PAGE_SIZE, 0);
+            activityItems = activityResult?.Items ?? new List<ActivityItemDto>();
+
+            // Load charts data in parallel
+            var chartTasks = new[]
+            {
+                LoadChartData("user-growth", 30),
+                LoadChartData("revenue", 180),
+                LoadChartData("top-courses", 0)
+            };
+
+            await Task.WhenAll(chartTasks);
+
+            userGrowthData = chartTasks[0].Result;
+            revenueData = chartTasks[1].Result;
+            topCoursesData = chartTasks[2].Result;
+
+            lastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading the dashboard.";
+            Console.WriteLine($"Dashboard error: {ex}");
+            Toast.ShowError("Failed to load dashboard data");
+        }
+        finally
+        {
+            isInitialLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<ChartDataDto?> LoadChartData(string chartType, int days)
+    {
+        try
+        {
+            return await DashboardService.GetChartDataAsync(chartType, days);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading {chartType} chart: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            stats = await DashboardService.GetEnhancedStatsAsync();
+
+            if (stats != null)
+            {
+                lastUpdated = DateTime.Now;
+                Toast.ShowSuccess("Dashboard refreshed successfully");
+            }
+            else
+            {
+                Toast.ShowError("Failed to refresh dashboard");
             }
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading the dashboard";
-            Toast.ShowError(error);
-            Console.WriteLine($"Admin dashboard error: {ex}");
+            Console.WriteLine($"Refresh error: {ex}");
+            Toast.ShowError("Error refreshing dashboard");
         }
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 
-    private string FormatRelativeTime(DateTime timestamp)
+    private async Task RefreshActivity()
     {
-        var timeSpan = DateTime.UtcNow - timestamp;
+        try
+        {
+            isLoadingActivity = true;
+            StateHasChanged();
 
-        if (timeSpan.TotalMinutes < 1)
-            return "just now";
-        if (timeSpan.TotalMinutes < 60)
-            return $"{(int)timeSpan.TotalMinutes} minutes ago";
-        if (timeSpan.TotalHours < 24)
-            return $"{(int)timeSpan.TotalHours} hours ago";
-        if (timeSpan.TotalDays < 7)
-            return $"{(int)timeSpan.TotalDays} days ago";
+            var result = await DashboardService.GetRecentActivityAsync(ACTIVITY_PAGE_SIZE, 0);
+            if (result != null)
+            {
+                activityItems = result.Items;
+                activityOffset = 0;
+            }
+        }
+        finally
+        {
+            isLoadingActivity = false;
+            StateHasChanged();
+        }
+    }
 
-        return timestamp.ToString("MMM dd, yyyy");
+    private async Task LoadMoreActivity()
+    {
+        try
+        {
+            isLoadingActivity = true;
+            activityOffset += ACTIVITY_PAGE_SIZE;
+
+            var result = await DashboardService.GetRecentActivityAsync(ACTIVITY_PAGE_SIZE, activityOffset);
+            if (result?.Items != null && result.Items.Any())
+            {
+                activityItems?.AddRange(result.Items);
+            }
+        }
+        finally
+        {
+            isLoadingActivity = false;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleActivityClick(ActivityItemDto item)
+    {
+        // Navigate to related entity based on type
+        switch (item.EntityType?.ToLower())
+        {
+            case "user":
+                Navigation.NavigateTo($"/admin/users/{item.EntityId}");
+                break;
+            case "course":
+                Navigation.NavigateTo($"/admin/courses/{item.EntityId}");
+                break;
+            case "enrollment":
+                Navigation.NavigateTo($"/admin/enrollments/{item.EntityId}");
+                break;
+            default:
+                // Stay on dashboard
+                break;
+        }
+    }
+
+    private async Task LoadPodMetrics()
+    {
+        try
+        {
+            podMetrics = await PrometheusService.GetPodMetricsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load pod metrics: {ex.Message}");
+            // Non-critical error, don't show toast
+        }
+    }
+
+    public void Dispose()
+    {
+        metricsRefreshTimer?.Dispose();
     }
 }

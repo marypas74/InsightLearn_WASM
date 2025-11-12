@@ -1,0 +1,224 @@
+@using InsightLearn.WebAssembly.Models.Admin
+@implements IDisposable
+
+<div class="prometheus-metrics-card">
+    <div class="metrics-header">
+        <h3>
+            <i class="@IconClass"></i>
+            @Title
+        </h3>
+        <button class="btn-refresh" @onclick="RefreshMetrics" disabled="@isRefreshing">
+            <i class="fas fa-sync-alt @(isRefreshing ? "fa-spin" : "")"></i>
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="metrics-loading">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading metrics...</span>
+            </div>
+            <span class="ms-2">Loading metrics...</span>
+        </div>
+    }
+    else if (metrics.Any())
+    {
+        <div class="metrics-grid">
+            @foreach (var metric in metrics)
+            {
+                <div class="metric-item">
+                    <div class="metric-label">@metric.Label</div>
+                    <div class="metric-value @GetMetricValueClass(metric)">
+                        @FormatValue(metric.Value, metric.Unit)
+                    </div>
+                    <div class="metric-unit">@GetUnitDisplay(metric.Unit)</div>
+                    @if (metric.Labels.Any())
+                    {
+                        <div class="metric-tags">
+                            @foreach (var label in metric.Labels.Take(3))
+                            {
+                                <span class="metric-tag">@label.Key: @label.Value</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (hasError)
+    {
+        <div class="metrics-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Failed to load metrics. Check Prometheus connection.</span>
+        </div>
+    }
+    else
+    {
+        <div class="no-data">
+            <i class="fas fa-info-circle"></i>
+            <span>No metrics available</span>
+        </div>
+    }
+
+    <div class="metrics-footer">
+        <span class="update-time">
+            <i class="fas fa-clock"></i>
+            Last updated: @lastUpdated.ToString("HH:mm:ss")
+        </span>
+        @if (RefreshIntervalSeconds > 0)
+        {
+            <span class="auto-refresh">
+                <i class="fas fa-redo"></i>
+                Auto-refresh: @RefreshIntervalSeconds s
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Metrics";
+    [Parameter] public string IconClass { get; set; } = "fas fa-chart-line";
+    [Parameter] public Func<Task<List<PrometheusMetricDto>>>? LoadMetrics { get; set; }
+    [Parameter] public int RefreshIntervalSeconds { get; set; } = 30;
+    [Parameter] public int MaxMetricsToShow { get; set; } = 8;
+
+    private List<PrometheusMetricDto> metrics = new();
+    private bool isLoading = true;
+    private bool isRefreshing = false;
+    private bool hasError = false;
+    private DateTime lastUpdated = DateTime.Now;
+    private System.Threading.Timer? refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+
+        // Setup auto-refresh if enabled
+        if (RefreshIntervalSeconds > 0 && LoadMetrics != null)
+        {
+            refreshTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (!isRefreshing)
+                    {
+                        await LoadData();
+                        StateHasChanged();
+                    }
+                });
+            }, null, TimeSpan.FromSeconds(RefreshIntervalSeconds), TimeSpan.FromSeconds(RefreshIntervalSeconds));
+        }
+    }
+
+    private async Task LoadData()
+    {
+        if (LoadMetrics == null)
+            return;
+
+        try
+        {
+            hasError = false;
+            var loadedMetrics = await LoadMetrics();
+            metrics = loadedMetrics.Take(MaxMetricsToShow).ToList();
+            lastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading metrics: {ex.Message}");
+            hasError = true;
+            metrics.Clear();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshMetrics()
+    {
+        if (isRefreshing || LoadMetrics == null)
+            return;
+
+        isRefreshing = true;
+        try
+        {
+            await LoadData();
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    private string FormatValue(double value, string unit)
+    {
+        return unit switch
+        {
+            "percent" => $"{value:F1}%",
+            "bytes" => FormatBytes(value),
+            "seconds" => $"{value:F2}s",
+            "milliseconds" => $"{value:F0}ms",
+            "requests/s" => $"{value:F2}",
+            "errors/s" => $"{value:F4}",
+            "connections" => $"{value:F0}",
+            "count" => $"{value:F0}",
+            _ => value.ToString("F2")
+        };
+    }
+
+    private string FormatBytes(double bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        while (bytes >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            bytes /= 1024;
+        }
+        return $"{bytes:F2} {sizes[order]}";
+    }
+
+    private string GetUnitDisplay(string unit)
+    {
+        return unit switch
+        {
+            "percent" => "Percentage",
+            "bytes" => "Size",
+            "seconds" => "Time",
+            "milliseconds" => "Latency",
+            "requests/s" => "Req/sec",
+            "errors/s" => "Err/sec",
+            "connections" => "Active",
+            "count" => "Total",
+            _ => unit
+        };
+    }
+
+    private string GetMetricValueClass(PrometheusMetricDto metric)
+    {
+        // Apply color coding based on metric type and value
+        if (metric.Unit == "percent")
+        {
+            if (metric.Value > 80) return "metric-value-danger";
+            if (metric.Value > 60) return "metric-value-warning";
+            return "metric-value-success";
+        }
+        else if (metric.Unit == "errors/s" && metric.Value > 0)
+        {
+            return "metric-value-danger";
+        }
+        else if (metric.Name.Contains("response_time") && metric.Unit == "milliseconds")
+        {
+            if (metric.Value > 1000) return "metric-value-danger";
+            if (metric.Value > 500) return "metric-value-warning";
+            return "metric-value-success";
+        }
+
+        return "";
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+}

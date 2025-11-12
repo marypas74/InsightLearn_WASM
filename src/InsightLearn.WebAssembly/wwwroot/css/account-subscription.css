@@ -1,0 +1,500 @@
+/* Account Subscription Page Styles */
+
+.subscription-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+}
+
+.subscription-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.subscription-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.subscription-header .subtitle {
+    font-size: 1.125rem;
+    color: #666;
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.loading-container p {
+    margin-top: 1rem;
+    color: #666;
+}
+
+/* No Subscription Card */
+.no-subscription-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 4rem 2rem;
+    text-align: center;
+    color: white;
+}
+
+.no-subscription-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+}
+
+.no-subscription-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.no-subscription-card p {
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+    opacity: 0.95;
+}
+
+.no-subscription-card .btn-primary {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 1rem 2.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.no-subscription-card .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Subscription Content */
+.subscription-content {
+    display: grid;
+    gap: 2rem;
+}
+
+/* Subscription Card */
+.subscription-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.subscription-card.cancelled-status {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.subscription-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.subscription-card.cancelled-status .card-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.subscription-card .card-header h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.status-active {
+    background: #10b981;
+    color: white;
+}
+
+.status-badge.status-cancelled {
+    background: #f59e0b;
+    color: white;
+}
+
+.status-badge.status-expired {
+    background: #ef4444;
+    color: white;
+}
+
+/* Card Body */
+.subscription-card .card-body {
+    padding: 2rem;
+}
+
+.subscription-info {
+    display: grid;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 1rem;
+}
+
+.info-value {
+    font-size: 1.125rem;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+/* Subscription Actions */
+.subscription-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.subscription-actions .btn {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.subscription-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Benefits Card */
+.benefits-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.benefits-card h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 1.5rem;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    color: #333;
+}
+
+.benefits-list li:last-child {
+    margin-bottom: 0;
+}
+
+.benefits-list li i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+/* Cancel Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-dialog {
+    max-width: 600px;
+    width: 90%;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-close:hover {
+    background: #f3f4f6;
+    color: #1a1a1a;
+}
+
+.btn-close::before {
+    content: "×";
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-body p {
+    font-size: 1rem;
+    color: #4b5563;
+    margin-bottom: 1.5rem;
+}
+
+.modal-body .form-select,
+.modal-body .form-control {
+    font-size: 1rem;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.modal-body .form-select:focus,
+.modal-body .form-control:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-body .alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+}
+
+.modal-body .alert i {
+    font-size: 1.25rem;
+}
+
+.modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-footer .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .subscription-container {
+        padding: 2rem 1rem;
+    }
+
+    .subscription-header h1 {
+        font-size: 2rem;
+    }
+
+    .no-subscription-card {
+        padding: 3rem 1.5rem;
+    }
+
+    .no-subscription-card h3 {
+        font-size: 1.5rem;
+    }
+
+    .no-subscription-card p {
+        font-size: 1rem;
+    }
+
+    .subscription-card .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .subscription-card .card-header h3 {
+        font-size: 1.5rem;
+    }
+
+    .subscription-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .subscription-actions {
+        flex-direction: column;
+    }
+
+    .benefits-list li {
+        font-size: 1rem;
+    }
+
+    .modal-dialog {
+        width: 95%;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .subscription-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .subscription-card.cancelled-status {
+        background: #422006;
+        border-color: #78350f;
+    }
+
+    .subscription-header h1,
+    .info-value,
+    .benefits-card h4 {
+        color: #f9fafb;
+    }
+
+    .subscription-header .subtitle,
+    .info-label,
+    .benefits-list li {
+        color: #d1d5db;
+    }
+
+    .benefits-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .modal-content {
+        background: #1f2937;
+    }
+
+    .modal-header {
+        border-bottom-color: #374151;
+    }
+
+    .modal-header h3 {
+        color: #f9fafb;
+    }
+
+    .modal-body p {
+        color: #d1d5db;
+    }
+
+    .modal-footer {
+        border-top-color: #374151;
+    }
+
+    .btn-close:hover {
+        background: #374151;
+        color: #f9fafb;
+    }
+}

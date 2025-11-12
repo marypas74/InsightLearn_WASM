@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -35,14 +36,23 @@ public class Enrollment
     
     public int TotalWatchedMinutes { get; set; }
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual User User { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual Course Course { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual Lesson? CurrentLesson { get; set; }
+
+    [JsonIgnore]
     public virtual Certificate? Certificate { get; set; }
 
     // Subscription support
     public Guid? SubscriptionId { get; set; }
+
+    [JsonIgnore]
     public virtual UserSubscription? Subscription { get; set; }
     
     public double ProgressPercentage

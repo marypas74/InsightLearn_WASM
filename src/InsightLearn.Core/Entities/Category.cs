@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -32,9 +33,14 @@ public class Category
     
     public DateTime? UpdatedAt { get; set; }
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual Category? ParentCategory { get; set; }
+
+    [JsonIgnore]
     public virtual ICollection<Category> SubCategories { get; set; } = new List<Category>();
+
+    [JsonIgnore]
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
     
     public int CourseCount => Courses.Count(c => c.IsActive && c.Status == CourseStatus.Published);

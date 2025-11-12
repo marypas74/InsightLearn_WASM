@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InsightLearn.Core.Constants;
 using InsightLearn.Core.Validation; // For DateGreaterThan
 
 namespace InsightLearn.Core.DTOs.Payment;
@@ -22,16 +23,20 @@ public class CreateCouponDto
     public string Type { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Coupon value is required")]
-    [Range(0.01, 100000.00, ErrorMessage = "Value must be between 0.01 and 100,000")]
+    [Range(0.01, 50000.00,
+        ErrorMessage = "Value must be between $0.01 and $50,000")]
     public decimal Value { get; set; }
 
-    [Range(0, 100000.00, ErrorMessage = "Minimum amount must be between 0 and 100,000")]
+    [Range(0, 50000.00,
+        ErrorMessage = "Minimum amount must be between $0 and $50,000")]
     public decimal? MinimumAmount { get; set; }
 
-    [Range(0, 100000.00, ErrorMessage = "Maximum discount must be between 0 and 100,000")]
+    [Range(0, 50000.00,
+        ErrorMessage = "Maximum discount must be between $0 and $50,000")]
     public decimal? MaximumDiscount { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "Usage limit must be at least 1")]
+    [Range(1, ValidationConstants.Payment.MaxCouponUsageLimit,
+        ErrorMessage = "Usage limit must be between 1 and 100,000")]
     public int? UsageLimit { get; set; }
 
     [Required(ErrorMessage = "Valid from date is required")]

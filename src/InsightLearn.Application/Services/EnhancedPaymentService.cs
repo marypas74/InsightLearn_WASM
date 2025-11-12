@@ -57,6 +57,8 @@ public class EnhancedPaymentService : IPaymentService
 
     public async Task<StripeCheckoutDto> CreateStripeCheckoutAsync(CreatePaymentDto dto)
     {
+        // Begin transaction (ALL OR NOTHING)
+        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
             // 1. Validate course exists
@@ -67,7 +69,7 @@ public class EnhancedPaymentService : IPaymentService
                 throw new ArgumentException($"Course with ID {dto.CourseId} not found");
             }
 
-            // 2. Check if user is already enrolled
+            // 2. Check if user is already enrolled (prevent double payment)
             var isEnrolled = await _enrollmentRepository.IsUserEnrolledAsync(dto.UserId, dto.CourseId);
             if (isEnrolled)
             {
@@ -102,7 +104,7 @@ public class EnhancedPaymentService : IPaymentService
                 }
             }
 
-            // 4. Create payment record with Pending status
+            // 4. Create payment record with Pending status (UNCOMMITTED)
             var payment = new Payment
             {
                 Id = Guid.NewGuid(),
@@ -121,24 +123,48 @@ public class EnhancedPaymentService : IPaymentService
             };
 
             payment = await _paymentRepository.CreateAsync(payment);
+            await _context.SaveChangesAsync(); // Save to get Payment ID
 
-            // 5. Create MOCK Stripe checkout session (real Stripe SDK integration would go here)
-            var sessionId = $"cs_test_{Guid.NewGuid():N}";
-            var checkoutUrl = $"https://checkout.stripe.com/pay/{sessionId}?payment_id={payment.Id}";
-
-            _logger.LogInformation("[Payment] Created Stripe checkout session {SessionId} for payment {PaymentId}, amount: {Amount} {Currency}",
-                sessionId, payment.Id, finalAmount, payment.Currency);
-
-            return new StripeCheckoutDto
+            // 5. Call Stripe API (ROLLBACK if fails)
+            try
             {
-                SessionId = sessionId,
-                CheckoutUrl = checkoutUrl,
-                PaymentId = payment.Id,
-                PublicKey = _stripePublicKey
-            };
+                // MOCK Stripe checkout session (replace with real Stripe SDK in production)
+                var sessionId = $"cs_test_{Guid.NewGuid():N}";
+                var checkoutUrl = $"https://checkout.stripe.com/pay/{sessionId}?payment_id={payment.Id}";
+
+                // In production: var session = await _stripeService.CreateCheckoutSessionAsync(payment);
+
+                // 6. Update payment with Stripe session ID (UNCOMMITTED)
+                payment.TransactionId = sessionId;
+                payment.Status = PaymentStatus.Processing;
+                await _context.SaveChangesAsync();
+
+                // COMMIT ALL OR NOTHING
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("[Payment] Created Stripe checkout session {SessionId} for payment {PaymentId}, amount: {Amount} {Currency}",
+                    sessionId, payment.Id, finalAmount, payment.Currency);
+
+                return new StripeCheckoutDto
+                {
+                    SessionId = sessionId,
+                    CheckoutUrl = checkoutUrl,
+                    PaymentId = payment.Id,
+                    PublicKey = _stripePublicKey
+                };
+            }
+            catch (Exception stripeEx)
+            {
+                // Stripe API failed - ROLLBACK TRANSACTION
+                await transaction.RollbackAsync();
+                _logger.LogError(stripeEx, "[Payment] Stripe API failed - rolling back payment {PaymentId}", payment.Id);
+                throw new InvalidOperationException("Payment gateway error. Please try again.", stripeEx);
+            }
         }
         catch (Exception ex)
         {
+            // Any other error - ROLLBACK TRANSACTION
+            await transaction.RollbackAsync();
             _logger.LogError(ex, "[Payment] Failed to create Stripe checkout for user {UserId}, course {CourseId}",
                 dto.UserId, dto.CourseId);
             throw;
@@ -147,6 +173,8 @@ public class EnhancedPaymentService : IPaymentService
 
     public async Task<PayPalCheckoutDto> CreatePayPalCheckoutAsync(CreatePaymentDto dto)
     {
+        // Begin transaction (ALL OR NOTHING)
+        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
             // 1. Validate course exists
@@ -157,7 +185,7 @@ public class EnhancedPaymentService : IPaymentService
                 throw new ArgumentException($"Course with ID {dto.CourseId} not found");
             }
 
-            // 2. Check enrollment status
+            // 2. Check enrollment status (prevent double payment)
             var isEnrolled = await _enrollmentRepository.IsUserEnrolledAsync(dto.UserId, dto.CourseId);
             if (isEnrolled)
             {
@@ -184,10 +212,13 @@ public class EnhancedPaymentService : IPaymentService
                     finalAmount = couponValidation.FinalAmount;
                     discountAmount = couponValidation.DiscountAmount;
                     couponId = couponValidation.Coupon.Id;
+
+                    _logger.LogInformation("[Payment] Applied coupon {CouponCode}, discount: {Discount}",
+                        dto.CouponCode, discountAmount);
                 }
             }
 
-            // 4. Create payment record
+            // 4. Create payment record (UNCOMMITTED)
             var payment = new Payment
             {
                 Id = Guid.NewGuid(),
@@ -206,23 +237,47 @@ public class EnhancedPaymentService : IPaymentService
             };
 
             payment = await _paymentRepository.CreateAsync(payment);
+            await _context.SaveChangesAsync(); // Save to get Payment ID
 
-            // 5. Create MOCK PayPal checkout (real PayPal SDK integration would go here)
-            var orderId = $"PAYPAL_ORDER_{Guid.NewGuid():N}";
-            var approvalUrl = $"https://www.paypal.com/checkoutnow?token={orderId}&payment_id={payment.Id}";
-
-            _logger.LogInformation("[Payment] Created PayPal checkout order {OrderId} for payment {PaymentId}, amount: {Amount} {Currency}",
-                orderId, payment.Id, finalAmount, payment.Currency);
-
-            return new PayPalCheckoutDto
+            // 5. Call PayPal API (ROLLBACK if fails)
+            try
             {
-                OrderId = orderId,
-                ApprovalUrl = approvalUrl,
-                PaymentId = payment.Id
-            };
+                // MOCK PayPal checkout (replace with real PayPal SDK in production)
+                var orderId = $"PAYPAL_ORDER_{Guid.NewGuid():N}";
+                var approvalUrl = $"https://www.paypal.com/checkoutnow?token={orderId}&payment_id={payment.Id}";
+
+                // In production: var order = await _paypalService.CreateOrderAsync(payment);
+
+                // 6. Update payment with PayPal order ID (UNCOMMITTED)
+                payment.TransactionId = orderId;
+                payment.Status = PaymentStatus.Processing;
+                await _context.SaveChangesAsync();
+
+                // COMMIT ALL OR NOTHING
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("[Payment] Created PayPal checkout order {OrderId} for payment {PaymentId}, amount: {Amount} {Currency}",
+                    orderId, payment.Id, finalAmount, payment.Currency);
+
+                return new PayPalCheckoutDto
+                {
+                    OrderId = orderId,
+                    ApprovalUrl = approvalUrl,
+                    PaymentId = payment.Id
+                };
+            }
+            catch (Exception paypalEx)
+            {
+                // PayPal API failed - ROLLBACK TRANSACTION
+                await transaction.RollbackAsync();
+                _logger.LogError(paypalEx, "[Payment] PayPal API failed - rolling back payment {PaymentId}", payment.Id);
+                throw new InvalidOperationException("Payment gateway error. Please try again.", paypalEx);
+            }
         }
         catch (Exception ex)
         {
+            // Any other error - ROLLBACK TRANSACTION
+            await transaction.RollbackAsync();
             _logger.LogError(ex, "[Payment] Failed to create PayPal checkout for user {UserId}, course {CourseId}",
                 dto.UserId, dto.CourseId);
             throw;
@@ -231,23 +286,30 @@ public class EnhancedPaymentService : IPaymentService
 
     public async Task<PaymentIntentDto> CreatePaymentIntentAsync(CreatePaymentDto dto)
     {
+        // Begin transaction (ALL OR NOTHING)
+        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Similar to Stripe checkout but returns payment intent for direct processing
+            // 1. Validate course exists
             var course = await _courseRepository.GetByIdAsync(dto.CourseId);
             if (course == null)
             {
+                _logger.LogError("[Payment] Course not found: {CourseId}", dto.CourseId);
                 throw new ArgumentException($"Course with ID {dto.CourseId} not found");
             }
 
+            // 2. Check enrollment status (prevent double payment)
             var isEnrolled = await _enrollmentRepository.IsUserEnrolledAsync(dto.UserId, dto.CourseId);
             if (isEnrolled)
             {
                 throw new InvalidOperationException("User is already enrolled in this course");
             }
 
-            decimal finalAmount = dto.Amount;
+            // 3. Calculate amount with coupon
+            decimal originalAmount = dto.Amount;
+            decimal finalAmount = originalAmount;
             Guid? couponId = null;
+            decimal discountAmount = 0;
 
             if (!string.IsNullOrEmpty(dto.CouponCode))
             {
@@ -255,24 +317,29 @@ public class EnhancedPaymentService : IPaymentService
                 {
                     CouponCode = dto.CouponCode,
                     CourseId = dto.CourseId,
-                    OriginalAmount = dto.Amount
+                    OriginalAmount = originalAmount
                 });
 
                 if (couponValidation.IsValid && couponValidation.Coupon != null)
                 {
                     finalAmount = couponValidation.FinalAmount;
+                    discountAmount = couponValidation.DiscountAmount;
                     couponId = couponValidation.Coupon.Id;
+
+                    _logger.LogInformation("[Payment] Applied coupon {CouponCode}, discount: {Discount}",
+                        dto.CouponCode, discountAmount);
                 }
             }
 
+            // 4. Create payment record (UNCOMMITTED)
             var payment = new Payment
             {
                 Id = Guid.NewGuid(),
                 UserId = dto.UserId,
                 CourseId = dto.CourseId,
                 Amount = finalAmount,
-                OriginalAmount = dto.Amount,
-                DiscountAmount = dto.Amount - finalAmount,
+                OriginalAmount = originalAmount,
+                DiscountAmount = discountAmount,
                 Currency = dto.Currency ?? _currency,
                 Status = PaymentStatus.Pending,
                 PaymentMethod = PaymentMethodType.CreditCard,
@@ -283,25 +350,50 @@ public class EnhancedPaymentService : IPaymentService
             };
 
             payment = await _paymentRepository.CreateAsync(payment);
+            await _context.SaveChangesAsync(); // Save to get Payment ID
 
-            // MOCK payment intent (real Stripe SDK would create actual intent)
-            var paymentIntentId = $"pi_test_{Guid.NewGuid():N}";
-            var clientSecret = $"pi_test_{Guid.NewGuid():N}_secret_{Guid.NewGuid():N}";
-
-            _logger.LogInformation("[Payment] Created payment intent {IntentId} for payment {PaymentId}",
-                paymentIntentId, payment.Id);
-
-            return new PaymentIntentDto
+            // 5. Create Stripe Payment Intent (ROLLBACK if fails)
+            try
             {
-                PaymentId = payment.Id,
-                ClientSecret = clientSecret,
-                Amount = finalAmount,
-                Currency = payment.Currency
-            };
+                // MOCK payment intent (replace with real Stripe SDK in production)
+                var paymentIntentId = $"pi_test_{Guid.NewGuid():N}";
+                var clientSecret = $"pi_test_{Guid.NewGuid():N}_secret_{Guid.NewGuid():N}";
+
+                // In production: var intent = await _stripeService.CreatePaymentIntentAsync(payment);
+
+                // 6. Update payment with payment intent ID (UNCOMMITTED)
+                payment.TransactionId = paymentIntentId;
+                payment.Status = PaymentStatus.Processing;
+                await _context.SaveChangesAsync();
+
+                // COMMIT ALL OR NOTHING
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("[Payment] Created payment intent {IntentId} for payment {PaymentId}, amount: {Amount} {Currency}",
+                    paymentIntentId, payment.Id, finalAmount, payment.Currency);
+
+                return new PaymentIntentDto
+                {
+                    PaymentId = payment.Id,
+                    ClientSecret = clientSecret,
+                    Amount = finalAmount,
+                    Currency = payment.Currency
+                };
+            }
+            catch (Exception stripeEx)
+            {
+                // Stripe API failed - ROLLBACK TRANSACTION
+                await transaction.RollbackAsync();
+                _logger.LogError(stripeEx, "[Payment] Stripe Payment Intent API failed - rolling back payment {PaymentId}", payment.Id);
+                throw new InvalidOperationException("Payment gateway error. Please try again.", stripeEx);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[Payment] Failed to create payment intent");
+            // Any other error - ROLLBACK TRANSACTION
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "[Payment] Failed to create payment intent for user {UserId}, course {CourseId}",
+                dto.UserId, dto.CourseId);
             throw;
         }
     }

@@ -1,0 +1,289 @@
+@page "/instructor/earnings"
+@using InsightLearn.Core.DTOs.Payout
+@using InsightLearn.WebAssembly.Services.Payout
+@inject IPayoutService PayoutService
+@inject ILogger<Earnings> Logger
+@attribute [Authorize(Roles = "Instructor")]
+
+<PageTitle>My Earnings - InsightLearn</PageTitle>
+
+<div class="earnings-container">
+    <div class="earnings-header">
+        <h1>My Earnings</h1>
+        <p class="subtitle">Track your revenue and payouts</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading earnings...</span>
+            </div>
+            <p>Loading your earnings data...</p>
+        </div>
+    }
+    else if (hasError)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Error Loading Earnings</h4>
+            <p>@errorMessage</p>
+            <button class="btn btn-primary" @onclick="LoadEarningsAsync">Retry</button>
+        </div>
+    }
+    else
+    {
+        <!-- Earnings Summary Cards -->
+        <div class="earnings-summary">
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Total Lifetime Earnings</h3>
+                    <p class="amount">€@lifetimeEarnings.ToString("N2")</p>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="bi bi-calendar-month"></i>
+                </div>
+                <div class="card-content">
+                    <h3>This Month</h3>
+                    <p class="amount">€@currentMonthEarnings.ToString("N2")</p>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Pending Payout</h3>
+                    <p class="amount">€@pendingPayout.ToString("N2")</p>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Unique Students</h3>
+                    <p class="amount">@uniqueStudents</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Engagement Analytics -->
+        @if (analytics != null)
+        {
+            <div class="analytics-section">
+                <h2>Engagement Analytics</h2>
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h4>Total Engagement Minutes</h4>
+                        <p class="stat-value">@analytics.TotalEngagementMinutes.ToString("N0")</p>
+                        <p class="stat-label">minutes watched</p>
+                    </div>
+                    <div class="analytics-card">
+                        <h4>Average Per Student</h4>
+                        <p class="stat-value">@analytics.AverageMinutesPerStudent.ToString("N1")</p>
+                        <p class="stat-label">minutes</p>
+                    </div>
+                    <div class="analytics-card">
+                        <h4>Revenue Share</h4>
+                        <p class="stat-value">@((analytics.RevenueSharePercentage * 100).ToString("N1"))%</p>
+                        <p class="stat-label">of total revenue</p>
+                    </div>
+                    <div class="analytics-card">
+                        <h4>Active Courses</h4>
+                        <p class="stat-value">@analytics.CoursesCount</p>
+                        <p class="stat-label">courses</p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Payout History -->
+        <div class="payout-history-section">
+            <div class="section-header">
+                <h2>Payout History</h2>
+                <div class="section-actions">
+                    <button class="btn btn-outline-primary" @onclick="ExportPayoutHistory">
+                        <i class="bi bi-download"></i> Export Report
+                    </button>
+                </div>
+            </div>
+
+            @if (payoutHistory.Count == 0)
+            {
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h3>No Payouts Yet</h3>
+                    <p>Your payout history will appear here once you receive your first payment.</p>
+                </div>
+            }
+            else
+            {
+                <div class="payout-table-container">
+                    <table class="payout-table">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>Amount</th>
+                                <th>Engagement</th>
+                                <th>Students</th>
+                                <th>Status</th>
+                                <th>Payment Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payout in payoutHistory)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="period-label">
+                                            @payout.PeriodStart.ToString("MMM dd") - @payout.PeriodEnd.ToString("MMM dd, yyyy")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-value">€@payout.Amount.ToString("N2")</span>
+                                    </td>
+                                    <td>
+                                        <span class="engagement-value">@payout.TotalEngagementMinutes.ToString("N0") min</span>
+                                    </td>
+                                    <td>
+                                        <span class="students-value">@payout.UniqueStudentCount</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-@payout.Status.ToLower()">
+                                            @payout.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (payout.PaymentDate.HasValue)
+                                        {
+                                            <span>@payout.PaymentDate.Value.ToString("MMM dd, yyyy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Pending</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <div class="pagination-container">
+                        <button class="btn btn-outline-secondary"
+                                @onclick="PreviousPage"
+                                disabled="@(currentPage == 1)">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <span class="page-info">Page @currentPage of @totalPages</span>
+                        <button class="btn btn-outline-secondary"
+                                @onclick="NextPage"
+                                disabled="@(currentPage == totalPages)">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<PayoutDto> payoutHistory = new();
+    private InstructorAnalyticsDto? analytics;
+    private decimal lifetimeEarnings = 0m;
+    private decimal currentMonthEarnings = 0m;
+    private decimal pendingPayout = 0m;
+    private int uniqueStudents = 0;
+    private bool isLoading = true;
+    private bool hasError = false;
+    private string errorMessage = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalPages = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEarningsAsync();
+    }
+
+    private async Task LoadEarningsAsync()
+    {
+        try
+        {
+            isLoading = true;
+            hasError = false;
+            errorMessage = string.Empty;
+
+            // Load payout history
+            var payoutResponse = await PayoutService.GetMyPayoutHistoryAsync(currentPage, pageSize);
+            if (payoutResponse != null)
+            {
+                payoutHistory = payoutResponse.Payouts;
+                totalPages = payoutResponse.TotalPages;
+            }
+
+            // Load analytics
+            analytics = await PayoutService.GetMyAnalyticsAsync();
+
+            // Calculate summary values
+            lifetimeEarnings = await PayoutService.GetLifetimeEarningsAsync();
+
+            var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            var currentMonthEnd = currentMonthStart.AddMonths(1).AddDays(-1);
+            currentMonthEarnings = payoutHistory
+                .Where(p => p.PeriodStart >= currentMonthStart && p.PeriodEnd <= currentMonthEnd)
+                .Sum(p => p.Amount);
+
+            pendingPayout = payoutHistory
+                .Where(p => p.Status == "Pending" || p.Status == "Processing")
+                .Sum(p => p.Amount);
+
+            uniqueStudents = analytics?.UniqueStudentCount ?? 0;
+
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading earnings");
+            isLoading = false;
+            hasError = true;
+            errorMessage = "Failed to load earnings data. Please try again.";
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            await LoadEarningsAsync();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            await LoadEarningsAsync();
+        }
+    }
+
+    private void ExportPayoutHistory()
+    {
+        // TODO: Implement CSV export functionality
+        Logger.LogInformation("Export payout history requested");
+    }
+}

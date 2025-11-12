@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -74,23 +75,56 @@ public class User : IdentityUser<Guid>
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual ICollection<Course> CreatedCourses { get; set; } = new List<Course>();
+
+    [JsonIgnore]
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+
+    [JsonIgnore]
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+    [JsonIgnore]
     public virtual ICollection<ReviewVote> ReviewVotes { get; set; } = new List<ReviewVote>();
+
+    [JsonIgnore]
     public virtual ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
+
+    [JsonIgnore]
     public virtual ICollection<DiscussionComment> DiscussionComments { get; set; } = new List<DiscussionComment>();
+
+    [JsonIgnore]
     public virtual ICollection<DiscussionVote> DiscussionVotes { get; set; } = new List<DiscussionVote>();
+
+    [JsonIgnore]
     public virtual ICollection<DiscussionCommentVote> DiscussionCommentVotes { get; set; } = new List<DiscussionCommentVote>();
+
+    [JsonIgnore]
     public virtual ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
+
+    [JsonIgnore]
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    [JsonIgnore]
     public virtual ICollection<LessonProgress> LessonProgress { get; set; } = new List<LessonProgress>();
+
+    [JsonIgnore]
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
+
+    [JsonIgnore]
     public virtual ICollection<Coupon> CreatedCoupons { get; set; } = new List<Coupon>();
+
+    [JsonIgnore]
     public virtual ICollection<UserSubscription> Subscriptions { get; set; } = new List<UserSubscription>();
+
+    [JsonIgnore]
     public virtual ICollection<CourseEngagement> CourseEngagements { get; set; } = new List<CourseEngagement>();
+
+    [JsonIgnore]
     public virtual ICollection<InstructorPayout> InstructorPayouts { get; set; } = new List<InstructorPayout>();
+
+    [JsonIgnore]
     public virtual InstructorConnectAccount? ConnectAccount { get; set; }
     
     public string FullName => $"{FirstName} {LastName}";

@@ -1,0 +1,261 @@
+@using InsightLearn.Core.DTOs.Admin
+
+<div class="activity-feed">
+    <div class="activity-feed-header">
+        <h3>Recent Activity</h3>
+        @if (OnRefresh.HasDelegate)
+        {
+            <button class="btn-icon" @onclick="OnRefresh" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        }
+    </div>
+
+    @if (Items != null && Items.Any())
+    {
+        <div class="activity-feed-list">
+            @foreach (var item in Items)
+            {
+                <div class="activity-item @($"activity-{item.IconColor}")" @onclick="() => HandleItemClick(item)">
+                    <div class="activity-icon">
+                        <i class="fas fa-@item.Icon"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">@item.Title</div>
+                        <div class="activity-description">@item.Description</div>
+                        <div class="activity-meta">
+                            <span class="activity-time">
+                                <i class="far fa-clock"></i>
+                                @item.TimeAgo
+                            </span>
+                            @if (!string.IsNullOrEmpty(item.UserName))
+                            {
+                                <span class="activity-user">
+                                    <i class="far fa-user"></i>
+                                    @item.UserName
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (ShowLoadMore && OnLoadMore.HasDelegate)
+        {
+            <div class="activity-feed-footer">
+                <button class="btn-load-more" @onclick="OnLoadMore">
+                    Load More
+                </button>
+            </div>
+        }
+    }
+    else if (IsLoading)
+    {
+        <div class="activity-feed-empty">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading activity...</p>
+        </div>
+    }
+    else
+    {
+        <div class="activity-feed-empty">
+            <i class="fas fa-inbox fa-3x"></i>
+            <p>No recent activity</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<ActivityItemDto>? Items { get; set; }
+    [Parameter] public EventCallback<ActivityItemDto> OnItemClick { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback OnLoadMore { get; set; }
+    [Parameter] public bool ShowLoadMore { get; set; } = false;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private async Task HandleItemClick(ActivityItemDto item)
+    {
+        if (OnItemClick.HasDelegate)
+        {
+            await OnItemClick.InvokeAsync(item);
+        }
+    }
+}
+
+<style>
+    .activity-feed {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .activity-feed-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .activity-feed-header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        color: #64748b;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #f1f5f9;
+        color: #3b82f6;
+    }
+
+    .activity-feed-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .activity-item:hover {
+        background: #f8fafc;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.125rem;
+    }
+
+    .activity-success .activity-icon {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .activity-info .activity-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .activity-warning .activity-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .activity-danger .activity-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .activity-secondary .activity-icon {
+        background: rgba(100, 116, 139, 0.1);
+        color: #64748b;
+    }
+
+    .activity-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.125rem;
+    }
+
+    .activity-description {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .activity-meta i {
+        margin-right: 0.25rem;
+    }
+
+    .activity-feed-empty {
+        padding: 3rem;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .activity-feed-empty i {
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .activity-feed-footer {
+        padding: 1rem;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .btn-load-more {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-load-more:hover {
+        background: #2563eb;
+    }
+
+    /* Custom scrollbar */
+    .activity-feed-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .activity-feed-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    .activity-feed-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+
+    .activity-feed-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+}</style>

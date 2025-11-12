@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -21,8 +22,11 @@ public class Section
     
     public bool IsActive { get; set; } = true;
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual Course Course { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
     
     public int TotalLessons => Lessons.Count(l => l.IsActive);
@@ -66,9 +70,14 @@ public class Lesson
     public long? VideoFileSize { get; set; }
     public string? VideoFormat { get; set; } // mp4, webm
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual Section Section { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual ICollection<LessonProgress> LessonProgress { get; set; } = new List<LessonProgress>();
+
+    [JsonIgnore]
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
 }
 
@@ -102,8 +111,11 @@ public class LessonProgress
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual Lesson Lesson { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual User User { get; set; } = null!;
     
     public double ProgressPercentage => Lesson.DurationMinutes > 0 
@@ -130,7 +142,10 @@ public class Note
     
     public DateTime? UpdatedAt { get; set; }
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual User User { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual Lesson Lesson { get; set; } = null!;
 }

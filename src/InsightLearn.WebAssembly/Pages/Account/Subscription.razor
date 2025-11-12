@@ -1,0 +1,334 @@
+@page "/account/subscription"
+@using InsightLearn.Core.Entities
+@using InsightLearn.WebAssembly.Services.Subscription
+@inject ISubscriptionService SubscriptionService
+@inject NavigationManager Navigation
+@inject ILogger<Subscription> Logger
+@attribute [Authorize]
+
+<PageTitle>My Subscription - InsightLearn</PageTitle>
+
+<div class="subscription-container">
+    <div class="subscription-header">
+        <h1>My Subscription</h1>
+        <p class="subtitle">Manage your InsightLearn subscription</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading subscription...</span>
+            </div>
+            <p>Loading your subscription details...</p>
+        </div>
+    }
+    else if (hasError)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Error Loading Subscription</h4>
+            <p>@errorMessage</p>
+            <button class="btn btn-primary" @onclick="LoadSubscriptionAsync">Retry</button>
+        </div>
+    }
+    else if (activeSubscription == null)
+    {
+        <div class="no-subscription-card">
+            <div class="no-subscription-icon">
+                <i class="bi bi-star"></i>
+            </div>
+            <h3>No Active Subscription</h3>
+            <p>You don't have an active subscription yet. Subscribe now to unlock unlimited access to all courses!</p>
+            <button class="btn btn-primary btn-lg" @onclick="GoToPricing">
+                View Subscription Plans
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="subscription-content">
+            <!-- Current Subscription Card -->
+            <div class="subscription-card @(activeSubscription.Status == "Cancelled" ? "cancelled-status" : "")">
+                <div class="card-header">
+                    <h3>@subscriptionPlan?.Name</h3>
+                    <span class="status-badge status-@activeSubscription.Status.ToLower()">
+                        @activeSubscription.Status
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="subscription-info">
+                        <div class="info-row">
+                            <span class="info-label">Billing Cycle:</span>
+                            <span class="info-value">@activeSubscription.BillingInterval</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Price:</span>
+                            <span class="info-value">
+                                €@(activeSubscription.BillingInterval == "month"
+                                    ? subscriptionPlan?.PriceMonthly
+                                    : subscriptionPlan?.PriceYearly) / @activeSubscription.BillingInterval
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Started:</span>
+                            <span class="info-value">@activeSubscription.CurrentPeriodStart.ToString("MMMM dd, yyyy")</span>
+                        </div>
+                        @if (activeSubscription.Status != "Cancelled")
+                        {
+                            <div class="info-row">
+                                <span class="info-label">Next Billing:</span>
+                                <span class="info-value">@activeSubscription.CurrentPeriodEnd.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                        }
+                        @if (activeSubscription.CancelledAt.HasValue)
+                        {
+                            <div class="info-row">
+                                <span class="info-label">Cancelled On:</span>
+                                <span class="info-value">@activeSubscription.CancelledAt.Value.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                        }
+                        @if (activeSubscription.EndsAt.HasValue)
+                        {
+                            <div class="info-row">
+                                <span class="info-label">Access Until:</span>
+                                <span class="info-value">@activeSubscription.EndsAt.Value.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="subscription-actions">
+                        @if (activeSubscription.Status == "Active")
+                        {
+                            <button class="btn btn-outline-danger" @onclick="ShowCancelModal">
+                                Cancel Subscription
+                            </button>
+                        }
+                        else if (activeSubscription.Status == "Cancelled")
+                        {
+                            <button class="btn btn-success" @onclick="ReactivateSubscriptionAsync" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Reactivating...</span>
+                                }
+                                else
+                                {
+                                    <span>Reactivate Subscription</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefits Section -->
+            @if (activeSubscription.Status == "Active")
+            {
+                <div class="benefits-card">
+                    <h4>Your Benefits</h4>
+                    <ul class="benefits-list">
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Unlimited access to all subscription courses
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            New courses added every month
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Learn at your own pace
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Cancel anytime, no questions asked
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Cancel Subscription Modal -->
+    @if (showCancelModal)
+    {
+        <div class="modal-overlay" @onclick="HideCancelModal">
+            <div class="modal-dialog" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Cancel Subscription</h3>
+                        <button type="button" class="btn-close" @onclick="HideCancelModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>We're sorry to see you go! Please tell us why you're cancelling:</p>
+                        <select class="form-select mb-3" @bind="cancellationReason">
+                            <option value="">-- Select a reason --</option>
+                            <option value="Too expensive">Too expensive</option>
+                            <option value="Not using enough">Not using enough</option>
+                            <option value="Found alternative">Found alternative</option>
+                            <option value="Technical issues">Technical issues</option>
+                            <option value="Content quality">Content quality</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <textarea class="form-control"
+                                  rows="4"
+                                  placeholder="Additional feedback (optional)"
+                                  @bind="cancellationFeedback"></textarea>
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Your subscription will remain active until the end of your billing period.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="HideCancelModal">
+                            Keep Subscription
+                        </button>
+                        <button class="btn btn-danger" @onclick="ConfirmCancellationAsync" disabled="@isProcessing">
+                            @if (isProcessing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Cancelling...</span>
+                            }
+                            else
+                            {
+                                <span>Confirm Cancellation</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private UserSubscription? activeSubscription;
+    private SubscriptionPlan? subscriptionPlan;
+    private bool isLoading = true;
+    private bool hasError = false;
+    private string errorMessage = string.Empty;
+    private bool isProcessing = false;
+    private bool showCancelModal = false;
+    private string cancellationReason = string.Empty;
+    private string cancellationFeedback = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubscriptionAsync();
+    }
+
+    private async Task LoadSubscriptionAsync()
+    {
+        try
+        {
+            isLoading = true;
+            hasError = false;
+            errorMessage = string.Empty;
+
+            activeSubscription = await SubscriptionService.GetMyActiveSubscriptionAsync();
+
+            if (activeSubscription != null)
+            {
+                subscriptionPlan = await SubscriptionService.GetSubscriptionPlanByIdAsync(activeSubscription.PlanId);
+            }
+
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading subscription");
+            isLoading = false;
+            hasError = true;
+            errorMessage = "Failed to load subscription. Please try again.";
+        }
+    }
+
+    private void GoToPricing()
+    {
+        Navigation.NavigateTo("/pricing");
+    }
+
+    private void ShowCancelModal()
+    {
+        showCancelModal = true;
+        cancellationReason = string.Empty;
+        cancellationFeedback = string.Empty;
+    }
+
+    private void HideCancelModal()
+    {
+        showCancelModal = false;
+    }
+
+    private async Task ConfirmCancellationAsync()
+    {
+        if (activeSubscription == null) return;
+
+        try
+        {
+            isProcessing = true;
+
+            var success = await SubscriptionService.CancelSubscriptionAsync(
+                activeSubscription.Id,
+                string.IsNullOrWhiteSpace(cancellationReason) ? null : cancellationReason,
+                string.IsNullOrWhiteSpace(cancellationFeedback) ? null : cancellationFeedback
+            );
+
+            if (success)
+            {
+                showCancelModal = false;
+                await LoadSubscriptionAsync();
+            }
+            else
+            {
+                Logger.LogError("Failed to cancel subscription");
+                errorMessage = "Failed to cancel subscription. Please try again.";
+                hasError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling subscription");
+            errorMessage = "Failed to cancel subscription. Please try again.";
+            hasError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ReactivateSubscriptionAsync()
+    {
+        if (activeSubscription == null) return;
+
+        try
+        {
+            isProcessing = true;
+
+            var success = await SubscriptionService.ReactivateSubscriptionAsync(activeSubscription.Id);
+
+            if (success)
+            {
+                await LoadSubscriptionAsync();
+            }
+            else
+            {
+                Logger.LogError("Failed to reactivate subscription");
+                errorMessage = "Failed to reactivate subscription. Please try again.";
+                hasError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reactivating subscription");
+            errorMessage = "Failed to reactivate subscription. Please try again.";
+            hasError = true;
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+}

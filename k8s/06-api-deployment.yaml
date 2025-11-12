@@ -57,6 +57,21 @@ spec:
             configMapKeyRef:
               name: insightlearn-config
               key: redis-connection
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: redis-password
+        - name: RateLimit__RequestsPerMinute
+          value: "100"
+        - name: RateLimit__ExemptPaths__0
+          value: "/health"
+        - name: RateLimit__ExemptPaths__1
+          value: "/api/info"
+        - name: RateLimit__ExemptPaths__2
+          value: "/metrics"
+        - name: RateLimit__ExemptPaths__3
+          value: "/api/csp-violations"
         - name: Elasticsearch__Url
           valueFrom:
             configMapKeyRef:

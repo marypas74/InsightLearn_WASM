@@ -31,6 +31,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
 
+    <!-- Redis for distributed rate limiting -->
+    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+
     <!-- Security patches for transitive vulnerabilities (CVE-2024-43483, CVE-2024-43485) -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />

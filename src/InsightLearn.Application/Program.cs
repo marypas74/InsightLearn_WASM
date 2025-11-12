@@ -3,6 +3,7 @@ using InsightLearn.Application.Endpoints;
 using InsightLearn.Application.Interfaces;
 using InsightLearn.Application.Middleware;
 using InsightLearn.Application.Services;
+using StackExchange.Redis;
 using InsightLearn.Infrastructure.Data;
 using InsightLearn.Infrastructure.Repositories;
 using InsightLearn.Infrastructure.Services;
@@ -64,6 +65,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = null; // null = PascalCase
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;  // Prevent circular reference infinite loops
+    options.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;  // Reduce payload size
 });
 
 // Disable automatic 400 responses for model validation errors (we want to log them)
@@ -72,14 +75,27 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = false; // Keep validation, we'll handle in endpoint
 });
 
-// Configure CORS
+// Configure CORS - Secure configuration with explicit allowed origins
+// Read allowed origins from environment variable or configuration
+var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]?.Split(',')
+    ?? new[] {
+        "https://localhost:7003",  // Dev WebAssembly
+        "https://insightlearn.cloud",  // Production
+        "https://www.insightlearn.cloud",
+        "https://admin.insightlearn.cloud"
+    };
+
+Console.WriteLine($"[SECURITY] CORS configured with {allowedOrigins.Length} allowed origins");
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials()  // Required for JWT in cookies
+              .SetIsOriginAllowedToAllowWildcardSubdomains();
     });
 });
 
@@ -341,6 +357,37 @@ builder.Services.AddScoped<IChatbotService>(sp =>
     return new ChatbotService(ollamaService, dbContext, logger, ollamaModel);
 });
 
+// Configure Redis for distributed rate limiting
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
+    ?? builder.Configuration["Redis:ConnectionString"]
+    ?? "redis-service.insightlearn.svc.cluster.local:6379";
+
+// Get Redis password from configuration or environment
+var redisPassword = builder.Configuration["Redis:Password"]
+    ?? Environment.GetEnvironmentVariable("REDIS_PASSWORD");
+
+if (!string.IsNullOrEmpty(redisPassword))
+{
+    redisConnectionString = $"{redisConnectionString},password={redisPassword}";
+}
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = ConfigurationOptions.Parse(redisConnectionString);
+    configuration.AbortOnConnectFail = false; // Fail gracefully if Redis is down
+    configuration.ConnectTimeout = 5000; // 5 second timeout
+    configuration.SyncTimeout = 5000;
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("[CONFIG] Connecting to Redis at: {RedisConnection}", redisConnectionString.Replace(redisPassword ?? "", "***"));
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
+// Configure rate limiting options from configuration
+builder.Services.Configure<RateLimitOptions>(
+    builder.Configuration.GetSection("RateLimit"));
+
+Console.WriteLine("[CONFIG] Redis configured for distributed rate limiting");
+
 // Register MongoDB Video Storage Services
 builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
 builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
@@ -573,77 +620,27 @@ app.UseSwaggerUI();
 
 app.UseCors();
 
-// Add security headers middleware (OWASP Top 10 compliance)
-app.Use(async (context, next) =>
-{
-    // Prevent clickjacking attacks
-    context.Response.Headers.TryAdd("X-Frame-Options", "DENY");
+// Security Headers Middleware - Comprehensive security headers for all responses
+// Moved to dedicated middleware for better maintainability (P1.2)
+// Implements OWASP ASVS V14.4 (Security Headers) compliance
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
-    // Prevent MIME-sniffing attacks
-    context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
-
-    // NOTE: X-XSS-Protection is DEPRECATED (removed from Chrome 78+, Firefox, Safari)
-    // Modern browsers use CSP instead. Kept for legacy IE11 support only.
-    // context.Response.Headers.TryAdd("X-XSS-Protection", "1; mode=block");
-
-    // Strict Transport Security (HSTS) - force HTTPS for 1 year (production only)
-    if (!app.Environment.IsDevelopment())
-    {
-        context.Response.Headers.TryAdd("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-    }
-
-    // Content Security Policy - allow Blazor WASM requirements + violation reporting
-    context.Response.Headers.TryAdd("Content-Security-Policy",
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; " +  // Blazor WASM needs unsafe-eval
-        "style-src 'self' 'unsafe-inline'; " +                     // Blazor needs inline styles
-        "img-src 'self' data: https:; " +
-        "font-src 'self' data:; " +
-        "connect-src 'self' wss: https:; " +                       // WebSocket + HTTPS APIs
-        "frame-ancestors 'self'; " +
-        "base-uri 'self'; " +
-        "form-action 'self'; " +
-        "object-src 'none'; " +                                    // Block plugins (Flash, Java, etc.)
-        "media-src 'self' data:; " +                               // Audio/video from same origin
-        "worker-src 'self' blob:; " +                              // Web workers
-        "manifest-src 'self'; " +                                  // PWA manifest
-        "report-uri /api/csp-violations");                         // CSP violation reporting
-
-    // Referrer Policy - balance privacy with analytics
-    context.Response.Headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
-
-    // Permissions Policy (formerly Feature-Policy) - enable LMS features, disable risky ones
-    context.Response.Headers.TryAdd("Permissions-Policy",
-        "geolocation=(), " +
-        "microphone=(), " +
-        "camera=(), " +
-        "payment=(), " +
-        "usb=(), " +
-        "magnetometer=(), " +
-        "clipboard-read=(self), " +                                // Copy/paste in forms
-        "clipboard-write=(self), " +                               // Copy/paste in code editors
-        "fullscreen=(self), " +                                    // Fullscreen for video player
-        "autoplay=(self)");                                        // Autoplay for video courses
-
-    // Cross-Origin Isolation headers (defense-in-depth)
-    context.Response.Headers.TryAdd("Cross-Origin-Embedder-Policy", "require-corp");
-    context.Response.Headers.TryAdd("Cross-Origin-Opener-Policy", "same-origin");
-    context.Response.Headers.TryAdd("Cross-Origin-Resource-Policy", "same-origin");
-
-    await next();
-});
-
-Console.WriteLine("[SECURITY] Security headers configured:");
+Console.WriteLine("[SECURITY] Security headers middleware registered:");
 Console.WriteLine("[SECURITY] - X-Frame-Options: DENY (clickjacking protection)");
 Console.WriteLine("[SECURITY] - X-Content-Type-Options: nosniff (MIME-sniffing protection)");
 Console.WriteLine("[SECURITY] - Strict-Transport-Security: " + (app.Environment.IsDevelopment() ? "disabled (dev)" : "enabled (production)"));
 Console.WriteLine("[SECURITY] - Content-Security-Policy: Blazor WASM compatible + CSP reporting");
 Console.WriteLine("[SECURITY] - Permissions-Policy: LMS features enabled (clipboard, fullscreen, autoplay)");
-Console.WriteLine("[SECURITY] - Cross-Origin-*-Policy: Isolation enabled");
+Console.WriteLine("[SECURITY] - Cross-Origin-*-Policy: Isolation enabled (COEP, COOP, CORP)");
+Console.WriteLine("[SECURITY] - X-XSS-Protection: Legacy browser support (deprecated in modern browsers)");
 
-// Rate limiting BEFORE validation (protects validation layer from DoS attacks)
-app.UseRateLimiter(); // DDoS protection with 3 policies (global, auth, api)
-Console.WriteLine("[SECURITY] Rate limiting enabled (protects validation layer from DoS)");
+// Distributed Rate limiting using Redis (replaces in-memory rate limiter)
+// This provides global rate limiting across all API pods in Kubernetes
+app.UseMiddleware<DistributedRateLimitMiddleware>();
+Console.WriteLine("[SECURITY] Distributed rate limiting enabled (Redis-backed, cross-pod coordination)");
+
+// Comment out the old in-memory rate limiter (keeping for reference/fallback)
+// app.UseRateLimiter(); // Old in-memory rate limiter - replaced with distributed version
 
 // Request Validation Middleware - Protects against SQL injection, XSS, and path traversal
 // Positioned AFTER rate limiting to prevent attackers from exhausting resources
@@ -651,6 +648,10 @@ app.UseMiddleware<RequestValidationMiddleware>();
 Console.WriteLine("[SECURITY] Request validation middleware registered (SQL injection, XSS, path traversal, request body validation)");
 
 app.UseAuthentication();
+// CSRF Protection Middleware - Positioned after authentication, before authorization
+// Protects against Cross-Site Request Forgery attacks (PCI DSS 6.5.9)
+app.UseMiddleware<CsrfProtectionMiddleware>();
+Console.WriteLine("[SECURITY] CSRF protection middleware registered (PCI DSS 6.5.9 compliance)");
 app.UseAuthorization();
 
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)

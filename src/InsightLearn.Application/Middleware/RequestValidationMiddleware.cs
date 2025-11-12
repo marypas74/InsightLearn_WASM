@@ -19,6 +19,7 @@ public class RequestValidationMiddleware
     private const long MaxContentLengthBulk = 5_000_000;
 
     // Context-aware SQL injection detection (only flags actual SQL syntax, not isolated keywords)
+    // SECURITY FIX: Added 100ms timeout to prevent ReDoS attacks
     private static readonly Regex SqlInjectionPattern = new(
         @"(?i)(\bSELECT\b.*\bFROM\b)|" +           // SELECT ... FROM (context required)
         @"(\bINSERT\b.*\bINTO\b)|" +               // INSERT INTO
@@ -31,21 +32,26 @@ public class RequestValidationMiddleware
         @"(\bEXEC\s*\()|" +                        // EXEC() function
         @"(xp_cmdshell)|" +                        // SQL Server command execution
         @"(sp_executesql)",                        // Dynamic SQL execution
-        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline,
+        TimeSpan.FromMilliseconds(100));  // CRITICAL FIX: Prevent ReDoS attacks
 
     // Enhanced XSS detection (includes DOM-based XSS, event handlers, SVG-based XSS)
+    // SECURITY FIX: Added 100ms timeout to prevent ReDoS attacks
     private static readonly Regex XssPattern = new(
         @"<script|javascript:|onerror\s*=|onload\s*=|onmouseover\s*=|onclick\s*=|onfocus\s*=|" +
         @"<iframe|eval\(|expression\(|vbscript:|<embed|<object|" +
         @"<svg.*onload|innerHTML|document\.write|window\.location\s*=|" +
         @"data:text/html",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(100));  // CRITICAL FIX: Prevent ReDoS attacks
 
     // Enhanced path traversal detection (includes null byte, double encoding, UNC paths)
+    // SECURITY FIX: Added 100ms timeout to prevent ReDoS attacks
     private static readonly Regex PathTraversalPattern = new(
         @"(\.\./|\.\.\\|%2e%2e%2f|%2e%2e/|\.\.%2f|%2e%2e%5c|" +
         @"%252e%252e|\\\\|%00|\.\.%5c)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(100));  // CRITICAL FIX: Prevent ReDoS attacks
 
     // Whitelisted paths that skip validation (file uploads, CSP violations, health checks)
     private static readonly HashSet<string> WhitelistedPaths = new(StringComparer.OrdinalIgnoreCase)
@@ -224,15 +230,31 @@ public class RequestValidationMiddleware
         if (value.Length < 10)
             return false;
 
-        // Check for SQL injection patterns (skip if content is whitelisted for database keywords)
-        if (!isContentWhitelisted && SqlInjectionPattern.IsMatch(value))
+        // SECURITY FIX: Reject oversized input to prevent ReDoS attacks
+        if (value.Length > 10000)
+        {
+            _logger.LogWarning("[RequestValidation] Oversized input rejected: {Length} characters", value.Length);
             return true;
+        }
 
-        // Check for XSS patterns (always validate, never whitelisted)
-        if (XssPattern.IsMatch(value))
-            return true;
+        try
+        {
+            // Check for SQL injection patterns (skip if content is whitelisted for database keywords)
+            if (!isContentWhitelisted && SqlInjectionPattern.IsMatch(value))
+                return true;
 
-        return false;
+            // Check for XSS patterns (always validate, never whitelisted)
+            if (XssPattern.IsMatch(value))
+                return true;
+
+            return false;
+        }
+        catch (RegexMatchTimeoutException ex)
+        {
+            // SECURITY FIX: Treat regex timeout as potential ReDoS attack
+            _logger.LogWarning(ex, "[RequestValidation] Regex timeout on input validation - potential ReDoS attack. Input length: {Length}", value.Length);
+            return true;  // Treat timeout as malicious
+        }
     }
 
     /// <summary>

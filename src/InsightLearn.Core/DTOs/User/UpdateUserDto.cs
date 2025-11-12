@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.DTOs.User;
 
@@ -15,7 +16,7 @@ public class UpdateUserDto
     [RegularExpression(@"^[a-zA-Z\s\-'\.]+$", ErrorMessage = "Last name can only contain letters, spaces, hyphens, apostrophes, and periods")]
     public string? LastName { get; set; }
 
-    [Phone(ErrorMessage = "Invalid phone number format")]
+    [ValidPhoneNumber(RequireInternationalFormat = true)]
     [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
     public string? PhoneNumber { get; set; }
 

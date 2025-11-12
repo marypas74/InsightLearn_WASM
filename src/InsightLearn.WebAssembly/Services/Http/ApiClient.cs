@@ -5,6 +5,7 @@ using System.Text.Json;
 using InsightLearn.WebAssembly.Models;
 using InsightLearn.WebAssembly.Services.Auth;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace InsightLearn.WebAssembly.Services.Http;
 
@@ -14,12 +15,14 @@ public class ApiClient : IApiClient
     private readonly ITokenService _tokenService;
     private readonly ILogger<ApiClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly IJSRuntime _jsRuntime;
 
-    public ApiClient(HttpClient httpClient, ITokenService tokenService, ILogger<ApiClient> logger)
+    public ApiClient(HttpClient httpClient, ITokenService tokenService, ILogger<ApiClient> logger, IJSRuntime jsRuntime)
     {
         _httpClient = httpClient;
         _tokenService = tokenService;
         _logger = logger;
+        _jsRuntime = jsRuntime;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -53,6 +56,7 @@ public class ApiClient : IApiClient
         try
         {
             await AttachAuthTokenAsync();
+            await AttachCsrfTokenAsync();  // SECURITY: CSRF protection for POST requests
             // CRITICAL: Pass _jsonOptions to preserve PascalCase (ASP.NET backend expects PascalCase)
             var response = await _httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions);
             return await HandleResponseAsync<T>(response);
@@ -74,6 +78,7 @@ public class ApiClient : IApiClient
         try
         {
             await AttachAuthTokenAsync();
+            await AttachCsrfTokenAsync();  // SECURITY: CSRF protection for PUT requests
             // CRITICAL: Pass _jsonOptions to preserve PascalCase
             var response = await _httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions);
             return await HandleResponseAsync<T>(response);
@@ -95,6 +100,7 @@ public class ApiClient : IApiClient
         try
         {
             await AttachAuthTokenAsync();
+            await AttachCsrfTokenAsync();  // SECURITY: CSRF protection for DELETE requests
             var response = await _httpClient.DeleteAsync(endpoint);
             return await HandleResponseAsync<T>(response);
         }
@@ -162,6 +168,40 @@ public class ApiClient : IApiClient
         {
             _httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
+    /// <summary>
+    /// Attaches CSRF token from cookie to request header for state-changing operations
+    /// Required for POST, PUT, DELETE, PATCH requests (PCI DSS 6.5.9)
+    /// </summary>
+    private async Task AttachCsrfTokenAsync()
+    {
+        try
+        {
+            // Read CSRF token from XSRF-TOKEN cookie using JavaScript interop
+            var csrfToken = await _jsRuntime.InvokeAsync<string?>("getCookie", "XSRF-TOKEN");
+
+            if (!string.IsNullOrEmpty(csrfToken))
+            {
+                // Remove existing header if present
+                if (_httpClient.DefaultRequestHeaders.Contains("X-CSRF-Token"))
+                {
+                    _httpClient.DefaultRequestHeaders.Remove("X-CSRF-Token");
+                }
+
+                // Add CSRF token to request header
+                _httpClient.DefaultRequestHeaders.Add("X-CSRF-Token", csrfToken);
+                _logger.LogDebug("[CSRF] Token attached to request");
+            }
+            else
+            {
+                _logger.LogDebug("[CSRF] No token found in cookie");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CSRF] Failed to attach CSRF token");
         }
     }
 

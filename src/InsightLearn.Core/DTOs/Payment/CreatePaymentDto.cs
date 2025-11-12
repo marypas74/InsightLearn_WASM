@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using InsightLearn.Core.Constants;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.DTOs.Payment;
 
@@ -14,7 +16,8 @@ public class CreatePaymentDto
     public Guid CourseId { get; set; }
 
     [Required(ErrorMessage = "Amount is required")]
-    [Range(0.01, 50000.00, ErrorMessage = "Amount must be between $0.01 and $50,000")]
+    [Range(0.01, 50000.00,
+        ErrorMessage = "Amount must be between $0.01 and $50,000")]
     public decimal Amount { get; set; }
 
     [Required(ErrorMessage = "Payment method is required")]
@@ -27,8 +30,7 @@ public class CreatePaymentDto
     public string? CouponCode { get; set; }
 
     [Required(ErrorMessage = "Currency is required")]
-    [StringLength(3, MinimumLength = 3, ErrorMessage = "Currency must be a 3-letter ISO code (e.g., USD, EUR, GBP)")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Currency must be a valid 3-letter ISO 4217 code")]
+    [ValidCurrency]  // Use custom validator instead of regex
     public string Currency { get; set; } = "USD";
 
     [StringLength(500, ErrorMessage = "Billing address cannot exceed 500 characters")]

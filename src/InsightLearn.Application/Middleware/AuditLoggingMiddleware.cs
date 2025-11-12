@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using InsightLearn.Core.Interfaces;
+using InsightLearn.Core.Entities;
+using InsightLearn.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace InsightLearn.Application.Middleware;
 
@@ -15,7 +17,7 @@ public class AuditLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<AuditLoggingMiddleware> _logger;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IDbContextFactory<InsightLearnDbContext> _contextFactory;
 
     // Maximum length for request/response body preview in logs
     private const int BODY_PREVIEW_MAX_LENGTH = 200;
@@ -56,11 +58,11 @@ public class AuditLoggingMiddleware
     private static readonly Regex CreditCardPattern = new(@"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b", RegexOptions.Compiled);
     private static readonly Regex JwtPattern = new(@"eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*", RegexOptions.Compiled);
 
-    public AuditLoggingMiddleware(RequestDelegate next, ILogger<AuditLoggingMiddleware> logger, IServiceProvider serviceProvider)
+    public AuditLoggingMiddleware(RequestDelegate next, ILogger<AuditLoggingMiddleware> logger, IDbContextFactory<InsightLearnDbContext> contextFactory)
     {
         _next = next;
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _contextFactory = contextFactory;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -233,31 +235,91 @@ public class AuditLoggingMiddleware
             _logger.LogDebug("[AUDIT] {EventType} - {@AuditEvent}", eventType, auditEvent);
         }
 
-        // Persist audit log to database (hybrid approach: ILogger + database)
-        // Creates a scope to resolve IAuditService (Scoped) in middleware (Singleton)
-        using var scope = _serviceProvider.CreateScope();
-        var auditService = scope.ServiceProvider.GetRequiredService<IAuditService>();
+        // Persist audit log to database using isolated DbContext (thread-safe)
+        try
+        {
+            // Create isolated DbContext (no shared state)
+            await using var dbContext = await _contextFactory.CreateDbContextAsync();
 
-        // Determine entity type and ID from path
-        var (entityType, entityId) = ExtractEntityFromPath(path);
+            // Determine entity type and ID from path
+            var (entityType, entityId) = ExtractEntityFromPath(path);
 
-        // Persist to database (async, non-blocking)
-        await auditService.LogAsync(
-            action: eventType,
-            entityType: entityType,
-            entityId: entityId,
-            userId: Guid.TryParse(userId, out var userGuid) ? userGuid : null,
-            userEmail: userEmail,
-            userRoles: userRoles != null ? JsonSerializer.Serialize(userRoles) : null,
-            ipAddress: clientIp,
-            httpMethod: method,
-            path: path,
-            statusCode: statusCode,
-            durationMs: durationMs,
-            details: JsonSerializer.Serialize(auditEvent),
-            userAgent: auditEvent.UserAgent?.ToString(),
-            referer: auditEvent.Referer?.ToString(),
-            requestId: requestId);
+            // Create audit log entity
+            var auditLog = new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                Action = eventType,
+                EntityType = entityType,
+                EntityId = entityId,
+                UserId = Guid.TryParse(userId, out var userGuid) ? userGuid : null,
+                UserEmail = userEmail,
+                UserRoles = userRoles != null ? JsonSerializer.Serialize(userRoles) : null,
+                IpAddress = clientIp,
+                HttpMethod = method,
+                Path = path,
+                StatusCode = statusCode,
+                DurationMs = durationMs,
+                Details = JsonSerializer.Serialize(auditEvent),
+                UserAgent = auditEvent.UserAgent?.ToString(),
+                Referer = auditEvent.Referer?.ToString(),
+                RequestId = requestId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await dbContext.AuditLogs.AddAsync(auditLog);
+            await dbContext.SaveChangesAsync();
+
+            _logger.LogDebug("[AuditLog] Saved: {Action} by {User} at {Timestamp}",
+                auditLog.Action, auditLog.UserEmail, auditLog.Timestamp);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "[AuditLog] Database error saving audit log - retrying once");
+
+            // Retry once with new context
+            try
+            {
+                await using var retryDbContext = await _contextFactory.CreateDbContextAsync();
+
+                var (entityType, entityId) = ExtractEntityFromPath(path);
+
+                var auditLog = new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    Action = eventType,
+                    EntityType = entityType,
+                    EntityId = entityId,
+                    UserId = Guid.TryParse(userId, out var userGuid) ? userGuid : null,
+                    UserEmail = userEmail,
+                    UserRoles = userRoles != null ? JsonSerializer.Serialize(userRoles) : null,
+                    IpAddress = clientIp,
+                    HttpMethod = method,
+                    Path = path,
+                    StatusCode = statusCode,
+                    DurationMs = durationMs,
+                    Details = JsonSerializer.Serialize(auditEvent),
+                    UserAgent = auditEvent.UserAgent?.ToString(),
+                    Referer = auditEvent.Referer?.ToString(),
+                    RequestId = requestId,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                await retryDbContext.AuditLogs.AddAsync(auditLog);
+                await retryDbContext.SaveChangesAsync();
+
+                _logger.LogInformation("[AuditLog] Retry successful for {Action}", auditLog.Action);
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogError(retryEx, "[AuditLog] Audit log save failed after retry");
+                // Swallow exception to not break request
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AuditLog] Failed to save audit log");
+            // Swallow exception to not break request
+        }
     }
 
     /// <summary>

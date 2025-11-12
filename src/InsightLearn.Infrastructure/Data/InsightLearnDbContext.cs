@@ -437,5 +437,47 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
 
             entity.HasIndex(e => e.SubscriptionId);
         });
+
+        // AuditLog indexes for performance
+        builder.Entity<AuditLog>(entity =>
+        {
+            // Index 1: UserId (for user-specific queries)
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_AuditLogs_UserId")
+                .IsDescending(false);
+
+            // Index 2: Action (for action-type filtering)
+            entity.HasIndex(e => e.Action)
+                .HasDatabaseName("IX_AuditLogs_Action")
+                .IsDescending(false);
+
+            // Index 3: Timestamp (for sorting and range queries)
+            entity.HasIndex(e => e.Timestamp)
+                .HasDatabaseName("IX_AuditLogs_Timestamp")
+                .IsDescending(true);  // DESC for recent-first queries
+
+            // Index 4: UserId + Timestamp (composite for user history)
+            // Most important index - covers common query pattern
+            entity.HasIndex(e => new { e.UserId, e.Timestamp })
+                .HasDatabaseName("IX_AuditLogs_UserId_Timestamp")
+                .IsDescending(false, true);  // UserId ASC, Timestamp DESC
+
+            // Index 5: Action + Timestamp (composite for action reports)
+            entity.HasIndex(e => new { e.Action, e.Timestamp })
+                .HasDatabaseName("IX_AuditLogs_Action_Timestamp")
+                .IsDescending(false, true);  // Action ASC, Timestamp DESC
+
+            // Index 6: EntityId (for entity-specific audit trail)
+            entity.HasIndex(e => e.EntityId)
+                .HasDatabaseName("IX_AuditLogs_EntityId")
+                .IsDescending(false)
+                .HasFilter("[EntityId] IS NOT NULL");  // Partial index (exclude nulls)
+
+            // Index 7: RequestId (for request correlation)
+            entity.HasIndex(e => e.RequestId)
+                .HasDatabaseName("IX_AuditLogs_RequestId")
+                .IsDescending(false)
+                .HasFilter("[RequestId] IS NOT NULL");  // Partial index (exclude nulls)
+        });
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace InsightLearn.Core.Entities;
 
@@ -28,9 +29,14 @@ public class Review
     
     public int UnhelpfulVotes { get; set; }
     
-    // Navigation properties
+    // Navigation properties (with [JsonIgnore] to prevent circular reference)
+    [JsonIgnore]
     public virtual User User { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual Course Course { get; set; } = null!;
+
+    [JsonIgnore]
     public virtual ICollection<ReviewVote> Votes { get; set; } = new List<ReviewVote>();
     
     public int NetVotes => HelpfulVotes - UnhelpfulVotes;

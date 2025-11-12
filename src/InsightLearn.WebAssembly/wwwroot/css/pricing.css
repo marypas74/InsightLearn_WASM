@@ -1,0 +1,319 @@
+/* Pricing Page Styles */
+
+.pricing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+}
+
+.pricing-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.pricing-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+.pricing-header .subtitle {
+    font-size: 1.25rem;
+    color: #666;
+    margin-bottom: 0;
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.loading-container p {
+    margin-top: 1rem;
+    color: #666;
+}
+
+/* Billing Toggle */
+.billing-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.billing-toggle .btn {
+    min-width: 150px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.billing-toggle .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.billing-toggle .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Pricing Cards Grid */
+.pricing-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 4rem;
+}
+
+/* Individual Pricing Card */
+.pricing-card {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 16px;
+    padding: 2rem;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Featured Card */
+.pricing-card.featured {
+    border-color: #4f46e5;
+    border-width: 3px;
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.2);
+}
+
+.featured-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Plan Header */
+.plan-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.plan-header h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.plan-description {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+
+/* Plan Price */
+.plan-price {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.plan-price .currency {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #4f46e5;
+    margin-right: 0.25rem;
+}
+
+.plan-price .amount {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1;
+}
+
+.plan-price .period {
+    font-size: 1.125rem;
+    color: #666;
+    margin-left: 0.25rem;
+}
+
+.yearly-total {
+    text-align: center;
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Plan Features */
+.plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 2rem 0;
+    flex-grow: 1;
+}
+
+.plan-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1rem;
+}
+
+.plan-features li i {
+    font-size: 1.25rem;
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+/* Subscribe Button */
+.btn-subscribe {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    margin-top: auto;
+}
+
+.pricing-card.featured .btn-subscribe {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.pricing-card.featured .btn-subscribe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+}
+
+/* FAQ Section */
+.pricing-faq {
+    max-width: 800px;
+    margin: 4rem auto 0;
+    padding: 2rem;
+    background: #f9fafb;
+    border-radius: 16px;
+}
+
+.pricing-faq h2 {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 2rem;
+}
+
+.faq-item {
+    margin-bottom: 2rem;
+}
+
+.faq-item:last-child {
+    margin-bottom: 0;
+}
+
+.faq-item h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.faq-item p {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 0;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .pricing-container {
+        padding: 2rem 1rem;
+    }
+
+    .pricing-header h1 {
+        font-size: 2rem;
+    }
+
+    .pricing-header .subtitle {
+        font-size: 1rem;
+    }
+
+    .pricing-cards {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .billing-toggle {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .billing-toggle .btn {
+        width: 100%;
+    }
+
+    .plan-price .amount {
+        font-size: 2.5rem;
+    }
+
+    .pricing-faq {
+        padding: 1.5rem;
+    }
+
+    .pricing-faq h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .pricing-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .plan-header h3,
+    .plan-price .amount,
+    .faq-item h4 {
+        color: #f9fafb;
+    }
+
+    .plan-description,
+    .plan-price .period,
+    .yearly-total,
+    .plan-features li,
+    .faq-item p {
+        color: #d1d5db;
+    }
+
+    .pricing-faq {
+        background: #1f2937;
+    }
+}

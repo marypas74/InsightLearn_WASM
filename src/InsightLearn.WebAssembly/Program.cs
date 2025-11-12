@@ -83,10 +83,16 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
+// SaaS Subscription Services
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Subscription.ISubscriptionService, InsightLearn.WebAssembly.Services.Subscription.SubscriptionService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Payout.IPayoutService, InsightLearn.WebAssembly.Services.Payout.PayoutService>();
+
 // Admin Services
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IAdminDashboardService, InsightLearn.WebAssembly.Services.Admin.AdminDashboardService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IEnhancedDashboardService, InsightLearn.WebAssembly.Services.Admin.EnhancedDashboardService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IUserManagementService, InsightLearn.WebAssembly.Services.Admin.UserManagementService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.ICourseManagementService, InsightLearn.WebAssembly.Services.Admin.CourseManagementService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IPrometheusMetricsService, InsightLearn.WebAssembly.Services.Admin.PrometheusMetricsService>();
 
 Log.Information("InsightLearn WebAssembly application starting...");
 Log.Information("Base Address: {BaseAddress}", builder.HostEnvironment.BaseAddress);

@@ -1,0 +1,210 @@
+@page "/pricing"
+@using InsightLearn.Core.Entities
+@using InsightLearn.WebAssembly.Services.Subscription
+@inject ISubscriptionService SubscriptionService
+@inject NavigationManager Navigation
+@inject ILogger<Pricing> Logger
+
+<PageTitle>Subscription Plans - InsightLearn</PageTitle>
+
+<div class="pricing-container">
+    <div class="pricing-header">
+        <h1>Choose Your Learning Plan</h1>
+        <p class="subtitle">Unlimited access to all courses with monthly or yearly subscription</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading plans...</span>
+            </div>
+            <p>Loading subscription plans...</p>
+        </div>
+    }
+    else if (hasError)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Error Loading Plans</h4>
+            <p>@errorMessage</p>
+            <button class="btn btn-primary" @onclick="LoadPlansAsync">Retry</button>
+        </div>
+    }
+    else if (subscriptionPlans.Count == 0)
+    {
+        <div class="alert alert-info" role="alert">
+            No subscription plans available at the moment. Please check back later.
+        </div>
+    }
+    else
+    {
+        <div class="billing-toggle">
+            <button class="btn @(selectedBillingInterval == "month" ? "btn-primary" : "btn-outline-primary")"
+                    @onclick="SelectMonthlyBilling">
+                Monthly
+            </button>
+            <button class="btn @(selectedBillingInterval == "year" ? "btn-primary" : "btn-outline-primary")"
+                    @onclick="SelectYearlyBilling">
+                Yearly
+                <span class="badge bg-success ms-2">Save 20%</span>
+            </button>
+        </div>
+
+        <div class="pricing-cards">
+            @foreach (var plan in subscriptionPlans.Where(p => p.IsActive))
+            {
+                <div class="pricing-card @(plan.IsFeatured ? "featured" : "")">
+                    @if (plan.IsFeatured)
+                    {
+                        <div class="featured-badge">Most Popular</div>
+                    }
+
+                    <div class="plan-header">
+                        <h3>@plan.Name</h3>
+                        <p class="plan-description">@plan.Description</p>
+                    </div>
+
+                    <div class="plan-price">
+                        <span class="currency">€</span>
+                        <span class="amount">
+                            @(selectedBillingInterval == "month" ? plan.PriceMonthly : (plan.PriceYearly ?? plan.PriceMonthly * 12) / 12)
+                        </span>
+                        <span class="period">/month</span>
+                    </div>
+
+                    @if (selectedBillingInterval == "year" && plan.PriceYearly.HasValue)
+                    {
+                        <div class="yearly-total">
+                            €@plan.PriceYearly billed annually
+                        </div>
+                    }
+
+                    <ul class="plan-features">
+                        @if (!string.IsNullOrEmpty(plan.Features))
+                        {
+                            @foreach (var feature in plan.Features.Split('\n'))
+                            {
+                                <li>
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    @feature
+                                </li>
+                            }
+                        }
+                    </ul>
+
+                    <button class="btn @(plan.IsFeatured ? "btn-primary" : "btn-outline-primary") btn-subscribe"
+                            @onclick="() => SubscribeToPlan(plan.Id)"
+                            disabled="@isSubscribing">
+                        @if (isSubscribing && selectedPlanId == plan.Id)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Processing...</span>
+                        }
+                        else
+                        {
+                            <span>Get Started</span>
+                        }
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="pricing-faq">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-item">
+                <h4>Can I cancel anytime?</h4>
+                <p>Yes, you can cancel your subscription at any time from your account settings.</p>
+            </div>
+            <div class="faq-item">
+                <h4>What payment methods do you accept?</h4>
+                <p>We accept all major credit cards through our secure payment processor Stripe.</p>
+            </div>
+            <div class="faq-item">
+                <h4>Do you offer refunds?</h4>
+                <p>We offer a 7-day money-back guarantee if you're not satisfied with our service.</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SubscriptionPlan> subscriptionPlans = new();
+    private string selectedBillingInterval = "month";
+    private bool isLoading = true;
+    private bool hasError = false;
+    private string errorMessage = string.Empty;
+    private bool isSubscribing = false;
+    private Guid? selectedPlanId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlansAsync();
+    }
+
+    private async Task LoadPlansAsync()
+    {
+        try
+        {
+            isLoading = true;
+            hasError = false;
+            errorMessage = string.Empty;
+
+            subscriptionPlans = await SubscriptionService.GetSubscriptionPlansAsync();
+
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading subscription plans");
+            isLoading = false;
+            hasError = true;
+            errorMessage = "Failed to load subscription plans. Please try again.";
+        }
+    }
+
+    private void SelectBillingInterval(string interval)
+    {
+        selectedBillingInterval = interval;
+    }
+
+    private void SelectMonthlyBilling()
+    {
+        SelectBillingInterval("month");
+    }
+
+    private void SelectYearlyBilling()
+    {
+        SelectBillingInterval("year");
+    }
+
+    private async Task SubscribeToPlan(Guid planId)
+    {
+        try
+        {
+            isSubscribing = true;
+            selectedPlanId = planId;
+
+            var response = await SubscriptionService.SubscribeAsync(planId, selectedBillingInterval);
+
+            if (response.Success)
+            {
+                // Redirect to subscription management or success page
+                Navigation.NavigateTo("/account/subscription");
+            }
+            else
+            {
+                Logger.LogError($"Subscription failed: {response.Message}");
+                // TODO: Show error toast/notification
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error subscribing to plan");
+        }
+        finally
+        {
+            isSubscribing = false;
+            selectedPlanId = null;
+        }
+    }
+}

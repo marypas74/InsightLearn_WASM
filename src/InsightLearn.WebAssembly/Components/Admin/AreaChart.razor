@@ -1,0 +1,84 @@
+@using InsightLearn.Core.DTOs.Admin
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+<div class="chart-container">
+    <canvas id="@ChartId"></canvas>
+</div>
+
+@code {
+    [Parameter] public ChartDataDto? Data { get; set; }
+    [Parameter] public string Height { get; set; } = "300px";
+
+    private string ChartId = $"area-chart-{Guid.NewGuid():N}";
+    private bool _isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isInitialized = true;
+            await UpdateChart();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_isInitialized && Data != null)
+        {
+            await UpdateChart();
+        }
+    }
+
+    private async Task UpdateChart()
+    {
+        if (Data == null || Data.DataPoints == null) return;
+
+        var chartData = new
+        {
+            labels = Data.DataPoints.Select(p => p.Label).ToArray(),
+            values = Data.DataPoints.Select(p => (double)p.Value).ToArray(),
+            label = Data.Title
+        };
+
+        var options = new
+        {
+            showLegend = Data.Options?.ShowLegend ?? true
+        };
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("chartHelpers.createAreaChart", ChartId, chartData, options);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating area chart: {ex.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("chartHelpers.destroyChart", ChartId);
+        }
+        catch
+        {
+            // Ignore errors during disposal
+        }
+    }
+}
+
+<style>
+    .chart-container {
+        position: relative;
+        height: @Height;
+        width: 100%;
+    }
+
+    .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+}</style>
