@@ -53,7 +53,7 @@ public class SecurityHeadersMiddleware
         // OWASP ASVS V14.4.3: Set X-Frame-Options to DENY or SAMEORIGIN
         if (!headers.ContainsKey("X-Frame-Options"))
         {
-            headers.Add("X-Frame-Options", "DENY");
+            headers["X-Frame-Options"] = "DENY";
         }
 
         // X-Content-Type-Options: Prevent MIME type sniffing
@@ -61,7 +61,7 @@ public class SecurityHeadersMiddleware
         // OWASP ASVS V14.4.4: Set X-Content-Type-Options to nosniff
         if (!headers.ContainsKey("X-Content-Type-Options"))
         {
-            headers.Add("X-Content-Type-Options", "nosniff");
+            headers["X-Content-Type-Options"] = "nosniff";
         }
 
         // Strict-Transport-Security (HSTS): Force HTTPS for 1 year (production only)
@@ -69,7 +69,7 @@ public class SecurityHeadersMiddleware
         // OWASP ASVS V14.4.5: Use HSTS with max-age of at least 31536000 seconds
         if (!_environment.IsDevelopment() && !headers.ContainsKey("Strict-Transport-Security"))
         {
-            headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
         }
 
         // Content-Security-Policy (CSP): Advanced XSS protection
@@ -78,7 +78,7 @@ public class SecurityHeadersMiddleware
         // OWASP ASVS V14.4.7: Define a Content-Security-Policy
         if (!headers.ContainsKey("Content-Security-Policy"))
         {
-            headers.Add("Content-Security-Policy",
+            headers["Content-Security-Policy"] =
                 "default-src 'self'; " +
                 "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; " +  // Blazor WASM needs unsafe-eval
                 "style-src 'self' 'unsafe-inline'; " +                     // Blazor needs inline styles
@@ -92,7 +92,7 @@ public class SecurityHeadersMiddleware
                 "media-src 'self' data:; " +                               // Audio/video from same origin
                 "worker-src 'self' blob:; " +                              // Web workers for Blazor
                 "manifest-src 'self'; " +                                  // PWA manifest
-                "report-uri /api/csp-violations");                         // CSP violation reporting
+                "report-uri /api/csp-violations";                          // CSP violation reporting
         }
 
         // Referrer-Policy: Control referrer information leakage
@@ -100,7 +100,7 @@ public class SecurityHeadersMiddleware
         // Balance between privacy and analytics
         if (!headers.ContainsKey("Referrer-Policy"))
         {
-            headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
         }
 
         // Permissions-Policy (formerly Feature-Policy): Restrict access to sensitive browser features
@@ -108,7 +108,7 @@ public class SecurityHeadersMiddleware
         // LMS-specific: Enable clipboard (for code editors), fullscreen (video player), autoplay (video courses)
         if (!headers.ContainsKey("Permissions-Policy"))
         {
-            headers.Add("Permissions-Policy",
+            headers["Permissions-Policy"] =
                 "geolocation=(), " +                                       // Block location access
                 "microphone=(), " +                                        // Block microphone (no video conferencing)
                 "camera=(), " +                                            // Block camera (no video conferencing)
@@ -118,7 +118,7 @@ public class SecurityHeadersMiddleware
                 "clipboard-read=(self), " +                                // Allow copy/paste in forms
                 "clipboard-write=(self), " +                               // Allow copy/paste in code editors
                 "fullscreen=(self), " +                                    // Allow fullscreen for video player
-                "autoplay=(self)");                                        // Allow autoplay for video courses
+                "autoplay=(self)";                                         // Allow autoplay for video courses
         }
 
         // Cross-Origin-Embedder-Policy (COEP): Prevent cross-origin resource loading
@@ -126,7 +126,7 @@ public class SecurityHeadersMiddleware
         // Part of "cross-origin isolation" (COEP + COOP)
         if (!headers.ContainsKey("Cross-Origin-Embedder-Policy"))
         {
-            headers.Add("Cross-Origin-Embedder-Policy", "require-corp");
+            headers["Cross-Origin-Embedder-Policy"] = "require-corp";
         }
 
         // Cross-Origin-Opener-Policy (COOP): Isolate browsing context
@@ -135,7 +135,7 @@ public class SecurityHeadersMiddleware
         // Part of "cross-origin isolation" (COEP + COOP)
         if (!headers.ContainsKey("Cross-Origin-Opener-Policy"))
         {
-            headers.Add("Cross-Origin-Opener-Policy", "same-origin");
+            headers["Cross-Origin-Opener-Policy"] = "same-origin";
         }
 
         // Cross-Origin-Resource-Policy (CORP): Control cross-origin resource access
@@ -143,7 +143,7 @@ public class SecurityHeadersMiddleware
         // Complements Cross-Origin-Embedder-Policy
         if (!headers.ContainsKey("Cross-Origin-Resource-Policy"))
         {
-            headers.Add("Cross-Origin-Resource-Policy", "same-origin");
+            headers["Cross-Origin-Resource-Policy"] = "same-origin";
         }
 
         // X-XSS-Protection: Legacy XSS filter for old browsers (IE11, Safari 9)
@@ -152,7 +152,7 @@ public class SecurityHeadersMiddleware
         // Kept for legacy browser support only
         if (!headers.ContainsKey("X-XSS-Protection"))
         {
-            headers.Add("X-XSS-Protection", "1; mode=block");
+            headers["X-XSS-Protection"] = "1; mode=block";
         }
 
         _logger.LogDebug("[SecurityHeaders] Security headers added to response for {Path}",

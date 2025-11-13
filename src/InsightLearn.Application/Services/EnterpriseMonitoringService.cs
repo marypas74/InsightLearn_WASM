@@ -50,8 +50,6 @@ public class EnterpriseMonitoringService : IEnterpriseMonitoringService
     // Temporary storage for performance data until proper entity mapping
     private readonly List<PerformanceData> _performanceDataHistory;
     private readonly ConcurrentQueue<SecurityEvent> _recentSecurityEvents;
-    
-    private bool _isMonitoring = false;
 
     public EnterpriseMonitoringService(
         ILogger<EnterpriseMonitoringService> logger,

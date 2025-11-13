@@ -102,6 +102,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error during user registration");
             return new AuthResultDto
             {
                 IsSuccess = false,

@@ -235,12 +235,17 @@ Console.WriteLine("[CONFIG] Audit Service registered (database-backed compliance
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 {
-    // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
+    // Password settings (PCI DSS 8.2.3 compliant)
+    // PCI DSS Requirement 8.2.3: Passwords must contain:
+    // - At least 8 characters (increased from 6)
+    // - Mixture of numeric, alphabetic characters
+    // - Both upper and lower case
+    // - Special characters (!@#$%^&*()_+-=[]{}|:";'<>?,.)
+    options.Password.RequireDigit = true;              // At least one number
+    options.Password.RequireLowercase = true;          // At least one lowercase
+    options.Password.RequireUppercase = true;          // At least one uppercase
+    options.Password.RequireNonAlphanumeric = true;    // ✅ At least one special char (PCI DSS compliance)
+    options.Password.RequiredLength = 8;               // ✅ Minimum 8 characters (PCI DSS compliance)
 
     // Lockout settings
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
@@ -378,7 +383,10 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     configuration.ConnectTimeout = 5000; // 5 second timeout
     configuration.SyncTimeout = 5000;
     var logger = sp.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("[CONFIG] Connecting to Redis at: {RedisConnection}", redisConnectionString.Replace(redisPassword ?? "", "***"));
+    var sanitizedConnection = string.IsNullOrEmpty(redisPassword)
+        ? redisConnectionString
+        : redisConnectionString.Replace(redisPassword, "***");
+    logger.LogInformation("[CONFIG] Connecting to Redis at: {RedisConnection}", sanitizedConnection);
     return ConnectionMultiplexer.Connect(configuration);
 });
 
@@ -1162,7 +1170,7 @@ app.MapGet("/api/video/stream/{fileId}", async (
     }
     catch (FileNotFoundException ex)
     {
-        logger.LogWarning("[VIDEO] Video not found: {FileId}", fileId);
+        logger.LogWarning(ex, "[VIDEO] Video not found: {FileId}", fileId);
         return Results.NotFound(new { error = "Video not found" });
     }
     catch (Exception ex)
@@ -3280,6 +3288,68 @@ Console.WriteLine("[ENDPOINTS] - Subscription Management: /api/subscriptions/* (
 Console.WriteLine("[ENDPOINTS] - Engagement Tracking: /api/engagement/* (6 endpoints)");
 Console.WriteLine("[ENDPOINTS] - Instructor Payouts: /api/payouts/* (8 endpoints)");
 Console.WriteLine("[ENDPOINTS] - Stripe Webhooks: /api/webhooks/stripe/* (5 endpoints)");
+
+// =============================================================================
+// REDIS CONNECTION VALIDATION (HIGH-6 Fix)
+// =============================================================================
+// Validate Redis connection at startup for rate limiting
+// Note: This is NOT a fatal error - API will start even if Redis is down
+// Rate limiting middleware will fail-open (allow requests) if Redis unavailable
+try
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    var redisConnection = app.Services.GetRequiredService<IConnectionMultiplexer>();
+
+    logger.LogInformation("[REDIS] Validating connection at startup...");
+
+    // Test connection with 5-second timeout
+    var db = redisConnection.GetDatabase();
+    var pingResult = await db.PingAsync();
+
+    if (pingResult.TotalMilliseconds > 1000)
+    {
+        logger.LogWarning(
+            "[REDIS] ⚠️ High latency detected: {Latency}ms. Rate limiting may be slow.",
+            Math.Round(pingResult.TotalMilliseconds, 2));
+    }
+    else
+    {
+        logger.LogInformation(
+            "[REDIS] ✓ Connection validated successfully. Latency: {Latency}ms",
+            Math.Round(pingResult.TotalMilliseconds, 2));
+    }
+
+    // Verify basic operations work
+    await db.StringSetAsync("health-check-key", "ok", TimeSpan.FromSeconds(10));
+    var value = await db.StringGetAsync("health-check-key");
+
+    if (value != "ok")
+    {
+        logger.LogWarning("[REDIS] ⚠️ Basic operations test failed - value mismatch");
+    }
+}
+catch (RedisConnectionException ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogWarning(
+        ex,
+        "[REDIS] ❌ Failed to connect at startup. " +
+        "Rate limiting will be DISABLED. " +
+        "This is NOT a fatal error, but security features are degraded. " +
+        "Please check Redis service health.");
+
+    // DO NOT throw - allow startup to continue
+    // Rate limiting middleware will handle gracefully (fail-open policy)
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(
+        ex,
+        "[REDIS] Unexpected error during startup validation");
+
+    // Still allow startup (fail-open policy)
+}
 
 Console.WriteLine("🚀 InsightLearn API Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");

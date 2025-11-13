@@ -68,7 +68,7 @@ public class EncryptionService : IEncryptionService
             var tag = new byte[TagSize];
 
             // Perform AES-GCM encryption
-            using var aesGcm = new AesGcm(encryptionKey);
+            using var aesGcm = new AesGcm(encryptionKey, TagSize);
             aesGcm.Encrypt(nonce, plainTextBytes, cipherText, tag);
 
             // Create encrypted data structure
@@ -125,7 +125,7 @@ public class EncryptionService : IEncryptionService
             var plainTextBytes = new byte[cipherText.Length];
 
             // Perform AES-GCM decryption with authentication
-            using var aesGcm = new AesGcm(encryptionKey);
+            using var aesGcm = new AesGcm(encryptionKey, TagSize);
             aesGcm.Decrypt(nonce, cipherText, tag, plainTextBytes);
 
             return Encoding.UTF8.GetString(plainTextBytes);
