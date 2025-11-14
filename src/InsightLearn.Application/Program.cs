@@ -258,8 +258,8 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 .AddEntityFrameworkStores<InsightLearnDbContext>()
 .AddDefaultTokenProviders();
 
-// Get JWT configuration with validation (no fallback for production security)
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT_SECRET_KEY"];
+// Get JWT configuration with validation (prioritize environment variable for production security)
+var jwtSecret = builder.Configuration["JWT_SECRET_KEY"] ?? builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrWhiteSpace(jwtSecret))
 {
     throw new InvalidOperationException(
