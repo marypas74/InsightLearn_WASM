@@ -273,6 +273,32 @@ if (jwtSecret.Length < 32)
         $"JWT Secret is too short ({jwtSecret.Length} characters). Minimum length is 32 characters for security.");
 }
 
+// Validate secret strength - reject weak/default values (Phase 2.1 Security Enhancement)
+var weakSecrets = new[]
+{
+    "your-secret-key",
+    "changeme",
+    "default",
+    "secret",
+    "password",
+    "replace_with",
+    "insightlearn", // Don't allow app name as secret
+    "jwt_secret",
+    "REPLACE_WITH_JWT_SECRET_KEY_ENV_VAR_MINIMUM_32_CHARS" // From appsettings.json placeholder
+};
+
+var lowerSecret = jwtSecret.ToLowerInvariant();
+foreach (var weakSecret in weakSecrets)
+{
+    if (lowerSecret.Contains(weakSecret))
+    {
+        throw new InvalidOperationException(
+            $"JWT Secret contains a weak/default value ('{weakSecret}'). " +
+            "Please configure a strong, cryptographically random secret key. " +
+            "Generate one using: openssl rand -base64 64");
+    }
+}
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JWT_ISSUER"];
 if (string.IsNullOrWhiteSpace(jwtIssuer))
 {

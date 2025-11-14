@@ -96,8 +96,14 @@ coverage/
 *.bak
 *.backup
 .env
+.env.backup-*
 k8s/privkey.pem
 *.pem
+
+# Kubernetes secrets (CRITICAL - never commit secrets to git)
+k8s/01-secrets.yaml
+k8s/*-secrets.yaml
+secret-backup-*.yaml
 
 # Build artifacts
 publish/
