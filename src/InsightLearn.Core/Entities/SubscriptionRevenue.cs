@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.Entities;
 
@@ -27,6 +28,7 @@ public class SubscriptionRevenue
     /// </summary>
     [Required]
     [MaxLength(3)]
+    [ValidCurrency]  // ISO 4217 validation
     public string Currency { get; set; } = "EUR";
 
     /// <summary>

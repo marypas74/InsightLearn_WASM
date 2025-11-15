@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace InsightLearn.Core.Entities;
 
@@ -12,6 +13,9 @@ public class ChatbotContact
     /// <summary>
     /// Email address provided by the user
     /// </summary>
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address format")]
+    [StringLength(255, ErrorMessage = "Email cannot exceed 255 characters")]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>

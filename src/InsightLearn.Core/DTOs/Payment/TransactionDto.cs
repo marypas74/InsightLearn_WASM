@@ -1,3 +1,5 @@
+using InsightLearn.Core.Validation;
+
 namespace InsightLearn.Core.DTOs.Payment;
 
 public class TransactionDto
@@ -8,6 +10,7 @@ public class TransactionDto
     public string UserName { get; set; } = string.Empty;
     public string CourseTitle { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    [ValidCurrency]  // ISO 4217 validation
     public string Currency { get; set; } = "USD";
     public string Status { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;

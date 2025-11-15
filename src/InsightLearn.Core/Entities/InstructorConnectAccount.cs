@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.Entities;
 
@@ -49,6 +50,7 @@ public class InstructorConnectAccount
     /// Account currency
     /// </summary>
     [MaxLength(3)]
+    [ValidCurrency]  // ISO 4217 validation (nullable)
     public string? Currency { get; set; }
 
     /// <summary>

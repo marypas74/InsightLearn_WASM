@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.Entities;
 
@@ -25,6 +26,7 @@ public class Payment
     public decimal DiscountAmount { get; set; }
     
     [StringLength(3)]
+    [ValidCurrency]  // ISO 4217 validation
     public string Currency { get; set; } = "USD";
     
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;

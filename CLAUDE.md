@@ -380,6 +380,116 @@ dotnet test --filter "Category=Validation"
    - **Backend**: Completamente funzionale (5 API endpoints video storage)
    - **Soluzione futura**: Code-behind pattern (.razor.cs) o upgrade .NET 9
 
+8. **🚨 K3s Disaster Recovery & Fixed Node Name** (✅ Risolto 2025-11-13)
+   - **Problema CRITICO**: Ad ogni riavvio K3s creava un nuovo cluster con node name diverso (`linux.fritz.box` ↔ `localhost.localdomain`)
+   - **Conseguenza**: TUTTI i pod venivano persi perché legati al vecchio node
+   - **Causa Root**: Hostname del sistema cambiava dinamicamente, K3s usava hostname come node name
+   - **Soluzione Permanente**:
+     1. **Hostname fisso** del sistema: `hostnamectl set-hostname insightlearn-k3s`
+     2. **Node name fisso** in K3s service: `--node-name insightlearn-k3s`
+     3. **Label compatibilità** per PV legacy: `kubernetes.io/hostname=linux.fritz.box`
+   - **File Modificati**:
+     - `/etc/systemd/system/k3s.service` - Aggiunto `--node-name insightlearn-k3s`
+     - `/etc/hostname` - Cambiato a `insightlearn-k3s`
+   - **⚠️ CRITICAMENTE IMPORTANTE**: Il node name DEVE rimanere `insightlearn-k3s` per sempre
+   - **Verifica**: `kubectl get nodes` deve mostrare SOLO `insightlearn-k3s` (mai duplicati)
+
+9. **🔄 HA Watchdog - Auto-Healing System** (✅ Implementato 2025-11-13)
+   - **Scopo**: Ripristino automatico del cluster dopo riavvio/crash
+   - **Componenti**:
+     - Script: `/usr/local/bin/insightlearn-ha-watchdog.sh`
+     - Service: `/etc/systemd/system/insightlearn-ha-watchdog.service`
+     - Timer: `/etc/systemd/system/insightlearn-ha-watchdog.timer`
+   - **Funzionalità**:
+     1. Importa automaticamente ZFS pool se non montato
+     2. Riavvia K3s service se non attivo
+     3. Applica manifests Kubernetes se pod < 8
+     4. Riavvia tunnel socat se non attivi
+     5. Riavvia Cloudflare tunnel se non attivo
+   - **Esecuzione**:
+     - Al boot: 2 minuti dopo startup
+     - Periodico: Ogni 5 minuti
+     - Manuale: `sudo /usr/local/bin/insightlearn-ha-watchdog.sh`
+   - **Log**: `/var/log/insightlearn-watchdog.log`
+   - **Status**: `systemctl status insightlearn-ha-watchdog.timer`
+   - **⚠️ IMPORTANTE**: Watchdog garantisce zero downtime dopo riavvio
+
+10. **🔧 Socat NodePort Tunnels** (✅ Implementato 2025-11-13)
+    - **Problema**: K3s NodePort non funzionante (networking issues post-riavvio)
+    - **Soluzione**: 6 servizi systemd socat per tunneling permanente
+    - **Servizi Attivi**:
+      - `socat-api-tunnel.service` → Porta 31081 (API)
+      - `socat-wasm-tunnel.service` → Porta 31090 (WASM Frontend)
+      - `socat-grafana-3000.service` → Porta 3000 (Grafana)
+      - `socat-grafana-tunnel.service` → Porta 31300 (Grafana NodePort)
+      - `socat-sqlserver-tunnel.service` → Porta 31433 (SQL Server)
+      - `socat-web-tunnel.service` → Porta 31080 (Web legacy)
+    - **Configurazione**:
+      - Auto-restart: Sì (RestartSec=10)
+      - Startup delay: 15 secondi (dopo K3s)
+      - Binding: 0.0.0.0 (accesso esterno)
+    - **Verifica**: `systemctl list-units 'socat-*'`
+    - **⚠️ IMPORTANTE**: Questi servizi sono CRITICI per l'accesso pubblico
+
+### 🔥 Disaster Recovery Completo
+
+**In caso di riavvio del server**, il sistema si ripristina automaticamente seguendo questa sequenza:
+
+1. **Boot System** (0-30s)
+   - Hostname: `insightlearn-k3s` (fisso)
+   - ZFS pool: `zfs-import-k3spool.service` importa `k3spool`
+   - K3s: Parte con `--node-name insightlearn-k3s`
+
+2. **Watchdog Activation** (2 minuti dopo boot)
+   - Verifica ZFS montato → Se no, `zpool import -d /home k3spool`
+   - Verifica K3s attivo → Se no, `systemctl restart k3s`
+   - Verifica pod running → Se < 8, applica manifests da `k8s/` directory
+
+3. **Socat Tunnels** (dopo K3s + 15s delay)
+   - Tutti i 6 tunnel partono automaticamente
+   - Cloudflare tunnel si riconnette automaticamente
+
+4. **Final State** (~3-4 minuti)
+   - ✅ Tutti i 13 pod Kubernetes Running
+   - ✅ Tutti i 6 tunnel socat Active
+   - ✅ Cloudflare tunnel Connected
+   - ✅ Sito pubblicamente accessibile
+
+**Comandi di Verifica Post-Riavvio**:
+```bash
+# 1. Verificare node name (DEVE essere insightlearn-k3s)
+kubectl get nodes
+
+# 2. Verificare ZFS pool
+sudo /usr/local/sbin/zpool status k3spool
+
+# 3. Verificare pod
+kubectl get pods -n insightlearn
+
+# 4. Verificare tunnel socat
+systemctl list-units 'socat-*' --no-pager
+
+# 5. Test connettività
+curl http://localhost:31081/health  # API
+curl http://localhost:3000/api/health  # Grafana
+```
+
+**⚠️ Se qualcosa non funziona dopo riavvio**:
+```bash
+# Esegui watchdog manualmente
+sudo /usr/local/bin/insightlearn-ha-watchdog.sh
+
+# Verifica log watchdog
+tail -f /var/log/insightlearn-watchdog.log
+
+# Se node name è sbagliato (NON insightlearn-k3s)
+# DANGER: Questo cancellerà tutti i pod!
+kubectl delete node <WRONG_NODE_NAME>
+sudo systemctl restart k3s
+# Aspetta 2 minuti, poi:
+kubectl apply -f /home/mpasqui/insightlearn_WASM/InsightLearn_WASM/k8s/*.yaml -n insightlearn
+```
+
 ## Build e Deploy
 
 ### Comandi Build Locali

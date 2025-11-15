@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InsightLearn.Core.Validation;
 
 namespace InsightLearn.Core.DTOs.Payout;
 
@@ -38,7 +39,7 @@ public class PayoutDto
     /// </summary>
     [Required(ErrorMessage = "Currency is required")]
     [StringLength(3, MinimumLength = 3, ErrorMessage = "Currency must be a 3-letter code")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Currency must be a valid 3-letter ISO code")]
+    [ValidCurrency]  // Use custom validator for ISO 4217 compliance
     public string Currency { get; set; } = "USD";
 
     /// <summary>

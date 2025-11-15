@@ -40,6 +40,24 @@ data:
         allowUiUpdates: true
         options:
           path: /var/lib/grafana/dashboards
+      - name: 'InsightLearn Main Dashboard'
+        orgId: 1
+        folder: 'InsightLearn'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-main
+      - name: 'InsightLearn Backup Dashboard'
+        orgId: 1
+        folder: 'InsightLearn'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-backup
 
 ---
 # Grafana Deployment
@@ -97,6 +115,10 @@ spec:
           mountPath: /etc/grafana/provisioning/dashboards
         - name: grafana-dashboards
           mountPath: /var/lib/grafana/dashboards
+        - name: grafana-dashboards-main
+          mountPath: /var/lib/grafana/dashboards-main
+        - name: grafana-dashboards-backup
+          mountPath: /var/lib/grafana/dashboards-backup
         livenessProbe:
           httpGet:
             path: /api/health
@@ -123,6 +145,12 @@ spec:
       - name: grafana-dashboards
         configMap:
           name: insightlearn-dashboard
+      - name: grafana-dashboards-main
+        configMap:
+          name: grafana-dashboards
+      - name: grafana-dashboards-backup
+        configMap:
+          name: grafana-backup-dashboard
 
 ---
 # Grafana Service

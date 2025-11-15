@@ -8,18 +8,17 @@ metadata:
 data:
   insightlearn-main.json: |
     {
-      "dashboard": {
-        "title": "InsightLearn Platform Monitoring",
-        "uid": "insightlearn-main",
-        "version": 1,
-        "timezone": "browser",
-        "schemaVersion": 27,
-        "refresh": "30s",
-        "time": {
-          "from": "now-1h",
-          "to": "now"
-        },
-        "panels": [
+      "title": "InsightLearn Platform Monitoring",
+      "uid": "insightlearn-main",
+      "version": 1,
+      "timezone": "browser",
+      "schemaVersion": 27,
+      "refresh": "30s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "panels": [
           {
             "id": 1,
             "type": "graph",
@@ -228,7 +227,12 @@ data:
               {"format": "short"}
             ]
           }
-        ]
-      },
-      "overwrite": true
+        ],
+        "editable": true,
+        "gnetId": null,
+        "graphTooltip": 0,
+        "links": [],
+        "annotations": {
+          "list": []
+        }
     }
