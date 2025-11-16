@@ -55,15 +55,52 @@ var ollamaUrl = builder.Configuration["Ollama:BaseUrl"]
     ?? "http://ollama-service.insightlearn.svc.cluster.local:11434";
 var ollamaModel = builder.Configuration["Ollama:Model"] ?? "tinyllama";
 
-// MongoDB connection string for video storage
-var mongoConnectionString = builder.Configuration["MongoDb:ConnectionString"]
-    ?? builder.Configuration.GetConnectionString("MongoDB")
-    ?? "mongodb://admin:InsightLearn2024!SecureMongo@mongodb-service.insightlearn.svc.cluster.local:27017/insightlearn_videos?authSource=admin";
+// SECURITY FIX (CRIT-4): Enforce MongoDB credentials from environment variables
+// NEVER use hardcoded passwords in connection strings
+var mongoConnectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING")
+    ?? builder.Configuration["MongoDb:ConnectionString"]
+    ?? builder.Configuration.GetConnectionString("MongoDB");
+
+if (string.IsNullOrWhiteSpace(mongoConnectionString))
+{
+    throw new InvalidOperationException(
+        "MongoDB connection string is not configured. " +
+        "Set MONGODB_CONNECTION_STRING environment variable with a valid connection string. " +
+        "Format: mongodb://username:password@host:port/database?authSource=admin");
+}
+
+// Validate MongoDB connection string doesn't contain default/insecure passwords
+var insecureMongoPatterns = new[]
+{
+    "InsightLearn2024!SecureMongo",
+    "admin:admin",
+    "admin:password",
+    "root:root",
+    "mongodb:mongodb",
+    "password123"
+};
+
+var lowerMongoString = mongoConnectionString.ToLowerInvariant();
+foreach (var pattern in insecureMongoPatterns)
+{
+    if (lowerMongoString.Contains(pattern.ToLowerInvariant()))
+    {
+        throw new InvalidOperationException(
+            $"MongoDB connection string contains an insecure/default password pattern. " +
+            $"Please use a strong, unique password for production.");
+    }
+}
 
 Console.WriteLine($"[CONFIG] Database: {connectionString}");
 Console.WriteLine($"[CONFIG] Ollama URL: {ollamaUrl}");
 Console.WriteLine($"[CONFIG] Ollama Model: {ollamaModel}");
-Console.WriteLine($"[CONFIG] MongoDB: {mongoConnectionString.Replace("InsightLearn2024!SecureMongo", "***")}");
+
+// SECURITY FIX (CRIT-4): Sanitize MongoDB password from connection string before logging
+var sanitizedMongo = System.Text.RegularExpressions.Regex.Replace(
+    mongoConnectionString,
+    @"://([^:]+):([^@]+)@",
+    "://$1:***@");
+Console.WriteLine($"[CONFIG] MongoDB: {sanitizedMongo} (CRIT-4: password sanitized)");
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -751,10 +788,32 @@ try
         {
             Console.WriteLine("[SEED] Creating default admin user...");
 
-            // Get admin password from environment variable or use secure default
-            var adminPassword = builder.Configuration["ADMIN_PASSWORD"]
-                             ?? builder.Configuration["Admin:Password"]
-                             ?? "Admin@InsightLearn2025!"; // Secure default
+            // SECURITY FIX (CRIT-3): Enforce ADMIN_PASSWORD from environment variable
+            // NEVER use hardcoded passwords in production
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                             ?? builder.Configuration["ADMIN_PASSWORD"];
+
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                throw new InvalidOperationException(
+                    "ADMIN_PASSWORD environment variable is not configured. " +
+                    "This is required for security. Set the ADMIN_PASSWORD environment variable " +
+                    "with a strong password (min 12 chars, uppercase, lowercase, digits, special chars).");
+            }
+
+            // Validate password strength (minimum requirements)
+            if (adminPassword.Length < 12 ||
+                !adminPassword.Any(char.IsUpper) ||
+                !adminPassword.Any(char.IsLower) ||
+                !adminPassword.Any(char.IsDigit) ||
+                !adminPassword.Any(ch => !char.IsLetterOrDigit(ch)))
+            {
+                throw new InvalidOperationException(
+                    "ADMIN_PASSWORD does not meet security requirements. " +
+                    "Password must be at least 12 characters and contain uppercase, lowercase, digits, and special characters.");
+            }
+
+            Console.WriteLine("[SECURITY] Admin password loaded from environment variable (CRIT-3 fix)");
 
             adminUser = new User
             {
@@ -781,7 +840,7 @@ try
             {
                 Console.WriteLine("[SEED] ✓ Admin user created successfully");
                 Console.WriteLine($"[SEED]   Email: {adminEmail}");
-                Console.WriteLine($"[SEED]   Password: {(builder.Configuration["ADMIN_PASSWORD"] != null ? "From ADMIN_PASSWORD env var" : "Default password (change in production!)")}");
+                Console.WriteLine("[SEED]   Password: Loaded from environment variable (secure)");
 
                 // Assign Admin role to user
                 var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
