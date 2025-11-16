@@ -32,7 +32,9 @@ public class OllamaService : IOllamaService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _httpClient.BaseAddress = new Uri(_baseUrl);
-        _httpClient.Timeout = TimeSpan.FromMinutes(3); // Timeout generoso per LLM (phi3:mini può essere lento)
+        // SECURITY FIX (CRIT-1): Reduced timeout from 180s to 30s to prevent DoS attacks
+        // Ollama with qwen2:0.5b typically responds in 1-3 seconds, 30s is generous buffer
+        _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
 
     public async Task<string> GenerateResponseAsync(string prompt, string? model = null, CancellationToken cancellationToken = default)

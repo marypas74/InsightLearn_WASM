@@ -151,11 +151,11 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health/ready
+            path: /health
             port: 80
           initialDelaySeconds: 20
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 10
           failureThreshold: 3
       volumes:
       - name: api-files

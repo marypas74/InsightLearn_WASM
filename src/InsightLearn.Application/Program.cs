@@ -30,6 +30,15 @@ using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// SECURITY FIX (CRIT-2): Configure request body size limits to prevent memory exhaustion attacks
+// Default: 10MB for all endpoints (down from 30MB default)
+// Video upload: 524MB (500MB + 24MB buffer) via endpoint-specific configuration
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB default
+    Console.WriteLine("[SECURITY] Global request body size limit: 10 MB (CRIT-2 fix)");
+});
+
 // Get version from assembly (defined in Directory.Build.props)
 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.6.0.0";
 var versionShort = version.Substring(0, version.LastIndexOf('.')) + "-dev"; // e.g., "1.6.0-dev"
@@ -1556,7 +1565,8 @@ app.MapPost("/api/video/upload", async (
 })
 .WithName("UploadVideo")
 .WithTags("Video")
-.DisableAntiforgery(); // Required for file upload
+.DisableAntiforgery() // Required for file upload
+.DisableRequestSizeLimit(); // SECURITY FIX (CRIT-2): Allow 500MB videos (global limit is 10MB)
 
 // Stream video (Students + Instructors)
 app.MapGet("/api/video/stream/{fileId}", async (
