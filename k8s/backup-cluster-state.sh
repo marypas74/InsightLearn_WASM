@@ -162,14 +162,15 @@ EOF
 
 log "  ✓ Metadata created"
 
-# 6. Compress backup (keep last 2 backups with rotation)
+# 6. Compress backup (keep last 3 backups with rotation)
 log "Step 6/7: Compressing backup..."
 
-# Determine which backup file to use (rotation between backup-1 and backup-2)
+# Determine which backup file to use (rotation between backup-1, backup-2, and backup-3)
 BACKUP_1="$BACKUP_DIR/k3s-cluster-backup-1.tar.gz"
 BACKUP_2="$BACKUP_DIR/k3s-cluster-backup-2.tar.gz"
+BACKUP_3="$BACKUP_DIR/k3s-cluster-backup-3.tar.gz"
 
-# Find oldest backup to overwrite (or create new if < 2 exist)
+# Find oldest backup to overwrite (or create new if < 3 exist)
 if [[ ! -f "$BACKUP_1" ]]; then
     # No backup-1, create it
     TARGET_BACKUP="$BACKUP_1"
@@ -178,15 +179,27 @@ elif [[ ! -f "$BACKUP_2" ]]; then
     # backup-1 exists but not backup-2, create backup-2
     TARGET_BACKUP="$BACKUP_2"
     log "  Creating second backup: backup-2.tar.gz"
+elif [[ ! -f "$BACKUP_3" ]]; then
+    # backup-1 and backup-2 exist but not backup-3, create backup-3
+    TARGET_BACKUP="$BACKUP_3"
+    log "  Creating third backup: backup-3.tar.gz"
 else
-    # Both exist, overwrite the oldest one
-    if [[ "$BACKUP_1" -ot "$BACKUP_2" ]]; then
-        TARGET_BACKUP="$BACKUP_1"
-        log "  Rotating: overwriting oldest backup (backup-1.tar.gz)"
-    else
-        TARGET_BACKUP="$BACKUP_2"
-        log "  Rotating: overwriting oldest backup (backup-2.tar.gz)"
+    # All 3 exist, overwrite the oldest one
+    OLDEST="$BACKUP_1"
+    OLDEST_NAME="backup-1"
+
+    if [[ "$BACKUP_2" -ot "$OLDEST" ]]; then
+        OLDEST="$BACKUP_2"
+        OLDEST_NAME="backup-2"
     fi
+
+    if [[ "$BACKUP_3" -ot "$OLDEST" ]]; then
+        OLDEST="$BACKUP_3"
+        OLDEST_NAME="backup-3"
+    fi
+
+    TARGET_BACKUP="$OLDEST"
+    log "  Rotating: overwriting oldest backup ($OLDEST_NAME.tar.gz)"
 fi
 
 # Compress to target backup
@@ -243,6 +256,11 @@ if [[ -f "$BACKUP_2" ]]; then
     BACKUP_2_SIZE=$(du -h "$BACKUP_2" | cut -f1)
     BACKUP_2_DATE=$(stat -c %y "$BACKUP_2" | cut -d'.' -f1)
     log "  • backup-2.tar.gz: $BACKUP_2_SIZE ($BACKUP_2_DATE)"
+fi
+if [[ -f "$BACKUP_3" ]]; then
+    BACKUP_3_SIZE=$(du -h "$BACKUP_3" | cut -f1)
+    BACKUP_3_DATE=$(stat -c %y "$BACKUP_3" | cut -d'.' -f1)
+    log "  • backup-3.tar.gz: $BACKUP_3_SIZE ($BACKUP_3_DATE)"
 fi
 
 # Export metrics for Prometheus/Grafana monitoring
