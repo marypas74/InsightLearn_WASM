@@ -48,12 +48,36 @@ public class EnhancedPaymentService : IPaymentService
         _configuration = configuration;
         _metricsService = metricsService;
 
-        // Initialize configuration (with defaults for development)
-        _stripePublicKey = configuration["Stripe:PublicKey"] ?? "pk_test_mock";
-        _stripeSecretKey = configuration["Stripe:SecretKey"] ?? "sk_test_mock";
-        _paypalClientId = configuration["PayPal:ClientId"] ?? "paypal_client_mock";
-        _paypalClientSecret = configuration["PayPal:ClientSecret"] ?? "paypal_secret_mock";
+        // SECURITY FIX (CRIT-5): Enforce payment credentials from environment variables
+        // NO fallback to mock values - fail fast if not configured
+        _stripePublicKey = Environment.GetEnvironmentVariable("STRIPE_PUBLIC_KEY")
+            ?? configuration["Stripe:PublicKey"]
+            ?? throw new InvalidOperationException("STRIPE_PUBLIC_KEY environment variable not configured");
+
+        _stripeSecretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY")
+            ?? configuration["Stripe:SecretKey"]
+            ?? throw new InvalidOperationException("STRIPE_SECRET_KEY environment variable not configured");
+
+        _paypalClientId = Environment.GetEnvironmentVariable("PAYPAL_CLIENT_ID")
+            ?? configuration["PayPal:ClientId"]
+            ?? throw new InvalidOperationException("PAYPAL_CLIENT_ID environment variable not configured");
+
+        _paypalClientSecret = Environment.GetEnvironmentVariable("PAYPAL_CLIENT_SECRET")
+            ?? configuration["PayPal:ClientSecret"]
+            ?? throw new InvalidOperationException("PAYPAL_CLIENT_SECRET environment variable not configured");
+
         _currency = configuration["Payment:Currency"] ?? "USD";
+
+        // Validate no mock/insecure values
+        if (_stripePublicKey.Contains("mock", StringComparison.OrdinalIgnoreCase) ||
+            _stripeSecretKey.Contains("mock", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Stripe credentials contain mock values");
+
+        if (_paypalClientId.Contains("mock", StringComparison.OrdinalIgnoreCase) ||
+            _paypalClientSecret.Contains("mock", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("PayPal credentials contain mock values");
+
+        logger.LogInformation("[SECURITY] Payment credentials loaded (CRIT-5 fix)");
     }
 
     // ===== Checkout Methods =====

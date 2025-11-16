@@ -17,20 +17,27 @@ public class CourseRepository : ICourseRepository
         _context = context;
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) to prevent N+1 query problem
+    // Without this, accessing course.Reviews for average rating causes 1 query per course
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<IEnumerable<Course>> GetAllAsync(int page = 1, int pageSize = 10)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
+            .Include(c => c.Reviews)
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<Course?> GetByIdAsync(Guid id)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
             .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
@@ -39,21 +46,29 @@ public class CourseRepository : ICourseRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) for course detail page
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<Course?> GetBySlugAsync(string slug)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
             .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
                 .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+            .Include(c => c.Reviews)
             .FirstOrDefaultAsync(c => c.Slug == slug);
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) to prevent N+1 query problem
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<IEnumerable<Course>> GetByCategoryIdAsync(Guid categoryId, int page = 1, int pageSize = 10)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
+            .Include(c => c.Reviews)
             .Where(c => c.CategoryId == categoryId && c.IsActive)
             .OrderByDescending(c => c.PublishedAt)
             .Skip((page - 1) * pageSize)
@@ -61,20 +76,28 @@ public class CourseRepository : ICourseRepository
             .ToListAsync();
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) to prevent N+1 query problem
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<IEnumerable<Course>> GetByInstructorIdAsync(Guid instructorId)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
+            .Include(c => c.Reviews)
             .Where(c => c.InstructorId == instructorId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) to prevent N+1 query problem
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<IEnumerable<Course>> GetPublishedCoursesAsync(int page = 1, int pageSize = 10)
     {
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
+            .Include(c => c.Reviews)
             .Where(c => c.Status == CourseStatus.Published && c.IsActive)
             .OrderByDescending(c => c.PublishedAt)
             .Skip((page - 1) * pageSize)
@@ -82,13 +105,17 @@ public class CourseRepository : ICourseRepository
             .ToListAsync();
     }
 
+    // PERFORMANCE FIX (PERF-1): Added Include(Reviews) to prevent N+1 query problem
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
     public async Task<IEnumerable<Course>> SearchAsync(string query, int page = 1, int pageSize = 10)
     {
         var lowerQuery = query.ToLower();
 
         return await _context.Courses
+            .AsNoTracking()
             .Include(c => c.Category)
             .Include(c => c.Instructor)
+            .Include(c => c.Reviews)
             .Where(c => c.IsActive && (
                 c.Title.ToLower().Contains(lowerQuery) ||
                 c.Description.ToLower().Contains(lowerQuery) ||
