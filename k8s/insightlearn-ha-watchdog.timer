@@ -1,0 +1,18 @@
+[Unit]
+Description=InsightLearn HA Watchdog Timer
+Documentation=https://github.com/marypas74/InsightLearn_WASM
+Requires=insightlearn-ha-watchdog.service
+
+[Timer]
+# Run watchdog 2 minutes after boot
+OnBootSec=2min
+
+# Run every 2 minutes
+OnUnitActiveSec=2min
+
+# If the system was powered off when the timer should have run, 
+# run it immediately on next boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

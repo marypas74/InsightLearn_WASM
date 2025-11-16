@@ -1,0 +1,23 @@
+[Unit]
+Description=InsightLearn HA Watchdog - Auto-Healing Service
+Documentation=https://github.com/marypas74/InsightLearn_WASM
+After=k3s.service network-online.target
+Wants=k3s.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/insightlearn-ha-watchdog.sh
+StandardOutput=append:/var/log/insightlearn-watchdog.log
+StandardError=append:/var/log/insightlearn-watchdog.log
+TimeoutStartSec=600
+Restart=no
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=no
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log /var/lib/rancher
+
+[Install]
+WantedBy=multi-user.target
