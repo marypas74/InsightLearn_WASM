@@ -29,12 +29,13 @@
 
     <!-- Security patches for transitive vulnerabilities (CVE-2024-43483, CVE-2024-43485) -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-    <PackageReference Include="System.Text.Json" Version="9.0.4" />
+    <PackageReference Include="System.Text.Json" Version="10.0.0" />
     <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageReference Include="Azure.Identity" Version="1.17.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <ProjectReference Include="..\InsightLearn.Core\InsightLearn.Core.csproj" />
   </ItemGroup>
 
