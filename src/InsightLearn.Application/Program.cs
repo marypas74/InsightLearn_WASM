@@ -17,6 +17,7 @@ using InsightLearn.Core.DTOs.Payment;
 using InsightLearn.Core.DTOs.Review;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Net;
@@ -317,16 +318,33 @@ Console.WriteLine("[SECURITY] - Global: 200 req/min per IP (proxy-aware)");
 Console.WriteLine("[SECURITY] - Auth endpoints: 5 req/min per IP (sliding window, brute force protection)");
 Console.WriteLine("[SECURITY] - API endpoints: 50 req/min per user");
 
+// PERFORMANCE FIX (PERF-3): Configure SQL Server connection pooling
+// Prevents connection exhaustion under high load
+var csBuilder = new SqlConnectionStringBuilder(connectionString)
+{
+    MinPoolSize = 5,            // Keep 5 connections warm for fast response
+    MaxPoolSize = 100,          // Limit to 100 to prevent SQL Server exhaustion
+    Pooling = true,             // Enable pooling (default: true, explicit for clarity)
+    ConnectionLifeTime = 0,     // 0 = no limit (connections returned to pool indefinitely)
+    ConnectTimeout = 30,        // 30 second connection timeout
+    ConnectRetryCount = 3,      // Retry 3 times on connection failure
+    ConnectRetryInterval = 10   // 10 seconds between retries
+};
+
+Console.WriteLine($"[CONFIG] SQL Connection Pool: Min={csBuilder.MinPoolSize}, Max={csBuilder.MaxPoolSize}, Timeout={csBuilder.ConnectTimeout}s");
+
 // Configure Entity Framework with SQL Server
 builder.Services.AddDbContext<InsightLearnDbContext>(options =>
 {
-    options.UseSqlServer(connectionString, sqlOptions =>
+    options.UseSqlServer(csBuilder.ConnectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(120);
+        // PERFORMANCE FIX (PERF-3): Use SplitQuery to avoid cartesian explosion
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 });
 
