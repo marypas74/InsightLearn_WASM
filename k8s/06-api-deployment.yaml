@@ -121,7 +121,10 @@ spec:
         - name: Ollama__Model
           value: "qwen2:0.5b"
         - name: MongoDb__ConnectionString
-          value: "mongodb://insightlearn:GpYb2EZ3srVBb0Ziv0kG4Ual3hxaY9oT@mongodb-service:27017/insightlearn_videos"
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: mongodb-connection-string
         - name: ASPNETCORE_Kestrel__Certificates__Default__Path
           value: "/https/tls.crt"
         - name: ASPNETCORE_Kestrel__Certificates__Default__KeyPath
