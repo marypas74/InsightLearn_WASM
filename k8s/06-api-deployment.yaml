@@ -67,10 +67,14 @@ spec:
         - name: RateLimit__ExemptPaths__0
           value: "/health"
         - name: RateLimit__ExemptPaths__1
-          value: "/api/info"
+          value: "/health/live"
         - name: RateLimit__ExemptPaths__2
-          value: "/metrics"
+          value: "/health/ready"
         - name: RateLimit__ExemptPaths__3
+          value: "/api/info"
+        - name: RateLimit__ExemptPaths__4
+          value: "/metrics"
+        - name: RateLimit__ExemptPaths__5
           value: "/api/csp-violations"
         - name: Elasticsearch__Url
           valueFrom:
@@ -139,7 +143,7 @@ spec:
             cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health/live
             port: 80
           initialDelaySeconds: 40
           periodSeconds: 30
@@ -147,7 +151,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /health/ready
             port: 80
           initialDelaySeconds: 20
           periodSeconds: 10

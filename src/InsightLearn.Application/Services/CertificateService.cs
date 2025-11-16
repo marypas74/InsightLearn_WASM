@@ -7,24 +7,27 @@ namespace InsightLearn.Application.Services;
 
 /// <summary>
 /// Service for certificate generation and management
-/// Phase 3 Stub Implementation - Full PDF generation to be implemented in Phase 4
+/// Phase 5.1: PDF generation implemented with QuestPDF library
 /// </summary>
 public class CertificateService : ICertificateService
 {
     private readonly ICertificateRepository _certificateRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly ICourseRepository _courseRepository;
+    private readonly ICertificateTemplateService _certificateTemplateService;
     private readonly ILogger<CertificateService> _logger;
 
     public CertificateService(
         ICertificateRepository certificateRepository,
         IEnrollmentRepository enrollmentRepository,
         ICourseRepository courseRepository,
+        ICertificateTemplateService certificateTemplateService,
         ILogger<CertificateService> logger)
     {
         _certificateRepository = certificateRepository;
         _enrollmentRepository = enrollmentRepository;
         _courseRepository = courseRepository;
+        _certificateTemplateService = certificateTemplateService;
         _logger = logger;
     }
 
@@ -67,7 +70,7 @@ public class CertificateService : ICertificateService
             // 5. Generate unique certificate number
             var certificateNumber = GenerateCertificateNumber(enrollment.UserId, enrollment.CourseId);
 
-            // 6. Create certificate entity
+            // 6. Create certificate entity (initial creation without PDF)
             var certificate = new Certificate
             {
                 Id = Guid.NewGuid(),
@@ -80,21 +83,40 @@ public class CertificateService : ICertificateService
                 CourseHours = (int)Math.Ceiling(course.EstimatedDurationMinutes / 60.0),
                 CourseRating = course.AverageRating,
                 IsVerified = true,
-                // Phase 4: Implement PDF generation with QuestPDF or iText7
-                PdfUrl = null,
-                TemplateUrl = "/templates/certificate-default.html"
+                PdfUrl = null, // Will be set after PDF generation
+                TemplateUrl = null
             };
 
-            // 7. Save certificate
+            // 7. Generate PDF certificate using QuestPDF
+            var studentName = enrollment.User?.FirstName != null && enrollment.User?.LastName != null
+                ? $"{enrollment.User.FirstName} {enrollment.User.LastName}"
+                : enrollment.User?.Email ?? "Student";
+
+            var pdfBytes = await _certificateTemplateService.GeneratePdfAsync(
+                studentName: studentName,
+                courseName: course.Title,
+                certificateNumber: certificateNumber,
+                issuedDate: DateTime.UtcNow,
+                courseHours: certificate.CourseHours,
+                courseRating: course.AverageRating);
+
+            // 8. Save PDF to filesystem (wwwroot/certificates/)
+            var certificatesDir = Path.Combine("wwwroot", "certificates");
+            Directory.CreateDirectory(certificatesDir);
+
+            var pdfPath = Path.Combine(certificatesDir, $"{certificate.Id}.pdf");
+            await File.WriteAllBytesAsync(pdfPath, pdfBytes);
+
+            certificate.PdfUrl = $"/certificates/{certificate.Id}.pdf";
+
+            _logger.LogInformation("[CertificateService] PDF generated: {Size} bytes, saved to {Path}",
+                pdfBytes.Length, pdfPath);
+
+            // 9. Save certificate to database
             var createdCertificate = await _certificateRepository.CreateAsync(certificate);
 
             _logger.LogInformation("[CertificateService] Certificate {CertificateNumber} generated successfully for enrollment {EnrollmentId}",
                 certificateNumber, enrollmentId);
-
-            // TODO Phase 4: Generate PDF certificate file
-            // - Use QuestPDF or iText7 library
-            // - Upload to cloud storage (Azure Blob / AWS S3)
-            // - Update PdfUrl with public URL
 
             return createdCertificate;
         }

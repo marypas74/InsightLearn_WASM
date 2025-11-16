@@ -17,6 +17,7 @@ public class EnrollmentService : IEnrollmentService
     private readonly ICertificateService _certificateService;
     private readonly InsightLearnDbContext _context;
     private readonly ILogger<EnrollmentService> _logger;
+    private readonly MetricsService _metricsService;
 
     public EnrollmentService(
         IEnrollmentRepository enrollmentRepository,
@@ -24,7 +25,8 @@ public class EnrollmentService : IEnrollmentService
         IPaymentRepository paymentRepository,
         ICertificateService certificateService,
         InsightLearnDbContext context,
-        ILogger<EnrollmentService> logger)
+        ILogger<EnrollmentService> logger,
+        MetricsService metricsService)
     {
         _enrollmentRepository = enrollmentRepository;
         _courseRepository = courseRepository;
@@ -32,6 +34,7 @@ public class EnrollmentService : IEnrollmentService
         _certificateService = certificateService;
         _context = context;
         _logger = logger;
+        _metricsService = metricsService;
     }
 
     #region Query Methods
@@ -224,6 +227,9 @@ public class EnrollmentService : IEnrollmentService
 
                 _logger.LogInformation("[EnrollmentService] User {UserId} successfully enrolled in course {CourseId}",
                     dto.UserId, dto.CourseId);
+
+                // Record enrollment metric (Phase 4.2)
+                _metricsService.RecordEnrollment();
 
                 return MapToDto(createdEnrollment);
             }

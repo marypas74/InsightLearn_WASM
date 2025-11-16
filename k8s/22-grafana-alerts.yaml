@@ -1,0 +1,379 @@
+---
+# Grafana Alert Rules Configuration for InsightLearn Platform
+# Phase 4.3: Proactive monitoring of critical system components
+# Severity Levels: CRITICAL (page immediately), WARNING (review within 30 min)
+# Auto-loaded via label: grafana_dashboard: "1"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alert-rules
+  namespace: insightlearn
+  labels:
+    grafana_dashboard: "1"
+data:
+  alert-rules.yml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: InsightLearn Critical Alerts
+        folder: Alerts
+        interval: 1m
+        rules:
+
+          # ALERT 1: API Health Check Failed (CRITICAL)
+          # Triggers when API pod is down for 2+ minutes
+          # Impact: Platform inaccessible - page oncall immediately
+          - uid: api-health-check-failed
+            title: API Health Check Failed
+            condition: api_health_critical
+            data:
+              - refId: api_health_critical
+                queryType: prometheus
+                model:
+                  expr: 'up{job="insightlearn-api"} == 0'
+                  instant: true
+                  intervalFactor: 1
+            noDataState: Alerting
+            execErrState: Alerting
+            for: 2m
+            annotations:
+              description: 'InsightLearn API pod is down or unreachable for more than 2 minutes. Platform is inaccessible. Immediate action required to restore service.'
+              summary: 'API Health Check Failed - Service Unavailable'
+              runbook_url: 'https://insightlearn.atlassian.net/wiki/spaces/OPS/pages/runbooks/api-health-check'
+            labels:
+              severity: critical
+              service: api
+              team: platform
+              sla: 15-min-response
+
+          # ALERT 2: High API Error Rate (WARNING)
+          # Triggers when >5% of requests return 5xx errors over 5 minutes
+          # Impact: Application errors affecting users - review and investigate
+          # Why 5%? Typical production error rate 0-1%, 5% indicates systemic issue
+          - uid: api-high-error-rate
+            title: High API Error Rate (5xx Errors)
+            condition: error_rate_warning
+            data:
+              - refId: api_5xx_errors
+                queryType: prometheus
+                model:
+                  expr: 'sum(rate(http_requests_total{job="insightlearn-api",status=~"5.."}[5m])) by (job)'
+                  intervalFactor: 1
+              - refId: api_total_requests
+                queryType: prometheus
+                model:
+                  expr: 'sum(rate(http_requests_total{job="insightlearn-api"}[5m])) by (job)'
+                  intervalFactor: 1
+              - refId: error_rate_warning
+                queryType: classic_conditions
+                conditions:
+                  - evaluator:
+                      params: [5]
+                      type: gt
+                    operator:
+                      type: and
+                    query:
+                      params: ['api_5xx_errors', 'api_total_requests']
+                    reducer:
+                      params: []
+                      type: avg
+                    type: query
+            noDataState: NoData
+            execErrState: Alerting
+            for: 5m
+            annotations:
+              description: 'API error rate is exceeding 5% threshold. This indicates a systemic issue with request processing. Check application logs, database connectivity, and external service dependencies.'
+              summary: 'High API Error Rate - {{ $value | humanizePercentage }} 5xx errors'
+              runbook_url: 'https://insightlearn.atlassian.net/wiki/spaces/OPS/pages/runbooks/api-error-rate'
+              dashboard: 'http://grafana:3000/d/insightlearn-main/api-metrics'
+            labels:
+              severity: warning
+              service: api
+              team: platform
+              sla: 30-min-response
+
+          # ALERT 3: Database Connection Failed (CRITICAL)
+          # Triggers when SQL Server is unhealthy for 1+ minute
+          # Impact: Data unavailable, application cannot function
+          # Note: Requires /health endpoint or dedicated DB health check metric
+          - uid: database-connection-failed
+            title: Database Connection Failed
+            condition: db_health_critical
+            data:
+              - refId: db_health_critical
+                queryType: prometheus
+                model:
+                  expr: 'up{job="sqlserver"} == 0'
+                  instant: true
+                  intervalFactor: 1
+            noDataState: Alerting
+            execErrState: Alerting
+            for: 1m
+            annotations:
+              description: 'SQL Server database is unreachable or unhealthy. API cannot process requests that require database access. Check database pod status, volume mounts, and connection strings.'
+              summary: 'Database Connection Failed - SQL Server Unavailable'
+              runbook_url: 'https://insightlearn.atlassian.net/wiki/spaces/OPS/pages/runbooks/database-failure'
+              kubectl: 'kubectl get pods -n insightlearn | grep sqlserver'
+            labels:
+              severity: critical
+              service: database
+              team: infrastructure
+              sla: 15-min-response
+
+          # ALERT 4: High Memory Usage (WARNING)
+          # Triggers when API pod memory > 85% for 5 minutes
+          # Impact: Performance degradation, potential OOM kill
+          # Why 85%? Leaves 15% headroom before OOMKilled at 100%
+          - uid: high-memory-usage
+            title: High Memory Usage - API Pod
+            condition: memory_high_warning
+            data:
+              - refId: memory_percent
+                queryType: prometheus
+                model:
+                  expr: '(container_memory_usage_bytes{pod=~"insightlearn-api.*",namespace="insightlearn"} / container_spec_memory_limit_bytes{pod=~"insightlearn-api.*",namespace="insightlearn"}) * 100'
+                  intervalFactor: 1
+              - refId: memory_high_warning
+                queryType: classic_conditions
+                conditions:
+                  - evaluator:
+                      params: [85]
+                      type: gt
+                    operator:
+                      type: and
+                    query:
+                      params: ['memory_percent']
+                    reducer:
+                      params: []
+                      type: avg
+                    type: query
+            noDataState: NoData
+            execErrState: Alerting
+            for: 5m
+            annotations:
+              description: 'API pod memory usage is {{ $value | humanize }}% of limit ({{ $value }}MB). High memory usage can cause performance degradation. Check for memory leaks, excessive caching, or increase pod resource limits.'
+              summary: 'High Memory Usage - API Pod at {{ $value | humanizePercentage }} of limit'
+              runbook_url: 'https://insightlearn.atlassian.net/wiki/spaces/OPS/pages/runbooks/memory-usage'
+              kubectl: 'kubectl top pods -n insightlearn --sort-by=memory'
+            labels:
+              severity: warning
+              service: api
+              team: platform
+              sla: 30-min-response
+
+          # ALERT 5: Slow API Response Time (WARNING)
+          # Triggers when 95th percentile latency > 2 seconds for 5 minutes
+          # Impact: Poor user experience, potential timeout issues
+          # Why 2s? Typical response time <500ms, 2s = 4x slowdown (acceptable threshold for warning)
+          - uid: slow-api-response
+            title: Slow API Response Time (p95 > 2s)
+            condition: response_time_warning
+            data:
+              - refId: response_p95
+                queryType: prometheus
+                model:
+                  expr: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="insightlearn-api"}[5m])) by (le, endpoint))'
+                  intervalFactor: 1
+              - refId: response_time_warning
+                queryType: classic_conditions
+                conditions:
+                  - evaluator:
+                      params: [2]
+                      type: gt
+                    operator:
+                      type: and
+                    query:
+                      params: ['response_p95']
+                    reducer:
+                      params: []
+                      type: avg
+                    type: query
+            noDataState: NoData
+            execErrState: Alerting
+            for: 5m
+            annotations:
+              description: 'API 95th percentile response time is {{ $value | humanizeDuration }}. Users are experiencing slow responses. Check for database performance issues, slow external API calls, or high CPU/memory usage.'
+              summary: 'Slow API Response Time - p95: {{ $value | humanizeDuration }}'
+              runbook_url: 'https://insightlearn.atlassian.net/wiki/spaces/OPS/pages/runbooks/response-time'
+              dashboard: 'http://grafana:3000/d/insightlearn-main/api-performance'
+            labels:
+              severity: warning
+              service: api
+              team: platform
+              sla: 30-min-response
+
+---
+# Grafana Alert Notification Channels Configuration
+# Defines how alerts are routed and notified
+# Currently configured for console logging (development environment)
+# In production, integrate with PagerDuty, Slack, OpsGenie, etc.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alert-notifications
+  namespace: insightlearn
+  labels:
+    grafana_dashboard: "1"
+data:
+  notification-channels.yml: |
+    apiVersion: 1
+    notifiers:
+      # Webhook notification for CRITICAL alerts (production: integrate with PagerDuty)
+      - uid: critical-webhook
+        name: Critical Alerts Webhook
+        type: webhook
+        org_id: 1
+        is_default: false
+        disable_resolve_message: false
+        settings:
+          httpMethod: POST
+          url: http://api:80/api/webhooks/alerts/critical
+          tlsSkipVerify: false
+        secure_fields:
+          secureJsonData: {}
+
+      # Email notification for WARNING alerts (development: logs to console)
+      - uid: warning-email
+        name: Warning Alerts Email
+        type: email
+        org_id: 1
+        is_default: false
+        disable_resolve_message: false
+        settings:
+          addresses: platform-team@insightlearn.com
+        secure_fields:
+          secureJsonData: {}
+
+      # Slack integration for major incidents (when configured)
+      - uid: slack-critical
+        name: Slack Critical Channel
+        type: slack
+        org_id: 1
+        is_default: false
+        disable_resolve_message: false
+        settings:
+          url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+          channel: '#insightlearn-critical'
+          mentionUsers: '@platform-oncall'
+        secure_fields:
+          secureJsonData: {}
+
+---
+# Alert Policy Rules
+# Defines escalation and routing logic for different severity levels
+# Production-ready policy: CRITICAL = 15min SLA, WARNING = 30min SLA
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alert-policy
+  namespace: insightlearn
+  labels:
+    grafana_dashboard: "1"
+data:
+  alert-policy.yml: |
+    # Alert routing and grouping rules
+    # Used by Alertmanager (if Prometheus AlertManager configured)
+    global:
+      resolve_timeout: 5m
+      slack_api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+
+    route:
+      receiver: 'default'
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+
+      # High-severity routing
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-team'
+          group_wait: 10s        # Notify immediately
+          repeat_interval: 15m   # Re-notify every 15 minutes
+          continue: true
+
+        - match:
+            severity: warning
+          receiver: 'warning-team'
+          group_wait: 30s        # Batch for 30 seconds
+          repeat_interval: 4h    # Re-notify every 4 hours
+          continue: true
+
+    receivers:
+      - name: 'default'
+        webhook_configs:
+          - url: 'http://api:80/api/webhooks/alerts/default'
+            send_resolved: true
+
+      - name: 'critical-team'
+        pagerduty_configs:
+          - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+            description: '{{ .GroupLabels.alertname }}'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#insightlearn-critical'
+            title: 'CRITICAL ALERT'
+            text: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+
+      - name: 'warning-team'
+        email_configs:
+          - to: 'platform-team@insightlearn.com'
+            from: 'alerts@insightlearn.com'
+            smarthost: 'smtp.gmail.com:587'
+            auth_username: 'alerts@insightlearn.com'
+            auth_password: 'YOUR_EMAIL_PASSWORD'
+            headers:
+              Subject: 'WARNING: {{ .GroupLabels.alertname }}'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#insightlearn-alerts'
+            title: 'WARNING ALERT'
+            text: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+
+    inhibit_rules:
+      # Don't alert on warnings if critical alert already firing
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'service']
+
+      # Don't alert on API errors if database is down
+      - source_match:
+          alertname: 'Database Connection Failed'
+        target_match:
+          alertname: 'High API Error Rate'
+        equal: ['service']
+
+---
+# Alert Rules Dashboard ConfigMap
+# Configuration for auto-loading alert rules in Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alert-provisioning
+  namespace: insightlearn
+  labels:
+    grafana_dashboard: "1"
+data:
+  alert-rule-provisioning.yml: |
+    apiVersion: 1
+    providers:
+      - name: 'InsightLearn Alert Rules'
+        orgId: 1
+        folder: 'Alerts'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/alerting/alert-rules.yml
+      - name: 'InsightLearn Notification Channels'
+        orgId: 1
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/alerting/notification-channels.yml

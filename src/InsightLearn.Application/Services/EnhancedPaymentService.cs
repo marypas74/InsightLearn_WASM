@@ -20,6 +20,7 @@ public class EnhancedPaymentService : IPaymentService
     private readonly InsightLearnDbContext _context;
     private readonly ILogger<EnhancedPaymentService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly MetricsService _metricsService;
 
     // Configuration keys
     private readonly string _stripePublicKey;
@@ -35,7 +36,8 @@ public class EnhancedPaymentService : IPaymentService
         IEnrollmentRepository enrollmentRepository,
         InsightLearnDbContext context,
         ILogger<EnhancedPaymentService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        MetricsService metricsService)
     {
         _paymentRepository = paymentRepository;
         _couponRepository = couponRepository;
@@ -44,6 +46,7 @@ public class EnhancedPaymentService : IPaymentService
         _context = context;
         _logger = logger;
         _configuration = configuration;
+        _metricsService = metricsService;
 
         // Initialize configuration (with defaults for development)
         _stripePublicKey = configuration["Stripe:PublicKey"] ?? "pk_test_mock";
@@ -496,6 +499,11 @@ public class EnhancedPaymentService : IPaymentService
 
                 _logger.LogInformation("[Payment] Completed payment {PaymentId} with transaction {TransactionId}, created enrollment {EnrollmentId}",
                     paymentId, transactionId, enrollment.Id);
+
+                // Record payment metrics (Phase 4.2)
+                var paymentMethod = payment.PaymentMethod.ToString().ToLower();
+                _metricsService.RecordPayment("completed", paymentMethod, payment.Amount);
+                _metricsService.RecordPaymentAmount(paymentMethod, payment.Amount);
 
                 return MapToDto(payment);
             }

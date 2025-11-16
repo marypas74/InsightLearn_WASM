@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +59,90 @@ Console.WriteLine($"[CONFIG] MongoDB: {mongoConnectionString.Replace("InsightLea
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "InsightLearn API",
+        Version = versionShort,
+        Description = @"**InsightLearn Enterprise LMS Platform - Complete API Documentation**
+
+A comprehensive Learning Management System with advanced features:
+- **Authentication & Authorization**: JWT-based secure authentication with role-based access control (Admin, Instructor, Student)
+- **AI Chatbot**: Ollama-powered conversational assistant for student support
+- **Video Management**: MongoDB GridFS video storage with streaming, compression, and progress tracking
+- **Course Management**: Full CRUD for courses, categories, sections, and lessons
+- **Enrollment System**: Student enrollment with progress tracking and completion certificates
+- **Payment Integration**: Stripe & PayPal integration with coupon support
+- **Review System**: Course reviews and ratings for quality assurance
+- **SaaS Subscription Model**: Recurring billing with engagement-based instructor payouts
+- **Admin Dashboard**: Comprehensive analytics and platform management
+
+**Security Features**:
+- CSRF Protection (double-submit cookie pattern)
+- Rate Limiting (distributed Redis-backed, DDoS protection)
+- PCI DSS compliant payment processing
+- GDPR compliant audit logging
+- Security headers (CSP, HSTS, X-Frame-Options, etc.)
+
+**Performance**:
+- Database connection pooling with retry policies
+- Response compression (GZip)
+- Prometheus metrics for monitoring
+- Comprehensive health checks for all dependencies",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "InsightLearn Support",
+            Email = "support@insightlearn.cloud",
+            Url = new Uri("https://insightlearn.cloud")
+        },
+        License = new Microsoft.OpenApi.Models.OpenApiLicense
+        {
+            Name = "Proprietary",
+            Url = new Uri("https://insightlearn.cloud/license")
+        }
+    });
+
+    // Include XML comments from generated documentation file
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+        Console.WriteLine($"[SWAGGER] XML documentation loaded from: {xmlFile}");
+    }
+    else
+    {
+        Console.WriteLine($"[SWAGGER] Warning: XML documentation file not found at {xmlPath}");
+    }
+
+    // Add JWT Bearer authentication to Swagger UI
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = @"JWT Authorization header using the Bearer scheme.
+                      Enter 'Bearer' [space] and then your token in the text input below.
+                      Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Configure JSON serialization to use PascalCase (ASP.NET Core default)
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -228,6 +312,10 @@ builder.Services.AddHttpClient("Prometheus", client =>
 // Register Prometheus Service
 builder.Services.AddScoped<IPrometheusService, PrometheusService>();
 
+// Register Metrics Service (Phase 4.2 - Custom Application Metrics)
+builder.Services.AddSingleton<MetricsService>();
+Console.WriteLine("[CONFIG] MetricsService registered (custom Prometheus metrics)");
+
 // Register Audit Service (database-backed audit logging)
 builder.Services.AddScoped<IAuditService, AuditService>();
 Console.WriteLine("[CONFIG] Audit Service registered (database-backed compliance logging)");
@@ -380,6 +468,7 @@ builder.Services.AddScoped<IAuthService>(sp =>
     var sessionService = sp.GetRequiredService<ISessionService>();
     var lockoutService = sp.GetRequiredService<IUserLockoutService>();
     var logger = sp.GetRequiredService<ILogger<AuthService>>();
+    var metricsService = sp.GetRequiredService<MetricsService>();
 
     return new AuthService(
         userManager,
@@ -389,7 +478,8 @@ builder.Services.AddScoped<IAuthService>(sp =>
         jwtSecret,
         jwtIssuer,
         jwtAudience,
-        logger
+        logger,
+        metricsService
     );
 });
 
@@ -414,7 +504,8 @@ builder.Services.AddScoped<IChatbotService>(sp =>
     var ollamaService = sp.GetRequiredService<IOllamaService>();
     var dbContext = sp.GetRequiredService<InsightLearnDbContext>();
     var logger = sp.GetRequiredService<ILogger<ChatbotService>>();
-    return new ChatbotService(ollamaService, dbContext, logger, ollamaModel);
+    var metricsService = sp.GetRequiredService<MetricsService>();
+    return new ChatbotService(ollamaService, dbContext, logger, metricsService, ollamaModel);
 });
 
 // Configure Redis for distributed rate limiting
@@ -507,16 +598,66 @@ builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<IDashboardPublicService, DashboardPublicService>();
 Console.WriteLine("[CONFIG] Admin Services registered (Admin, UserAdmin, DashboardPublic)");
 
-// Register Certificate Service
+// Register Certificate Services (Phase 5.1: PDF Generation with QuestPDF)
+builder.Services.AddScoped<ICertificateTemplateService, CertificateTemplateService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
-Console.WriteLine("[CONFIG] Certificate Service registered (Phase 3 stub - PDF generation in Phase 4)");
+Console.WriteLine("[CONFIG] Certificate Services registered (QuestPDF template + certificate generation)");
 
 Console.WriteLine("[CONFIG] MongoDB Video Storage Services registered");
 Console.WriteLine("[CONFIG] Enhanced Dashboard Service registered");
 Console.WriteLine("[CONFIG] Core LMS Repositories registered (8 repositories)");
 
-// Health checks (simple - no additional packages needed)
-builder.Services.AddHealthChecks();
+// Phase 4.1: Comprehensive Health Checks for all dependent services
+// Configure health checks with proper tags and failure statuses
+var elasticsearchUrl = builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch-service.insightlearn.svc.cluster.local:9200";
+
+builder.Services.AddHealthChecks()
+    // CRITICAL: SQL Server - Primary database
+    .AddSqlServer(
+        connectionString: connectionString,
+        name: "sqlserver",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+        tags: new[] { "db", "sql", "critical" },
+        timeout: TimeSpan.FromSeconds(5))
+
+    // CRITICAL: MongoDB - Video storage database
+    .AddMongoDb(
+        mongodbConnectionString: mongoConnectionString,
+        name: "mongodb",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+        tags: new[] { "db", "mongodb", "videos", "critical" },
+        timeout: TimeSpan.FromSeconds(5))
+
+    // DEGRADED: Redis - Cache service (app continues without it)
+    .AddRedis(
+        redisConnectionString: redisConnectionString,
+        name: "redis",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "cache", "redis" },
+        timeout: TimeSpan.FromSeconds(3))
+
+    // DEGRADED: Elasticsearch - Search engine (app continues without it)
+    .AddElasticsearch(
+        elasticsearchUri: elasticsearchUrl,
+        name: "elasticsearch",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "search", "elasticsearch" },
+        timeout: TimeSpan.FromSeconds(3))
+
+    // DEGRADED: Ollama - AI chatbot (app continues without it)
+    .AddUrlGroup(
+        uri: new Uri($"{ollamaUrl}/api/tags"),
+        name: "ollama",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "ai", "ollama", "chatbot" },
+        timeout: TimeSpan.FromSeconds(3));
+
+Console.WriteLine("[CONFIG] Comprehensive health checks configured:");
+Console.WriteLine("[CONFIG]   - SQL Server (critical)");
+Console.WriteLine("[CONFIG]   - MongoDB (critical)");
+Console.WriteLine("[CONFIG]   - Redis (degraded if down)");
+Console.WriteLine("[CONFIG]   - Elasticsearch (degraded if down)");
+Console.WriteLine("[CONFIG]   - Ollama AI (degraded if down)");
 
 var app = builder.Build();
 
@@ -678,10 +819,42 @@ catch (Exception ex)
 }
 
 // Configure the HTTP request pipeline
+
+// Global Exception Handler - MUST BE FIRST in middleware pipeline
+// Catches all unhandled exceptions from ANY downstream middleware or endpoint
+// Provides environment-aware error responses (detailed in dev, safe in production)
+// Implements OWASP A01:2021 (Information Disclosure) prevention
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+Console.WriteLine("[SECURITY] Global exception handler registered (Phase 6.2 - production-safe error messages)");
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors();
+
+// Prometheus Metrics Middleware (Phase 4.2)
+// Auto-instruments all HTTP requests for monitoring
+// Exposes /metrics endpoint for Prometheus scraping
+app.UseHttpMetrics(); // Automatic HTTP request/response metrics
+Console.WriteLine("[METRICS] Prometheus HTTP metrics middleware registered");
+
+// Custom metrics middleware - measures API duration and records requests
+app.Use(async (context, next) =>
+{
+    var metricsService = context.RequestServices.GetRequiredService<MetricsService>();
+    var method = context.Request.Method;
+    var endpoint = context.Request.Path.Value ?? "/";
+
+    // Measure request duration using Prometheus histogram
+    using (metricsService.MeasureApiDuration(method, endpoint))
+    {
+        await next();
+    }
+
+    // Record API request counter
+    metricsService.RecordApiRequest(method, endpoint, context.Response.StatusCode);
+});
+Console.WriteLine("[METRICS] Custom API metrics middleware registered (duration + request tracking)");
 
 // Security Headers Middleware - Comprehensive security headers for all responses
 // Moved to dedicated middleware for better maintainability (P1.2)
@@ -742,8 +915,63 @@ app.Use(async (context, next) =>
     }
 });
 
-// Health check endpoint (exempt from rate limiting for K8s probes)
-app.MapHealthChecks("/health").DisableRateLimiting();
+// Phase 4.1: Comprehensive Health Check Endpoints
+// Three endpoints for different use cases:
+// 1. /health - Full health check with detailed JSON response (for monitoring dashboards)
+// 2. /health/live - Liveness probe (minimal check - app is running)
+// 3. /health/ready - Readiness probe (critical dependencies - ready to serve traffic)
+
+// Full health check endpoint - Returns detailed JSON with all service statuses
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var response = new
+        {
+            status = report.Status.ToString(),
+            totalDuration = Math.Round(report.TotalDuration.TotalMilliseconds, 2),
+            timestamp = DateTime.UtcNow.ToString("o"),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                duration = Math.Round(e.Value.Duration.TotalMilliseconds, 2),
+                description = e.Value.Description,
+                exception = e.Value.Exception?.Message,
+                tags = e.Value.Tags,
+                data = e.Value.Data.Count > 0 ? e.Value.Data : null
+            }).OrderBy(x => x.name)
+        };
+
+        await context.Response.WriteAsJsonAsync(response);
+    }
+}).DisableRateLimiting();
+
+// Liveness probe - K8s uses this to determine if pod is alive
+// Returns 200 if API is running (no dependency checks)
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false // No checks - just 200 OK if API is running
+}).DisableRateLimiting();
+
+// Readiness probe - K8s uses this to determine if pod is ready to serve traffic
+// Only checks CRITICAL dependencies (SQL Server, MongoDB)
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("critical")
+}).DisableRateLimiting();
+
+Console.WriteLine("[CONFIG] Health check endpoints registered:");
+Console.WriteLine("[CONFIG]   - /health (full status with JSON details)");
+Console.WriteLine("[CONFIG]   - /health/live (liveness probe for K8s)");
+Console.WriteLine("[CONFIG]   - /health/ready (readiness probe for K8s)");
+
+// Prometheus metrics endpoint (Phase 4.2)
+// Exposes custom application metrics for Prometheus scraping
+app.MapMetrics().DisableRateLimiting(); // Default: /metrics
+Console.WriteLine("[METRICS] /metrics endpoint exposed for Prometheus scraping");
 
 // CSP violation reporting endpoint (exempt from rate limiting)
 app.MapPost("/api/csp-violations", async (HttpContext context, [FromServices] ILogger<Program> logger) =>
@@ -808,7 +1036,67 @@ app.MapGet("/api/info", () => Results.Ok(new
     }
 }));
 
+// ============================================
 // AUTHENTICATION API ENDPOINTS
+// ============================================
+
+/// <summary>
+/// Authenticates a user and returns a JWT access token
+/// </summary>
+/// <param name="loginDto">User credentials (email and password)</param>
+/// <param name="httpContext">HTTP context for IP tracking</param>
+/// <param name="authService">Authentication service</param>
+/// <param name="logger">Logger instance</param>
+/// <returns>Authentication result with JWT token and user information</returns>
+/// <response code="200">Login successful - returns JWT token, user details, and session information</response>
+/// <response code="400">Login failed - invalid credentials, account locked, or validation errors</response>
+/// <response code="429">Rate limit exceeded - maximum 5 login attempts per minute per IP (brute force protection)</response>
+/// <response code="500">Internal server error occurred during authentication</response>
+/// <remarks>
+/// **Rate Limiting**: This endpoint is protected by aggressive rate limiting (5 requests/minute per IP) to prevent brute force attacks.
+///
+/// **Security Features**:
+/// - Password hashing with bcrypt
+/// - Account lockout after 5 failed attempts (15 minute lockout)
+/// - IP address and user agent logging for security auditing
+/// - JWT token with configurable expiration (default: 7 days)
+///
+/// **Sample Request**:
+///
+///     POST /api/auth/login
+///     {
+///       "email": "student@example.com",
+///       "password": "SecurePass123!"
+///     }
+///
+/// **Sample Success Response** (200 OK):
+///
+///     {
+///       "isSuccess": true,
+///       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+///       "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+///       "email": "student@example.com",
+///       "firstName": "John",
+///       "lastName": "Doe",
+///       "roles": ["Student"],
+///       "sessionId": "sess_abc123",
+///       "expiresAt": "2025-11-23T12:00:00Z"
+///     }
+///
+/// **Sample Error Response** (400 Bad Request):
+///
+///     {
+///       "isSuccess": false,
+///       "errors": ["Invalid email or password"]
+///     }
+///
+/// **Sample Lockout Response** (400 Bad Request):
+///
+///     {
+///       "isSuccess": false,
+///       "errors": ["Account locked due to multiple failed login attempts. Try again in 15 minutes."]
+///     }
+/// </remarks>
 app.MapPost("/api/auth/login", async (
     [FromBody] LoginDto loginDto,
     HttpContext httpContext,
@@ -848,8 +1136,65 @@ app.MapPost("/api/auth/login", async (
 .Accepts<LoginDto>("application/json")
 .Produces<AuthResultDto>(200)
 .Produces(400)
-.Produces(500);
+.Produces(500)
+.WithName("Login")
+.WithTags("Authentication");
 
+/// <summary>
+/// Registers a new user account on the platform
+/// </summary>
+/// <param name="registerDto">New user registration details (email, password, name, etc.)</param>
+/// <param name="authService">Authentication service</param>
+/// <param name="logger">Logger instance</param>
+/// <returns>Registration result with JWT token for immediate login</returns>
+/// <response code="200">Registration successful - returns JWT token and user details</response>
+/// <response code="400">Registration failed - validation errors, duplicate email, or weak password</response>
+/// <response code="429">Rate limit exceeded - maximum 5 registration attempts per minute per IP</response>
+/// <response code="500">Internal server error occurred during registration</response>
+/// <remarks>
+/// **Password Requirements** (PCI DSS 8.2.3 compliant):
+/// - Minimum 8 characters
+/// - At least one uppercase letter (A-Z)
+/// - At least one lowercase letter (a-z)
+/// - At least one digit (0-9)
+/// - At least one special character (!@#$%^&amp;*()_+-=[]{}|:";'&lt;&gt;?,.)
+///
+/// **Sample Request**:
+///
+///     POST /api/auth/register
+///     {
+///       "email": "newstudent@example.com",
+///       "password": "SecurePass123!",
+///       "confirmPassword": "SecurePass123!",
+///       "firstName": "Jane",
+///       "lastName": "Smith",
+///       "userType": "Student",
+///       "hasAgreedToTerms": true,
+///       "hasAgreedToPrivacyPolicy": true
+///     }
+///
+/// **Sample Success Response** (200 OK):
+///
+///     {
+///       "isSuccess": true,
+///       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+///       "userId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+///       "email": "newstudent@example.com",
+///       "firstName": "Jane",
+///       "lastName": "Smith",
+///       "roles": ["Student"]
+///     }
+///
+/// **Sample Error Response** (400 Bad Request):
+///
+///     {
+///       "isSuccess": false,
+///       "errors": [
+///         "Email 'newstudent@example.com' is already registered",
+///         "Password must contain at least one uppercase letter"
+///       ]
+///     }
+/// </remarks>
 app.MapPost("/api/auth/register", async (
     [FromBody] RegisterDto registerDto,
     [FromServices] IAuthService authService,

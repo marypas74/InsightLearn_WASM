@@ -17,6 +17,7 @@ public class ChatbotService : IChatbotService
     private readonly IOllamaService _ollamaService;
     private readonly InsightLearnDbContext _dbContext;
     private readonly ILogger<ChatbotService> _logger;
+    private readonly MetricsService _metricsService;
     private readonly string _defaultModel;
 
     // FAQ Cache for instant responses (80% of queries)
@@ -62,11 +63,13 @@ public class ChatbotService : IChatbotService
         IOllamaService ollamaService,
         InsightLearnDbContext dbContext,
         ILogger<ChatbotService> logger,
+        MetricsService metricsService,
         string defaultModel = "llama2")
     {
         _ollamaService = ollamaService ?? throw new ArgumentNullException(nameof(ollamaService));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _metricsService = metricsService ?? throw new ArgumentNullException(nameof(metricsService));
         _defaultModel = defaultModel;
     }
 
@@ -133,10 +136,17 @@ public class ChatbotService : IChatbotService
                 // Costruisci un prompt con contesto della conversazione se necessario
                 var prompt = await BuildPromptWithContextAsync(sessionId, request.Message);
 
-                aiResponse = await _ollamaService.GenerateResponseAsync(
-                    prompt,
-                    _defaultModel,
-                    cancellationToken);
+                // Measure Ollama inference time (Phase 4.2)
+                using (_metricsService.MeasureOllamaInference(_defaultModel))
+                {
+                    aiResponse = await _ollamaService.GenerateResponseAsync(
+                        prompt,
+                        _defaultModel,
+                        cancellationToken);
+                }
+
+                // Record chatbot message metric
+                _metricsService.RecordChatbotMessage(_defaultModel);
             }
             catch (Exception ex)
             {

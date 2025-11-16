@@ -18,6 +18,7 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private readonly ISessionService _sessionService;
     private readonly IUserLockoutService _lockoutService;
+    private readonly MetricsService _metricsService;
     private readonly string _jwtSecret;
     private readonly string _jwtIssuer;
     private readonly string _jwtAudience;
@@ -30,7 +31,8 @@ public class AuthService : IAuthService
         string jwtSecret,
         string jwtIssuer,
         string jwtAudience,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        MetricsService metricsService)
     {
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _roleManager = roleManager ?? throw new ArgumentNullException(nameof(roleManager));
@@ -40,6 +42,7 @@ public class AuthService : IAuthService
         _jwtIssuer = !string.IsNullOrWhiteSpace(jwtIssuer) ? jwtIssuer : throw new ArgumentException("JWT issuer cannot be null or empty", nameof(jwtIssuer));
         _jwtAudience = !string.IsNullOrWhiteSpace(jwtAudience) ? jwtAudience : throw new ArgumentException("JWT audience cannot be null or empty", nameof(jwtAudience));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _metricsService = metricsService ?? throw new ArgumentNullException(nameof(metricsService));
     }
 
     public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
@@ -83,8 +86,12 @@ public class AuthService : IAuthService
             var roleName = registerDto.IsInstructor ? "Instructor" : "Student";
             await _userManager.AddToRoleAsync(user, roleName);
 
+            // Record user registration metric (Phase 4.2)
+            var userType = registerDto.IsInstructor ? "Instructor" : "Student";
+            _metricsService.RecordUserRegistration(userType);
+
             // Generate JWT token and create session using the public method
-            var tokenResult = await GenerateJwtTokenAsync(user, 
+            var tokenResult = await GenerateJwtTokenAsync(user,
                 ipAddress: "127.0.0.1", // TODO: Get real IP address
                 userAgent: "Registration", // TODO: Get real user agent
                 correlationId: Guid.NewGuid().ToString());
@@ -207,7 +214,7 @@ public class AuthService : IAuthService
             if (!passwordValid)
             {
                 _logger.LogWarning("Invalid password for user: {UserId}. CorrelationId: {CorrelationId}", user.Id, correlationId);
-                
+
                 // Record failed attempt (for potential future lockout logic)
                 try
                 {
@@ -217,7 +224,10 @@ public class AuthService : IAuthService
                 {
                     _logger.LogError(ex, "Error recording access failure for user: {UserId}. CorrelationId: {CorrelationId}", user.Id, correlationId);
                 }
-                
+
+                // Record failed login metric (Phase 4.2)
+                _metricsService.RecordLoginAttempt(success: false);
+
                 return new AuthResultDto
                 {
                     IsSuccess = false,
@@ -278,6 +288,9 @@ public class AuthService : IAuthService
 
                 _logger.LogInformation("✅ JWT token and session created successfully for user: {UserId}, SessionId: {SessionId}. CorrelationId: {CorrelationId}",
                     user.Id, tokenResult.SessionId, correlationId);
+
+                // Record successful login metric (Phase 4.2)
+                _metricsService.RecordLoginAttempt(success: true);
             }
             catch (Exception ex)
             {

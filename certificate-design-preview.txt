@@ -1,0 +1,188 @@
+╔════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                        ║
+║                                                                                                        ║
+║                           CERTIFICATE OF COMPLETION                                                    ║
+║                           ═══════════════════════════                                                  ║
+║                                                                                                        ║
+║                              This is to certify that                                                   ║
+║                                                                                                        ║
+║                              ─────────────────────                                                     ║
+║                                                                                                        ║
+║                                  John Doe                                                              ║
+║                                                                                                        ║
+║                                                                                                        ║
+║                           has successfully completed                                                   ║
+║                                                                                                        ║
+║                       ┌─────────────────────────────────────┐                                          ║
+║                       │                                     │                                          ║
+║                       │   Advanced C# Programming           │                                          ║
+║                       │                                     │                                          ║
+║                       └─────────────────────────────────────┘                                          ║
+║                                                                                                        ║
+║                                                                                                        ║
+║                 Duration                Rating              Issued On                                  ║
+║                 ────────                ──────              ─────────                                  ║
+║                 10 hours                4.8/5.0 ★           November 16, 2025                           ║
+║                                                                                                        ║
+║                                                                                                        ║
+║                                                                                                        ║
+║                                                                                                        ║
+║        ─────────────────────                           ─────────────────────                           ║
+║        Platform Director                               Course Instructor                               ║
+║        InsightLearn Administration                     InsightLearn Academy                            ║
+║                                                                                                        ║
+║                                                                                                        ║
+║                       Certificate Number: CERT-2025-A1B2C3-D4E5F6-9K7M                                 ║
+║                                                                                                        ║
+║                  Verify this certificate at: https://insightlearn.cloud/verify                         ║
+║                                                                                                        ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    DESIGN SPECIFICATIONS                                             │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  Page Format:      A4 Landscape (297mm x 210mm)                                                     │
+│  Border:           5pt solid blue (#1565C0 - Colors.Blue.Darken3)                                   │
+│  Margins:          50pt on all sides                                                                │
+│  Inner Padding:    20pt inside border                                                               │
+│                                                                                                      │
+│  Typography:                                                                                         │
+│  ─────────────                                                                                       │
+│  • Title:          36pt bold, blue (#1565C0)                                                         │
+│  • Student Name:   32pt bold, black                                                                  │
+│  • Course Name:    24pt bold, dark blue (#1976D2), inside light blue box (#BBDEFB)                  │
+│  • Headings:       12pt regular, dark gray (#616161)                                                │
+│  • Values:         18pt bold, dark blue (#1976D2)                                                    │
+│  • Signatures:     12pt regular, medium gray (#9E9E9E)                                              │
+│  • Footer:         8-10pt regular, medium gray                                                       │
+│                                                                                                      │
+│  Color Palette:                                                                                      │
+│  ──────────────                                                                                      │
+│  • Primary Blue:   #1565C0 (Colors.Blue.Darken3)    - Title, border                                 │
+│  • Medium Blue:    #1976D2 (Colors.Blue.Darken2)    - Course name, values                           │
+│  • Light Blue:     #42A5F5 (Colors.Blue.Darken1)    - Decorative lines                              │
+│  • Very Light:     #BBDEFB (Colors.Blue.Lighten4)   - Course name background                        │
+│  • Orange:         #F57C00 (Colors.Orange.Darken1)  - Rating star                                   │
+│  • Dark Gray:      #424242 (Colors.Grey.Darken2)    - Body text                                     │
+│  • Medium Gray:    #9E9E9E (Colors.Grey.Medium)     - Signature lines, footer                       │
+│                                                                                                      │
+│  Layout Sections:                                                                                    │
+│  ────────────────                                                                                    │
+│  1. Header (top 20%):     "CERTIFICATE OF COMPLETION" + decorative line                             │
+│  2. Student (15%):        "This is to certify that" + Student Name                                  │
+│  3. Course (20%):         "has successfully completed" + Course Name in box                         │
+│  4. Details (15%):        3-column grid: Duration | Rating | Issue Date                             │
+│  5. Signatures (15%):     2 signature lines with titles                                             │
+│  6. Footer (10%):         Certificate number + verification URL                                     │
+│                                                                                                      │
+│  Professional Features:                                                                              │
+│  ──────────────────────                                                                              │
+│  ✓ Horizontal divider lines for visual separation                                                   │
+│  ✓ Decorative border with inner padding                                                             │
+│  ✓ Course name highlighted in colored box for emphasis                                              │
+│  ✓ Three-column grid for course details (balanced layout)                                           │
+│  ✓ Dual signature lines (institutional credibility)                                                 │
+│  ✓ QR-ready footer (verification URL for scanning)                                                  │
+│  ✓ Professional typography hierarchy (clear information structure)                                  │
+│  ✓ Landscape orientation (traditional certificate format)                                           │
+│                                                                                                      │
+│  Accessibility:                                                                                      │
+│  ──────────────                                                                                      │
+│  • High contrast ratios (WCAG AA compliant)                                                          │
+│  • Clear font sizes (minimum 8pt)                                                                    │
+│  • Logical reading order (top to bottom)                                                             │
+│  • Screen reader compatible (when converted to accessible PDF)                                       │
+│                                                                                                      │
+│  File Properties:                                                                                    │
+│  ────────────────                                                                                    │
+│  • Format:         PDF 1.7 (ISO 32000-1:2008)                                                        │
+│  • Resolution:     72 DPI                                                                            │
+│  • Color Space:    sRGB                                                                              │
+│  • Fonts:          Embedded sans-serif                                                               │
+│  • File Size:      ~20-100 KB                                                                        │
+│  • Pages:          1 page                                                                            │
+│                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    SAMPLE DATA MAPPING                                               │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  Database Field              →  PDF Location                    →  Example Value                    │
+│  ──────────────────────────────────────────────────────────────────────────────────────────────     │
+│  User.FirstName + LastName   →  Center section (student name)   →  "John Doe"                       │
+│  Course.Title                →  Course name box                 →  "Advanced C# Programming"        │
+│  Certificate.CertificateNumber → Footer (bottom center)          →  "CERT-2025-A1B2C3-D4E5F6-9K7M"  │
+│  Certificate.IssuedAt        →  Details grid (right column)     →  "November 16, 2025"              │
+│  Certificate.CourseHours     →  Details grid (left column)      →  "10 hours"                       │
+│  Course.AverageRating        →  Details grid (center column)    →  "4.8/5.0 ★"                      │
+│  Certificate.Id (GUID)       →  PDF filename                    →  "87654321-4321-....pdf"          │
+│  PdfUrl                      →  Database storage                →  "/certificates/{guid}.pdf"       │
+│                                                                                                      │
+│  Calculated Fields:                                                                                  │
+│  ──────────────────                                                                                  │
+│  • CourseHours = Math.Ceiling(Course.EstimatedDurationMinutes / 60.0)                               │
+│  • StudentName = $"{User.FirstName} {User.LastName}" ?? User.Email ?? "Student"                     │
+│  • FormattedDate = IssuedAt.ToString("MMMM dd, yyyy")                                               │
+│  • FormattedRating = $"{AverageRating:F1}/5.0 ★"                                                     │
+│                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    RENDERING FLOW                                                    │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  1. CertificateService.GenerateCertificateAsync(enrollmentId)                                        │
+│     │                                                                                                │
+│     ├──► Fetch Enrollment (with User navigation property)                                           │
+│     │                                                                                                │
+│     ├──► Validate IsCompleted = true                                                                │
+│     │                                                                                                │
+│     ├──► Check for existing certificate (prevent duplicates)                                        │
+│     │                                                                                                │
+│     ├──► Fetch Course details                                                                       │
+│     │                                                                                                │
+│     ├──► Generate unique certificate number                                                         │
+│     │                                                                                                │
+│     ├──► Create Certificate entity (without PdfUrl)                                                 │
+│     │                                                                                                │
+│     ├──► Call CertificateTemplateService.GeneratePdfAsync()                                         │
+│     │    │                                                                                           │
+│     │    ├──► QuestPDF Document.Create()                                                            │
+│     │    │    │                                                                                      │
+│     │    │    ├──► Define page (A4 Landscape, 50pt margins)                                         │
+│     │    │    │                                                                                      │
+│     │    │    ├──► Add border (5pt blue)                                                            │
+│     │    │    │                                                                                      │
+│     │    │    ├──► Layout columns:                                                                  │
+│     │    │    │    │                                                                                 │
+│     │    │    │    ├──► Header: Title + decorative line                                             │
+│     │    │    │    │                                                                                 │
+│     │    │    │    ├──► Student: Subtitle + name                                                    │
+│     │    │    │    │                                                                                 │
+│     │    │    │    ├──► Course: Completion text + highlighted box                                   │
+│     │    │    │    │                                                                                 │
+│     │    │    │    ├──► Details: 3-column grid (hours, rating, date)                                │
+│     │    │    │    │                                                                                 │
+│     │    │    │    ├──► Signatures: 2-column layout with divider lines                              │
+│     │    │    │    │                                                                                 │
+│     │    │    │    └──► Footer: Certificate number + verification URL                               │
+│     │    │    │                                                                                      │
+│     │    │    └──► GeneratePdf() → byte[] (PDF binary)                                              │
+│     │    │                                                                                           │
+│     │    └──► Return pdfBytes (20-100 KB)                                                            │
+│     │                                                                                                │
+│     ├──► Ensure directory exists: wwwroot/certificates/                                             │
+│     │                                                                                                │
+│     ├──► Write PDF to file: {Certificate.Id}.pdf                                                    │
+│     │                                                                                                │
+│     ├──► Set Certificate.PdfUrl = "/certificates/{id}.pdf"                                          │
+│     │                                                                                                │
+│     └──► Save Certificate to database                                                               │
+│                                                                                                      │
+│  Result: Certificate entity with PdfUrl pointing to physical PDF file                                │
+│                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+End of Certificate Design Preview
