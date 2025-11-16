@@ -8,9 +8,9 @@ namespace InsightLearn.Core.Interfaces;
 public interface ICouponRepository
 {
     /// <summary>
-    /// Gets all coupons
+    /// Gets all coupons with pagination (PERF-4 fix)
     /// </summary>
-    Task<IEnumerable<Coupon>> GetAllAsync();
+    Task<IEnumerable<Coupon>> GetAllAsync(int page = 1, int pageSize = 50);
 
     /// <summary>
     /// Gets a coupon by its unique identifier
@@ -23,14 +23,14 @@ public interface ICouponRepository
     Task<Coupon?> GetByCodeAsync(string code);
 
     /// <summary>
-    /// Gets all active (valid) coupons
+    /// Gets all active (valid) coupons with pagination (PERF-4 fix)
     /// </summary>
-    Task<IEnumerable<Coupon>> GetActiveCouponsAsync();
+    Task<IEnumerable<Coupon>> GetActiveCouponsAsync(int page = 1, int pageSize = 50);
 
     /// <summary>
-    /// Gets coupons for a specific course
+    /// Gets coupons for a specific course with pagination (PERF-4 fix)
     /// </summary>
-    Task<IEnumerable<Coupon>> GetByCourseIdAsync(Guid courseId);
+    Task<IEnumerable<Coupon>> GetByCourseIdAsync(Guid courseId, int page = 1, int pageSize = 20);
 
     /// <summary>
     /// Creates a new coupon

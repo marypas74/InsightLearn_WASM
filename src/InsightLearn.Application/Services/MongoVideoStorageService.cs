@@ -166,21 +166,19 @@ public class MongoVideoStorageService : IMongoVideoStorageService
                 throw new FileNotFoundException($"Video file not found: {fileId}");
             }
 
-            // If compressed, decompress on the fly
+            // PERFORMANCE FIX (PERF-5): Return GZipStream directly for on-the-fly decompression
+            // Previous implementation loaded entire video into memory (500MB video = 500MB RAM)
+            // New implementation streams decompression as data is read (constant memory ~4-8MB)
             if (file.Metadata.Contains("compressed") && file.Metadata["compressed"].AsBoolean)
             {
-                _logger.LogDebug("Decompressing video: {FileId}", fileId);
+                _logger.LogDebug("Streaming compressed video with on-the-fly decompression: {FileId}", fileId);
 
-                var decompressedStream = new MemoryStream();
-                using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
-                {
-                    await gzipStream.CopyToAsync(decompressedStream);
-                }
-
-                decompressedStream.Position = 0;
-                return decompressedStream;
+                // Return GZipStream directly - decompresses as data is read (chunked streaming)
+                // leaveOpen: false ensures underlying compressedStream is disposed when GZipStream is disposed
+                return new GZipStream(compressedStream, CompressionMode.Decompress, leaveOpen: false);
             }
 
+            _logger.LogDebug("Streaming uncompressed video: {FileId}", fileId);
             return compressedStream;
         }
         catch (Exception ex)

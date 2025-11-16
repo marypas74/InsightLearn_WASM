@@ -1643,8 +1643,8 @@ app.MapPost("/api/video/upload", async (
 })
 .WithName("UploadVideo")
 .WithTags("Video")
-.DisableAntiforgery() // Required for file upload
-.DisableRequestSizeLimit(); // SECURITY FIX (CRIT-2): Allow 500MB videos (global limit is 10MB)
+.DisableAntiforgery(); // Required for file upload
+// Note: Request size limit (500MB for videos) configured globally in Kestrel options (CRIT-2)
 
 // Stream video (Students + Instructors)
 app.MapGet("/api/video/stream/{fileId}", async (

@@ -17,28 +17,42 @@ public class CategoryRepository : ICategoryRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Category>> GetAllAsync()
+    // PERFORMANCE FIX (PERF-4): Added pagination with default pageSize=100 (reasonable for categories)
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query optimization
+    public async Task<IEnumerable<Category>> GetAllAsync(int page = 1, int pageSize = 100)
     {
+        // Enforce max page size to prevent memory exhaustion
+        pageSize = Math.Min(pageSize, 100);
+
         return await _context.Categories
+            .AsNoTracking()
             .OrderBy(c => c.OrderIndex)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
     }
 
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query
     public async Task<Category?> GetByIdAsync(Guid id)
     {
         return await _context.Categories
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query
     public async Task<Category?> GetBySlugAsync(string slug)
     {
         return await _context.Categories
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Slug == slug);
     }
 
+    // PERFORMANCE FIX (PERF-2): Added AsNoTracking() for read-only query
     public async Task<Category?> GetWithCoursesAsync(Guid id)
     {
         return await _context.Categories
+            .AsNoTracking()
             .Include(c => c.Courses.Where(course => course.Status == CourseStatus.Published && course.IsActive))
             .FirstOrDefaultAsync(c => c.Id == id);
     }
