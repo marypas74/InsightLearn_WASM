@@ -18,8 +18,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Git History**: ✅ CLEAN - Secrets completamente rimossi (filter-branch 2025-11-16)
 **Production Secrets**: ✅ SECURE - Password non committate, .gitignore aggiornato
 **JWT Validation**: ✅ ACTIVE - Weak secret detection (9 patterns rejected)
-**Secret Rotation**: 📝 Manual procedure documented in [docs/JWT-SECRET-ROTATION.md](docs/JWT-SECRET-ROTATION.md)
+**Secret Rotation**: ✅ **AUTOMATICA** - Script con rollback automatico in [scripts/rotate-secrets-production-safe.sh](scripts/rotate-secrets-production-safe.sh)
 **Compliance**: ✅ OWASP A02:2021, PCI DSS 6.3.1, NIST SP 800-57, CWE-798
+
+#### 🔄 Rotazione Password Automatica
+
+**Script**: [scripts/rotate-secrets-production-safe.sh](scripts/rotate-secrets-production-safe.sh)
+**Funzionamento**: 100% automatico, zero intervento manuale richiesto
+
+**Processo Automatico** (9 step):
+1. ✅ Backup automatico secrets correnti per rollback
+2. ✅ Generazione automatica password sicure (SQL 32 chars, JWT 64 chars, MongoDB 32 chars, Redis 32 chars)
+3. ✅ Cambio password **DENTRO SQL Server** con `ALTER LOGIN sa WITH PASSWORD`
+4. ✅ Cambio password **DENTRO MongoDB** con `changeUserPassword()`
+5. ✅ Cambio password **DENTRO Redis** con `CONFIG SET requirepass`
+6. ✅ Aggiornamento automatico Kubernetes secrets
+7. ✅ Riavvio automatico pods (SQL → MongoDB → Redis → API)
+8. ✅ Verifica automatica health di tutti i servizi
+9. ✅ Generazione automatica report rotazione
+
+**Sicurezza Garantita**:
+- ✅ **Rollback automatico**: Se qualsiasi step fallisce, ripristino completo automatico
+- ✅ **Zero downtime**: Password cambiate DENTRO i database PRIMA di aggiornare K8s secrets
+- ✅ **Garanzia stabilità**: Se fallisce, **tutte le password rimangono quelle correnti** come se non fosse successo nulla
+- ✅ **Verifica completa**: Ogni cambio password verificato prima di procedere
+
+**Esecuzione**:
+```bash
+# Esecuzione manuale (per test o emergenze)
+sudo /home/mpasqui/insightlearn_WASM/InsightLearn_WASM/scripts/rotate-secrets-production-safe.sh
+
+# Il rollback è AUTOMATICO - nessun intervento richiesto in caso di errore
+```
+
+**Log e Report**:
+- **Log**: `/var/log/secret-rotation.log`
+- **Backup**: `/var/backups/secret-rotation/rollback-secrets-*.yaml`
+- **Report**: `/var/backups/secret-rotation/rotation-report-*.txt`
 
 ### Architettura Soluzione
 

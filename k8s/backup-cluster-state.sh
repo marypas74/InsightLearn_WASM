@@ -228,6 +228,10 @@ log "=========================================="
 ln -sf "$(basename "$BACKUP_PATH")" "$BACKUP_DIR/latest-backup.tar.gz"
 log "  ✓ Symlink updated: latest-backup.tar.gz -> $(basename "$BACKUP_PATH")"
 
+# Create symlink for restore service compatibility (k3s-auto-restore.service expects this file)
+ln -sf "$(basename "$BACKUP_PATH")" "$BACKUP_DIR/k3s-cluster-snapshot.tar.gz"
+log "  ✓ Snapshot symlink updated: k3s-cluster-snapshot.tar.gz -> $(basename "$BACKUP_PATH")"
+
 # Show backup rotation status
 log "Backup rotation status:"
 if [[ -f "$BACKUP_1" ]]; then
