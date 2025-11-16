@@ -258,45 +258,74 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 .AddEntityFrameworkStores<InsightLearnDbContext>()
 .AddDefaultTokenProviders();
 
-// Get JWT configuration with validation (prioritize environment variable for production security)
-var jwtSecret = builder.Configuration["JWT_SECRET_KEY"] ?? builder.Configuration["Jwt:Secret"];
+// Get JWT configuration with validation (Phase 2.1: JWT Secret Hardening)
+// CRITICAL SECURITY: Prioritize environment variable over appsettings.json
+var jwtSecretFromEnv = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
+var jwtSecretFromConfig = builder.Configuration["Jwt:Secret"];
+var jwtSecret = jwtSecretFromEnv ?? jwtSecretFromConfig;
+
+// REQUIREMENT 1: No fallback - throw if not configured
 if (string.IsNullOrWhiteSpace(jwtSecret))
 {
     throw new InvalidOperationException(
-        "JWT Secret is not configured. Please set JWT_SECRET_KEY environment variable or Jwt:Secret in appsettings.json. " +
-        "The secret must be at least 32 characters long for security.");
+        "JWT Secret Key is not configured. " +
+        "Set JWT_SECRET_KEY environment variable (RECOMMENDED for production) or JwtSettings:SecretKey in appsettings.json. " +
+        "Minimum length: 32 characters. " +
+        "Generate a secure key using: openssl rand -base64 64");
 }
 
+// REQUIREMENT 2: Minimum length validation (32 characters)
 if (jwtSecret.Length < 32)
 {
     throw new InvalidOperationException(
-        $"JWT Secret is too short ({jwtSecret.Length} characters). Minimum length is 32 characters for security.");
+        $"JWT Secret Key is too short ({jwtSecret.Length} characters). " +
+        $"Minimum required: 32 characters. " +
+        $"Current key length is insufficient for cryptographic security. " +
+        $"Generate a secure key using: openssl rand -base64 64");
 }
 
-// Validate secret strength - reject weak/default values (Phase 2.1 Security Enhancement)
-var weakSecrets = new[]
+// REQUIREMENT 3: Block common insecure/default values
+var insecureValues = new[]
 {
-    "your-secret-key",
     "changeme",
-    "default",
-    "secret",
+    "your-secret-key",
+    "insecure",
+    "test",
+    "dev",
     "password",
+    "secret",
+    "default",
     "replace_with",
     "insightlearn", // Don't allow app name as secret
     "jwt_secret",
+    "your_secret",
+    "my_secret",
     "REPLACE_WITH_JWT_SECRET_KEY_ENV_VAR_MINIMUM_32_CHARS" // From appsettings.json placeholder
 };
 
 var lowerSecret = jwtSecret.ToLowerInvariant();
-foreach (var weakSecret in weakSecrets)
+foreach (var insecureValue in insecureValues)
 {
-    if (lowerSecret.Contains(weakSecret))
+    if (lowerSecret.Contains(insecureValue))
     {
         throw new InvalidOperationException(
-            $"JWT Secret contains a weak/default value ('{weakSecret}'). " +
-            "Please configure a strong, cryptographically random secret key. " +
-            "Generate one using: openssl rand -base64 64");
+            $"JWT Secret Key contains an insecure/default value: '{insecureValue}'. " +
+            $"This is a CRITICAL SECURITY VULNERABILITY. " +
+            $"Please configure a strong, cryptographically random secret key. " +
+            $"Generate one using: openssl rand -base64 64");
     }
+}
+
+// REQUIREMENT 4: Log warning if secret comes from appsettings.json instead of environment variable
+if (jwtSecretFromEnv == null)
+{
+    Console.WriteLine("[SECURITY WARNING] JWT Secret is loaded from appsettings.json. " +
+        "For production deployments, use JWT_SECRET_KEY environment variable instead. " +
+        "Configuration files should NOT contain production secrets.");
+}
+else
+{
+    Console.WriteLine("[SECURITY] JWT Secret loaded from JWT_SECRET_KEY environment variable (RECOMMENDED)");
 }
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JWT_ISSUER"];
@@ -680,6 +709,12 @@ Console.WriteLine("[SECURITY] Distributed rate limiting enabled (Redis-backed, c
 // Positioned AFTER rate limiting to prevent attackers from exhausting resources
 app.UseMiddleware<RequestValidationMiddleware>();
 Console.WriteLine("[SECURITY] Request validation middleware registered (SQL injection, XSS, path traversal, request body validation)");
+
+// Model Validation Logging Middleware - Phase 3.2
+// Centrally logs all validation failures (400 Bad Request) for monitoring and debugging
+// Extracts and analyzes validation errors, detects potential security concerns
+app.UseMiddleware<ModelValidationMiddleware>();
+Console.WriteLine("[SECURITY] Model validation logging middleware registered (Phase 3.2 - validation failure monitoring)");
 
 app.UseAuthentication();
 // CSRF Protection Middleware - Positioned after authentication, before authorization
