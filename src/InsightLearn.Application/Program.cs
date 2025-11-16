@@ -325,7 +325,6 @@ var csBuilder = new SqlConnectionStringBuilder(connectionString)
     MinPoolSize = 5,            // Keep 5 connections warm for fast response
     MaxPoolSize = 100,          // Limit to 100 to prevent SQL Server exhaustion
     Pooling = true,             // Enable pooling (default: true, explicit for clarity)
-    ConnectionLifeTime = 0,     // 0 = no limit (connections returned to pool indefinitely)
     ConnectTimeout = 30,        // 30 second connection timeout
     ConnectRetryCount = 3,      // Retry 3 times on connection failure
     ConnectRetryInterval = 10   // 10 seconds between retries
@@ -349,15 +348,17 @@ builder.Services.AddDbContext<InsightLearnDbContext>(options =>
 });
 
 // Register DbContextFactory for SessionService and other services that need it
+// PERFORMANCE FIX (PERF-3): Uses same pooled connection string
 builder.Services.AddDbContextFactory<InsightLearnDbContext>(options =>
 {
-    options.UseSqlServer(connectionString, sqlOptions =>
+    options.UseSqlServer(csBuilder.ConnectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
         sqlOptions.CommandTimeout(120);
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 });
 
