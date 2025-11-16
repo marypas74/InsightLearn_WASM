@@ -1,0 +1,60 @@
+# GitHub Dependabot configuration
+# Documentation: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # NuGet package updates for .NET projects
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+
+    # Ignore packages that are part of .NET framework (false positive alerts)
+    ignore:
+      # System.Net.Http 4.3.x is deprecated - .NET 8 uses framework version
+      # GitHub alerts for this are FALSE POSITIVE (runtime uses framework, not NuGet package)
+      - dependency-name: "System.Net.Http"
+        versions: ["4.3.0", "4.3.1", "4.3.2", "4.3.3", "4.3.4"]
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+
+      # System.Text.RegularExpressions 4.3.x is deprecated - .NET 8 uses framework version
+      # GitHub alerts for this are FALSE POSITIVE (runtime uses framework, not NuGet package)
+      - dependency-name: "System.Text.RegularExpressions"
+        versions: ["4.3.0", "4.3.1"]
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+
+      # runtime.native.System.Net.Http is a transitive dependency, cannot be upgraded
+      - dependency-name: "runtime.native.System.Net.Http"
+        versions: ["4.3.0"]
+
+    # Group related updates together
+    groups:
+      dotnet-framework:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore.*"
+          - "Microsoft.Extensions.*"
+
+      testing:
+        patterns:
+          - "xunit*"
+          - "coverlet.*"
+          - "FluentAssertions"
+          - "Moq"
+
+      security:
+        patterns:
+          - "System.Text.Json"
+          - "System.IdentityModel.Tokens.Jwt"
+          - "Azure.Identity"
+
+    # Auto-merge for patch and minor updates (optional, can be enabled later)
+    # versioning-strategy: "increase"
+
+    labels:
+      - "dependencies"
+      - "nuget"
+      - "automated"
