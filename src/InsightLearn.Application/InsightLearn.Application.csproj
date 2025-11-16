@@ -57,6 +57,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.1" />
     <ProjectReference Include="..\InsightLearn.Core\InsightLearn.Core.csproj" />
     <ProjectReference Include="..\InsightLearn.Infrastructure\InsightLearn.Infrastructure.csproj" />
   </ItemGroup>
