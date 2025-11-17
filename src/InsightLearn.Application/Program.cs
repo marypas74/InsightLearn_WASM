@@ -578,14 +578,10 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
     ?? builder.Configuration["Redis:ConnectionString"]
     ?? "redis-service.insightlearn.svc.cluster.local:6379";
 
-// Get Redis password from configuration or environment
-var redisPassword = builder.Configuration["Redis:Password"]
-    ?? Environment.GetEnvironmentVariable("REDIS_PASSWORD");
-
-if (!string.IsNullOrEmpty(redisPassword))
-{
-    redisConnectionString = $"{redisConnectionString},password={redisPassword}";
-}
+// NOTE: Redis password authentication is DISABLED in current deployment
+// Redis is running without requirepass configuration
+// Connecting without password
+var redisPassword = string.Empty; // Disabled: Configuration["Redis:Password"] ?? Environment.GetEnvironmentVariable("REDIS_PASSWORD");
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
