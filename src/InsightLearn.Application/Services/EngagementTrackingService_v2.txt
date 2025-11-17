@@ -1,0 +1,16 @@
+IMPLEMENTATION PLAN:
+
+The existing IEngagementTrackingService interface has 8 methods:
+1. RecordEngagementAsync() - Record new engagement with anti-fraud validation
+2. CalculateValidationScoreAsync() - Calculate validation score (0.0-1.0)
+3. ValidatePendingEngagementsAsync() - Batch validation for background processing
+4. GetUserEngagementAnalyticsAsync() - User engagement analytics
+5. GetCourseEngagementAnalyticsAsync() - Course engagement analytics  
+6. GetInstructorEngagementBreakdownAsync() - Instructor engagement breakdown for payouts
+7. MarkEngagementAsFraudulentAsync() - Admin override to mark as fraudulent
+8. RecalculateValidationScoreAsync() - Recalculate score for existing engagement
+
+The task requirements specify 11 methods, but I need to implement the interface methods first.
+The DTOs I created can be used internally or as alternative/additional methods.
+
+I'll implement all 8 interface methods + 3 additional helper methods for a total of 11 methods.

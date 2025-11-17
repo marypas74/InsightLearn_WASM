@@ -52,9 +52,11 @@ public class Enrollment
     // Subscription support
     public Guid? SubscriptionId { get; set; }
 
+    public bool EnrolledViaSubscription { get; set; }
+
     [JsonIgnore]
     public virtual UserSubscription? Subscription { get; set; }
-    
+
     public double ProgressPercentage
     {
         get
@@ -63,8 +65,8 @@ public class Enrollment
             return totalLessons > 0 ? (double)CompletedLessons / totalLessons * 100 : 0;
         }
     }
-    
-    public double Progress => ProgressPercentage;
+
+    public double Progress { get; set; }
     
     public bool IsCompleted => CompletedAt.HasValue;
     

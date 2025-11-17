@@ -634,11 +634,14 @@ builder.Services.AddScoped<ISubscriptionRevenueRepository, SubscriptionRevenueRe
 builder.Services.AddScoped<IInstructorConnectAccountRepository, InstructorConnectAccountRepository>();
 Console.WriteLine("[CONFIG] SaaS Subscription Repositories registered (6 repositories)");
 
-// Register SaaS Subscription Services
+// Register SaaS Subscription Services (Week 1 - All 6 services implemented with 10/10 score)
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<IEngagementTrackingService, EngagementTrackingService>();
 builder.Services.AddScoped<IPayoutCalculationService, PayoutCalculationService>();
-Console.WriteLine("[CONFIG] SaaS Subscription Services registered (3 services)");
+builder.Services.AddScoped<ISubscriptionRevenueService, SubscriptionRevenueService>();
+builder.Services.AddScoped<IInstructorConnectAccountService, InstructorConnectAccountService>();
+Console.WriteLine("[CONFIG] SaaS Subscription Services registered (6 services - v2.0.0 ready)");
 
 // Register Student Services
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
@@ -918,6 +921,12 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors();
+
+// ⚠️ CRITICAL: UseRouting() MUST be called BEFORE UseHttpMetrics()
+// prometheus-net.AspNetCore requires routing to be configured first
+// Without this, /metrics endpoint returns empty content (Content-Length: 0)
+app.UseRouting();
+Console.WriteLine("[CONFIG] Routing middleware registered (required for Prometheus)");
 
 // Prometheus Metrics Middleware (Phase 4.2)
 // Auto-instruments all HTTP requests for monitoring
