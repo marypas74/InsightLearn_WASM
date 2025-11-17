@@ -1,0 +1,301 @@
+@page "/categories/{Slug}"
+@* @inject ICategoryService CategoryService *@
+@* @inject ICourseService CourseService *@
+@inject NavigationManager Navigation
+
+<PageTitle>@(category?.Name ?? "Category") Courses - InsightLearn</PageTitle>
+
+<div class="container" style="max-width: 1280px; margin: 0 auto; padding: var(--spacing-6);">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/categories">Categories</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@(category?.Name ?? Slug)</li>
+        </ol>
+    </nav>
+
+    <div style="margin-bottom: var(--spacing-8); padding: var(--spacing-6) 0;">
+        @if (isLoading)
+        {
+            <div class="skeleton skeleton-title" style="width: 40%; margin-bottom: var(--spacing-3);"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+        }
+        else if (category != null)
+        {
+            <div style="display: flex; align-items: center; gap: var(--spacing-4); margin-bottom: var(--spacing-4);">
+                <div style="width: 64px; height: 64px; background: var(--gradient-primary); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center;">
+                    <i class="@GetCategoryIconClass(category.Name)" style="font-size: 32px; color: white;"></i>
+                </div>
+                <div>
+                    <h1 style="font-size: var(--text-4xl); font-weight: var(--font-extrabold); color: var(--color-gray-900); margin-bottom: var(--spacing-2);">
+                        @category.Name Courses
+                    </h1>
+                    <p class="text-muted" style="font-size: var(--text-lg);">
+                        <i class="fas fa-graduation-cap" style="margin-right: var(--spacing-1);"></i>
+                        @(courses?.Count ?? 0) courses available
+                    </p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(category.Description))
+            {
+                <p class="lead" style="color: var(--color-gray-600); max-width: 800px;">
+                    @category.Description
+                </p>
+            }
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <!-- Skeleton loaders: 6 course cards -->
+        <div class="course-grid">
+            @for (int i = 0; i < 6; i++)
+            {
+                <div class="skeleton skeleton-card"></div>
+            }
+        </div>
+    }
+    else if (courses?.Any() == true)
+    {
+        <div class="course-grid">
+            @foreach (var course in courses)
+            {
+                <a href="/courses/@course.Id" class="course-card card">
+                    @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                    {
+                        <img src="@course.ThumbnailUrl" alt="@course.Title" class="course-thumbnail" />
+                    }
+                    else
+                    {
+                        <div class="course-thumbnail" style="background: var(--gradient-subtle); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-book" style="font-size: 48px; color: var(--color-gray-300);"></i>
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h3 class="course-title">@course.Title</h3>
+                        <p class="course-instructor">
+                            <i class="fas fa-user" style="margin-right: var(--spacing-1);"></i>
+                            @course.InstructorName
+                        </p>
+                        <div class="course-footer">
+                            <span class="course-price">€@course.Price.ToString("N2")</span>
+                            <span class="course-rating">
+                                <i class="fas fa-star"></i> @course.AverageRating.ToString("N1")
+                                <span style="color: var(--color-gray-500); margin-left: var(--spacing-1);">(@course.ReviewCount)</span>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+
+        @if (courses.Count >= 6)
+        {
+            <div style="text-align: center; margin-top: var(--spacing-12);">
+                <p class="text-muted" style="margin-bottom: var(--spacing-4);">
+                    Showing @courses.Count courses
+                </p>
+                <button class="btn btn-outline" disabled>
+                    <i class="fas fa-ellipsis-h"></i>
+                    Load More (Coming Soon)
+                </button>
+            </div>
+        }
+    }
+    else if (!isLoading && (courses == null || !courses.Any()))
+    {
+        <!-- Empty state -->
+        <div class="empty-state">
+            <i class="fas fa-graduation-cap"></i>
+            <h3>No Courses Found</h3>
+            <p>We don't have any courses in this category yet. Check back soon!</p>
+            <div class="btn-group" style="justify-content: center; margin-top: var(--spacing-6);">
+                <a href="/categories" class="btn btn-outline">
+                    <i class="fas fa-arrow-left" style="margin-right: var(--spacing-2);"></i>
+                    Browse Categories
+                </a>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home" style="margin-right: var(--spacing-2);"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger" style="margin-top: var(--spacing-6);">
+            <div class="alert-title">
+                <i class="fas fa-exclamation-triangle"></i> Error Loading Courses
+            </div>
+            <p style="margin-bottom: 0;">@errorMessage</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private CategoryDto? category;
+    private List<CourseDto>? courses;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reload when slug changes
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            // TODO: API not implemented
+            // 1. Get category by slug
+            // var allCategories = await CategoryService.GetAllCategoriesAsync();
+            // category = allCategories?.FirstOrDefault(c =>
+            //     c.Slug.Equals(Slug, StringComparison.OrdinalIgnoreCase));
+            //
+            // if (category != null)
+            // {
+            //     2. Get courses for this category
+            //     courses = await CourseService.GetCoursesByCategoryAsync(category.Id);
+            // }
+
+            // Mock data for development
+            await Task.Delay(800); // Simulate API call
+
+            // Mock category data
+            var allCategories = new List<CategoryDto>
+            {
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Development", Slug = "development", Description = "Learn programming, web development, and software engineering from industry experts." },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Business", Slug = "business", Description = "Master business strategy, finance, and entrepreneurship skills." },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Design", Slug = "design", Description = "Explore graphic design, UX/UI, and creative tools." },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Marketing", Slug = "marketing", Description = "Learn digital marketing, SEO, and growth strategies." }
+            };
+
+            category = allCategories.FirstOrDefault(c => c.Slug.Equals(Slug, StringComparison.OrdinalIgnoreCase));
+
+            if (category != null)
+            {
+                // Mock course data
+                courses = new List<CourseDto>
+                {
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"Complete {category.Name} Bootcamp 2025",
+                        InstructorName = "John Doe",
+                        Price = 49.99m,
+                        AverageRating = 4.8,
+                        ReviewCount = 1234,
+                        ThumbnailUrl = ""
+                    },
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"Advanced {category.Name} Masterclass",
+                        InstructorName = "Jane Smith",
+                        Price = 79.99m,
+                        AverageRating = 4.9,
+                        ReviewCount = 856,
+                        ThumbnailUrl = ""
+                    },
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"{category.Name} Fundamentals for Beginners",
+                        InstructorName = "Mike Johnson",
+                        Price = 29.99m,
+                        AverageRating = 4.6,
+                        ReviewCount = 567,
+                        ThumbnailUrl = ""
+                    },
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"Professional {category.Name} Certificate",
+                        InstructorName = "Sarah Williams",
+                        Price = 99.99m,
+                        AverageRating = 4.7,
+                        ReviewCount = 423,
+                        ThumbnailUrl = ""
+                    },
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"{category.Name} From Zero to Hero",
+                        InstructorName = "David Brown",
+                        Price = 59.99m,
+                        AverageRating = 4.5,
+                        ReviewCount = 312,
+                        ThumbnailUrl = ""
+                    },
+                    new CourseDto
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = $"Modern {category.Name} Techniques",
+                        InstructorName = "Emma Davis",
+                        Price = 69.99m,
+                        AverageRating = 4.8,
+                        ReviewCount = 289,
+                        ThumbnailUrl = ""
+                    }
+                };
+            }
+
+            Console.WriteLine($"[CategoryDetail] Loaded category '{category?.Name}' with {courses?.Count ?? 0} courses");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            Console.Error.WriteLine($"[CategoryDetail] Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetCategoryIconClass(string name) =>
+        name.ToLower() switch
+        {
+            "development" => "fas fa-code",
+            "business" => "fas fa-briefcase",
+            "design" => "fas fa-palette",
+            "marketing" => "fas fa-megaphone",
+            _ => "fas fa-book"
+        };
+
+    // DTO classes (normally in separate file)
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class CourseDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string InstructorName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public double AverageRating { get; set; }
+        public int ReviewCount { get; set; }
+        public string ThumbnailUrl { get; set; } = string.Empty;
+    }
+}

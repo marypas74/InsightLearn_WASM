@@ -26,7 +26,14 @@ public class UserInfo
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? Bio { get; set; }
     public string? ProfileImageUrl { get; set; }
+    public string? AvatarUrl { get; set; }
     public List<string> Roles { get; set; } = new();
     public bool IsProfileComplete { get; set; }
+
+    public string FullName => $"{FirstName} {LastName}";
+    public string Role => Roles.FirstOrDefault() ?? "Student";
 }

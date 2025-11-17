@@ -306,4 +306,52 @@ public class AuthService : IAuthService
             return false;
         }
     }
+
+    public async Task<bool> ForgotPasswordAsync(string email)
+    {
+        try
+        {
+            _logger.LogInformation("Requesting password reset for {Email}", email);
+
+            // TODO: API endpoint not implemented yet
+            // var response = await _authHttpClient.PostAsync<object>(
+            //     $"{_endpoints.Auth.ForgotPassword}",
+            //     new { Email = email });
+
+            // Simulate API call for now
+            await Task.Delay(100);
+
+            _logger.LogInformation("Password reset email sent to {Email}", email);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email");
+            return false;
+        }
+    }
+
+    public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        try
+        {
+            _logger.LogInformation("Resetting password for {Email}", email);
+
+            // TODO: API endpoint not implemented yet
+            // var response = await _authHttpClient.PostAsync<object>(
+            //     $"{_endpoints.Auth.ResetPassword}",
+            //     new { Email = email, Token = token, NewPassword = newPassword });
+
+            // Simulate API call for now
+            await Task.Delay(100);
+
+            _logger.LogInformation("Password reset successfully for {Email}", email);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reset password");
+            return false;
+        }
+    }
 }

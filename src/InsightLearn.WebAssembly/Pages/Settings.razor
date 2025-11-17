@@ -1,0 +1,371 @@
+@page "/settings"
+@using InsightLearn.WebAssembly.Services
+@using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
+@attribute [Authorize]
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Settings - InsightLearn</PageTitle>
+
+<div class="container py-5">
+    <h1 class="mb-4">Settings</h1>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "account" ? "active" : "")"
+                    @onclick='() => SetActiveTab("account")'>
+                <i class="bi bi-person-gear"></i> Account
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "notifications" ? "active" : "")"
+                    @onclick='() => SetActiveTab("notifications")'>
+                <i class="bi bi-bell"></i> Notifications
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "privacy" ? "active" : "")"
+                    @onclick='() => SetActiveTab("privacy")'>
+                <i class="bi bi-shield-check"></i> Privacy
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "billing" ? "active" : "")"
+                    @onclick='() => SetActiveTab("billing")'>
+                <i class="bi bi-credit-card"></i> Billing
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        @if (activeTab == "account")
+        {
+            <!-- Account Tab -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Change Password</h3>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="passwordModel" OnValidSubmit="HandleChangePasswordAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <InputText type="password"
+                                       @bind-Value="passwordModel.CurrentPassword"
+                                       class="form-control" />
+                            <ValidationMessage For="@(() => passwordModel.CurrentPassword)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <InputText type="password"
+                                       @bind-Value="passwordModel.NewPassword"
+                                       class="form-control" />
+                            <ValidationMessage For="@(() => passwordModel.NewPassword)" />
+                            <small class="form-text text-muted">
+                                Minimum 8 characters, must include uppercase, lowercase, and number.
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password</label>
+                            <InputText type="password"
+                                       @bind-Value="passwordModel.ConfirmPassword"
+                                       class="form-control" />
+                            <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" disabled="@isChangingPassword">
+                            @if (isChangingPassword)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <text>Changing...</text>
+                            }
+                            else
+                            {
+                                <text>Change Password</text>
+                            }
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3>Danger Zone</h3>
+                </div>
+                <div class="card-body">
+                    <h5>Delete Account</h5>
+                    <p class="text-muted">
+                        Once you delete your account, there is no going back.
+                        All your data will be permanently removed.
+                    </p>
+                    <button @onclick="ShowDeleteAccountModal" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete My Account
+                    </button>
+                </div>
+            </div>
+        }
+        else if (activeTab == "notifications")
+        {
+            <!-- Notifications Tab -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Email Notifications</h3>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="notificationPrefs" OnValidSubmit="HandleSaveNotificationsAsync">
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="notificationPrefs.CourseUpdates"
+                                           class="form-check-input"
+                                           id="courseUpdates" />
+                            <label class="form-check-label" for="courseUpdates">
+                                <strong>Course Updates</strong>
+                                <p class="text-muted small mb-0">
+                                    Get notified when instructors add new content to your enrolled courses.
+                                </p>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="notificationPrefs.Announcements"
+                                           class="form-check-input"
+                                           id="announcements" />
+                            <label class="form-check-label" for="announcements">
+                                <strong>Platform Announcements</strong>
+                                <p class="text-muted small mb-0">
+                                    Stay informed about new features and platform updates.
+                                </p>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="notificationPrefs.PromotionalEmails"
+                                           class="form-check-input"
+                                           id="promotional" />
+                            <label class="form-check-label" for="promotional">
+                                <strong>Promotional Emails</strong>
+                                <p class="text-muted small mb-0">
+                                    Receive special offers and course recommendations.
+                                </p>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingNotifications">
+                            @if (isSavingNotifications)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <text>Saving...</text>
+                            }
+                            else
+                            {
+                                <text>Save Preferences</text>
+                            }
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        }
+        else if (activeTab == "privacy")
+        {
+            <!-- Privacy Tab -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Privacy Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Profile Visibility</h5>
+                        <div class="form-check mb-2">
+                            <input type="radio"
+                                   class="form-check-input"
+                                   name="visibility"
+                                   id="visibilityPublic"
+                                   checked />
+                            <label class="form-check-label" for="visibilityPublic">
+                                <strong>Public</strong>
+                                <p class="text-muted small mb-0">Anyone can view your profile.</p>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio"
+                                   class="form-check-input"
+                                   name="visibility"
+                                   id="visibilityPrivate" />
+                            <label class="form-check-label" for="visibilityPrivate">
+                                <strong>Private</strong>
+                                <p class="text-muted small mb-0">Only you can see your profile.</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary">Save Privacy Settings</button>
+                </div>
+            </div>
+        }
+        else if (activeTab == "billing")
+        {
+            <!-- Billing Tab -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Billing & Subscription</h3>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        Manage your subscription, payment methods, and billing history.
+                    </p>
+                    <a href="/account/subscription" class="btn btn-primary">
+                        <i class="bi bi-credit-card"></i> View Subscription Details
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+@if (showDeleteModal)
+{
+    <div class="modal show d-block" tabindex="-1" @onclick:stopPropagation="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Account Deletion</h5>
+                    <button type="button" class="btn-close" @onclick="HideDeleteAccountModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-danger"><strong>Warning: This action cannot be undone!</strong></p>
+                    <p>All your data, including enrolled courses and progress, will be permanently deleted.</p>
+                    <p>Type <strong>DELETE</strong> to confirm:</p>
+                    <input type="text" @bind="deleteConfirmation" class="form-control" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideDeleteAccountModal">Cancel</button>
+                    <button type="button"
+                            class="btn btn-danger"
+                            @onclick="HandleDeleteAccountAsync"
+                            disabled="@(deleteConfirmation != "DELETE")">
+                        Delete My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private string activeTab = "account";
+    private bool showDeleteModal = false;
+    private string deleteConfirmation = string.Empty;
+
+    private bool isChangingPassword = false;
+    private bool isSavingNotifications = false;
+
+    private ChangePasswordModel passwordModel = new();
+    private NotificationPreferences notificationPrefs = new();
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private async Task HandleChangePasswordAsync()
+    {
+        isChangingPassword = true;
+        try
+        {
+            var response = await UserService.ChangePasswordAsync(
+                passwordModel.CurrentPassword,
+                passwordModel.NewPassword
+            );
+
+            if (response.Success)
+            {
+                Console.WriteLine("Password changed successfully!");
+                passwordModel = new(); // Clear form
+            }
+            else
+            {
+                Console.WriteLine($"Error changing password: {response.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error changing password: {ex.Message}");
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private async Task HandleSaveNotificationsAsync()
+    {
+        isSavingNotifications = true;
+        try
+        {
+            // TODO: Implement notification preferences API
+            await Task.Delay(1000);
+            Console.WriteLine("Preferences saved!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving preferences: {ex.Message}");
+        }
+        finally
+        {
+            isSavingNotifications = false;
+        }
+    }
+
+    private void ShowDeleteAccountModal()
+    {
+        showDeleteModal = true;
+    }
+
+    private void HideDeleteAccountModal()
+    {
+        showDeleteModal = false;
+        deleteConfirmation = string.Empty;
+    }
+
+    private async Task HandleDeleteAccountAsync()
+    {
+        try
+        {
+            // TODO: Implement account deletion API
+            await Task.Delay(1000);
+            Console.WriteLine("Account deleted. Redirecting...");
+            Navigation.NavigateTo("/logout");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting account: {ex.Message}");
+        }
+    }
+
+    public class ChangePasswordModel
+    {
+        [Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required, StringLength(100, MinimumLength = 8)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required, Compare(nameof(NewPassword))]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class NotificationPreferences
+    {
+        public bool CourseUpdates { get; set; } = true;
+        public bool Announcements { get; set; } = true;
+        public bool PromotionalEmails { get; set; } = false;
+    }
+}

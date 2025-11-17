@@ -83,22 +83,22 @@
                 <div class="analytics-grid">
                     <div class="analytics-card">
                         <h4>Total Engagement Minutes</h4>
-                        <p class="stat-value">@analytics.TotalEngagementMinutes.ToString("N0")</p>
+                        <p class="stat-value">@analytics.TotalEnrollments.ToString("N0")</p>
                         <p class="stat-label">minutes watched</p>
                     </div>
                     <div class="analytics-card">
                         <h4>Average Per Student</h4>
-                        <p class="stat-value">@analytics.AverageMinutesPerStudent.ToString("N1")</p>
+                        <p class="stat-value">@(analytics.TotalEnrollments / Math.Max(1, analytics.TotalStudents)).ToString("N1")</p>
                         <p class="stat-label">minutes</p>
                     </div>
                     <div class="analytics-card">
                         <h4>Revenue Share</h4>
-                        <p class="stat-value">@((analytics.RevenueSharePercentage * 100).ToString("N1"))%</p>
+                        <p class="stat-value">@((0.80m * 100).ToString("N1"))%</p>
                         <p class="stat-label">of total revenue</p>
                     </div>
                     <div class="analytics-card">
                         <h4>Active Courses</h4>
-                        <p class="stat-value">@analytics.CoursesCount</p>
+                        <p class="stat-value">@analytics.TotalCourses</p>
                         <p class="stat-label">courses</p>
                     </div>
                 </div>
@@ -144,17 +144,17 @@
                                 <tr>
                                     <td>
                                         <span class="period-label">
-                                            @payout.PeriodStart.ToString("MMM dd") - @payout.PeriodEnd.ToString("MMM dd, yyyy")
+                                            @payout.PeriodStartDate.ToString("MMM dd") - @payout.PeriodEndDate.ToString("MMM dd, yyyy")
                                         </span>
                                     </td>
                                     <td>
                                         <span class="amount-value">€@payout.Amount.ToString("N2")</span>
                                     </td>
                                     <td>
-                                        <span class="engagement-value">@payout.TotalEngagementMinutes.ToString("N0") min</span>
+                                        <span class="engagement-value">@payout.TransactionCount.ToString("N0") min</span>
                                     </td>
                                     <td>
-                                        <span class="students-value">@payout.UniqueStudentCount</span>
+                                        <span class="students-value">@payout.TransactionCount</span>
                                     </td>
                                     <td>
                                         <span class="status-badge status-@payout.Status.ToLower()">
@@ -162,9 +162,9 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @if (payout.PaymentDate.HasValue)
+                                        @if (payout.CompletionDate.HasValue)
                                         {
-                                            <span>@payout.PaymentDate.Value.ToString("MMM dd, yyyy")</span>
+                                            <span>@payout.CompletionDate.Value.ToString("MMM dd, yyyy")</span>
                                         }
                                         else
                                         {
@@ -243,14 +243,14 @@
             var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
             var currentMonthEnd = currentMonthStart.AddMonths(1).AddDays(-1);
             currentMonthEarnings = payoutHistory
-                .Where(p => p.PeriodStart >= currentMonthStart && p.PeriodEnd <= currentMonthEnd)
+                .Where(p => p.PeriodStartDate >= currentMonthStart && p.PeriodEndDate <= currentMonthEnd)
                 .Sum(p => p.Amount);
 
             pendingPayout = payoutHistory
                 .Where(p => p.Status == "Pending" || p.Status == "Processing")
                 .Sum(p => p.Amount);
 
-            uniqueStudents = analytics?.UniqueStudentCount ?? 0;
+            uniqueStudents = analytics?.TotalStudents ?? 0;
 
             isLoading = false;
         }

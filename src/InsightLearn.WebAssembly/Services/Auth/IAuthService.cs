@@ -13,4 +13,8 @@ public interface IAuthService
     Task<bool> IsAuthenticatedAsync();
     Task<bool> IsInRoleAsync(string role);
     Task<bool> HandleOAuthCallbackAsync(string code, string state);
+
+    // Password Reset (added for /forgot-password and /reset-password pages)
+    Task<bool> ForgotPasswordAsync(string email);
+    Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
 }

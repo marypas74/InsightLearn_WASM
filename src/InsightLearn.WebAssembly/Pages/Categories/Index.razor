@@ -1,0 +1,151 @@
+@page "/categories"
+@* @inject ICategoryService CategoryService *@
+@inject NavigationManager Navigation
+
+<PageTitle>Browse Categories - InsightLearn</PageTitle>
+
+<div class="container" style="max-width: 1280px; margin: 0 auto; padding: var(--spacing-6);">
+    <div class="text-center" style="margin-bottom: var(--spacing-12); padding: var(--spacing-8) 0;">
+        <h1 class="display-4" style="font-size: var(--text-5xl); font-weight: var(--font-extrabold); background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: var(--spacing-4);">
+            Explore Our Categories
+        </h1>
+        <p class="lead" style="max-width: 600px; margin: 0 auto; color: var(--color-gray-600); font-size: var(--text-lg);">
+            Find the perfect course in your area of interest. From programming to design, business to marketing.
+        </p>
+    </div>
+
+    @if (isLoading)
+    {
+        <!-- Skeleton loaders: 8 cards (2 rows x 4 cols) -->
+        <div class="category-grid">
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="skeleton skeleton-card"></div>
+            }
+        </div>
+    }
+    else if (categories?.Any() == true)
+    {
+        <div class="category-grid">
+            @foreach (var category in categories)
+            {
+                <a href="/categories/@category.Slug" class="category-card">
+                    <div class="category-icon">
+                        <i class="@GetCategoryIconClass(category.Name)"></i>
+                    </div>
+                    <h3 class="category-name">@category.Name</h3>
+                    <p class="category-count">@category.CourseCount courses</p>
+                </a>
+            }
+        </div>
+
+        @if (categories.Count < totalCategoriesEstimate)
+        {
+            <div style="text-align: center; margin-top: var(--spacing-12);">
+                <p class="text-muted" style="margin-bottom: var(--spacing-4);">
+                    Showing @categories.Count of @totalCategoriesEstimate categories
+                </p>
+                <button class="btn btn-outline" disabled>
+                    <i class="fas fa-ellipsis-h"></i>
+                    More categories coming soon
+                </button>
+            </div>
+        }
+    }
+    else if (!isLoading && (categories == null || !categories.Any()))
+    {
+        <!-- Empty state -->
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No Categories Found</h3>
+            <p>We're working on adding new categories. Check back soon!</p>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-home" style="margin-right: var(--spacing-2);"></i>
+                Back to Home
+            </a>
+        </div>
+    }
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger" style="margin-top: var(--spacing-6);">
+            <div class="alert-title">
+                <i class="fas fa-exclamation-triangle"></i> Error Loading Categories
+            </div>
+            <p style="margin-bottom: 0;">@errorMessage</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CategoryDto>? categories;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private int totalCategoriesEstimate = 15; // Mock estimate
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            // TODO: API not implemented
+            // categories = await CategoryService.GetAllCategoriesAsync();
+
+            // Mock data for development
+            await Task.Delay(800); // Simulate API call
+
+            categories = new List<CategoryDto>
+            {
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Development", Slug = "development", CourseCount = 245 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Business", Slug = "business", CourseCount = 187 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Design", Slug = "design", CourseCount = 156 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Marketing", Slug = "marketing", CourseCount = 134 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "IT & Software", Slug = "it-software", CourseCount = 98 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Personal Development", Slug = "personal-development", CourseCount = 87 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Photography", Slug = "photography", CourseCount = 76 },
+                new CategoryDto { Id = Guid.NewGuid(), Name = "Music", Slug = "music", CourseCount = 54 }
+            };
+
+            Console.WriteLine($"[Categories] Loaded {categories.Count} categories");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            Console.Error.WriteLine($"[Categories] Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetCategoryIconClass(string name) =>
+        name.ToLower() switch
+        {
+            "development" => "fas fa-code",
+            "business" => "fas fa-briefcase",
+            "design" => "fas fa-palette",
+            "marketing" => "fas fa-megaphone",
+            "it & software" => "fas fa-laptop-code",
+            "personal development" => "fas fa-user-graduate",
+            "photography" => "fas fa-camera",
+            "music" => "fas fa-music",
+            _ => "fas fa-book"
+        };
+
+    // DTO classes (normally in separate file)
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public int CourseCount { get; set; }
+    }
+}

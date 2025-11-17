@@ -30,6 +30,9 @@ WORKDIR /usr/share/nginx/html
 # Copy published WASM files
 COPY --from=build /app/publish/wwwroot .
 
+# Fix CSS file permissions (ensure readable by nginx)
+RUN chmod 644 css/*.css 2>/dev/null || true
+
 # Copy custom JavaScript files (must be done AFTER wwwroot copy)
 COPY --from=build /src/src/InsightLearn.WebAssembly/wwwroot/js/httpClient.js ./js/httpClient.js
 
