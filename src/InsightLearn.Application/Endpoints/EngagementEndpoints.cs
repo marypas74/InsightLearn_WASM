@@ -1,235 +1,226 @@
 using InsightLearn.Core.Interfaces;
+using InsightLearn.Core.DTOs.Engagement;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace InsightLearn.Application.Endpoints;
 
+/// <summary>
+/// Engagement Tracking API Endpoints (3 endpoints)
+/// Tasks: T10 - Engagement API Endpoints
+/// Version: v2.0.0
+/// </summary>
 public static class EngagementEndpoints
 {
     public static void MapEngagementEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/engagement")
-            .WithTags("Engagement")
-            .RequireAuthorization();
+            .WithTags("Engagement");
 
-        // POST /api/engagement/record - Record user engagement
-        group.MapPost("/record", async (
-            [FromBody] RecordEngagementRequest request,
+        // ==========================================================================
+        // ENDPOINT 10: POST /api/engagement/track
+        // Record engagement event (video watch, quiz, assignment, etc.)
+        // ==========================================================================
+        group.MapPost("/track", async (
+            [FromBody] TrackEngagementDto dto,
             ClaimsPrincipal user,
             HttpContext context,
-            [FromServices] IEngagementTrackingService engagementService) =>
+            [FromServices] IEngagementTrackingService engagementService,
+            [FromServices] ILogger<Program> logger) =>
         {
             try
             {
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
                 {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized track attempt");
                     return Results.Unauthorized();
                 }
 
                 var ipAddress = context.Connection.RemoteIpAddress?.ToString();
                 var userAgent = context.Request.Headers["User-Agent"].ToString();
 
+                logger.LogInformation("[ENGAGEMENT] User {UserId} tracking engagement: lesson {LessonId}, type {Type}, duration {Duration}s",
+                    userId, dto.LessonId, dto.EngagementType, dto.TimeSpentSeconds);
+
+                // Convert LessonId to CourseId (assume they're the same for simplicity - in real scenario, lookup Course from Lesson)
+                var courseId = dto.LessonId; // TODO: Implement proper Lesson → Course lookup
+                var durationMinutes = dto.TimeSpentSeconds / 60;
+
                 var engagement = await engagementService.RecordEngagementAsync(
                     userId,
-                    request.CourseId,
-                    request.EngagementType,
-                    request.DurationMinutes,
+                    courseId,
+                    dto.EngagementType,
+                    durationMinutes,
                     ipAddress,
                     userAgent,
-                    request.DeviceFingerprint,
-                    request.Metadata);
+                    dto.SessionId,
+                    dto.Metadata);
 
                 if (engagement == null)
-                    return Results.BadRequest(new { error = "Failed to record engagement" });
+                {
+                    logger.LogWarning("[ENGAGEMENT] Failed to record engagement for user {UserId}", userId);
+                    return Results.BadRequest(new { success = false, error = "Failed to record engagement" });
+                }
+
+                logger.LogInformation("[ENGAGEMENT] Engagement {EngagementId} recorded, validation score: {Score}",
+                    engagement.Id, engagement.ValidationScore);
 
                 return Results.Ok(new
                 {
-                    engagement.Id,
-                    engagement.ValidationScore,
-                    engagement.CountsForPayout,
-                    message = engagement.CountsForPayout
-                        ? "Engagement recorded and validated"
-                        : "Engagement recorded but did not meet validation threshold"
+                    success = true,
+                    engagement = new
+                    {
+                        engagement.Id,
+                        engagement.ValidationScore,
+                        engagement.CountsForPayout,
+                        message = engagement.CountsForPayout
+                            ? "Engagement recorded and validated"
+                            : "Engagement recorded but did not meet validation threshold"
+                    }
                 });
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "[ENGAGEMENT] Error recording engagement");
                 return Results.Problem(
                     detail: ex.Message,
                     statusCode: 500,
                     title: "Error recording engagement");
             }
         })
-        .WithName("RecordEngagement")
+        .RequireAuthorization()
+        .WithName("TrackEngagement")
+        .WithSummary("Record engagement event")
+        .WithDescription("Track user engagement (video watch, quiz, assignment, etc.) with anti-fraud validation")
         .Produces(200)
         .Produces(400)
         .Produces(401)
         .Produces(500);
 
-        // GET /api/engagement/my-analytics - Get current user's engagement analytics
-        group.MapGet("/my-analytics", async (
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
+        // ==========================================================================
+        // ENDPOINT 11: POST /api/engagement/video-progress
+        // Update video progress (simplified version of track for video-specific data)
+        // ==========================================================================
+        group.MapPost("/video-progress", async (
+            [FromBody] TrackVideoProgressDto dto,
             ClaimsPrincipal user,
-            [FromServices] IEngagementTrackingService engagementService) =>
+            HttpContext context,
+            [FromServices] IEngagementTrackingService engagementService,
+            [FromServices] ILogger<Program> logger) =>
         {
             try
             {
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
                 {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized video progress track attempt");
+                    return Results.Unauthorized();
+                }
+
+                var ipAddress = context.Connection.RemoteIpAddress?.ToString();
+                var userAgent = context.Request.Headers["User-Agent"].ToString();
+
+                var progressPercentage = (dto.CurrentTimestampSeconds * 100) / dto.TotalDurationSeconds;
+                logger.LogInformation("[ENGAGEMENT] User {UserId} video progress: lesson {LessonId}, progress {Progress}%, current {Current}s",
+                    userId, dto.LessonId, progressPercentage, dto.CurrentTimestampSeconds);
+
+                // Convert to engagement tracking
+                var courseId = dto.LessonId; // TODO: Implement proper Lesson → Course lookup
+                var durationMinutes = dto.CurrentTimestampSeconds / 60;
+
+                var metadata = new Dictionary<string, object>
+                {
+                    { "progressPercentage", progressPercentage },
+                    { "currentTimestamp", dto.CurrentTimestampSeconds },
+                    { "totalDuration", dto.TotalDurationSeconds },
+                    { "playbackSpeed", dto.PlaybackSpeed ?? 1.0m },
+                    { "tabActive", dto.TabActive ?? true }
+                };
+
+                var engagement = await engagementService.RecordEngagementAsync(
+                    userId,
+                    courseId,
+                    "video_watch",
+                    durationMinutes,
+                    ipAddress,
+                    userAgent,
+                    null, // deviceFingerprint
+                    metadata);
+
+                logger.LogInformation("[ENGAGEMENT] Video progress tracked for user {UserId}", userId);
+
+                return Results.NoContent(); // 204 No Content - success with no response body
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[ENGAGEMENT] Error tracking video progress");
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Error tracking video progress");
+            }
+        })
+        .RequireAuthorization()
+        .WithName("TrackVideoProgress")
+        .WithSummary("Update video progress")
+        .WithDescription("Track video watch progress for engagement analytics")
+        .Produces(204)
+        .Produces(401)
+        .Produces(500);
+
+        // ==========================================================================
+        // ENDPOINT 12: GET /api/engagement/my-stats
+        // Get current user's engagement statistics
+        // ==========================================================================
+        group.MapGet("/my-stats", async (
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            ClaimsPrincipal user,
+            [FromServices] IEngagementTrackingService engagementService,
+            [FromServices] ILogger<Program> logger) =>
+        {
+            try
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized my-stats attempt");
                     return Results.Unauthorized();
                 }
 
                 var start = startDate ?? DateTime.UtcNow.AddMonths(-1);
                 var end = endDate ?? DateTime.UtcNow;
 
+                logger.LogInformation("[ENGAGEMENT] Fetching stats for user {UserId}, period {Start} to {End}",
+                    userId, start, end);
+
                 var analytics = await engagementService.GetUserEngagementAnalyticsAsync(userId, start, end);
-                return Results.Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Error retrieving engagement analytics");
-            }
-        })
-        .WithName("GetMyEngagementAnalytics")
-        .Produces<UserEngagementAnalytics>(200)
-        .Produces(401)
-        .Produces(500);
 
-        // GET /api/engagement/course/{courseId}/analytics - Get course engagement analytics (Instructor/Admin only)
-        group.MapGet("/course/{courseId:guid}/analytics", async (
-            Guid courseId,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
-            [FromServices] IEngagementTrackingService engagementService) =>
-        {
-            try
-            {
-                var start = startDate ?? DateTime.UtcNow.AddMonths(-1);
-                var end = endDate ?? DateTime.UtcNow;
+                logger.LogInformation("[ENGAGEMENT] Retrieved stats for user {UserId}: {TotalMinutes} minutes, {Count} engagements",
+                    userId, analytics.TotalEngagementMinutes, analytics.TotalEngagements);
 
-                var analytics = await engagementService.GetCourseEngagementAnalyticsAsync(courseId, start, end);
-                return Results.Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Error retrieving course engagement analytics");
-            }
-        })
-        .RequireAuthorization(policy => policy.RequireRole("Instructor", "Admin"))
-        .WithName("GetCourseEngagementAnalytics")
-        .Produces<CourseEngagementAnalytics>(200)
-        .Produces(401)
-        .Produces(403)
-        .Produces(500);
-
-        // GET /api/engagement/instructor/{instructorId}/breakdown - Get instructor engagement breakdown (Admin only)
-        group.MapGet("/instructor/{instructorId:guid}/breakdown", async (
-            Guid instructorId,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
-            [FromServices] IEngagementTrackingService engagementService) =>
-        {
-            try
-            {
-                var start = startDate ?? DateTime.UtcNow.AddMonths(-1);
-                var end = endDate ?? DateTime.UtcNow;
-
-                var breakdown = await engagementService.GetInstructorEngagementBreakdownAsync(instructorId, start, end);
-                return Results.Ok(breakdown);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Error retrieving instructor engagement breakdown");
-            }
-        })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"))
-        .WithName("GetInstructorEngagementBreakdown")
-        .Produces<InstructorEngagementBreakdown>(200)
-        .Produces(401)
-        .Produces(403)
-        .Produces(500);
-
-        // POST /api/engagement/{id}/mark-fraudulent - Mark engagement as fraudulent (Admin only)
-        group.MapPost("/{id:guid}/mark-fraudulent", async (
-            Guid id,
-            [FromBody] MarkFraudulentRequest request,
-            [FromServices] IEngagementTrackingService engagementService) =>
-        {
-            try
-            {
-                var success = await engagementService.MarkEngagementAsFraudulentAsync(id, request.Reason);
-
-                if (!success)
-                    return Results.NotFound(new { error = "Engagement not found" });
-
-                return Results.Ok(new { success = true, message = "Engagement marked as fraudulent" });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Error marking engagement as fraudulent");
-            }
-        })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"))
-        .WithName("MarkEngagementFraudulent")
-        .Produces(200)
-        .Produces(401)
-        .Produces(403)
-        .Produces(404)
-        .Produces(500);
-
-        // POST /api/engagement/validate-pending - Validate pending engagements (Background job - Admin only)
-        group.MapPost("/validate-pending", async (
-            [FromServices] IEngagementTrackingService engagementService,
-            [FromQuery] int batchSize = 100) =>
-        {
-            try
-            {
-                var validatedCount = await engagementService.ValidatePendingEngagementsAsync(null, batchSize);
                 return Results.Ok(new
                 {
                     success = true,
-                    validatedCount,
-                    message = $"Validated {validatedCount} pending engagements"
+                    data = analytics
                 });
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "[ENGAGEMENT] Error retrieving user engagement stats");
                 return Results.Problem(
                     detail: ex.Message,
                     statusCode: 500,
-                    title: "Error validating pending engagements");
+                    title: "Error retrieving engagement statistics");
             }
         })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"))
-        .WithName("ValidatePendingEngagements")
-        .Produces(200)
+        .RequireAuthorization()
+        .WithName("GetMyEngagementStats")
+        .WithSummary("Get user engagement statistics")
+        .WithDescription("Returns engagement analytics for authenticated user (total time, validation score, etc.)")
+        .Produces<UserEngagementAnalytics>(200)
         .Produces(401)
-        .Produces(403)
         .Produces(500);
     }
 }
-
-// DTOs
-public record RecordEngagementRequest(
-    Guid CourseId,
-    string EngagementType,
-    int DurationMinutes,
-    string? DeviceFingerprint = null,
-    Dictionary<string, object>? Metadata = null);
-
-public record MarkFraudulentRequest(string Reason);
