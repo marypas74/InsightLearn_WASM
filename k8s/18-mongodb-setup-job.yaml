@@ -1,0 +1,233 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-setup-script
+  namespace: insightlearn
+  labels:
+    app: mongodb-setup
+    component: database
+    version: v2.1.0
+data:
+  mongodb-collections-setup.js: |
+    // MongoDB Collection Setup for Student Learning Space v2.1.0
+    // Auto-executed by Kubernetes Job
+
+    use insightlearn_videos;
+
+    print("Setting up Student Learning Space MongoDB collections...");
+
+    // VideoTranscripts Collection
+    print("\n1. Creating VideoTranscripts collection...");
+    db.createCollection("VideoTranscripts", {
+        validator: {
+            $jsonSchema: {
+                bsonType: "object",
+                required: ["lessonId", "language", "transcript", "createdAt"],
+                properties: {
+                    lessonId: { bsonType: "string" },
+                    language: { bsonType: "string", pattern: "^[a-z]{2}-[A-Z]{2}$" },
+                    transcript: {
+                        bsonType: "array",
+                        items: {
+                            bsonType: "object",
+                            required: ["startTime", "endTime", "text"],
+                            properties: {
+                                startTime: { bsonType: "double", minimum: 0 },
+                                endTime: { bsonType: "double", minimum: 0 },
+                                speaker: { bsonType: ["string", "null"] },
+                                text: { bsonType: "string", minLength: 1 },
+                                confidence: { bsonType: ["double", "null"], minimum: 0, maximum: 1 }
+                            }
+                        }
+                    },
+                    metadata: {
+                        bsonType: ["object", "null"],
+                        properties: {
+                            wordCount: { bsonType: "int", minimum: 0 },
+                            averageConfidence: { bsonType: "double", minimum: 0, maximum: 1 },
+                            processingModel: { bsonType: "string" },
+                            processedAt: { bsonType: "date" }
+                        }
+                    },
+                    createdAt: { bsonType: "date" },
+                    updatedAt: { bsonType: ["date", "null"] }
+                }
+            }
+        },
+        validationLevel: "strict",
+        validationAction: "error"
+    });
+
+    db.VideoTranscripts.createIndex({ "lessonId": 1 }, { unique: true, name: "idx_lessonId_unique" });
+    db.VideoTranscripts.createIndex({ "language": 1 }, { name: "idx_language" });
+    db.VideoTranscripts.createIndex({ "transcript.text": "text" }, { name: "idx_transcript_fulltext", default_language: "english" });
+    db.VideoTranscripts.createIndex({ "createdAt": -1 }, { name: "idx_createdAt_desc" });
+
+    print("✅ VideoTranscripts created with 4 indexes");
+
+    // VideoKeyTakeaways Collection
+    print("\n2. Creating VideoKeyTakeaways collection...");
+    db.createCollection("VideoKeyTakeaways", {
+        validator: {
+            $jsonSchema: {
+                bsonType: "object",
+                required: ["lessonId", "takeaways", "createdAt"],
+                properties: {
+                    lessonId: { bsonType: "string" },
+                    takeaways: {
+                        bsonType: "array",
+                        items: {
+                            bsonType: "object",
+                            required: ["takeawayId", "text", "category", "relevanceScore"],
+                            properties: {
+                                takeawayId: { bsonType: "string" },
+                                text: { bsonType: "string", minLength: 1, maxLength: 1000 },
+                                category: {
+                                    bsonType: "string",
+                                    enum: ["CoreConcept", "BestPractice", "Example", "Warning", "Summary", "KeyPoint"]
+                                },
+                                relevanceScore: { bsonType: "double", minimum: 0, maximum: 1 },
+                                timestampStart: { bsonType: ["double", "null"], minimum: 0 },
+                                timestampEnd: { bsonType: ["double", "null"], minimum: 0 },
+                                userFeedback: { bsonType: ["int", "null"], enum: [null, 1, -1] }
+                            }
+                        }
+                    },
+                    metadata: {
+                        bsonType: ["object", "null"],
+                        properties: {
+                            totalTakeaways: { bsonType: "int", minimum: 0 },
+                            processingModel: { bsonType: "string" },
+                            processedAt: { bsonType: "date" }
+                        }
+                    },
+                    createdAt: { bsonType: "date" },
+                    updatedAt: { bsonType: ["date", "null"] }
+                }
+            }
+        },
+        validationLevel: "strict",
+        validationAction: "error"
+    });
+
+    db.VideoKeyTakeaways.createIndex({ "lessonId": 1 }, { unique: true, name: "idx_lessonId_unique" });
+    db.VideoKeyTakeaways.createIndex({ "takeaways.category": 1 }, { name: "idx_takeaway_category" });
+    db.VideoKeyTakeaways.createIndex({ "takeaways.relevanceScore": -1 }, { name: "idx_relevance_score_desc" });
+    db.VideoKeyTakeaways.createIndex({ "createdAt": -1 }, { name: "idx_createdAt_desc" });
+
+    print("✅ VideoKeyTakeaways created with 4 indexes");
+
+    // AIConversationHistory Collection
+    print("\n3. Creating AIConversationHistory collection...");
+    db.createCollection("AIConversationHistory", {
+        validator: {
+            $jsonSchema: {
+                bsonType: "object",
+                required: ["sessionId", "userId", "messages", "createdAt"],
+                properties: {
+                    sessionId: { bsonType: "string" },
+                    userId: { bsonType: "string" },
+                    lessonId: { bsonType: ["string", "null"] },
+                    messages: {
+                        bsonType: "array",
+                        items: {
+                            bsonType: "object",
+                            required: ["messageId", "role", "content", "timestamp"],
+                            properties: {
+                                messageId: { bsonType: "string" },
+                                role: { bsonType: "string", enum: ["user", "assistant", "system"] },
+                                content: { bsonType: "string", minLength: 1, maxLength: 10000 },
+                                timestamp: { bsonType: "date" },
+                                videoTimestamp: { bsonType: ["int", "null"], minimum: 0 }
+                            }
+                        }
+                    },
+                    createdAt: { bsonType: "date" },
+                    lastActivityAt: { bsonType: ["date", "null"] }
+                }
+            }
+        },
+        validationLevel: "strict",
+        validationAction: "error"
+    });
+
+    db.AIConversationHistory.createIndex({ "sessionId": 1 }, { unique: true, name: "idx_sessionId_unique" });
+    db.AIConversationHistory.createIndex({ "userId": 1, "createdAt": -1 }, { name: "idx_userId_createdAt" });
+    db.AIConversationHistory.createIndex({ "lessonId": 1 }, { name: "idx_lessonId", sparse: true });
+    db.AIConversationHistory.createIndex({ "lastActivityAt": -1 }, { name: "idx_lastActivity_desc" });
+    db.AIConversationHistory.createIndex({ "messages.content": "text" }, { name: "idx_messages_fulltext", default_language: "english" });
+
+    print("✅ AIConversationHistory created with 5 indexes");
+
+    // Verification
+    print("\n📊 Setup Complete!");
+    print("Collections created: " + db.getCollectionNames().filter(n => ["VideoTranscripts", "VideoKeyTakeaways", "AIConversationHistory"].includes(n)).length + "/3");
+    print("Total indexes: 13 (4 + 4 + 5)");
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-collections-setup
+  namespace: insightlearn
+  labels:
+    app: mongodb-setup
+    component: database
+    version: v2.1.0
+spec:
+  ttlSecondsAfterFinished: 600  # Auto-cleanup after 10 minutes
+  backoffLimit: 3  # Retry up to 3 times on failure
+  template:
+    metadata:
+      labels:
+        app: mongodb-setup
+        component: database
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: mongodb-setup
+        image: mongo:7.0
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Waiting for MongoDB to be ready..."
+          until mongosh --host mongodb-service --username insightlearn --password "$MONGODB_PASSWORD" --authenticationDatabase insightlearn_videos --eval "db.adminCommand('ping')" &> /dev/null; do
+            echo "MongoDB not ready, retrying in 5 seconds..."
+            sleep 5
+          done
+
+          echo "MongoDB is ready! Executing setup script..."
+          mongosh --host mongodb-service \
+                  --username insightlearn \
+                  --password "$MONGODB_PASSWORD" \
+                  --authenticationDatabase insightlearn_videos \
+                  < /scripts/mongodb-collections-setup.js
+
+          echo "Setup script executed successfully!"
+          exit 0
+        env:
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: mongodb-password
+        volumeMounts:
+        - name: setup-script
+          mountPath: /scripts
+          readOnly: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: setup-script
+        configMap:
+          name: mongodb-setup-script
+          items:
+          - key: mongodb-collections-setup.js
+            path: mongodb-collections-setup.js

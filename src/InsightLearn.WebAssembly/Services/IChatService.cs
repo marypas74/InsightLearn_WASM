@@ -11,26 +11,20 @@ public class ChatMessage
 
 public class ChatResponse
 {
-    // Use camelCase to match backend JSON (backend serializes in camelCase)
-    [System.Text.Json.Serialization.JsonPropertyName("response")]
+    // FIXED: Removed JsonPropertyName attributes to allow PropertyNameCaseInsensitive to work
+    // Backend returns PascalCase JSON, ApiClient has PropertyNameCaseInsensitive = true
     public string Response { get; set; } = string.Empty;
 
-    [System.Text.Json.Serialization.JsonPropertyName("sessionId")]
     public string SessionId { get; set; } = string.Empty;
 
-    [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("responseTimeMs")]
     public int ResponseTimeMs { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("aiModel")]
     public string? AiModel { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("hasError")]
     public bool HasError { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("errorMessage")]
     public string? ErrorMessage { get; set; }
 }
 

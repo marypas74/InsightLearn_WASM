@@ -94,6 +94,14 @@ builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IUserManageme
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.ICourseManagementService, InsightLearn.WebAssembly.Services.Admin.CourseManagementService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IPrometheusMetricsService, InsightLearn.WebAssembly.Services.Admin.PrometheusMetricsService>();
 
+// Student Learning Space Services (v2.1.0 - 6 services)
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IStudentNoteClientService, InsightLearn.WebAssembly.Services.LearningSpace.StudentNoteClientService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IVideoProgressClientService, InsightLearn.WebAssembly.Services.LearningSpace.VideoProgressClientService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IVideoTranscriptClientService, InsightLearn.WebAssembly.Services.LearningSpace.VideoTranscriptClientService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAITakeawayClientService, InsightLearn.WebAssembly.Services.LearningSpace.AITakeawayClientService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IVideoBookmarkClientService, InsightLearn.WebAssembly.Services.LearningSpace.VideoBookmarkClientService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAIConversationClientService, InsightLearn.WebAssembly.Services.LearningSpace.AIConversationClientService>();
+
 Log.Information("InsightLearn WebAssembly application starting...");
 Log.Information("Base Address: {BaseAddress}", builder.HostEnvironment.BaseAddress);
 

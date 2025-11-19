@@ -1,0 +1,183 @@
+@namespace InsightLearn.WebAssembly.Components.LearningSpace
+
+<div class="video-transcript-viewer">
+    <!-- Header -->
+    <div class="transcript-header">
+        <h3 class="transcript-title">
+            <span class="icon">📄</span>
+            Transcript
+        </h3>
+
+        @if (hasTranscript && transcript?.Metadata != null)
+        {
+            <div class="transcript-meta">
+                <span class="meta-item" title="Duration">
+                    <span class="icon">⏱️</span>
+                    @FormatTimestamp(transcript.Metadata.DurationSeconds)
+                </span>
+                <span class="meta-item" title="Word Count">
+                    <span class="icon">📝</span>
+                    @transcript.Metadata.WordCount words
+                </span>
+                @if (transcript.Metadata.AverageConfidence > 0)
+                {
+                    <span class="meta-item" title="Average Confidence">
+                        <span class="icon">✓</span>
+                        @((transcript.Metadata.AverageConfidence * 100).ToString("F0"))%
+                    </span>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Search Bar -->
+    @if (hasTranscript)
+    {
+        <div class="transcript-search">
+            <div class="search-input-group">
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="Search in transcript..."
+                    @bind="searchText"
+                    @bind:event="oninput"
+                    @onkeydown="@(async (e) => { if (e.Key == "Enter") await SearchTranscriptAsync(); })" />
+
+                @if (!string.IsNullOrWhiteSpace(searchText))
+                {
+                    <button class="btn-clear-search" @onclick="ClearSearch" title="Clear search">
+                        ✕
+                    </button>
+                }
+
+                <button
+                    class="btn-search"
+                    @onclick="SearchTranscriptAsync"
+                    disabled="@isSearching"
+                    title="Search">
+                    @if (isSearching)
+                    {
+                        <span class="spinner-small"></span>
+                    }
+                    else
+                    {
+                        <span>🔍</span>
+                    }
+                </button>
+            </div>
+
+            @if (filteredSegments.Count < segments.Count)
+            {
+                <div class="search-results-info">
+                    Showing @filteredSegments.Count of @segments.Count segments
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading)
+    {
+        <div class="transcript-loading">
+            <div class="spinner"></div>
+            <span>Loading transcript...</span>
+        </div>
+    }
+
+    <!-- Error State -->
+    @if (!isLoading && errorMessage != null)
+    {
+        <div class="transcript-error">
+            <span class="icon">⚠️</span>
+            <div class="error-content">
+                <p class="error-title">@errorMessage</p>
+                @if (processingStatus == "Processing" || processingStatus == "Queued")
+                {
+                    <div class="processing-status">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill processing"></div>
+                        </div>
+                        <small>Please check back in a few minutes</small>
+                    </div>
+                }
+                else if (processingStatus == "NotStarted" || processingStatus == "Failed")
+                {
+                    <button class="btn-request-transcript" @onclick="RequestTranscriptGenerationAsync">
+                        Request Transcript Generation
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Transcript Segments -->
+    @if (hasTranscript && !isLoading)
+    {
+        <div class="transcript-segments">
+            @if (filteredSegments.Count == 0)
+            {
+                <div class="empty-state">
+                    <span class="icon">🔍</span>
+                    <p>No matching segments found</p>
+                    <button class="btn-link" @onclick="ClearSearch">Clear search</button>
+                </div>
+            }
+            else
+            {
+                @for (int i = 0; i < filteredSegments.Count; i++)
+                {
+                    var segment = filteredSegments[i];
+                    var index = i;
+                    var isActive = activeSegmentIndex == index;
+
+                    <div class="transcript-segment @(isActive ? "active" : "")"
+                         @onclick="@(() => OnSegmentClickAsync(segment, index))">
+
+                        <div class="segment-header">
+                            <button class="segment-timestamp" title="Jump to this moment">
+                                <span class="icon">▶️</span>
+                                @FormatTimestamp(segment.StartTime)
+                            </button>
+
+                            @if (segment.Speaker != null)
+                            {
+                                <span class="segment-speaker">@segment.Speaker</span>
+                            }
+
+                            @if (segment.Confidence.HasValue)
+                            {
+                                <span class="segment-confidence"
+                                      style="color: @GetConfidenceColor(segment.Confidence)"
+                                      title="Transcription confidence: @GetConfidenceLabel(segment.Confidence)">
+                                    @GetConfidenceLabel(segment.Confidence)
+                                </span>
+                            }
+                        </div>
+
+                        <div class="segment-text">
+                            @if (!string.IsNullOrWhiteSpace(searchText))
+                            {
+                                @((MarkupString)HighlightSearchText(segment.Text))
+                            }
+                            else
+                            {
+                                @segment.Text
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- Footer Info -->
+    @if (hasTranscript && transcript?.Metadata != null)
+    {
+        <div class="transcript-footer">
+            <small class="footer-info">
+                Generated by @transcript.Metadata.ProcessingEngine
+                on @transcript.Metadata.ProcessedAt.ToString("MMM d, yyyy")
+            </small>
+        </div>
+    }
+</div>

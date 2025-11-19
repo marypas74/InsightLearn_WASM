@@ -26,14 +26,18 @@ public class UserInfo
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-    public DateTime? DateOfBirth { get; set; }
-    public string? Bio { get; set; }
+    public string FullName { get; set; } = string.Empty;
     public string? ProfileImageUrl { get; set; }
-    public string? AvatarUrl { get; set; }
+    public string? Bio { get; set; }
+    public DateTime DateJoined { get; set; }
+    public DateTime? LastLoginDate { get; set; }
+    public bool IsInstructor { get; set; }
+    public bool IsVerified { get; set; }
+    public decimal WalletBalance { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
     public List<string> Roles { get; set; } = new();
-    public bool IsProfileComplete { get; set; }
+    public string? SessionId { get; set; }
 
-    public string FullName => $"{FirstName} {LastName}";
+    // Computed property for backward compatibility
     public string Role => Roles.FirstOrDefault() ?? "Student";
 }

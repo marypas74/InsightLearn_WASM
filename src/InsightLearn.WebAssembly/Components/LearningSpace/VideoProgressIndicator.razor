@@ -1,0 +1,81 @@
+@namespace InsightLearn.WebAssembly.Components.LearningSpace
+
+<div class="video-progress-indicator">
+    <!-- Progress Bar Container -->
+    <div class="progress-bar-container">
+        <div class="video-progress-bar" @onclick="OnProgressBarClickAsync">
+            <!-- Watched portion (filled) -->
+            <div class="progress-fill" style="width: @(progressPercentage)%"></div>
+
+            <!-- Current position indicator -->
+            <div class="progress-thumb" style="left: @(progressPercentage)%"></div>
+
+            <!-- Bookmark markers -->
+            @if (bookmarks.Count > 0)
+            {
+                @foreach (var bookmark in bookmarks)
+                {
+                    <div class="bookmark-marker @(bookmark.BookmarkType == "Auto" ? "auto-bookmark" : "manual-bookmark")"
+                         style="left: @GetBookmarkPosition(bookmark)"
+                         title="@GetBookmarkTooltip(bookmark)"
+                         @onclick="@(async () => await OnBookmarkClickAsync(bookmark))"
+                         @onclick:stopPropagation="true">
+                        <span class="bookmark-icon">@(bookmark.BookmarkType == "Auto" ? "📍" : "🔖")</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Time and Percentage Display -->
+    <div class="progress-info">
+        <div class="time-display">
+            <span class="current-time">@currentTimeFormatted</span>
+            <span class="time-separator">/</span>
+            <span class="total-time">@totalTimeFormatted</span>
+        </div>
+
+        <div class="percentage-display">
+            <span class="percentage-value">@progressPercentage.ToString("F1")%</span>
+            @if (progressPercentage >= 95)
+            {
+                <span class="completed-badge" title="Video completed">✓</span>
+            }
+        </div>
+    </div>
+
+    <!-- Bookmark Quick Access -->
+    @if (bookmarks.Count > 0)
+    {
+        <div class="bookmarks-quick-access">
+            <span class="bookmarks-label">
+                <span class="icon">🔖</span>
+                Bookmarks (@bookmarks.Count)
+            </span>
+            <div class="bookmarks-list">
+                @foreach (var bookmark in bookmarks.OrderBy(b => b.VideoTimestamp))
+                {
+                    <button class="bookmark-button"
+                            @onclick="@(async () => await OnBookmarkClickAsync(bookmark))"
+                            title="@GetBookmarkTooltip(bookmark)">
+                        <span class="bookmark-time">@FormatTime(bookmark.VideoTimestamp)</span>
+                        @if (!string.IsNullOrWhiteSpace(bookmark.Label))
+                        {
+                            <span class="bookmark-label">@bookmark.Label</span>
+                        }
+                        <span class="bookmark-type-badge">@(bookmark.BookmarkType == "Auto" ? "Auto" : "Manual")</span>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading)
+    {
+        <div class="progress-loading">
+            <div class="spinner-small"></div>
+            <span>Saving progress...</span>
+        </div>
+    }
+</div>

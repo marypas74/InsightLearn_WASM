@@ -18,9 +18,9 @@
             <div class="card profile-card">
                 <!-- Avatar -->
                 <div class="profile-avatar-wrapper">
-                    @if (!string.IsNullOrEmpty(user?.AvatarUrl) || !string.IsNullOrEmpty(user?.ProfileImageUrl))
+                    @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
                     {
-                        <img src="@(user.AvatarUrl ?? user.ProfileImageUrl)" alt="@user.FirstName" class="profile-avatar" />
+                        <img src="@user.ProfileImageUrl" alt="@user.FirstName" class="profile-avatar" />
                     }
                     else
                     {
@@ -132,25 +132,6 @@
                                 </small>
                             </div>
 
-                            <!-- Phone -->
-                            <div class="mb-3">
-                                <label class="form-label">Phone</label>
-                                <InputText @bind-Value="editModel.PhoneNumber"
-                                           class="form-control"
-                                           disabled="@(!isEditMode)"
-                                           placeholder="+39 123 456 7890" />
-                                <ValidationMessage For="@(() => editModel.PhoneNumber)" />
-                            </div>
-
-                            <!-- Date of Birth -->
-                            <div class="mb-3">
-                                <label class="form-label">Date of Birth</label>
-                                <InputDate @bind-Value="editModel.DateOfBirth"
-                                           class="form-control"
-                                           disabled="@(!isEditMode)" />
-                                <ValidationMessage For="@(() => editModel.DateOfBirth)" />
-                            </div>
-
                             <!-- Bio -->
                             <div class="mb-3">
                                 <label class="form-label">Bio</label>
@@ -237,8 +218,6 @@
                 {
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    PhoneNumber = user.PhoneNumber,
-                    DateOfBirth = user.DateOfBirth,
                     Bio = user.Bio
                 };
             }
@@ -272,8 +251,6 @@
             {
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                PhoneNumber = user.PhoneNumber,
-                DateOfBirth = user.DateOfBirth,
                 Bio = user.Bio
             };
         }
@@ -291,13 +268,17 @@
                 Email = user.Email,
                 FirstName = editModel.FirstName,
                 LastName = editModel.LastName,
-                PhoneNumber = editModel.PhoneNumber,
-                DateOfBirth = editModel.DateOfBirth,
+                FullName = $"{editModel.FirstName} {editModel.LastName}",
                 Bio = editModel.Bio,
                 ProfileImageUrl = user.ProfileImageUrl,
-                AvatarUrl = user.AvatarUrl,
                 Roles = user.Roles,
-                IsProfileComplete = user.IsProfileComplete
+                DateJoined = user.DateJoined,
+                LastLoginDate = user.LastLoginDate,
+                IsInstructor = user.IsInstructor,
+                IsVerified = user.IsVerified,
+                WalletBalance = user.WalletBalance,
+                LockoutEnd = user.LockoutEnd,
+                SessionId = user.SessionId
             };
 
             var response = await UserService.UpdateUserProfileAsync(updatedUser);
@@ -370,11 +351,6 @@
 
         [Required, StringLength(50)]
         public string LastName { get; set; } = string.Empty;
-
-        [Phone]
-        public string? PhoneNumber { get; set; }
-
-        public DateTime? DateOfBirth { get; set; }
 
         [StringLength(500)]
         public string? Bio { get; set; }

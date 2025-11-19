@@ -1,0 +1,192 @@
+@namespace InsightLearn.WebAssembly.Components.LearningSpace
+
+<div class="student-notes-panel">
+    <!-- Header -->
+    <div class="notes-header">
+        <h3 class="notes-title">
+            <span class="icon">📝</span>
+            My Notes
+        </h3>
+        @if (!showEditor)
+        {
+            <button class="btn-new-note" @onclick="ShowCreateNoteEditor" title="Create new note">
+                <span class="icon">+</span>
+                New Note
+            </button>
+        }
+    </div>
+
+    <!-- Note Editor -->
+    @if (showEditor)
+    {
+        <div class="note-editor">
+            <div class="editor-header">
+                <span class="editor-title">@(editingNoteId.HasValue ? "Edit Note" : "New Note")</span>
+                <span class="timestamp-badge">@FormatTimestamp(noteTimestamp)</span>
+            </div>
+
+            <textarea
+                class="note-textarea"
+                @bind="noteText"
+                placeholder="Type your note here..."
+                rows="4"
+                maxlength="5000"></textarea>
+
+            <div class="editor-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" @bind="noteIsBookmarked" />
+                    <span>⭐ Bookmark</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" @bind="noteIsShared" />
+                    <span>👥 Share with class</span>
+                </label>
+            </div>
+
+            <div class="editor-actions">
+                <button class="btn-cancel" @onclick="CancelEditor">Cancel</button>
+                <button class="btn-save" @onclick="SaveNoteAsync">
+                    @(editingNoteId.HasValue ? "Update" : "Save")
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Tabs -->
+    <div class="notes-tabs">
+        <button
+            class="tab-button @(!showSharedNotes ? "active" : "")"
+            @onclick="@(() => showSharedNotes = false)">
+            My Notes (@myNotes.Count)
+        </button>
+        <button
+            class="tab-button @(showSharedNotes ? "active" : "")"
+            @onclick="ToggleSharedNotesAsync">
+            Shared Notes (@sharedNotes.Count)
+        </button>
+    </div>
+
+    <!-- Loading State -->
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <span>Loading notes...</span>
+        </div>
+    }
+
+    <!-- My Notes List -->
+    @if (!showSharedNotes)
+    {
+        <div class="notes-list">
+            @if (myNotes.Count == 0 && !isLoading)
+            {
+                <div class="empty-state">
+                    <span class="icon">📝</span>
+                    <p>No notes yet</p>
+                    <small>Click "New Note" to create your first note</small>
+                </div>
+            }
+            else
+            {
+                @foreach (var note in myNotes)
+                {
+                    <div class="note-card @(note.IsBookmarked ? "bookmarked" : "")">
+                        <div class="note-card-header">
+                            <button
+                                class="timestamp-link"
+                                @onclick="@(() => OnTimestampClickedAsync(note.VideoTimestamp))"
+                                title="Jump to this moment in video">
+                                <span class="icon">▶️</span>
+                                @FormatTimestamp(note.VideoTimestamp)
+                            </button>
+
+                            <div class="note-actions">
+                                @if (note.IsBookmarked)
+                                {
+                                    <span class="badge bookmark-badge" title="Bookmarked">⭐</span>
+                                }
+                                @if (note.IsShared)
+                                {
+                                    <span class="badge shared-badge" title="Shared with class">👥</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="note-text">@note.NoteText</div>
+
+                        <div class="note-card-footer">
+                            <span class="note-date">@note.CreatedAt.ToString("MMM d, yyyy")</span>
+
+                            <div class="note-buttons">
+                                <button
+                                    class="btn-icon @(note.IsBookmarked ? "active" : "")"
+                                    @onclick="@(() => ToggleBookmarkAsync(note.Id))"
+                                    title="Toggle bookmark">
+                                    ⭐
+                                </button>
+                                <button
+                                    class="btn-icon @(note.IsShared ? "active" : "")"
+                                    @onclick="@(() => ToggleShareAsync(note.Id))"
+                                    title="Toggle share">
+                                    👥
+                                </button>
+                                <button
+                                    class="btn-icon"
+                                    @onclick="@(() => ShowEditNoteEditor(note))"
+                                    title="Edit note">
+                                    ✏️
+                                </button>
+                                <button
+                                    class="btn-icon btn-delete"
+                                    @onclick="@(() => DeleteNoteAsync(note.Id))"
+                                    title="Delete note">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- Shared Notes List (Read-Only) -->
+    @if (showSharedNotes)
+    {
+        <div class="notes-list">
+            @if (sharedNotes.Count == 0 && !isLoading)
+            {
+                <div class="empty-state">
+                    <span class="icon">👥</span>
+                    <p>No shared notes yet</p>
+                    <small>Your classmates' shared notes will appear here</small>
+                </div>
+            }
+            else
+            {
+                @foreach (var note in sharedNotes)
+                {
+                    <div class="note-card shared">
+                        <div class="note-card-header">
+                            <button
+                                class="timestamp-link"
+                                @onclick="@(() => OnTimestampClickedAsync(note.VideoTimestamp))"
+                                title="Jump to this moment in video">
+                                <span class="icon">▶️</span>
+                                @FormatTimestamp(note.VideoTimestamp)
+                            </button>
+                            <span class="badge shared-badge">👥 Shared</span>
+                        </div>
+
+                        <div class="note-text">@note.NoteText</div>
+
+                        <div class="note-card-footer">
+                            <span class="note-date">@note.CreatedAt.ToString("MMM d, yyyy")</span>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>

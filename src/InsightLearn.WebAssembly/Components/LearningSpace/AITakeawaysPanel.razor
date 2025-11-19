@@ -1,0 +1,167 @@
+@namespace InsightLearn.WebAssembly.Components.LearningSpace
+
+<div class="ai-takeaways-panel">
+    <!-- Header -->
+    <div class="takeaways-header">
+        <h3 class="takeaways-title">
+            <span class="icon">🤖</span>
+            AI Key Takeaways
+        </h3>
+
+        @if (hasTakeaways && takeaways?.Metadata != null)
+        {
+            <div class="takeaways-meta">
+                <span class="meta-item" title="Total Takeaways">
+                    <span class="icon">📝</span>
+                    @takeaways.Metadata.TotalTakeaways takeaways
+                </span>
+                <span class="meta-item" title="AI Model">
+                    <span class="icon">🧠</span>
+                    @takeaways.Metadata.ProcessingModel
+                </span>
+            </div>
+        }
+    </div>
+
+    <!-- Category Filter -->
+    @if (hasTakeaways)
+    {
+        <div class="category-filter">
+            @foreach (var category in categories)
+            {
+                var count = category == "All"
+                    ? takeaways?.Takeaways?.Count ?? 0
+                    : categoryCounts.GetValueOrDefault(category, 0);
+
+                <button
+                    class="category-btn @(selectedCategory == category ? "active" : "")"
+                    style="@(category != "All" ? $"border-color: {GetCategoryColor(category)}" : "")"
+                    @onclick="@(() => FilterByCategory(category))"
+                    disabled="@(count == 0 && category != "All")">
+                    @if (category != "All")
+                    {
+                        <span class="icon">@GetCategoryIcon(category)</span>
+                    }
+                    @category
+                    <span class="count">(@count)</span>
+                </button>
+            }
+        </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading)
+    {
+        <div class="takeaways-loading">
+            <div class="spinner"></div>
+            <span>Loading AI takeaways...</span>
+        </div>
+    }
+
+    <!-- Error State -->
+    @if (!isLoading && errorMessage != null)
+    {
+        <div class="takeaways-error">
+            <span class="icon">🤖</span>
+            <div class="error-content">
+                <p class="error-title">@errorMessage</p>
+                @if (processingStatus == "Processing" || processingStatus == "Queued")
+                {
+                    <div class="processing-status">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill processing"></div>
+                        </div>
+                        <small>AI is analyzing the video transcript</small>
+                    </div>
+                }
+                else if (processingStatus == "NotStarted" || processingStatus == "Failed")
+                {
+                    <button class="btn-request-generation" @onclick="RequestGenerationAsync">
+                        Request AI Analysis
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Takeaways List -->
+    @if (hasTakeaways && !isLoading)
+    {
+        <div class="takeaways-list">
+            @if (filteredTakeaways.Count == 0)
+            {
+                <div class="empty-state">
+                    <span class="icon">🔍</span>
+                    <p>No takeaways in this category</p>
+                    <button class="btn-link" @onclick="@(() => FilterByCategory("All"))">Show all</button>
+                </div>
+            }
+            else
+            {
+                @foreach (var takeaway in filteredTakeaways.OrderByDescending(t => t.RelevanceScore))
+                {
+                    <div class="takeaway-card @GetRelevanceClass(takeaway.RelevanceScore)"
+                         style="border-left-color: @GetCategoryColor(takeaway.Category)">
+
+                        <div class="takeaway-header">
+                            <span class="category-badge"
+                                  style="background: @GetCategoryColor(takeaway.Category)">
+                                <span class="icon">@GetCategoryIcon(takeaway.Category)</span>
+                                @takeaway.Category
+                            </span>
+
+                            <span class="relevance-badge @GetRelevanceClass(takeaway.RelevanceScore)"
+                                  title="AI Relevance Score: @((takeaway.RelevanceScore * 100).ToString("F0"))%">
+                                @GetRelevanceLabel(takeaway.RelevanceScore)
+                            </span>
+                        </div>
+
+                        <div class="takeaway-text" @onclick="@(() => OnTakeawayClickAsync(takeaway))">
+                            @takeaway.Text
+                        </div>
+
+                        @if (takeaway.TimestampStart.HasValue)
+                        {
+                            <button class="takeaway-timestamp"
+                                    @onclick="@(() => OnTakeawayClickAsync(takeaway))"
+                                    title="Jump to this moment in video">
+                                <span class="icon">▶️</span>
+                                @FormatTimestamp(takeaway.TimestampStart.Value)
+                                @if (takeaway.TimestampEnd.HasValue)
+                                {
+                                    <span> - @FormatTimestamp(takeaway.TimestampEnd.Value)</span>
+                                }
+                            </button>
+                        }
+
+                        <div class="takeaway-feedback">
+                            <span class="feedback-label">Was this helpful?</span>
+                            <div class="feedback-buttons">
+                                <button class="btn-feedback @(takeaway.UserFeedback == 1 ? "active" : "")"
+                                        @onclick="@(() => SubmitFeedbackAsync(takeaway.TakeawayId, takeaway.UserFeedback == 1 ? 0 : 1))"
+                                        title="Helpful">
+                                    👍
+                                </button>
+                                <button class="btn-feedback @(takeaway.UserFeedback == -1 ? "active" : "")"
+                                        @onclick="@(() => SubmitFeedbackAsync(takeaway.TakeawayId, takeaway.UserFeedback == -1 ? 0 : -1))"
+                                        title="Not helpful">
+                                    👎
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- Footer Info -->
+    @if (hasTakeaways && takeaways?.Metadata != null)
+    {
+        <div class="takeaways-footer">
+            <small class="footer-info">
+                AI-generated on @takeaways.Metadata.ProcessedAt.ToString("MMM d, yyyy")
+            </small>
+        </div>
+    }
+</div>
