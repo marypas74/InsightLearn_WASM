@@ -2470,3 +2470,332 @@ InsightLearn is planning a major business model transition from **pay-per-course
 - **URL**: https://github.com/marypas74/InsightLearn_WASM
 - **Issues**: https://github.com/marypas74/InsightLearn_WASM/issues
 - **Maintainer**: marcello.pasqui@gmail.com
+
+---
+
+## Student Learning Space (v2.1.0 - In Development)
+
+**Status**: Planning Complete, Development Starting
+**Target Version**: v2.1.0
+**Implementation Timeline**: 10-12 weeks
+**Architecture Review**: 10/10 (Backend Architect + UI/UX Designer)
+**Task Breakdown**: [/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md](/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md)
+
+### Overview
+
+Professional student learning interface matching LinkedIn Learning quality standards, with integrated AI assistant for enhanced learning experience.
+
+### Key Features
+
+**Video Learning Experience**:
+- Professional 3-column responsive layout (sidebar-content-AI assistant)
+- Enhanced video player with advanced controls
+- Video bookmarks with custom labels
+- Resume from last position across devices
+- Picture-in-picture support
+
+**AI-Powered Features**:
+- **Video Transcripts**: Auto-generated using Azure Speech Services or Whisper API
+  - Searchable with timestamp navigation
+  - Full-text search with highlighting
+  - Download as text/SRT format
+- **AI Key Takeaways**: Automatically extracted main concepts, best practices, examples
+  - Relevance scoring
+  - Category classification (CoreConcept, BestPractice, Example, Warning, Summary)
+  - Thumbs up/down feedback
+- **Contextual AI Chatbot**: Enhanced Ollama integration with context awareness
+  - Knows current video timestamp, transcript, and student notes
+  - Conversation history per lesson
+  - Real-time streaming responses via SignalR
+
+**Student Tools**:
+- **Notebook**: Take timestamped notes during video playback
+  - Markdown support with preview
+  - Bookmark important notes
+  - Share notes with community (optional)
+  - Real-time sync across devices (SignalR)
+- **Progress Tracking**: Granular 5-second interval tracking
+  - Multi-device sync via Redis
+  - Resume position API
+  - Visual progress indicators
+
+### Architecture
+
+**Database Schema**:
+- **5 new SQL Server tables**:
+  - `StudentNotes` - User notes with timestamps
+  - `VideoBookmarks` - Bookmarked video positions
+  - `VideoTranscriptMetadata` - Metadata for MongoDB transcripts
+  - `AIKeyTakeawaysMetadata` - Metadata for AI analysis
+  - `AIConversations` - Chat session management
+- **3 new MongoDB collections**:
+  - `VideoTranscripts` - Full transcript data with text search indexes
+  - `VideoKeyTakeaways` - AI-extracted key concepts
+  - `AIConversationHistory` - Complete chat history
+
+**Backend Services** (6 new):
+- `IVideoTranscriptService` - ASR integration, transcript generation
+- `IAIAnalysisService` - Ollama-powered takeaway extraction, contextual chat
+- `IStudentNoteService` - Note CRUD, sharing, bookmarking
+- `IVideoBookmarkService` - Bookmark management
+- `IVideoProgressService` (enhanced) - Granular tracking, multi-device sync
+- Background Jobs (Hangfire/Quartz.NET):
+  - `TranscriptGenerationJob` - Queue video → ASR → MongoDB
+  - `AITakeawayExtractionJob` - Transcript → Ollama analysis
+  - `OldConversationCleanupJob` - Cleanup 90-day old chats
+
+**New API Endpoints** (28 total):
+
+##### Transcript Endpoints (5)
+- `GET /api/transcripts/{lessonId}` - Get complete transcript
+- `GET /api/transcripts/{lessonId}/search?query={text}` - Search transcript
+- `POST /api/transcripts/{lessonId}/generate` - Queue generation (Admin/Instructor)
+- `GET /api/transcripts/{lessonId}/status` - Check processing status
+- `DELETE /api/transcripts/{lessonId}` - Delete transcript (Admin)
+
+##### AI Takeaways Endpoints (3)
+- `GET /api/takeaways/{lessonId}` - Get key takeaways
+- `POST /api/takeaways/{lessonId}/generate` - Queue generation (Admin/Instructor)
+- `POST /api/takeaways/{takeawayId}/feedback` - Thumbs up/down
+
+##### Student Notes Endpoints (6)
+- `GET /api/notes?lessonId={id}` - Get user notes for lesson
+- `POST /api/notes` - Create note
+- `PUT /api/notes/{id}` - Update note
+- `DELETE /api/notes/{id}` - Delete note
+- `GET /api/notes/shared?lessonId={id}` - Get community shared notes
+- `POST /api/notes/{id}/toggle-bookmark` - Bookmark note
+
+##### AI Chat Endpoints (4)
+- `POST /api/ai-chat/message` - Send message with context
+- `GET /api/ai-chat/history?sessionId={id}` - Get chat history
+- `POST /api/ai-chat/sessions/{sessionId}/end` - End session
+- `GET /api/ai-chat/sessions?lessonId={id}` - List sessions for lesson
+
+##### Video Bookmarks Endpoints (4)
+- `GET /api/bookmarks?lessonId={id}` - Get bookmarks
+- `POST /api/bookmarks` - Create bookmark
+- `PUT /api/bookmarks/{id}` - Update bookmark
+- `DELETE /api/bookmarks/{id}` - Delete bookmark
+
+##### Video Progress Enhancement (2)
+- `POST /api/progress/sync` - Sync progress (multi-device)
+- `GET /api/progress/resume?lessonId={id}` - Get resume position
+
+**Frontend Components** (10+ new Blazor components):
+
+**Main Layout**:
+- `StudentLearningSpace.razor` - Main 3-column layout with responsive breakpoints
+- `CourseContentSidebar.razor` - Left sidebar with collapsible chapters
+- `VideoPlayerArea.razor` - Center area with video + tabs
+- `AIAssistantSidebar.razor` - Right sidebar with AI features
+
+**Video & Content**:
+- `VideoPlayer.razor` (enhanced) - Advanced controls, keyboard shortcuts, PiP
+- `TabNavigation.razor` - Overview, Notebook, Transcript, Q&A tabs
+- `OverviewTab.razor` - Course description, instructor info
+- `NotebookTab.razor` - Student notes interface with Markdown editor
+- `TranscriptTab.razor` - Searchable transcript with auto-scroll
+- `QATab.razor` - Placeholder for future Q&A feature
+
+**AI Assistant**:
+- `KeyTakeawaysCard.razor` - Display AI-extracted key concepts
+- `AIQuestionInput.razor` - Chat input with context indicators
+- `AIResponseDisplay.razor` - Chat messages with typing indicator
+- `RelatedTopicsCard.razor` - Placeholder for future feature
+
+**Supporting Components**:
+- `VideoBookmarkIndicator.razor` - Bookmark markers on timeline
+- `ProgressIndicator.razor` - Enhanced progress visualization
+- `ChapterListItem.razor` - Sidebar chapter item
+- `VideoListItem.razor` - Sidebar video item
+
+### Design System
+
+**CSS Variables** (defined in `learning-space.css`):
+```css
+:root {
+  /* Brand Colors */
+  --il-primary: #0073b1;        /* LinkedIn blue */
+  --il-primary-dark: #005582;
+  --il-sidebar-bg: #2d2d2d;     /* Dark sidebar */
+  --il-bg-primary: #ffffff;
+  --il-bg-secondary: #f3f6f8;
+  
+  /* Typography */
+  --il-font-family: 'Inter', -apple-system, sans-serif;
+  --il-font-base: 16px;
+  
+  /* Spacing (8px grid) */
+  --il-space-sm: 0.5rem;    /* 8px */
+  --il-space-md: 1rem;      /* 16px */
+  --il-space-lg: 1.5rem;    /* 24px */
+  --il-space-xl: 2rem;      /* 32px */
+}
+```
+
+**Responsive Breakpoints**:
+- Desktop: 1024px+ (3-column layout)
+- Tablet: 768px-1023px (content + toggleable sidebars)
+- Mobile: < 768px (single column + bottom nav)
+
+**Accessibility**: WCAG 2.1 AA compliant
+- Keyboard navigation (tab order, skip links, shortcuts)
+- Screen reader support (ARIA labels, semantic HTML)
+- Color contrast 4.5:1 minimum
+- Captions & transcripts for all videos
+- Tested with axe DevTools, NVDA, VoiceOver
+
+### Implementation Phases
+
+**Phase 1: Database Schema & Foundation (Week 1-2)**
+- 5 SQL Server tables + 3 MongoDB collections
+- Entity models & DTOs
+- Repository pattern implementation
+
+**Phase 2: Backend Services & Business Logic (Week 3-5)**
+- Video transcript service (ASR integration)
+- AI analysis service (Ollama prompts)
+- Student note service
+- Video bookmark service
+- Background job processing (Hangfire)
+
+**Phase 3: API Endpoints (Week 6-7)**
+- 28 new REST endpoints
+- Swagger documentation
+- Integration tests
+
+**Phase 4: Frontend Components (Week 8-10)**
+- Design system CSS
+- Main layout + 10+ Blazor components
+- Responsive design (desktop/tablet/mobile)
+- Accessibility implementation
+
+**Phase 5: Integration & Optimization (Week 11)**
+- SignalR real-time features
+- Performance optimization (Redis caching, lazy loading)
+- Error handling & logging
+
+**Phase 6: Testing & QA (Week 12)**
+- Unit tests (80%+ coverage)
+- Integration tests (user journeys)
+- Load testing (K6)
+- Security audit
+
+**Phase 7: Deployment & Documentation (Week 12)**
+- Kubernetes deployment updates
+- API documentation (Swagger)
+- User guide
+- Monitoring & alerting (Grafana dashboards)
+
+### Development Status
+
+**Current Phase**: Planning Complete ✅
+**Next Phase**: Phase 1 (Database Schema) - Ready to Start
+**Estimated Completion**: 10-12 weeks from kickoff
+
+**Task Tracking**:
+- Complete task breakdown: [/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md](/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md)
+- TODO list registered in Claude Code
+- Development assignments pending team availability
+
+### Dependencies
+
+**External Services**:
+- **Azure Speech Services** or **Whisper API** - Video transcription (ASR)
+  - API key required in environment variables
+  - Fallback: Manual transcript upload
+- **Ollama** - AI analysis (already deployed: qwen2:0.5b)
+- **MongoDB** - Transcript & AI data storage (already configured)
+- **Redis** - Caching & multi-device sync (already configured)
+- **SignalR** - Real-time features (WebSocket support required)
+
+**NuGet Packages** (new):
+- `Hangfire` or `Quartz.NET` - Background job processing
+- `Azure.AI.TextAnalytics` (optional) - Advanced AI features
+- `MarkdownSharp` or `Markdig` - Markdown rendering
+
+**NPM Packages** (new):
+- `marked` - Markdown editor component
+- (Optional) `video.js` - Enhanced video player (if replacing HTML5 default)
+
+### Known Limitations
+
+1. **Transcript Generation Cost**: Azure Speech Services charges per minute
+   - Estimated cost: $1 per hour of video
+   - Mitigation: Cache transcripts, manual upload option
+2. **Ollama Performance**: AI takeaway extraction ~10-15 seconds per video
+   - Background job processing prevents blocking
+3. **MongoDB Storage**: Large transcripts (~500KB per hour of video)
+   - 1000 hours of video = ~500MB MongoDB storage
+4. **Mobile Data Usage**: Streaming video + transcripts data-intensive
+   - Mitigation: Download for offline, quality selector
+
+### Future Enhancements (Post-v2.1.0)
+
+- **Interactive Quizzes**: In-video quiz questions at key moments
+- **Study Groups**: Real-time collaborative note-taking sessions
+- **Flashcard Generation**: Auto-generate flashcards from key takeaways
+- **Certificate of Completion**: PDF certificate with learning metrics
+- **Learning Analytics Dashboard**: Time spent, topics mastered, quiz scores
+- **Multi-language Transcripts**: Auto-translate transcripts (Azure Translator)
+- **Instructor Live Sessions**: Live video streaming with Q&A chat
+- **Peer Review**: Students can review/rate shared notes
+
+### Success Metrics (Post-Launch)
+
+**Technical KPIs**:
+- All 28 API endpoints operational (100%)
+- API response time < 200ms (p95)
+- Transcript generation success rate > 95%
+- AI chat response < 3 seconds
+- WCAG 2.1 AA compliance verified
+
+**User Experience KPIs**:
+- Video playback starts < 2 seconds
+- Note auto-save < 1 second
+- Mobile interface fully functional
+- Accessibility score > 90 (Lighthouse)
+
+**Business KPIs**:
+- Student engagement time +30% vs current interface
+- Note-taking feature adoption > 60%
+- AI assistant usage > 40% of students
+- Course completion rate +15%
+- Mobile usage > 35%
+
+### Testing Strategy
+
+**Unit Tests**: 80%+ coverage (services, repositories)
+**Integration Tests**: User journeys (watch video → take notes → ask AI → complete)
+**Load Tests**: 100 concurrent users, 500 AI messages/min
+**Security Tests**: Authorization, SQL injection, XSS, rate limiting
+**Accessibility Tests**: axe DevTools, NVDA, VoiceOver, Lighthouse
+
+### Monitoring & Alerting
+
+**New Metrics** (Prometheus):
+- `transcript_generation_duration_seconds` - ASR processing time
+- `ai_takeaway_extraction_duration_seconds` - Ollama analysis time
+- `student_note_creation_total` - Note creation count
+- `ai_chat_response_duration_seconds` - Chat response latency
+- `video_playback_error_total` - Playback failures
+
+**New Alerts** (Grafana):
+- Transcript job failures > 5% in 1 hour
+- AI chat response time > 5 seconds (p95)
+- Video playback error rate > 2%
+- MongoDB query latency > 500ms
+
+### Documentation
+
+- **API Documentation**: Swagger UI at `/swagger` (28 new endpoints)
+- **User Guide**: "How to Use Student Learning Space" (in-app help)
+- **Developer Documentation**: Architecture, database schema, troubleshooting
+- **Task Breakdown**: [/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md](/tmp/STUDENT-LEARNING-SPACE-TASK-BREAKDOWN.md)
+
+---
+
+**Last Updated**: 2025-11-18
+**Document Version**: 1.0
+**Status**: ✅ Ready for Development Kickoff

@@ -906,17 +906,12 @@ catch (Exception ex)
 
 // Configure the HTTP request pipeline
 
-// DEBUG: Raw endpoint BEFORE any middleware
-app.MapGet("/raw-test", () => Results.Text("RAW TEST OK - No middleware"))
-   .AllowAnonymous();
-
 // Global Exception Handler - MUST BE FIRST in middleware pipeline
 // Catches all unhandled exceptions from ANY downstream middleware or endpoint
 // Provides environment-aware error responses (detailed in dev, safe in production)
 // Implements OWASP A01:2021 (Information Disclosure) prevention
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-Console.WriteLine("[SECURITY] Global exception handler DISABLED (debugging mode)");
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+Console.WriteLine("[SECURITY] Global exception handler registered (Phase 6.2 - production-safe error messages)");
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -932,13 +927,10 @@ Console.WriteLine("[CONFIG] Routing middleware registered (required for Promethe
 // Prometheus Metrics Middleware (Phase 4.2)
 // Auto-instruments all HTTP requests for monitoring
 // Exposes /metrics endpoint for Prometheus scraping
-// TEMPORARILY DISABLED - Testing if this causes empty response bodies
-// app.UseHttpMetrics(); // Automatic HTTP request/response metrics
-Console.WriteLine("[METRICS] Prometheus HTTP metrics middleware DISABLED (debugging mode)");
+app.UseHttpMetrics(); // Automatic HTTP request/response metrics
+Console.WriteLine("[METRICS] Prometheus HTTP metrics middleware registered");
 
 // Custom metrics middleware - measures API duration and records requests
-// TEMPORARILY DISABLED - Suspected cause of empty response bodies
-/*
 app.Use(async (context, next) =>
 {
     var metricsService = context.RequestServices.GetRequiredService<MetricsService>();
@@ -954,52 +946,52 @@ app.Use(async (context, next) =>
     // Record API request counter
     metricsService.RecordApiRequest(method, endpoint, context.Response.StatusCode);
 });
-*/
-Console.WriteLine("[METRICS] Custom API metrics middleware DISABLED (debugging mode)");
+Console.WriteLine("[METRICS] Custom API metrics middleware registered (duration + request tracking)");
 
 // Security Headers Middleware - Comprehensive security headers for all responses
 // Moved to dedicated middleware for better maintainability (P1.2)
 // Implements OWASP ASVS V14.4 (Security Headers) compliance
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
-Console.WriteLine("[SECURITY] Security headers middleware DISABLED (debugging mode)");
+Console.WriteLine("[SECURITY] Security headers middleware registered:");
+Console.WriteLine("[SECURITY] - X-Frame-Options: DENY (clickjacking protection)");
+Console.WriteLine("[SECURITY] - X-Content-Type-Options: nosniff (MIME-sniffing protection)");
+Console.WriteLine("[SECURITY] - Strict-Transport-Security: " + (app.Environment.IsDevelopment() ? "disabled (dev)" : "enabled (production)"));
+Console.WriteLine("[SECURITY] - Content-Security-Policy: Blazor WASM compatible + CSP reporting");
+Console.WriteLine("[SECURITY] - Permissions-Policy: LMS features enabled (clipboard, fullscreen, autoplay)");
+Console.WriteLine("[SECURITY] - Cross-Origin-*-Policy: Isolation enabled (COEP, COOP, CORP)");
+Console.WriteLine("[SECURITY] - X-XSS-Protection: Legacy browser support (deprecated in modern browsers)");
 
 // Distributed Rate limiting using Redis (replaces in-memory rate limiter)
 // This provides global rate limiting across all API pods in Kubernetes
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<DistributedRateLimitMiddleware>();
-Console.WriteLine("[SECURITY] Distributed rate limiting DISABLED (debugging mode)");
+app.UseMiddleware<DistributedRateLimitMiddleware>();
+Console.WriteLine("[SECURITY] Distributed rate limiting enabled (Redis-backed, cross-pod coordination)");
 
 // Comment out the old in-memory rate limiter (keeping for reference/fallback)
 // app.UseRateLimiter(); // Old in-memory rate limiter - replaced with distributed version
 
 // Request Validation Middleware - Protects against SQL injection, XSS, and path traversal
 // Positioned AFTER rate limiting to prevent attackers from exhausting resources
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<RequestValidationMiddleware>();
-Console.WriteLine("[SECURITY] Request validation middleware DISABLED (debugging mode)");
+app.UseMiddleware<RequestValidationMiddleware>();
+Console.WriteLine("[SECURITY] Request validation middleware registered (SQL injection, XSS, path traversal, request body validation)");
 
 // Model Validation Logging Middleware - Phase 3.2
 // Centrally logs all validation failures (400 Bad Request) for monitoring and debugging
 // Extracts and analyzes validation errors, detects potential security concerns
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<ModelValidationMiddleware>();
-Console.WriteLine("[SECURITY] Model validation logging middleware DISABLED (debugging mode)");
+app.UseMiddleware<ModelValidationMiddleware>();
+Console.WriteLine("[SECURITY] Model validation logging middleware registered (Phase 3.2 - validation failure monitoring)");
 
 app.UseAuthentication();
 // CSRF Protection Middleware - Positioned after authentication, before authorization
 // Protects against Cross-Site Request Forgery attacks (PCI DSS 6.5.9)
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<CsrfProtectionMiddleware>();
-Console.WriteLine("[SECURITY] CSRF protection middleware DISABLED (debugging mode)");
+app.UseMiddleware<CsrfProtectionMiddleware>();
+Console.WriteLine("[SECURITY] CSRF protection middleware registered (PCI DSS 6.5.9 compliance)");
 app.UseAuthorization();
 
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
 // Positioned AFTER authentication to capture user context (userId, email, roles)
-// TEMPORARILY DISABLED for debugging empty response issue
-// app.UseMiddleware<AuditLoggingMiddleware>();
-Console.WriteLine("[SECURITY] Audit logging middleware DISABLED (debugging mode)");
+app.UseMiddleware<AuditLoggingMiddleware>();
+Console.WriteLine("[SECURITY] Audit logging middleware registered (auth, authorization, validation, admin operations)");
 
 // Add rate limit headers to all responses (X-RateLimit-*)
 app.Use(async (context, next) =>
@@ -3780,17 +3772,6 @@ app.MapGet("/api/dashboard/recent-activity", async (
 .Produces(401)
 .Produces(403)
 .Produces(500);
-
-// ========================================
-// DEBUG TEST ENDPOINTS
-// ========================================
-app.MapGet("/api/test", () => new { message = "Test OK", timestamp = DateTime.UtcNow })
-   .AllowAnonymous()
-   .WithName("DebugTest");
-
-app.MapGet("/api/test-string", () => "Test OK - Plain Text")
-   .AllowAnonymous()
-   .WithName("DebugTestString");
 
 // ========================================
 // SAAS SUBSCRIPTION SYSTEM ENDPOINTS

@@ -64,6 +64,13 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<ChatbotContact> ChatbotContacts { get; set; }
     public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
 
+    // Student Learning Space entities (v2.1.0)
+    public DbSet<StudentNote> StudentNotes { get; set; }
+    public DbSet<VideoBookmark> VideoBookmarks { get; set; }
+    public DbSet<VideoTranscriptMetadata> VideoTranscriptMetadata { get; set; }
+    public DbSet<AIKeyTakeawaysMetadata> AIKeyTakeawaysMetadata { get; set; }
+    public DbSet<AIConversation> AIConversations { get; set; }
+
     // SaaS Subscription Model entities
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
@@ -132,6 +139,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
 
         // Configure SaaS Subscription Model relationships
         ConfigureSubscriptionEntities(builder);
+
+        // Configure Student Learning Space entities (v2.1.0)
+        ConfigureStudentLearningSpaceEntities(builder);
 
         // Apply EF Core optimizations using extension methods
         builder.ConfigureGlobalQueryFilters();
@@ -281,6 +291,12 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
             if (entry.Entity is Note note && entry.State == EntityState.Modified)
             {
                 note.UpdatedAt = DateTime.UtcNow;
+            }
+
+            // Student Learning Space entities (v2.1.0)
+            if (entry.Entity is StudentNote studentNote && entry.State == EntityState.Modified)
+            {
+                studentNote.UpdatedAt = DateTime.UtcNow;
             }
 
             // FIX: Add UserSession to auditable entities
@@ -478,6 +494,153 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
                 .HasDatabaseName("IX_AuditLogs_RequestId")
                 .IsDescending(false)
                 .HasFilter("[RequestId] IS NOT NULL");  // Partial index (exclude nulls)
+        });
+    }
+
+    /// <summary>
+    /// Configures Student Learning Space entities (v2.1.0).
+    /// Includes indexes, unique constraints, and relationships.
+    /// </summary>
+    private void ConfigureStudentLearningSpaceEntities(ModelBuilder builder)
+    {
+        // StudentNote configuration
+        builder.Entity<StudentNote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.NoteText).IsRequired().HasMaxLength(4000);
+            entity.Property(e => e.VideoTimestamp).IsRequired();
+            entity.Property(e => e.IsShared).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.IsBookmarked).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign keys
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => new { e.UserId, e.LessonId })
+                .HasDatabaseName("IX_StudentNotes_UserId_LessonId");
+
+            entity.HasIndex(e => e.VideoTimestamp)
+                .HasDatabaseName("IX_StudentNotes_VideoTimestamp");
+
+            entity.HasIndex(e => e.IsBookmarked)
+                .HasDatabaseName("IX_StudentNotes_IsBookmarked")
+                .HasFilter("[IsBookmarked] = 1");  // Partial index for bookmarked notes only
+        });
+
+        // VideoBookmark configuration
+        builder.Entity<VideoBookmark>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.VideoTimestamp).IsRequired();
+            entity.Property(e => e.Label).HasMaxLength(200);
+            entity.Property(e => e.BookmarkType).IsRequired().HasMaxLength(50).HasDefaultValue("Manual");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign keys
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for performance
+            entity.HasIndex(e => new { e.UserId, e.LessonId })
+                .HasDatabaseName("IX_VideoBookmarks_UserId_LessonId");
+        });
+
+        // VideoTranscriptMetadata configuration
+        builder.Entity<VideoTranscriptMetadata>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LessonId).IsRequired();
+            entity.Property(e => e.MongoDocumentId).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(10).HasDefaultValue("en-US");
+            entity.Property(e => e.ProcessingStatus).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(e => e.AverageConfidence).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign key
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: one transcript per lesson
+            entity.HasIndex(e => e.LessonId)
+                .IsUnique()
+                .HasDatabaseName("IX_VideoTranscriptMetadata_LessonId_Unique");
+
+            // Index for processing status queries
+            entity.HasIndex(e => e.ProcessingStatus)
+                .HasDatabaseName("IX_VideoTranscriptMetadata_ProcessingStatus");
+        });
+
+        // AIKeyTakeawaysMetadata configuration
+        builder.Entity<AIKeyTakeawaysMetadata>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LessonId).IsRequired();
+            entity.Property(e => e.MongoDocumentId).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.TakeawayCount).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.ProcessingStatus).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign key
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: one set of takeaways per lesson
+            entity.HasIndex(e => e.LessonId)
+                .IsUnique()
+                .HasDatabaseName("IX_AIKeyTakeawaysMetadata_LessonId_Unique");
+        });
+
+        // AIConversation configuration
+        builder.Entity<AIConversation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SessionId).IsRequired();
+            entity.Property(e => e.UserId).IsRequired();
+            entity.Property(e => e.MongoDocumentId).HasMaxLength(100);
+            entity.Property(e => e.MessageCount).IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign keys
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.SetNull);  // SetNull because lesson context is optional
+
+            // Unique constraint: SessionId must be unique
+            entity.HasIndex(e => e.SessionId)
+                .IsUnique()
+                .HasDatabaseName("IX_AIConversations_SessionId_Unique");
+
+            // Indexes for performance
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_AIConversations_UserId");
         });
     }
 }
