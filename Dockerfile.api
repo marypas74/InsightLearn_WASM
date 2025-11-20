@@ -1,0 +1,57 @@
+# Dockerfile for InsightLearn API (Backend)
+# Multi-stage build for optimal image size
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY InsightLearn.WASM.sln ./
+COPY Directory.Build.props ./
+COPY src/InsightLearn.Core/InsightLearn.Core.csproj src/InsightLearn.Core/
+COPY src/InsightLearn.Shared/InsightLearn.Shared.csproj src/InsightLearn.Shared/
+COPY src/InsightLearn.Infrastructure/InsightLearn.Infrastructure.csproj src/InsightLearn.Infrastructure/
+COPY src/InsightLearn.Application/InsightLearn.Application.csproj src/InsightLearn.Application/
+
+# Restore dependencies
+RUN dotnet restore src/InsightLearn.Application/InsightLearn.Application.csproj
+
+# Copy source code
+COPY . .
+
+# Build and publish
+WORKDIR /src/src/InsightLearn.Application
+RUN dotnet publish "InsightLearn.Application.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false \
+    /p:Version=${VERSION:-2.1.0-dev} \
+    /p:SourceRevisionId=${GIT_COMMIT:-unknown} \
+    /p:BuildNumber=${BUILD_NUMBER:-0}
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser
+
+# Copy published app
+COPY --from=build /app/publish .
+
+# Set ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 80
+EXPOSE 443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:80/health || exit 1
+
+# Entry point
+ENTRYPOINT ["dotnet", "InsightLearn.Application.dll"]

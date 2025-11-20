@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace InsightLearn.Core.DTOs.VideoTranscript
 {
@@ -17,6 +18,17 @@ namespace InsightLearn.Core.DTOs.VideoTranscript
         /// List of transcript segments with timestamps.
         /// </summary>
         public List<TranscriptSegmentDto> Transcript { get; set; } = new();
+
+        /// <summary>
+        /// Alias for Transcript property (used by background jobs).
+        /// </summary>
+        public List<TranscriptSegmentDto> Segments => Transcript;
+
+        /// <summary>
+        /// Full transcript text (all segments concatenated).
+        /// Used by AI analysis for processing.
+        /// </summary>
+        public string FullTranscript => string.Join(" ", Transcript.Select(s => s.Text));
 
         /// <summary>
         /// Metadata about the transcript.
@@ -45,6 +57,16 @@ namespace InsightLearn.Core.DTOs.VideoTranscript
         public int WordCount { get; set; }
         public double AverageConfidence { get; set; }
         public string ProcessingEngine { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Alias for ProcessingEngine (used by some services).
+        /// </summary>
+        public string ProcessingModel
+        {
+            get => ProcessingEngine;
+            set => ProcessingEngine = value;
+        }
+
         public DateTime ProcessedAt { get; set; }
     }
 }

@@ -167,9 +167,8 @@ namespace InsightLearn.Application.Services
                 return new TranscriptProcessingStatusDto
                 {
                     LessonId = lessonId,
-                    Status = "NotStarted",
-                    Progress = 0,
-                    EstimatedTimeRemaining = null,
+                    ProcessingStatus = "NotStarted",
+                    ProgressPercentage = 0,
                     ErrorMessage = null
                 };
             }
@@ -177,9 +176,8 @@ namespace InsightLearn.Application.Services
             return new TranscriptProcessingStatusDto
             {
                 LessonId = lessonId,
-                Status = metadata.ProcessingStatus,
-                Progress = metadata.ProcessingStatus == "Completed" ? 100 : 0,
-                EstimatedTimeRemaining = null,
+                ProcessingStatus = metadata.ProcessingStatus,
+                ProgressPercentage = metadata.ProcessingStatus == "Completed" ? 100 : 0,
                 ErrorMessage = null
             };
         }
@@ -212,7 +210,7 @@ namespace InsightLearn.Application.Services
             return new TranscriptMetadataDto
             {
                 WordCount = metadata.WordCount ?? 0,
-                AverageConfidence = metadata.AverageConfidence ?? 0,
+                AverageConfidence = (double)(metadata.AverageConfidence ?? 0),
                 ProcessingModel = "whisper-large-v3",
                 ProcessedAt = metadata.ProcessedAt ?? DateTime.UtcNow
             };

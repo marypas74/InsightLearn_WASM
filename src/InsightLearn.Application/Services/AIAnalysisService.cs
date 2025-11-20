@@ -185,9 +185,9 @@ namespace InsightLearn.Application.Services
                 return new TakeawayProcessingStatusDto
                 {
                     LessonId = lessonId,
-                    Status = "NotStarted",
-                    Progress = 0,
-                    TotalTakeaways = 0,
+                    ProcessingStatus = "NotStarted",
+                    ProgressPercentage = 0,
+                    GeneratedTakeaways = 0,
                     ErrorMessage = null
                 };
             }
@@ -195,9 +195,9 @@ namespace InsightLearn.Application.Services
             return new TakeawayProcessingStatusDto
             {
                 LessonId = lessonId,
-                Status = metadata.ProcessingStatus,
-                Progress = metadata.ProcessingStatus == "Completed" ? 100 : 0,
-                TotalTakeaways = metadata.TakeawayCount,
+                ProcessingStatus = metadata.ProcessingStatus,
+                ProgressPercentage = metadata.ProcessingStatus == "Completed" ? 100 : 0,
+                GeneratedTakeaways = metadata.TakeawayCount,
                 ErrorMessage = null
             };
         }

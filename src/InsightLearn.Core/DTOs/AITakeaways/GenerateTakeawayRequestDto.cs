@@ -24,5 +24,21 @@ namespace InsightLearn.Core.DTOs.AITakeaways
         public int? ProgressPercentage { get; set; }
         public string? ErrorMessage { get; set; }
         public DateTime? ProcessedAt { get; set; }
+        public int? GeneratedTakeaways { get; set; }
+
+        /// <summary>
+        /// Alias for ProcessingStatus (used by services).
+        /// </summary>
+        public string Status => ProcessingStatus;
+
+        /// <summary>
+        /// Alias for ProgressPercentage (used by services).
+        /// </summary>
+        public int? Progress => ProgressPercentage;
+
+        /// <summary>
+        /// Alias for GeneratedTakeaways (used by services).
+        /// </summary>
+        public int? TotalTakeaways => GeneratedTakeaways;
     }
 }

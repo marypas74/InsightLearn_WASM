@@ -42,7 +42,7 @@ namespace InsightLearn.Application.Services
                 userId, dto.LessonId, dto.CurrentTimestampSeconds);
 
             // Get lesson to determine course ID
-            var lesson = await _lessonRepository.GetByIdAsync(dto.LessonId, ct);
+            var lesson = await _lessonRepository.GetByIdAsync(dto.LessonId);
             if (lesson == null)
                 throw new KeyNotFoundException($"Lesson {dto.LessonId} not found");
 
@@ -73,7 +73,7 @@ namespace InsightLearn.Application.Services
             if (!string.IsNullOrEmpty(dto.SessionId) && Guid.TryParse(dto.SessionId, out var sessionGuid))
             {
                 // Update existing engagement
-                engagement = await _engagementRepository.GetByIdAsync(sessionGuid, ct);
+                engagement = await _engagementRepository.GetByIdAsync(sessionGuid);
                 if (engagement != null && engagement.UserId == userId && engagement.LessonId == dto.LessonId)
                 {
                     engagement.DurationMinutes = sessionDurationSeconds / 60;
@@ -93,13 +93,13 @@ namespace InsightLearn.Application.Services
                 else
                 {
                     // Session ID invalid or doesn't match user/lesson, create new
-                    engagement = await CreateNewEngagement(userId, lesson.CourseId, dto.LessonId, sessionDurationSeconds, validationScore, countsForPayout, metadata, ct);
+                    engagement = await CreateNewEngagement(userId, lesson.Section.CourseId, dto.LessonId, sessionDurationSeconds, validationScore, countsForPayout, metadata, ct);
                 }
             }
             else
             {
                 // Create new engagement session
-                engagement = await CreateNewEngagement(userId, lesson.CourseId, dto.LessonId, sessionDurationSeconds, validationScore, countsForPayout, metadata, ct);
+                engagement = await CreateNewEngagement(userId, lesson.Section.CourseId, dto.LessonId, sessionDurationSeconds, validationScore, countsForPayout, metadata, ct);
             }
 
             var completionPercentage = CalculateCompletionPercentage(dto.CurrentTimestampSeconds, dto.TotalDurationSeconds);
@@ -149,7 +149,7 @@ namespace InsightLearn.Application.Services
         {
             _logger.LogDebug("Getting lesson progress for user {UserId} in lesson {LessonId}", userId, lessonId);
 
-            var lesson = await _lessonRepository.GetByIdAsync(lessonId, ct);
+            var lesson = await _lessonRepository.GetByIdAsync(lessonId);
             if (lesson == null)
                 return null;
 
@@ -224,7 +224,7 @@ namespace InsightLearn.Application.Services
                 var lessonId = group.Key;
                 var lessonEngagements = group.ToList();
 
-                var lesson = await _lessonRepository.GetByIdAsync(lessonId, ct);
+                var lesson = await _lessonRepository.GetByIdAsync(lessonId);
                 if (lesson == null)
                     continue;
 

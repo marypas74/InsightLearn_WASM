@@ -1007,7 +1007,10 @@ app.Use(async (context, next) =>
     await next();
 
     // Add standard rate limit headers for API clients
-    if (context.Response.StatusCode != 429 && context.Request.Path.StartsWithSegments("/api"))
+    // FIX: Check if response has already started before adding headers
+    if (!context.Response.HasStarted &&
+        context.Response.StatusCode != 429 &&
+        context.Request.Path.StartsWithSegments("/api"))
     {
         // Note: Headers are estimates - actual limits depend on GlobalLimiter/policy applied
         context.Response.Headers.TryAdd("X-RateLimit-Limit", "200");

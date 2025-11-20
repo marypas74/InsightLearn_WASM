@@ -193,7 +193,7 @@ spec:
         - |
           set -e
           echo "Waiting for MongoDB to be ready..."
-          until mongosh --host mongodb-service --username insightlearn --password "$MONGODB_PASSWORD" --authenticationDatabase insightlearn_videos --eval "db.adminCommand('ping')" &> /dev/null; do
+          until mongosh --host mongodb-service --username insightlearn --password "$MONGODB_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" &> /dev/null; do
             echo "MongoDB not ready, retrying in 5 seconds..."
             sleep 5
           done
@@ -202,7 +202,7 @@ spec:
           mongosh --host mongodb-service \
                   --username insightlearn \
                   --password "$MONGODB_PASSWORD" \
-                  --authenticationDatabase insightlearn_videos \
+                  --authenticationDatabase admin \
                   < /scripts/mongodb-collections-setup.js
 
           echo "Setup script executed successfully!"

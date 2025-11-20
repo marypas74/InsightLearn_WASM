@@ -32,5 +32,31 @@ namespace InsightLearn.Core.DTOs.VideoTranscript
         public int? ProgressPercentage { get; set; }
         public string? ErrorMessage { get; set; }
         public DateTime? ProcessedAt { get; set; }
+
+        /// <summary>
+        /// Alias for ProcessingStatus (used by services).
+        /// </summary>
+        public string Status => ProcessingStatus;
+
+        /// <summary>
+        /// Alias for ProgressPercentage (used by services).
+        /// </summary>
+        public int? Progress => ProgressPercentage;
+
+        /// <summary>
+        /// Estimated time remaining in seconds (calculated from progress).
+        /// </summary>
+        public int? EstimatedTimeRemaining
+        {
+            get
+            {
+                if (!ProgressPercentage.HasValue || ProgressPercentage.Value == 0)
+                    return null;
+
+                // Estimate based on average processing speed (1 minute per 1% for transcripts)
+                var remainingPercent = 100 - ProgressPercentage.Value;
+                return remainingPercent * 60; // seconds
+            }
+        }
     }
 }
