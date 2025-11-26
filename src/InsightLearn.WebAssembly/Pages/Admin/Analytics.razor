@@ -1,84 +1,613 @@
 @page "/admin/analytics"
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 @inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
+@inject InsightLearn.WebAssembly.Services.Admin.IAnalyticsClientService AnalyticsService
+@inject Blazored.Toast.Services.IToastService Toast
+@inject IJSRuntime JSRuntime
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.Core.DTOs.Admin
+@using InsightLearn.WebAssembly.Components.Admin
+@using InsightLearn.WebAssembly.Models.Admin
 
 <PageTitle>Analytics - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
-    <div class="breadcrumb-nav">
-        <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item">Home</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/admin" class="breadcrumb-item">Admin</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Analytics</span>
-        </nav>
+<link href="css/admin-analytics.css" rel="stylesheet" />
+
+<div class="analytics-dashboard">
+    <!-- Header -->
+    <div class="analytics-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-chart-line"></i>
+                Analytics Dashboard
+            </h1>
+            <p class="page-subtitle">Monitor platform performance and growth metrics</p>
+        </div>
+        <div class="header-actions">
+            <!-- Period Selector -->
+            <div class="period-selector">
+                <button class="period-btn @(selectedDays == 7 ? "active" : "")" @onclick="() => ChangePeriod(7)">
+                    7D
+                </button>
+                <button class="period-btn @(selectedDays == 30 ? "active" : "")" @onclick="() => ChangePeriod(30)">
+                    30D
+                </button>
+                <button class="period-btn @(selectedDays == 90 ? "active" : "")" @onclick="() => ChangePeriod(90)">
+                    90D
+                </button>
+                <button class="period-btn @(selectedDays == 365 ? "active" : "")" @onclick="() => ChangePeriod(365)">
+                    1Y
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <button class="btn btn-outline" @onclick="ExportData" disabled="@isExporting">
+                <i class="fas fa-download @(isExporting ? "fa-spin" : "")"></i>
+                @(isExporting ? "Exporting..." : "Export CSV")
+            </button>
+            <button class="btn btn-primary" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                @(isLoading ? "Loading..." : "Refresh")
+            </button>
+        </div>
     </div>
 
-    <div class="page-header">
-        <h1 class="page-title">Analytics</h1>
-        <p class="page-description">View system analytics and insights</p>
-    </div>
-
-    @if (isLoading)
+    @if (isInitialLoading)
     {
-        <div class="loading-state">
-            <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+        <div class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner-lg"></div>
+                <h3>Loading Analytics</h3>
+                <p>Fetching your platform metrics...</p>
+            </div>
         </div>
     }
     else if (error != null)
     {
-        <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+        <div class="error-container">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3>Unable to Load Analytics</h3>
+            <p>@error</p>
+            <button class="btn btn-primary" @onclick="RefreshData">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
         </div>
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Analytics</h2>
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon users">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@(overview?.TotalUsers.ToString("N0") ?? "0")</span>
+                    <span class="kpi-label">Total Users</span>
+                </div>
+                <div class="kpi-trend @GetTrendClass(overview?.UserGrowthPercent ?? 0)">
+                    <i class="fas fa-@GetTrendIcon(overview?.UserGrowthPercent ?? 0)"></i>
+                    <span>@FormatTrend(overview?.UserGrowthPercent ?? 0)</span>
+                </div>
             </div>
-            <div class="card-content">
-                <p>View system analytics and insights page content goes here.</p>
-                <!-- TODO: Implement Analytics functionality -->
+
+            <div class="kpi-card">
+                <div class="kpi-icon courses">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@(overview?.TotalCourses.ToString("N0") ?? "0")</span>
+                    <span class="kpi-label">Total Courses</span>
+                </div>
+                <div class="kpi-trend @GetTrendClass(overview?.CourseGrowthPercent ?? 0)">
+                    <i class="fas fa-@GetTrendIcon(overview?.CourseGrowthPercent ?? 0)"></i>
+                    <span>@FormatTrend(overview?.CourseGrowthPercent ?? 0)</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon enrollments">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@(overview?.TotalEnrollments.ToString("N0") ?? "0")</span>
+                    <span class="kpi-label">Total Enrollments</span>
+                </div>
+                <div class="kpi-trend @GetTrendClass(overview?.EnrollmentGrowthPercent ?? 0)">
+                    <i class="fas fa-@GetTrendIcon(overview?.EnrollmentGrowthPercent ?? 0)"></i>
+                    <span>@FormatTrend(overview?.EnrollmentGrowthPercent ?? 0)</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon revenue">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@FormatCurrency(overview?.TotalRevenue ?? 0)</span>
+                    <span class="kpi-label">Total Revenue</span>
+                </div>
+                <div class="kpi-trend @GetTrendClass(overview?.RevenueGrowthPercent ?? 0)">
+                    <i class="fas fa-@GetTrendIcon(overview?.RevenueGrowthPercent ?? 0)"></i>
+                    <span>@FormatTrend(overview?.RevenueGrowthPercent ?? 0)</span>
+                </div>
             </div>
         </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- User Growth Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-users"></i> User Growth</h3>
+                    <span class="chart-period">Last @selectedDays days</span>
+                </div>
+                <div class="chart-body">
+                    @if (userGrowthData != null && userGrowthData.DataPoints?.Any() == true)
+                    {
+                        <LineChart Data="@userGrowthData" Height="280px" />
+                    }
+                    else if (isLoadingCharts)
+                    {
+                        <div class="chart-loading">
+                            <div class="spinner-sm"></div>
+                            <span>Loading chart...</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chart-empty">
+                            <i class="fas fa-chart-line"></i>
+                            <span>No user growth data available</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Revenue Trends Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-dollar-sign"></i> Revenue Trends</h3>
+                    <span class="chart-period">Last @selectedDays days</span>
+                </div>
+                <div class="chart-body">
+                    @if (revenueData != null && revenueData.DataPoints?.Any() == true)
+                    {
+                        <AreaChart Data="@revenueData" Height="280px" />
+                    }
+                    else if (isLoadingCharts)
+                    {
+                        <div class="chart-loading">
+                            <div class="spinner-sm"></div>
+                            <span>Loading chart...</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chart-empty">
+                            <i class="fas fa-chart-area"></i>
+                            <span>No revenue data available</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Enrollment Trends Chart -->
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h3><i class="fas fa-user-graduate"></i> Enrollment Trends</h3>
+                    <span class="chart-period">Last @selectedDays days</span>
+                </div>
+                <div class="chart-body">
+                    @if (enrollmentData != null && enrollmentData.DataPoints?.Any() == true)
+                    {
+                        <BarChart Data="@enrollmentData" Height="300px" />
+                    }
+                    else if (isLoadingCharts)
+                    {
+                        <div class="chart-loading">
+                            <div class="spinner-sm"></div>
+                            <span>Loading chart...</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chart-empty">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>No enrollment data available</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Courses Section -->
+        <div class="top-courses-section">
+            <div class="section-header">
+                <h2><i class="fas fa-trophy"></i> Top Performing Courses</h2>
+                <span class="section-subtitle">Ranked by enrollment count</span>
+            </div>
+            <div class="table-container">
+                @if (topCourses != null && topCourses.Any())
+                {
+                    <table class="top-courses-table">
+                        <thead>
+                            <tr>
+                                <th class="col-rank">#</th>
+                                <th class="col-course">Course</th>
+                                <th class="col-instructor">Instructor</th>
+                                <th class="col-category">Category</th>
+                                <th class="col-enrollments">Enrollments</th>
+                                <th class="col-revenue">Revenue</th>
+                                <th class="col-rating">Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rank = 1; }
+                            @foreach (var course in topCourses)
+                            {
+                                <tr class="@(rank <= 3 ? "top-three" : "")">
+                                    <td class="col-rank">
+                                        <span class="rank-badge rank-@rank">@rank</span>
+                                    </td>
+                                    <td class="col-course">
+                                        <div class="course-info">
+                                            <span class="course-title">@course.Title</span>
+                                        </div>
+                                    </td>
+                                    <td class="col-instructor">
+                                        <div class="instructor-cell">
+                                            <span class="instructor-avatar">@GetInitials(course.InstructorName)</span>
+                                            <span class="instructor-name">@course.InstructorName</span>
+                                        </div>
+                                    </td>
+                                    <td class="col-category">
+                                        <span class="category-badge">@course.CategoryName</span>
+                                    </td>
+                                    <td class="col-enrollments">
+                                        <div class="stat-value">
+                                            <i class="fas fa-users"></i>
+                                            @course.EnrollmentCount.ToString("N0")
+                                        </div>
+                                    </td>
+                                    <td class="col-revenue">
+                                        <span class="revenue-value">@FormatCurrency(course.Revenue)</span>
+                                    </td>
+                                    <td class="col-rating">
+                                        <div class="rating-cell">
+                                            @if (course.Rating > 0)
+                                            {
+                                                <div class="stars">
+                                                    @for (int i = 1; i <= 5; i++)
+                                                    {
+                                                        var starIndex = i;
+                                                        <i class="@GetStarClass(course.Rating, starIndex)"></i>
+                                                    }
+                                                </div>
+                                                <span class="rating-value">@course.Rating.ToString("F1")</span>
+                                                <span class="review-count">(@course.ReviewCount)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="no-rating">No ratings</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (isLoadingTopCourses)
+                {
+                    <div class="table-loading">
+                        <div class="spinner-sm"></div>
+                        <span>Loading top courses...</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-empty">
+                        <i class="fas fa-trophy"></i>
+                        <span>No course data available</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Last Updated -->
+        @if (lastUpdated != null)
+        {
+            <div class="last-updated">
+                <i class="far fa-clock"></i>
+                Last updated: @lastUpdated.Value.ToString("MMM dd, yyyy HH:mm:ss")
+            </div>
+        }
     }
 </div>
 
 @code {
-    private bool isLoading = true;
+    private bool isInitialLoading = true;
+    private bool isLoading = false;
+    private bool isLoadingCharts = false;
+    private bool isLoadingTopCourses = false;
+    private bool isExporting = false;
     private string? error;
+    private DateTime? lastUpdated;
+
+    private int selectedDays = 30;
+
+    // Data
+    private AnalyticsOverviewResponse? overview;
+    private ChartDataDto? userGrowthData;
+    private ChartDataDto? revenueData;
+    private ChartDataDto? enrollmentData;
+    private List<TopCourseItem>? topCourses;
+
+    // Auto-refresh timer
+    private System.Threading.Timer? refreshTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadAllData();
+
+        // Setup auto-refresh every 5 minutes
+        refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshDataSilent();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
     }
 
-    private async Task LoadData()
+    private async Task LoadAllData()
     {
         try
         {
-            isLoading = true;
+            isInitialLoading = true;
             error = null;
 
-            // TODO: Implement API call for Analytics
-            await Task.Delay(500); // Placeholder
+            // Load overview first
+            overview = await AnalyticsService.GetOverviewAsync(selectedDays);
 
-            isLoading = false;
+            if (overview == null)
+            {
+                error = "Unable to load analytics overview. Please try again later.";
+                return;
+            }
+
+            // Load charts and top courses in parallel
+            isLoadingCharts = true;
+            isLoadingTopCourses = true;
+            StateHasChanged();
+
+            var chartTasks = new[]
+            {
+                LoadUserGrowth(),
+                LoadRevenueTrends(),
+                LoadEnrollmentTrends(),
+                LoadTopCourses()
+            };
+
+            await Task.WhenAll(chartTasks);
+
+            lastUpdated = DateTime.Now;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
+            error = "An error occurred while loading analytics data.";
             Console.WriteLine($"Analytics error: {ex}");
-            isLoading = false;
+            Toast.ShowError("Failed to load analytics data");
         }
+        finally
+        {
+            isInitialLoading = false;
+            isLoadingCharts = false;
+            isLoadingTopCourses = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUserGrowth()
+    {
+        try
+        {
+            userGrowthData = await AnalyticsService.GetUserGrowthAsync(selectedDays);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user growth: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRevenueTrends()
+    {
+        try
+        {
+            revenueData = await AnalyticsService.GetRevenueTrendsAsync(selectedDays);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading revenue trends: {ex.Message}");
+        }
+    }
+
+    private async Task LoadEnrollmentTrends()
+    {
+        try
+        {
+            enrollmentData = await AnalyticsService.GetEnrollmentTrendsAsync(selectedDays);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading enrollment trends: {ex.Message}");
+        }
+    }
+
+    private async Task LoadTopCourses()
+    {
+        try
+        {
+            topCourses = await AnalyticsService.GetTopCoursesAsync(10);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading top courses: {ex.Message}");
+        }
+    }
+
+    private async Task ChangePeriod(int days)
+    {
+        if (selectedDays == days || isLoading) return;
+
+        selectedDays = days;
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            isLoading = true;
+            isLoadingCharts = true;
+            isLoadingTopCourses = true;
+            StateHasChanged();
+
+            await LoadAllData();
+
+            Toast.ShowSuccess("Analytics data refreshed");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshDataSilent()
+    {
+        try
+        {
+            overview = await AnalyticsService.GetOverviewAsync(selectedDays);
+
+            var tasks = new[]
+            {
+                LoadUserGrowth(),
+                LoadRevenueTrends(),
+                LoadEnrollmentTrends(),
+                LoadTopCourses()
+            };
+
+            await Task.WhenAll(tasks);
+            lastUpdated = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Silent refresh error: {ex.Message}");
+        }
+    }
+
+    private async Task ExportData()
+    {
+        if (isExporting) return;
+
+        try
+        {
+            isExporting = true;
+            StateHasChanged();
+
+            var csvContent = await AnalyticsService.ExportToCsvAsync(selectedDays);
+
+            if (!string.IsNullOrEmpty(csvContent))
+            {
+                var fileName = $"InsightLearn_Analytics_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                await DownloadFile(fileName, csvContent);
+                Toast.ShowSuccess("Analytics data exported successfully");
+            }
+            else
+            {
+                Toast.ShowError("Failed to generate export file");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Export error: {ex}");
+            Toast.ShowError("Error exporting analytics data");
+        }
+        finally
+        {
+            isExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadFile(string fileName, string content)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
+    }
+
+    // Helper methods
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+    }
+
+    private string FormatTrend(double percent)
+    {
+        var sign = percent >= 0 ? "+" : "";
+        return $"{sign}{percent:F1}%";
+    }
+
+    private string GetTrendClass(double percent)
+    {
+        if (percent > 0) return "trend-up";
+        if (percent < 0) return "trend-down";
+        return "trend-neutral";
+    }
+
+    private string GetTrendIcon(double percent)
+    {
+        if (percent > 0) return "arrow-up";
+        if (percent < 0) return "arrow-down";
+        return "minus";
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        }
+        return name.Length >= 2 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+    }
+
+    private string GetStarClass(double rating, int starIndex)
+    {
+        if (rating >= starIndex)
+        {
+            return "fas fa-star filled";
+        }
+        else if (rating >= starIndex - 0.5)
+        {
+            return "fas fa-star-half-alt filled";
+        }
+        return "far fa-star";
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
     }
 }

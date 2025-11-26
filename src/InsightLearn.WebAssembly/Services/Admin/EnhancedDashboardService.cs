@@ -10,12 +10,12 @@ namespace InsightLearn.WebAssembly.Services.Admin
 {
     public class EnhancedDashboardService : IEnhancedDashboardService
     {
-        private readonly AuthHttpClient _authHttpClient;
+        private readonly IApiClient _apiClient;
         private readonly ILogger<EnhancedDashboardService> _logger;
 
-        public EnhancedDashboardService(AuthHttpClient authHttpClient, ILogger<EnhancedDashboardService> logger)
+        public EnhancedDashboardService(IApiClient apiClient, ILogger<EnhancedDashboardService> logger)
         {
-            _authHttpClient = authHttpClient;
+            _apiClient = apiClient;
             _logger = logger;
         }
 
@@ -24,18 +24,18 @@ namespace InsightLearn.WebAssembly.Services.Admin
             try
             {
                 _logger.LogInformation("Fetching enhanced dashboard stats");
-                var stats = await _authHttpClient.GetAsync<EnhancedDashboardStatsDto>("/api/admin/dashboard/enhanced-stats");
+                var response = await _apiClient.GetAsync<EnhancedDashboardStatsDto>("/api/admin/dashboard/enhanced-stats");
 
-                if (stats != null)
+                if (response.Success && response.Data != null)
                 {
                     _logger.LogInformation("Successfully fetched enhanced dashboard stats");
+                    return response.Data;
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to fetch enhanced stats");
+                    _logger.LogWarning("Failed to fetch enhanced stats: {Message}", response.Message);
+                    return null;
                 }
-
-                return stats;
             }
             catch (Exception ex)
             {
@@ -49,18 +49,18 @@ namespace InsightLearn.WebAssembly.Services.Admin
             try
             {
                 _logger.LogInformation($"Fetching chart data for {chartType} (last {days} days)");
-                var chartData = await _authHttpClient.GetAsync<ChartDataDto>($"/api/admin/dashboard/charts/{chartType}?days={days}");
+                var response = await _apiClient.GetAsync<ChartDataDto>($"/api/admin/dashboard/charts/{chartType}?days={days}");
 
-                if (chartData != null)
+                if (response.Success && response.Data != null)
                 {
                     _logger.LogInformation($"Successfully fetched chart data for {chartType}");
+                    return response.Data;
                 }
                 else
                 {
-                    _logger.LogWarning($"Failed to fetch chart data for {chartType}");
+                    _logger.LogWarning($"Failed to fetch chart data for {chartType}: {response.Message}");
+                    return null;
                 }
-
-                return chartData;
             }
             catch (Exception ex)
             {
@@ -74,18 +74,18 @@ namespace InsightLearn.WebAssembly.Services.Admin
             try
             {
                 _logger.LogInformation($"Fetching recent activity (limit: {limit}, offset: {offset})");
-                var activities = await _authHttpClient.GetAsync<PagedResult<ActivityItemDto>>($"/api/admin/dashboard/activity?limit={limit}&offset={offset}");
+                var response = await _apiClient.GetAsync<PagedResult<ActivityItemDto>>($"/api/admin/dashboard/activity?limit={limit}&offset={offset}");
 
-                if (activities != null)
+                if (response.Success && response.Data != null)
                 {
-                    _logger.LogInformation($"Successfully fetched {activities.Items?.Count ?? 0} activity items");
+                    _logger.LogInformation($"Successfully fetched {response.Data.Items?.Count ?? 0} activity items");
+                    return response.Data;
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to fetch activity");
+                    _logger.LogWarning("Failed to fetch activity: {Message}", response.Message);
+                    return null;
                 }
-
-                return activities;
             }
             catch (Exception ex)
             {
@@ -99,18 +99,18 @@ namespace InsightLearn.WebAssembly.Services.Admin
             try
             {
                 _logger.LogInformation("Fetching real-time metrics");
-                var metrics = await _authHttpClient.GetAsync<RealTimeMetricsDto>("/api/admin/dashboard/realtime-metrics");
+                var response = await _apiClient.GetAsync<RealTimeMetricsDto>("/api/admin/dashboard/realtime-metrics");
 
-                if (metrics != null)
+                if (response.Success && response.Data != null)
                 {
                     _logger.LogInformation("Successfully fetched real-time metrics");
+                    return response.Data;
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to fetch real-time metrics");
+                    _logger.LogWarning("Failed to fetch real-time metrics: {Message}", response.Message);
+                    return null;
                 }
-
-                return metrics;
             }
             catch (Exception ex)
             {

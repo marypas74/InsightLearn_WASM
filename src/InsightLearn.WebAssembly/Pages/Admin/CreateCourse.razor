@@ -7,20 +7,57 @@
 
 <PageTitle>Create Course - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
+<div class="admin-page">
     <div class="breadcrumb-nav">
         <nav class="breadcrumb">
             <a href="/" class="breadcrumb-item">Home</a>
             <span class="breadcrumb-separator">/</span>
             <a href="/admin" class="breadcrumb-item">Admin</a>
             <span class="breadcrumb-separator">/</span>
+            <a href="/admin/courses" class="breadcrumb-item">Courses</a>
+            <span class="breadcrumb-separator">/</span>
             <span class="breadcrumb-item active">Create Course</span>
         </nav>
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">Create Course</h1>
-        <p class="page-description">Create a new course</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-plus-circle"></i>
+                Create New Course
+            </h1>
+            <p class="page-description">Fill in the details below to create a new course</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="Cancel">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="wizard-progress">
+        <div class="progress-steps">
+            @foreach (var (step, index) in steps.Select((s, i) => (s, i)))
+            {
+                <div class="progress-step @(index < currentStep ? "completed" : "") @(index == currentStep ? "active" : "")">
+                    <div class="step-number">
+                        @if (index < currentStep)
+                        {
+                            <i class="fas fa-check"></i>
+                        }
+                        else
+                        {
+                            @(index + 1)
+                        }
+                    </div>
+                    <span class="step-label">@step</span>
+                </div>
+            }
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: @((currentStep + 1) * 100 / steps.Length)%"></div>
+        </div>
     </div>
 
     @if (isLoading)
@@ -30,31 +67,1109 @@
             <p>Loading...</p>
         </div>
     }
-    else if (error != null)
-    {
-        <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
-        </div>
-    }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Create Course</h2>
-            </div>
-            <div class="card-content">
-                <p>Create a new course page content goes here.</p>
-                <!-- TODO: Implement CreateCourse functionality -->
+        <div class="wizard-content">
+            <!-- Step 1: Basic Information -->
+            @if (currentStep == 0)
+            {
+                <div class="wizard-step">
+                    <div class="step-header">
+                        <h2><i class="fas fa-info-circle"></i> Basic Information</h2>
+                        <p>Enter the essential details about your course</p>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label required">Course Title</label>
+                            <input type="text" class="form-control @(GetValidationClass("Title"))"
+                                   @bind="course.Title" @bind:event="oninput"
+                                   placeholder="Enter a compelling course title" maxlength="200" />
+                            <span class="char-count">@(course.Title?.Length ?? 0)/200</span>
+                            @if (validationErrors.ContainsKey("Title"))
+                            {
+                                <span class="validation-error">@validationErrors["Title"]</span>
+                            }
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label required">Description</label>
+                            <textarea class="form-control @(GetValidationClass("Description"))" rows="4"
+                                      @bind="course.Description" @bind:event="oninput"
+                                      placeholder="Describe what students will learn..." maxlength="2000"></textarea>
+                            <span class="char-count">@(course.Description?.Length ?? 0)/2000</span>
+                            @if (validationErrors.ContainsKey("Description"))
+                            {
+                                <span class="validation-error">@validationErrors["Description"]</span>
+                            }
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Category</label>
+                            <select class="form-control @(GetValidationClass("CategoryId"))" @bind="course.CategoryId">
+                                <option value="">Select a category</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                            @if (validationErrors.ContainsKey("CategoryId"))
+                            {
+                                <span class="validation-error">@validationErrors["CategoryId"]</span>
+                            }
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Instructor</label>
+                            <select class="form-control @(GetValidationClass("InstructorId"))" @bind="course.InstructorId">
+                                <option value="">Select an instructor</option>
+                                @foreach (var instructor in instructors)
+                                {
+                                    <option value="@instructor.Id">@instructor.Name</option>
+                                }
+                            </select>
+                            @if (validationErrors.ContainsKey("InstructorId"))
+                            {
+                                <span class="validation-error">@validationErrors["InstructorId"]</span>
+                            }
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Level</label>
+                            <select class="form-control" @bind="course.Level">
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                                <option value="AllLevels">All Levels</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Language</label>
+                            <select class="form-control" @bind="course.Language">
+                                <option value="English">English</option>
+                                <option value="Italian">Italian</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label">Tags</label>
+                            <div class="tags-input">
+                                <div class="tags-list">
+                                    @foreach (var tag in course.Tags)
+                                    {
+                                        <span class="tag">
+                                            @tag
+                                            <button type="button" class="tag-remove" @onclick="() => RemoveTag(tag)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </span>
+                                    }
+                                </div>
+                                <input type="text" class="form-control" @bind="newTag" @bind:event="oninput"
+                                       @onkeydown="HandleTagKeyDown" placeholder="Type and press Enter to add tags" />
+                            </div>
+                            <span class="form-hint">Add up to 10 tags to help students find your course</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Step 2: Pricing -->
+            @if (currentStep == 1)
+            {
+                <div class="wizard-step">
+                    <div class="step-header">
+                        <h2><i class="fas fa-tag"></i> Pricing</h2>
+                        <p>Set the price for your course</p>
+                    </div>
+
+                    <div class="pricing-toggle">
+                        <button class="pricing-option @(course.IsFree ? "active" : "")" @onclick="() => SetFree(true)">
+                            <i class="fas fa-gift"></i>
+                            <span>Free Course</span>
+                        </button>
+                        <button class="pricing-option @(!course.IsFree ? "active" : "")" @onclick="() => SetFree(false)">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span>Paid Course</span>
+                        </button>
+                    </div>
+
+                    @if (!course.IsFree)
+                    {
+                        <div class="form-grid pricing-details">
+                            <div class="form-group">
+                                <label class="form-label required">Price</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">@GetCurrencySymbol()</span>
+                                    <input type="number" class="form-control" @bind="course.Price"
+                                           min="0.99" max="999.99" step="0.01" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Currency</label>
+                                <select class="form-control" @bind="course.Currency">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Discount Price</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">@GetCurrencySymbol()</span>
+                                    <input type="number" class="form-control" @bind="course.DiscountPrice"
+                                           min="0" max="@course.Price" step="0.01" />
+                                </div>
+                                <span class="form-hint">Leave empty for no discount</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Discount End Date</label>
+                                <input type="date" class="form-control" @bind="course.DiscountEndDate" />
+                            </div>
+                        </div>
+
+                        <div class="pricing-preview">
+                            <h4>Price Preview</h4>
+                            <div class="price-display">
+                                @if (course.DiscountPrice.HasValue && course.DiscountPrice > 0)
+                                {
+                                    <span class="original-price">@GetCurrencySymbol()@course.Price?.ToString("F2")</span>
+                                    <span class="discount-price">@GetCurrencySymbol()@course.DiscountPrice?.ToString("F2")</span>
+                                    <span class="discount-badge">@GetDiscountPercentage()% OFF</span>
+                                }
+                                else
+                                {
+                                    <span class="current-price">@GetCurrencySymbol()@course.Price?.ToString("F2")</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="free-course-info">
+                            <i class="fas fa-info-circle"></i>
+                            <p>This course will be available to all users for free. You can change this at any time.</p>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Step 3: Media -->
+            @if (currentStep == 2)
+            {
+                <div class="wizard-step">
+                    <div class="step-header">
+                        <h2><i class="fas fa-image"></i> Media</h2>
+                        <p>Add visual content to attract students</p>
+                    </div>
+
+                    <div class="media-upload-grid">
+                        <div class="upload-section">
+                            <label class="form-label">Course Thumbnail</label>
+                            <div class="upload-zone @(thumbnailPreview != null ? "has-preview" : "")"
+                                 @ondragover="HandleDragOver" @ondrop="HandleThumbnailDrop">
+                                @if (thumbnailPreview != null)
+                                {
+                                    <img src="@thumbnailPreview" alt="Thumbnail preview" class="preview-image" />
+                                    <button class="btn btn-sm btn-danger remove-preview" @onclick="RemoveThumbnail">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div class="upload-placeholder">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Drag & drop or click to upload</p>
+                                        <span>Recommended: 1280x720 (16:9)</span>
+                                    </div>
+                                }
+                                <InputFile OnChange="HandleThumbnailUpload" accept="image/*" class="file-input" />
+                            </div>
+                        </div>
+
+                        <div class="upload-section">
+                            <label class="form-label">Promotional Video</label>
+                            <div class="upload-zone">
+                                @if (!string.IsNullOrEmpty(course.PromoVideoUrl))
+                                {
+                                    <div class="video-preview">
+                                        <i class="fas fa-video"></i>
+                                        <span>Video uploaded</span>
+                                        <button class="btn btn-sm btn-danger" @onclick="RemovePromoVideo">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="upload-placeholder">
+                                        <i class="fas fa-film"></i>
+                                        <p>Drag & drop or click to upload</p>
+                                        <span>Max 100MB, MP4 format</span>
+                                    </div>
+                                }
+                                <InputFile OnChange="HandlePromoVideoUpload" accept="video/mp4" class="file-input" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Or paste video URL</label>
+                        <input type="url" class="form-control" @bind="course.PromoVideoUrl"
+                               placeholder="https://youtube.com/watch?v=..." />
+                        <span class="form-hint">Supports YouTube, Vimeo, or direct video links</span>
+                    </div>
+                </div>
+            }
+
+            <!-- Step 4: Curriculum -->
+            @if (currentStep == 3)
+            {
+                <div class="wizard-step">
+                    <div class="step-header">
+                        <h2><i class="fas fa-list-ol"></i> Curriculum</h2>
+                        <p>Build your course structure with sections and lessons</p>
+                    </div>
+
+                    <div class="curriculum-builder">
+                        @foreach (var (section, sectionIndex) in course.Sections.Select((s, i) => (s, i)))
+                        {
+                            <div class="curriculum-section">
+                                <div class="section-header">
+                                    <div class="section-drag-handle">
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </div>
+                                    <div class="section-info">
+                                        <input type="text" class="section-title-input" @bind="section.Title"
+                                               placeholder="Section Title" />
+                                    </div>
+                                    <div class="section-actions">
+                                        <button class="btn btn-sm btn-icon" title="Add Lesson"
+                                                @onclick="() => AddLesson(sectionIndex)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-icon btn-danger" title="Delete Section"
+                                                @onclick="() => RemoveSection(sectionIndex)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="section-lessons">
+                                    @foreach (var (lesson, lessonIndex) in section.Lessons.Select((l, i) => (l, i)))
+                                    {
+                                        <div class="lesson-item">
+                                            <div class="lesson-drag-handle">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </div>
+                                            <div class="lesson-icon">
+                                                <i class="fas @GetLessonIcon(lesson.Type)"></i>
+                                            </div>
+                                            <div class="lesson-info">
+                                                <input type="text" class="lesson-title-input" @bind="lesson.Title"
+                                                       placeholder="Lesson Title" />
+                                            </div>
+                                            <div class="lesson-type">
+                                                <select class="form-control form-control-sm" @bind="lesson.Type">
+                                                    <option value="Video">Video</option>
+                                                    <option value="Article">Article</option>
+                                                    <option value="Quiz">Quiz</option>
+                                                    <option value="Assignment">Assignment</option>
+                                                </select>
+                                            </div>
+                                            <div class="lesson-duration">
+                                                <input type="number" class="form-control form-control-sm"
+                                                       @bind="lesson.DurationMinutes" min="1" max="180"
+                                                       placeholder="Min" />
+                                            </div>
+                                            <div class="lesson-preview">
+                                                <label class="checkbox-label">
+                                                    <input type="checkbox" @bind="lesson.IsPreview" />
+                                                    Preview
+                                                </label>
+                                            </div>
+                                            <div class="lesson-actions">
+                                                <button class="btn btn-sm btn-icon btn-danger"
+                                                        @onclick="() => RemoveLesson(sectionIndex, lessonIndex)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (!section.Lessons.Any())
+                                    {
+                                        <div class="empty-lessons">
+                                            <p>No lessons yet. Click + to add lessons.</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <button class="btn btn-outline add-section-btn" @onclick="AddSection">
+                            <i class="fas fa-plus"></i> Add Section
+                        </button>
+                    </div>
+
+                    <div class="curriculum-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Sections</span>
+                            <span class="summary-value">@course.Sections.Count</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Lessons</span>
+                            <span class="summary-value">@course.Sections.Sum(s => s.Lessons.Count)</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Duration</span>
+                            <span class="summary-value">@GetTotalDuration()</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Step 5: Outcomes -->
+            @if (currentStep == 4)
+            {
+                <div class="wizard-step">
+                    <div class="step-header">
+                        <h2><i class="fas fa-graduation-cap"></i> Learning Outcomes</h2>
+                        <p>Define what students will achieve after completing this course</p>
+                    </div>
+
+                    <div class="outcomes-section">
+                        <h3><i class="fas fa-bullseye"></i> What will students learn?</h3>
+                        <div class="outcomes-list">
+                            @foreach (var (outcome, index) in course.LearningOutcomes.Select((o, i) => (o, i)))
+                            {
+                                <div class="outcome-item">
+                                    <span class="outcome-number">@(index + 1)</span>
+                                    <input type="text" class="form-control" @bind="course.LearningOutcomes[index]"
+                                           placeholder="Students will be able to..." />
+                                    <button class="btn btn-sm btn-icon btn-danger"
+                                            @onclick="() => RemoveOutcome(index)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-outline btn-sm" @onclick="AddOutcome"
+                                disabled="@(course.LearningOutcomes.Count >= 10)">
+                            <i class="fas fa-plus"></i> Add Outcome
+                        </button>
+                    </div>
+
+                    <div class="prerequisites-section">
+                        <h3><i class="fas fa-clipboard-list"></i> Prerequisites</h3>
+                        <div class="prerequisites-list">
+                            @foreach (var (prereq, index) in course.Prerequisites.Select((p, i) => (p, i)))
+                            {
+                                <div class="prerequisite-item">
+                                    <i class="fas fa-check"></i>
+                                    <input type="text" class="form-control" @bind="course.Prerequisites[index]"
+                                           placeholder="e.g., Basic programming knowledge" />
+                                    <button class="btn btn-sm btn-icon btn-danger"
+                                            @onclick="() => RemovePrerequisite(index)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-outline btn-sm" @onclick="AddPrerequisite"
+                                disabled="@(course.Prerequisites.Count >= 10)">
+                            <i class="fas fa-plus"></i> Add Prerequisite
+                        </button>
+                    </div>
+
+                    <div class="target-audience-section">
+                        <h3><i class="fas fa-users"></i> Target Audience</h3>
+                        <textarea class="form-control" rows="3" @bind="course.TargetAudience"
+                                  placeholder="Describe who this course is for..."></textarea>
+                    </div>
+                </div>
+            }
+
+            <!-- Navigation Buttons -->
+            <div class="wizard-navigation">
+                <button class="btn btn-outline" @onclick="PreviousStep" disabled="@(currentStep == 0)">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+
+                <div class="nav-info">
+                    Step @(currentStep + 1) of @steps.Length
+                </div>
+
+                @if (currentStep < steps.Length - 1)
+                {
+                    <button class="btn btn-primary" @onclick="NextStep">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-success" @onclick="SubmitCourse" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                            <span>Creating...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-check"></i>
+                            <span>Create Course</span>
+                        }
+                    </button>
+                }
             </div>
         </div>
     }
 </div>
 
+<style>
+    .admin-page {
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .wizard-progress {
+        background: var(--card-bg, #fff);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .progress-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+    }
+
+    .step-number {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--border-color, #e0e0e0);
+        color: var(--text-muted, #666);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .progress-step.active .step-number {
+        background: var(--primary-color, #4f46e5);
+        color: white;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    }
+
+    .progress-step.completed .step-number {
+        background: var(--success-color, #10b981);
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.85rem;
+        color: var(--text-muted, #666);
+        text-align: center;
+    }
+
+    .progress-step.active .step-label {
+        color: var(--primary-color, #4f46e5);
+        font-weight: 600;
+    }
+
+    .progress-bar {
+        height: 4px;
+        background: var(--border-color, #e0e0e0);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color, #4f46e5);
+        transition: width 0.3s ease;
+    }
+
+    .wizard-content {
+        background: var(--card-bg, #fff);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .wizard-step {
+        padding: 2rem;
+    }
+
+    .step-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color, #e0e0e0);
+    }
+
+    .step-header h2 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .step-header p {
+        color: var(--text-muted, #666);
+        margin: 0;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .form-label.required::after {
+        content: ' *';
+        color: var(--danger-color, #ef4444);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color, #4f46e5);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-control.is-invalid {
+        border-color: var(--danger-color, #ef4444);
+    }
+
+    .char-count {
+        display: block;
+        text-align: right;
+        font-size: 0.75rem;
+        color: var(--text-muted, #666);
+        margin-top: 0.25rem;
+    }
+
+    .validation-error {
+        color: var(--danger-color, #ef4444);
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-hint {
+        font-size: 0.85rem;
+        color: var(--text-muted, #666);
+        margin-top: 0.25rem;
+    }
+
+    /* Tags Input */
+    .tags-input {
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+
+    .tags-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        background: var(--primary-light, #eef2ff);
+        color: var(--primary-color, #4f46e5);
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+
+    .tag-remove {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        opacity: 0.7;
+        padding: 0;
+    }
+
+    .tag-remove:hover {
+        opacity: 1;
+    }
+
+    .tags-input .form-control {
+        border: none;
+        padding: 0.5rem;
+    }
+
+    .tags-input .form-control:focus {
+        box-shadow: none;
+    }
+
+    /* Pricing */
+    .pricing-toggle {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .pricing-option {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.5rem;
+        border: 2px solid var(--border-color, #e0e0e0);
+        border-radius: 12px;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pricing-option:hover {
+        border-color: var(--primary-color, #4f46e5);
+    }
+
+    .pricing-option.active {
+        border-color: var(--primary-color, #4f46e5);
+        background: var(--primary-light, #eef2ff);
+    }
+
+    .pricing-option i {
+        font-size: 2rem;
+        color: var(--primary-color, #4f46e5);
+    }
+
+    .pricing-details {
+        padding: 1.5rem;
+        background: var(--bg-secondary, #f9fafb);
+        border-radius: 12px;
+    }
+
+    .input-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .input-prefix {
+        padding: 0.75rem 1rem;
+        background: var(--border-color, #e0e0e0);
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        font-weight: 600;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .pricing-preview {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .price-display {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: var(--text-muted, #666);
+        font-size: 1.25rem;
+    }
+
+    .discount-price, .current-price {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--success-color, #10b981);
+    }
+
+    .discount-badge {
+        padding: 0.25rem 0.75rem;
+        background: var(--danger-color, #ef4444);
+        color: white;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .free-course-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--info-light, #e0f2fe);
+        border-radius: 12px;
+        color: var(--info-color, #0284c7);
+    }
+
+    .free-course-info i {
+        font-size: 1.5rem;
+    }
+
+    /* Media Upload */
+    .media-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .upload-zone {
+        position: relative;
+        border: 2px dashed var(--border-color, #e0e0e0);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .upload-zone:hover {
+        border-color: var(--primary-color, #4f46e5);
+        background: var(--primary-light, #eef2ff);
+    }
+
+    .upload-zone.has-preview {
+        padding: 0;
+        border-style: solid;
+    }
+
+    .upload-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-muted, #666);
+    }
+
+    .upload-placeholder i {
+        font-size: 3rem;
+        color: var(--primary-color, #4f46e5);
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .remove-preview {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+
+    .file-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* Curriculum Builder */
+    .curriculum-builder {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .curriculum-section {
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary, #f9fafb);
+    }
+
+    .section-drag-handle {
+        cursor: grab;
+        color: var(--text-muted, #666);
+    }
+
+    .section-info {
+        flex: 1;
+    }
+
+    .section-title-input {
+        border: none;
+        background: transparent;
+        font-size: 1.1rem;
+        font-weight: 600;
+        width: 100%;
+        padding: 0.5rem;
+    }
+
+    .section-title-input:focus {
+        outline: none;
+        background: white;
+        border-radius: 4px;
+    }
+
+    .section-lessons {
+        padding: 0.5rem;
+    }
+
+    .lesson-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .lesson-item:hover {
+        background: var(--bg-secondary, #f9fafb);
+        border-color: var(--border-color, #e0e0e0);
+    }
+
+    .lesson-drag-handle {
+        cursor: grab;
+        color: var(--text-muted, #666);
+    }
+
+    .lesson-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-light, #eef2ff);
+        color: var(--primary-color, #4f46e5);
+        border-radius: 8px;
+    }
+
+    .lesson-info {
+        flex: 1;
+    }
+
+    .lesson-title-input {
+        border: none;
+        background: transparent;
+        width: 100%;
+        padding: 0.25rem;
+    }
+
+    .lesson-title-input:focus {
+        outline: none;
+        background: white;
+        border-radius: 4px;
+    }
+
+    .lesson-type select,
+    .lesson-duration input {
+        width: 100px;
+    }
+
+    .lesson-preview {
+        font-size: 0.85rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .empty-lessons {
+        padding: 1.5rem;
+        text-align: center;
+        color: var(--text-muted, #666);
+    }
+
+    .add-section-btn {
+        align-self: flex-start;
+    }
+
+    .curriculum-summary {
+        display: flex;
+        gap: 2rem;
+        padding: 1rem;
+        background: var(--bg-secondary, #f9fafb);
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.85rem;
+        color: var(--text-muted, #666);
+    }
+
+    .summary-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    /* Outcomes */
+    .outcomes-section, .prerequisites-section, .target-audience-section {
+        margin-bottom: 2rem;
+    }
+
+    .outcomes-section h3, .prerequisites-section h3, .target-audience-section h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .outcomes-list, .prerequisites-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .outcome-item, .prerequisite-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .outcome-number {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-color, #4f46e5);
+        color: white;
+        border-radius: 50%;
+        font-size: 0.85rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .prerequisite-item i {
+        color: var(--success-color, #10b981);
+    }
+
+    .outcome-item .form-control,
+    .prerequisite-item .form-control {
+        flex: 1;
+    }
+
+    /* Wizard Navigation */
+    .wizard-navigation {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem 2rem;
+        background: var(--bg-secondary, #f9fafb);
+        border-top: 1px solid var(--border-color, #e0e0e0);
+    }
+
+    .nav-info {
+        color: var(--text-muted, #666);
+        font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .media-upload-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .pricing-toggle {
+            flex-direction: column;
+        }
+
+        .progress-steps {
+            display: none;
+        }
+
+        .curriculum-summary {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
-    private string? error;
+    private bool isSaving = false;
+    private int currentStep = 0;
+    private string[] steps = { "Basic Info", "Pricing", "Media", "Curriculum", "Outcomes" };
+    private string? thumbnailPreview;
+    private string newTag = "";
+    private Dictionary<string, string> validationErrors = new();
+
+    private CourseCreateModel course = new();
+    private List<CategoryItem> categories = new();
+    private List<InstructorItem> instructors = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -66,19 +1181,287 @@
         try
         {
             isLoading = true;
-            error = null;
 
-            // TODO: Implement API call for CreateCourse
-            await Task.Delay(500); // Placeholder
+            // Load categories and instructors
+            categories = new List<CategoryItem>
+            {
+                new() { Id = Guid.NewGuid(), Name = "Programming" },
+                new() { Id = Guid.NewGuid(), Name = "Design" },
+                new() { Id = Guid.NewGuid(), Name = "Business" },
+                new() { Id = Guid.NewGuid(), Name = "Marketing" }
+            };
 
+            instructors = new List<InstructorItem>
+            {
+                new() { Id = Guid.NewGuid(), Name = "John Doe" },
+                new() { Id = Guid.NewGuid(), Name = "Jane Smith" },
+                new() { Id = Guid.NewGuid(), Name = "Bob Wilson" }
+            };
+
+            // Initialize with one section
+            course.Sections.Add(new SectionModel { Title = "Introduction" });
+            course.LearningOutcomes.Add("");
+            course.Prerequisites.Add("");
+
+            await Task.Delay(300);
             isLoading = false;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
-            Console.WriteLine($"CreateCourse error: {ex}");
+            Toast.ShowError("Failed to load data");
+            Console.WriteLine($"Load error: {ex}");
             isLoading = false;
         }
+    }
+
+    private void NextStep()
+    {
+        if (ValidateCurrentStep())
+        {
+            currentStep++;
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (currentStep > 0)
+            currentStep--;
+    }
+
+    private bool ValidateCurrentStep()
+    {
+        validationErrors.Clear();
+
+        if (currentStep == 0)
+        {
+            if (string.IsNullOrWhiteSpace(course.Title))
+                validationErrors["Title"] = "Title is required";
+            if (string.IsNullOrWhiteSpace(course.Description))
+                validationErrors["Description"] = "Description is required";
+            if (course.CategoryId == Guid.Empty)
+                validationErrors["CategoryId"] = "Please select a category";
+            if (course.InstructorId == Guid.Empty)
+                validationErrors["InstructorId"] = "Please select an instructor";
+        }
+
+        return validationErrors.Count == 0;
+    }
+
+    private string GetValidationClass(string field)
+    {
+        return validationErrors.ContainsKey(field) ? "is-invalid" : "";
+    }
+
+    private void HandleTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newTag))
+        {
+            if (course.Tags.Count < 10 && !course.Tags.Contains(newTag.Trim()))
+            {
+                course.Tags.Add(newTag.Trim());
+            }
+            newTag = "";
+        }
+    }
+
+    private void RemoveTag(string tag) => course.Tags.Remove(tag);
+
+    private void SetFree(bool isFree)
+    {
+        course.IsFree = isFree;
+        if (isFree)
+        {
+            course.Price = 0;
+            course.DiscountPrice = null;
+        }
+        else
+        {
+            course.Price = 49.99m;
+        }
+    }
+
+    private string GetCurrencySymbol() => course.Currency switch
+    {
+        "EUR" => "€",
+        "GBP" => "£",
+        _ => "$"
+    };
+
+    private int GetDiscountPercentage()
+    {
+        if (course.Price > 0 && course.DiscountPrice.HasValue)
+        {
+            return (int)((1 - course.DiscountPrice.Value / course.Price.Value) * 100);
+        }
+        return 0;
+    }
+
+    private void HandleDragOver() { }
+
+    private void HandleThumbnailDrop() { }
+
+    private async Task HandleThumbnailUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+            thumbnailPreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+    }
+
+    private void RemoveThumbnail() => thumbnailPreview = null;
+
+    private async Task HandlePromoVideoUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            course.PromoVideoUrl = file.Name;
+            await Task.CompletedTask;
+        }
+    }
+
+    private void RemovePromoVideo() => course.PromoVideoUrl = null;
+
+    private void AddSection()
+    {
+        course.Sections.Add(new SectionModel { Title = $"Section {course.Sections.Count + 1}" });
+    }
+
+    private void RemoveSection(int index)
+    {
+        if (course.Sections.Count > 1)
+            course.Sections.RemoveAt(index);
+    }
+
+    private void AddLesson(int sectionIndex)
+    {
+        course.Sections[sectionIndex].Lessons.Add(new LessonModel());
+    }
+
+    private void RemoveLesson(int sectionIndex, int lessonIndex)
+    {
+        course.Sections[sectionIndex].Lessons.RemoveAt(lessonIndex);
+    }
+
+    private string GetLessonIcon(string type) => type switch
+    {
+        "Video" => "fa-play-circle",
+        "Article" => "fa-file-alt",
+        "Quiz" => "fa-question-circle",
+        "Assignment" => "fa-tasks",
+        _ => "fa-file"
+    };
+
+    private string GetTotalDuration()
+    {
+        var totalMinutes = course.Sections.Sum(s => s.Lessons.Sum(l => l.DurationMinutes));
+        var hours = totalMinutes / 60;
+        var minutes = totalMinutes % 60;
+        return hours > 0 ? $"{hours}h {minutes}m" : $"{minutes}m";
+    }
+
+    private void AddOutcome()
+    {
+        if (course.LearningOutcomes.Count < 10)
+            course.LearningOutcomes.Add("");
+    }
+
+    private void RemoveOutcome(int index)
+    {
+        if (course.LearningOutcomes.Count > 1)
+            course.LearningOutcomes.RemoveAt(index);
+    }
+
+    private void AddPrerequisite()
+    {
+        if (course.Prerequisites.Count < 10)
+            course.Prerequisites.Add("");
+    }
+
+    private void RemovePrerequisite(int index)
+    {
+        if (course.Prerequisites.Count > 1)
+            course.Prerequisites.RemoveAt(index);
+    }
+
+    private async Task SubmitCourse()
+    {
+        if (!ValidateCurrentStep())
+            return;
+
+        try
+        {
+            isSaving = true;
+            await Task.Delay(1000); // Simulate API call
+
+            Toast.ShowSuccess("Course created successfully!");
+            Navigation.NavigateTo("/admin/courses");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to create course");
+            Console.WriteLine($"Create error: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/courses");
+    }
+
+    // Models
+    private class CourseCreateModel
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public Guid CategoryId { get; set; }
+        public Guid InstructorId { get; set; }
+        public string Level { get; set; } = "Beginner";
+        public string Language { get; set; } = "English";
+        public List<string> Tags { get; set; } = new();
+        public bool IsFree { get; set; } = false;
+        public decimal? Price { get; set; } = 49.99m;
+        public string Currency { get; set; } = "USD";
+        public decimal? DiscountPrice { get; set; }
+        public DateTime? DiscountEndDate { get; set; }
+        public string? ThumbnailUrl { get; set; }
+        public string? PromoVideoUrl { get; set; }
+        public List<SectionModel> Sections { get; set; } = new();
+        public List<string> LearningOutcomes { get; set; } = new();
+        public List<string> Prerequisites { get; set; } = new();
+        public string? TargetAudience { get; set; }
+    }
+
+    private class SectionModel
+    {
+        public string Title { get; set; } = "";
+        public List<LessonModel> Lessons { get; set; } = new();
+    }
+
+    private class LessonModel
+    {
+        public string Title { get; set; } = "";
+        public string Type { get; set; } = "Video";
+        public int DurationMinutes { get; set; } = 10;
+        public bool IsPreview { get; set; } = false;
+    }
+
+    private class CategoryItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    private class InstructorItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
     }
 }

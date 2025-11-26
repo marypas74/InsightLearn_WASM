@@ -2,7 +2,7 @@
 
 @if (Trend != null)
 {
-    <div class="trend-indicator @(Trend.IsIncrease ? "trend-up" : Trend.Change < 0 ? "trend-down" : "trend-neutral")">
+    <div class="trend-indicator @GetTrendClass()">
         <span class="trend-arrow">
             @if (Trend.IsIncrease)
             {
@@ -26,6 +26,15 @@
 
 @code {
     [Parameter] public TrendData? Trend { get; set; }
+
+    private string GetTrendClass()
+    {
+        if (Trend == null) return "trend-neutral";
+
+        if (Trend.IsIncrease) return "trend-up";
+        if (Trend.Change < 0) return "trend-down";
+        return "trend-neutral";
+    }
 }
 
 <style>

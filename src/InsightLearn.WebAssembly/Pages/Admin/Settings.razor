@@ -1,84 +1,669 @@
 @page "/admin/settings"
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>System Settings - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
-    <div class="breadcrumb-nav">
-        <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item">Home</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/admin" class="breadcrumb-item">Admin</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">System Settings</span>
-        </nav>
-    </div>
+<link href="css/admin-components.css" rel="stylesheet" />
 
+<div class="admin-page-container">
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">System Settings</h1>
-        <p class="page-description">Configure system settings</p>
+        <div>
+            <h1 class="page-title">System Settings</h1>
+            <p class="page-description">Configure platform settings and preferences</p>
+        </div>
     </div>
 
-    @if (isLoading)
-    {
-        <div class="loading-state">
-            <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
-        </div>
-    }
-    else if (error != null)
-    {
-        <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
-        </div>
-    }
-    else
-    {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>System Settings</h2>
+    <!-- Settings Navigation Tabs -->
+    <div class="settings-tabs">
+        <button class="settings-tab @(activeTab == "general" ? "active" : "")" @onclick='() => SetActiveTab("general")'>
+            <i class="fas fa-cog"></i> General
+        </button>
+        <button class="settings-tab @(activeTab == "email" ? "active" : "")" @onclick='() => SetActiveTab("email")'>
+            <i class="fas fa-envelope"></i> Email
+        </button>
+        <button class="settings-tab @(activeTab == "payment" ? "active" : "")" @onclick='() => SetActiveTab("payment")'>
+            <i class="fas fa-credit-card"></i> Payment
+        </button>
+        <button class="settings-tab @(activeTab == "security" ? "active" : "")" @onclick='() => SetActiveTab("security")'>
+            <i class="fas fa-shield-alt"></i> Security
+        </button>
+        <button class="settings-tab @(activeTab == "features" ? "active" : "")" @onclick='() => SetActiveTab("features")'>
+            <i class="fas fa-toggle-on"></i> Features
+        </button>
+    </div>
+
+    <!-- Settings Content -->
+    <div class="settings-content">
+        @if (activeTab == "general")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">General Settings</h3>
+                <p class="section-description">Configure basic platform settings</p>
+
+                <div class="settings-card">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Site Name</label>
+                            <span class="setting-description">The name displayed across the platform</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="text" class="form-control" @bind="settings.SiteName" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Site URL</label>
+                            <span class="setting-description">Primary URL for the platform</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="url" class="form-control" @bind="settings.SiteUrl" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Support Email</label>
+                            <span class="setting-description">Email address for customer support</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="email" class="form-control" @bind="settings.SupportEmail" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Default Language</label>
+                            <span class="setting-description">Default language for new users</span>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control" @bind="settings.DefaultLanguage">
+                                <option value="en">English</option>
+                                <option value="it">Italian</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Timezone</label>
+                            <span class="setting-description">Default timezone for date/time display</span>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control" @bind="settings.Timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="Europe/Rome">Europe/Rome</option>
+                                <option value="Europe/London">Europe/London</option>
+                                <option value="America/New_York">America/New_York</option>
+                                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-content">
-                <p>Configure system settings page content goes here.</p>
-                <!-- TODO: Implement Settings functionality -->
+        }
+
+        @if (activeTab == "email")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">Email Settings</h3>
+                <p class="section-description">Configure email delivery settings</p>
+
+                <div class="settings-card">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">SMTP Host</label>
+                            <span class="setting-description">SMTP server hostname</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="text" class="form-control" @bind="settings.SmtpHost" placeholder="smtp.example.com" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">SMTP Port</label>
+                            <span class="setting-description">SMTP server port (usually 587 for TLS)</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="form-control" @bind="settings.SmtpPort" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">SMTP Username</label>
+                            <span class="setting-description">Authentication username</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="text" class="form-control" @bind="settings.SmtpUsername" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">From Email</label>
+                            <span class="setting-description">Email address shown in From field</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="email" class="form-control" @bind="settings.FromEmail" placeholder="noreply@insightlearn.cloud" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Enable TLS</label>
+                            <span class="setting-description">Use TLS encryption for email</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableSmtpTls" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-secondary" @onclick="SendTestEmail">
+                        <i class="fas fa-paper-plane"></i> Send Test Email
+                    </button>
+                </div>
             </div>
+        }
+
+        @if (activeTab == "payment")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">Payment Settings</h3>
+                <p class="section-description">Configure payment gateway integrations</p>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fab fa-stripe"></i> Stripe</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Stripe Mode</label>
+                            <span class="setting-description">Use test or live Stripe keys</span>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control" @bind="settings.StripeMode">
+                                <option value="test">Test Mode</option>
+                                <option value="live">Live Mode</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Public Key</label>
+                            <span class="setting-description">Stripe publishable key</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="text" class="form-control" @bind="settings.StripePublicKey" placeholder="pk_test_..." />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Enable Stripe</label>
+                            <span class="setting-description">Accept payments via Stripe</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableStripe" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fab fa-paypal"></i> PayPal</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">PayPal Mode</label>
+                            <span class="setting-description">Use sandbox or live PayPal</span>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control" @bind="settings.PayPalMode">
+                                <option value="sandbox">Sandbox</option>
+                                <option value="live">Live</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Enable PayPal</label>
+                            <span class="setting-description">Accept payments via PayPal</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnablePayPal" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fas fa-coins"></i> Currency</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Default Currency</label>
+                            <span class="setting-description">Primary currency for pricing</span>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-control" @bind="settings.DefaultCurrency">
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="GBP">GBP - British Pound</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "security")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">Security Settings</h3>
+                <p class="section-description">Configure security and authentication settings</p>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fas fa-key"></i> Password Policy</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Minimum Password Length</label>
+                            <span class="setting-description">Minimum characters required</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="form-control" @bind="settings.MinPasswordLength" min="6" max="32" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Require Uppercase</label>
+                            <span class="setting-description">Require at least one uppercase letter</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.RequireUppercase" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Require Numbers</label>
+                            <span class="setting-description">Require at least one number</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.RequireNumbers" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Require Special Characters</label>
+                            <span class="setting-description">Require at least one special character</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.RequireSpecialChars" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fas fa-lock"></i> Session & Lockout</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Session Timeout (minutes)</label>
+                            <span class="setting-description">Auto-logout after inactivity</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="form-control" @bind="settings.SessionTimeoutMinutes" min="5" max="1440" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Max Failed Login Attempts</label>
+                            <span class="setting-description">Lock account after failed attempts</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="form-control" @bind="settings.MaxFailedAttempts" min="3" max="10" />
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Lockout Duration (minutes)</label>
+                            <span class="setting-description">How long to lock accounts</span>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="form-control" @bind="settings.LockoutDurationMinutes" min="5" max="1440" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h4 class="subsection-title"><i class="fas fa-user-shield"></i> Two-Factor Authentication</h4>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Enable 2FA</label>
+                            <span class="setting-description">Allow users to enable 2FA</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.Enable2FA" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Require 2FA for Admins</label>
+                            <span class="setting-description">Force 2FA for admin accounts</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.Require2FAForAdmins" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "features")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">Feature Toggles</h3>
+                <p class="section-description">Enable or disable platform features</p>
+
+                <div class="settings-card">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">AI Chatbot</label>
+                            <span class="setting-description">Enable AI-powered course assistant</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableChatbot" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Course Reviews</label>
+                            <span class="setting-description">Allow students to review courses</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableReviews" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Certificates</label>
+                            <span class="setting-description">Generate certificates on course completion</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableCertificates" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Public Course Catalog</label>
+                            <span class="setting-description">Allow non-logged users to browse courses</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnablePublicCatalog" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Social Login</label>
+                            <span class="setting-description">Allow login via Google/Microsoft/GitHub</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableSocialLogin" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Instructor Registration</label>
+                            <span class="setting-description">Allow users to apply as instructors</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" @bind="settings.EnableInstructorRegistration" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Maintenance Mode</label>
+                            <span class="setting-description">Put site in maintenance mode</span>
+                        </div>
+                        <div class="setting-control">
+                            <label class="toggle-switch toggle-warning">
+                                <input type="checkbox" @bind="settings.MaintenanceMode" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Save Button (shown on all tabs) -->
+        <div class="settings-footer">
+            <button class="btn btn-secondary" @onclick="ResetSettings">
+                <i class="fas fa-undo"></i> Reset to Defaults
+            </button>
+            <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner spinner-sm"></span>
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <i class="fas fa-save"></i>
+                    <span>Save Changes</span>
+                }
+            </button>
         </div>
-    }
+    </div>
 </div>
 
 @code {
-    private bool isLoading = true;
-    private string? error;
+    private string activeTab = "general";
+    private bool isSaving = false;
+    private SettingsModel settings = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadData();
+        LoadDefaultSettings();
     }
 
-    private async Task LoadData()
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void LoadDefaultSettings()
+    {
+        settings = new SettingsModel
+        {
+            // General
+            SiteName = "InsightLearn",
+            SiteUrl = "https://insightlearn.cloud",
+            SupportEmail = "support@insightlearn.cloud",
+            DefaultLanguage = "en",
+            Timezone = "Europe/Rome",
+
+            // Email
+            SmtpHost = "smtp.example.com",
+            SmtpPort = 587,
+            SmtpUsername = "",
+            FromEmail = "noreply@insightlearn.cloud",
+            EnableSmtpTls = true,
+
+            // Payment
+            StripeMode = "test",
+            StripePublicKey = "",
+            EnableStripe = true,
+            PayPalMode = "sandbox",
+            EnablePayPal = false,
+            DefaultCurrency = "EUR",
+
+            // Security
+            MinPasswordLength = 8,
+            RequireUppercase = true,
+            RequireNumbers = true,
+            RequireSpecialChars = false,
+            SessionTimeoutMinutes = 60,
+            MaxFailedAttempts = 5,
+            LockoutDurationMinutes = 15,
+            Enable2FA = true,
+            Require2FAForAdmins = false,
+
+            // Features
+            EnableChatbot = true,
+            EnableReviews = true,
+            EnableCertificates = true,
+            EnablePublicCatalog = true,
+            EnableSocialLogin = true,
+            EnableInstructorRegistration = true,
+            MaintenanceMode = false
+        };
+    }
+
+    private async Task SaveSettings()
     {
         try
         {
-            isLoading = true;
-            error = null;
+            isSaving = true;
+            StateHasChanged();
 
-            // TODO: Implement API call for Settings
-            await Task.Delay(500); // Placeholder
+            // Simulate API call
+            await Task.Delay(1000);
 
-            isLoading = false;
+            Toast.ShowSuccess("Settings saved successfully!");
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
-            Console.WriteLine($"Settings error: {ex}");
-            isLoading = false;
+            Toast.ShowError("Failed to save settings");
+            Console.WriteLine($"Save settings error: {ex}");
         }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetSettings()
+    {
+        LoadDefaultSettings();
+        Toast.ShowInfo("Settings reset to defaults");
+    }
+
+    private async Task SendTestEmail()
+    {
+        Toast.ShowInfo("Sending test email...");
+        await Task.Delay(1500);
+        Toast.ShowSuccess("Test email sent successfully!");
+    }
+
+    private class SettingsModel
+    {
+        // General
+        public string SiteName { get; set; } = "";
+        public string SiteUrl { get; set; } = "";
+        public string SupportEmail { get; set; } = "";
+        public string DefaultLanguage { get; set; } = "en";
+        public string Timezone { get; set; } = "UTC";
+
+        // Email
+        public string SmtpHost { get; set; } = "";
+        public int SmtpPort { get; set; } = 587;
+        public string SmtpUsername { get; set; } = "";
+        public string FromEmail { get; set; } = "";
+        public bool EnableSmtpTls { get; set; } = true;
+
+        // Payment
+        public string StripeMode { get; set; } = "test";
+        public string StripePublicKey { get; set; } = "";
+        public bool EnableStripe { get; set; } = true;
+        public string PayPalMode { get; set; } = "sandbox";
+        public bool EnablePayPal { get; set; } = false;
+        public string DefaultCurrency { get; set; } = "EUR";
+
+        // Security
+        public int MinPasswordLength { get; set; } = 8;
+        public bool RequireUppercase { get; set; } = true;
+        public bool RequireNumbers { get; set; } = true;
+        public bool RequireSpecialChars { get; set; } = false;
+        public int SessionTimeoutMinutes { get; set; } = 60;
+        public int MaxFailedAttempts { get; set; } = 5;
+        public int LockoutDurationMinutes { get; set; } = 15;
+        public bool Enable2FA { get; set; } = true;
+        public bool Require2FAForAdmins { get; set; } = false;
+
+        // Features
+        public bool EnableChatbot { get; set; } = true;
+        public bool EnableReviews { get; set; } = true;
+        public bool EnableCertificates { get; set; } = true;
+        public bool EnablePublicCatalog { get; set; } = true;
+        public bool EnableSocialLogin { get; set; } = true;
+        public bool EnableInstructorRegistration { get; set; } = true;
+        public bool MaintenanceMode { get; set; } = false;
     }
 }

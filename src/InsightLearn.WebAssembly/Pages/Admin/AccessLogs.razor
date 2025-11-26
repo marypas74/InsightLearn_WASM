@@ -3,6 +3,7 @@
 @inject NavigationManager Navigation
 @inject IApiClient ApiClient
 @inject IToastService Toast
+@inject IJSRuntime JS
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Access Logs - InsightLearn Admin</PageTitle>
@@ -19,15 +20,131 @@
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">Access Logs</h1>
-        <p class="page-description">View user access logs</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-clipboard-list"></i>
+                Access Logs
+            </h1>
+            <p class="page-description">Monitor user activity and system access events</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="ExportLogs">
+                <i class="fas fa-download"></i>
+                Export CSV
+            </button>
+            <button class="btn btn-outline" @onclick="RefreshLogs">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon total">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">@stats.TotalLogs.ToString("N0")</span>
+                <span class="stat-label">Total Events (Today)</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-sign-in-alt"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">@stats.LoginAttempts.ToString("N0")</span>
+                <span class="stat-label">Login Attempts</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">@stats.FailedAttempts.ToString("N0")</span>
+                <span class="stat-label">Failed Attempts</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">@stats.UniqueUsers.ToString("N0")</span>
+                <span class="stat-label">Unique Users</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label>Search</label>
+                <div class="search-input">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="User, IP, endpoint..." @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <button class="clear-btn" @onclick="ClearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Date Range</label>
+                <div class="date-range">
+                    <input type="date" @bind="startDate" />
+                    <span>to</span>
+                    <input type="date" @bind="endDate" />
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Event Type</label>
+                <select @bind="selectedEventType">
+                    <option value="">All Events</option>
+                    <option value="Login">Login</option>
+                    <option value="Logout">Logout</option>
+                    <option value="FailedLogin">Failed Login</option>
+                    <option value="ApiAccess">API Access</option>
+                    <option value="PageView">Page View</option>
+                    <option value="DataExport">Data Export</option>
+                    <option value="PasswordChange">Password Change</option>
+                    <option value="SettingsChange">Settings Change</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select @bind="selectedStatus">
+                    <option value="">All Statuses</option>
+                    <option value="Success">Success</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Blocked">Blocked</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-primary btn-sm" @onclick="ApplyFilters">
+                    <i class="fas fa-filter"></i>
+                    Apply
+                </button>
+                <button class="btn btn-outline btn-sm" @onclick="ClearFilters">
+                    <i class="fas fa-times"></i>
+                    Clear
+                </button>
+            </div>
+        </div>
     </div>
 
     @if (isLoading)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading access logs...</p>
         </div>
     }
     else if (error != null)
@@ -35,26 +152,874 @@
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+            <button class="btn btn-primary" @onclick="RefreshLogs">Retry</button>
         </div>
     }
     else
     {
+        <!-- Logs Table -->
         <div class="clean-card">
             <div class="card-header">
-                <h2>Access Logs</h2>
+                <div class="header-left">
+                    <h2>Access Log Events</h2>
+                    <span class="result-count">@filteredLogs.Count results</span>
+                </div>
+                <div class="header-right">
+                    <div class="page-size-selector">
+                        <label>Show</label>
+                        <select @bind="pageSize" @bind:after="OnPageSizeChanged">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                        </select>
+                        <label>entries</label>
+                    </div>
+                </div>
             </div>
-            <div class="card-content">
-                <p>View user access logs page content goes here.</p>
-                <!-- TODO: Implement AccessLogs functionality -->
+            <div class="table-responsive">
+                <table class="data-table logs-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable @GetSortClass("Timestamp")" @onclick="@(() => SortBy("Timestamp"))">
+                                Timestamp
+                                <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable @GetSortClass("User")" @onclick="@(() => SortBy("User"))">
+                                User
+                                <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable @GetSortClass("EventType")" @onclick="@(() => SortBy("EventType"))">
+                                Event Type
+                                <i class="fas fa-sort"></i>
+                            </th>
+                            <th>IP Address</th>
+                            <th>Endpoint</th>
+                            <th class="sortable @GetSortClass("Status")" @onclick="@(() => SortBy("Status"))">
+                                Status
+                                <i class="fas fa-sort"></i>
+                            </th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (pagedLogs.Any())
+                        {
+                            @foreach (var log in pagedLogs)
+                            {
+                                <tr class="log-row @GetRowClass(log)">
+                                    <td class="timestamp-cell">
+                                        <span class="date">@log.Timestamp.ToString("yyyy-MM-dd")</span>
+                                        <span class="time">@log.Timestamp.ToString("HH:mm:ss.fff")</span>
+                                    </td>
+                                    <td class="user-cell">
+                                        <div class="user-info">
+                                            <span class="user-name">@log.UserName</span>
+                                            <span class="user-email">@log.UserEmail</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="event-type-badge @GetEventTypeClass(log.EventType)">
+                                            <i class="fas @GetEventTypeIcon(log.EventType)"></i>
+                                            @log.EventType
+                                        </span>
+                                    </td>
+                                    <td class="ip-cell">
+                                        <span class="ip-address" title="@log.IpAddress">@log.IpAddress</span>
+                                        @if (!string.IsNullOrEmpty(log.Country))
+                                        {
+                                            <span class="country-flag" title="@log.Country">@log.CountryFlag</span>
+                                        }
+                                    </td>
+                                    <td class="endpoint-cell">
+                                        <span class="method-badge @log.HttpMethod?.ToLower()">@log.HttpMethod</span>
+                                        <span class="endpoint" title="@log.Endpoint">@TruncateText(log.Endpoint, 40)</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-@log.Status.ToLower()">
+                                            @log.Status
+                                        </span>
+                                    </td>
+                                    <td class="duration-cell">
+                                        <span class="duration @GetDurationClass(log.DurationMs)">@log.DurationMs ms</span>
+                                    </td>
+                                    <td class="actions-cell">
+                                        <button class="btn-icon" @onclick="@(() => ViewLogDetails(log))" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-icon" @onclick="@(() => CopyLogId(log.Id))" title="Copy Log ID">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">
+                                    <div class="empty-state">
+                                        <i class="fas fa-clipboard-list"></i>
+                                        <p>No access logs found matching your criteria</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
+
+            <!-- Pagination -->
+            @if (totalPages > 1)
+            {
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        Showing @((currentPage - 1) * pageSize + 1) to @Math.Min(currentPage * pageSize, filteredLogs.Count) of @filteredLogs.Count entries
+                    </div>
+                    <div class="pagination">
+                        <button class="page-btn" disabled="@(currentPage == 1)" @onclick="@(() => GoToPage(1))">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="page-btn" disabled="@(currentPage == 1)" @onclick="@(() => GoToPage(currentPage - 1))">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        @foreach (var pageNum in GetVisiblePages())
+                        {
+                            <button class="page-btn @(pageNum == currentPage ? "active" : "")" @onclick="@(() => GoToPage(pageNum))">
+                                @pageNum
+                            </button>
+                        }
+                        <button class="page-btn" disabled="@(currentPage == totalPages)" @onclick="@(() => GoToPage(currentPage + 1))">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="page-btn" disabled="@(currentPage == totalPages)" @onclick="@(() => GoToPage(totalPages))">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+                </div>
+            }
         </div>
     }
 </div>
 
+<!-- Log Details Modal -->
+@if (showDetailsModal && selectedLog != null)
+{
+    <div class="modal-overlay" @onclick="CloseDetailsModal">
+        <div class="modal-container modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-info-circle"></i>
+                    Log Details
+                </h2>
+                <button class="close-btn" @onclick="CloseDetailsModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="log-details-grid">
+                    <div class="detail-section">
+                        <h3>Event Information</h3>
+                        <div class="detail-row">
+                            <span class="label">Log ID</span>
+                            <span class="value mono">@selectedLog.Id</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Timestamp</span>
+                            <span class="value">@selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff") UTC</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Event Type</span>
+                            <span class="value">
+                                <span class="event-type-badge @GetEventTypeClass(selectedLog.EventType)">
+                                    <i class="fas @GetEventTypeIcon(selectedLog.EventType)"></i>
+                                    @selectedLog.EventType
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Status</span>
+                            <span class="value">
+                                <span class="status-badge status-@selectedLog.Status.ToLower()">@selectedLog.Status</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>User Information</h3>
+                        <div class="detail-row">
+                            <span class="label">User ID</span>
+                            <span class="value mono">@selectedLog.UserId</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">User Name</span>
+                            <span class="value">@selectedLog.UserName</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Email</span>
+                            <span class="value">@selectedLog.UserEmail</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Role</span>
+                            <span class="value">@(selectedLog.UserRole ?? "N/A")</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>Request Information</h3>
+                        <div class="detail-row">
+                            <span class="label">IP Address</span>
+                            <span class="value mono">@selectedLog.IpAddress</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Location</span>
+                            <span class="value">@(selectedLog.Location ?? "Unknown")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">HTTP Method</span>
+                            <span class="value">
+                                <span class="method-badge @selectedLog.HttpMethod?.ToLower()">@selectedLog.HttpMethod</span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Endpoint</span>
+                            <span class="value mono">@selectedLog.Endpoint</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Response Code</span>
+                            <span class="value">@(selectedLog.ResponseCode?.ToString() ?? "N/A")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Duration</span>
+                            <span class="value">@selectedLog.DurationMs ms</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>Client Information</h3>
+                        <div class="detail-row">
+                            <span class="label">User Agent</span>
+                            <span class="value small">@(selectedLog.UserAgent ?? "N/A")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Browser</span>
+                            <span class="value">@(selectedLog.Browser ?? "N/A")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">OS</span>
+                            <span class="value">@(selectedLog.OperatingSystem ?? "N/A")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Device</span>
+                            <span class="value">@(selectedLog.DeviceType ?? "N/A")</span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(selectedLog.AdditionalData))
+                    {
+                        <div class="detail-section full-width">
+                            <h3>Additional Data</h3>
+                            <pre class="code-block">@selectedLog.AdditionalData</pre>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(selectedLog.ErrorMessage))
+                    {
+                        <div class="detail-section full-width">
+                            <h3>Error Details</h3>
+                            <div class="error-block">
+                                <p>@selectedLog.ErrorMessage</p>
+                                @if (!string.IsNullOrEmpty(selectedLog.StackTrace))
+                                {
+                                    <pre class="stack-trace">@selectedLog.StackTrace</pre>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="@(() => CopyLogId(selectedLog.Id))">
+                    <i class="fas fa-copy"></i>
+                    Copy Log ID
+                </button>
+                <button class="btn btn-primary" @onclick="CloseDetailsModal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .stat-icon.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-icon.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .stat-icon.warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    .stat-icon.info { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .search-input {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-input i {
+        position: absolute;
+        left: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .search-input input {
+        padding-left: 2.5rem;
+        padding-right: 2rem;
+        min-width: 250px;
+    }
+
+    .search-input .clear-btn {
+        position: absolute;
+        right: 0.5rem;
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 0.25rem;
+    }
+
+    .search-input .clear-btn:hover {
+        color: #6b7280;
+    }
+
+    .date-range {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .date-range input {
+        width: 140px;
+    }
+
+    .date-range span {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    /* Logs Table */
+    .logs-table {
+        font-size: 0.875rem;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .result-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: normal;
+    }
+
+    .page-size-selector {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .page-size-selector select {
+        width: auto;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sortable:hover {
+        background: #f3f4f6;
+    }
+
+    .sortable.asc i::before { content: "\f0de"; }
+    .sortable.desc i::before { content: "\f0dd"; }
+
+    .log-row.failed {
+        background: #fef2f2;
+    }
+
+    .log-row.warning {
+        background: #fffbeb;
+    }
+
+    .log-row.blocked {
+        background: #fef2f2;
+    }
+
+    .timestamp-cell {
+        white-space: nowrap;
+    }
+
+    .timestamp-cell .date {
+        display: block;
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .timestamp-cell .time {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-family: monospace;
+    }
+
+    .user-cell .user-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-cell .user-name {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .user-cell .user-email {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .event-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .event-type-badge.login { background: #dbeafe; color: #1d4ed8; }
+    .event-type-badge.logout { background: #e5e7eb; color: #374151; }
+    .event-type-badge.failedlogin { background: #fee2e2; color: #dc2626; }
+    .event-type-badge.apiaccess { background: #d1fae5; color: #059669; }
+    .event-type-badge.pageview { background: #f3e8ff; color: #7c3aed; }
+    .event-type-badge.dataexport { background: #fef3c7; color: #d97706; }
+    .event-type-badge.passwordchange { background: #fce7f3; color: #be185d; }
+    .event-type-badge.settingschange { background: #cffafe; color: #0891b2; }
+
+    .ip-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ip-address {
+        font-family: monospace;
+        font-size: 0.8125rem;
+    }
+
+    .country-flag {
+        font-size: 1rem;
+    }
+
+    .endpoint-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 300px;
+    }
+
+    .method-badge {
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .method-badge.get { background: #dbeafe; color: #1d4ed8; }
+    .method-badge.post { background: #d1fae5; color: #059669; }
+    .method-badge.put { background: #fef3c7; color: #d97706; }
+    .method-badge.delete { background: #fee2e2; color: #dc2626; }
+    .method-badge.patch { background: #f3e8ff; color: #7c3aed; }
+
+    .endpoint {
+        font-family: monospace;
+        font-size: 0.8125rem;
+        color: #4b5563;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .duration-cell .duration {
+        font-family: monospace;
+        font-size: 0.8125rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+    }
+
+    .duration.fast { background: #d1fae5; color: #059669; }
+    .duration.normal { background: #fef3c7; color: #d97706; }
+    .duration.slow { background: #fee2e2; color: #dc2626; }
+
+    .actions-cell {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        color: #6b7280;
+        padding: 0.375rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    .empty-state {
+        padding: 3rem;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .pagination-info {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .pagination {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .page-btn {
+        min-width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e5e7eb;
+        background: white;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .page-btn.active {
+        background: #6366f1;
+        border-color: #6366f1;
+        color: white;
+    }
+
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 2rem;
+    }
+
+    .modal-container.modal-lg {
+        width: 100%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .log-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .detail-section {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .detail-section.full-width {
+        grid-column: span 2;
+    }
+
+    .detail-section h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .detail-row .label {
+        color: #6b7280;
+    }
+
+    .detail-row .value {
+        color: #111827;
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .detail-row .value.mono {
+        font-family: monospace;
+        font-size: 0.8125rem;
+    }
+
+    .detail-row .value.small {
+        font-size: 0.75rem;
+        max-width: 300px;
+        word-break: break-all;
+    }
+
+    .code-block {
+        background: #1f2937;
+        color: #f9fafb;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.8125rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+    }
+
+    .error-block {
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        border-radius: 6px;
+        padding: 1rem;
+    }
+
+    .error-block p {
+        margin: 0 0 0.75rem;
+        color: #dc2626;
+    }
+
+    .stack-trace {
+        background: #fef2f2;
+        color: #7f1d1d;
+        padding: 0.75rem;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        margin: 0;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-row {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .search-input input {
+            min-width: auto;
+            width: 100%;
+        }
+
+        .date-range {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .date-range input {
+            width: 100%;
+        }
+
+        .filter-actions {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .log-details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-section.full-width {
+            grid-column: span 1;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
     private string? error;
+    private bool showDetailsModal = false;
+    private AccessLog? selectedLog;
+
+    // Filters
+    private string searchQuery = "";
+    private DateTime startDate = DateTime.Today.AddDays(-7);
+    private DateTime endDate = DateTime.Today;
+    private string selectedEventType = "";
+    private string selectedStatus = "";
+
+    // Sorting
+    private string sortColumn = "Timestamp";
+    private bool sortAscending = false;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 50;
+    private int totalPages => (int)Math.Ceiling((double)filteredLogs.Count / pageSize);
+
+    // Data
+    private List<AccessLog> allLogs = new();
+    private List<AccessLog> filteredLogs = new();
+    private List<AccessLog> pagedLogs = new();
+    private LogStats stats = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -68,17 +1033,320 @@
             isLoading = true;
             error = null;
 
-            // TODO: Implement API call for AccessLogs
-            await Task.Delay(500); // Placeholder
+            // Simulate API call - replace with actual API endpoint
+            await Task.Delay(500);
 
+            // Mock data - replace with actual API response
+            var random = new Random();
+            var events = new[] { "Login", "Logout", "FailedLogin", "ApiAccess", "PageView", "DataExport", "PasswordChange", "SettingsChange" };
+            var statuses = new[] { "Success", "Success", "Success", "Failed", "Warning", "Blocked" };
+            var methods = new[] { "GET", "POST", "PUT", "DELETE", "PATCH" };
+            var users = new[]
+            {
+                ("admin@insightlearn.cloud", "Admin User", "Admin"),
+                ("john.doe@example.com", "John Doe", "Student"),
+                ("jane.smith@example.com", "Jane Smith", "Instructor"),
+                ("bob.wilson@example.com", "Bob Wilson", "Student"),
+                ("alice.johnson@example.com", "Alice Johnson", "Instructor")
+            };
+
+            allLogs = Enumerable.Range(1, 500).Select(i =>
+            {
+                var user = users[random.Next(users.Length)];
+                var eventType = events[random.Next(events.Length)];
+                var status = eventType == "FailedLogin" ? "Failed" : statuses[random.Next(statuses.Length)];
+                return new AccessLog
+                {
+                    Id = Guid.NewGuid(),
+                    Timestamp = DateTime.Now.AddMinutes(-random.Next(0, 10080)), // Last 7 days
+                    UserId = Guid.NewGuid(),
+                    UserName = user.Item2,
+                    UserEmail = user.Item1,
+                    UserRole = user.Item3,
+                    EventType = eventType,
+                    Status = status,
+                    IpAddress = $"{random.Next(1, 256)}.{random.Next(0, 256)}.{random.Next(0, 256)}.{random.Next(0, 256)}",
+                    Country = new[] { "US", "UK", "DE", "IT", "FR", "ES", "JP" }[random.Next(7)],
+                    CountryFlag = new[] { "🇺🇸", "��🇧", "🇩🇪", "🇮🇹", "🇫🇷", "🇪🇸", "🇯🇵" }[random.Next(7)],
+                    Location = new[] { "New York, US", "London, UK", "Berlin, DE", "Rome, IT", "Paris, FR", "Madrid, ES", "Tokyo, JP" }[random.Next(7)],
+                    HttpMethod = methods[random.Next(methods.Length)],
+                    Endpoint = new[] { "/api/auth/login", "/api/courses", "/api/users/profile", "/api/enrollments", "/api/payments/checkout" }[random.Next(5)],
+                    ResponseCode = status == "Success" ? 200 : (status == "Failed" ? 401 : 500),
+                    DurationMs = random.Next(10, 2000),
+                    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    Browser = new[] { "Chrome 119", "Firefox 120", "Safari 17", "Edge 119" }[random.Next(4)],
+                    OperatingSystem = new[] { "Windows 11", "macOS 14", "Ubuntu 22", "iOS 17", "Android 14" }[random.Next(5)],
+                    DeviceType = new[] { "Desktop", "Mobile", "Tablet" }[random.Next(3)],
+                    ErrorMessage = status == "Failed" ? "Invalid credentials provided" : null,
+                    AdditionalData = random.Next(10) > 7 ? "{\"courseId\": \"abc123\", \"action\": \"enroll\"}" : null
+                };
+            }).OrderByDescending(l => l.Timestamp).ToList();
+
+            // Calculate stats
+            var today = DateTime.Today;
+            stats = new LogStats
+            {
+                TotalLogs = allLogs.Count(l => l.Timestamp.Date == today),
+                LoginAttempts = allLogs.Count(l => l.Timestamp.Date == today && (l.EventType == "Login" || l.EventType == "FailedLogin")),
+                FailedAttempts = allLogs.Count(l => l.Timestamp.Date == today && l.Status == "Failed"),
+                UniqueUsers = allLogs.Where(l => l.Timestamp.Date == today).Select(l => l.UserId).Distinct().Count()
+            };
+
+            ApplyFilters();
             isLoading = false;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "Failed to load access logs";
             Toast.ShowError(error);
             Console.WriteLine($"AccessLogs error: {ex}");
             isLoading = false;
         }
+    }
+
+    private async Task RefreshLogs()
+    {
+        await LoadData();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredLogs = allLogs.Where(log =>
+        {
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var query = searchQuery.ToLower();
+                if (!log.UserName.ToLower().Contains(query) &&
+                    !log.UserEmail.ToLower().Contains(query) &&
+                    !log.IpAddress.Contains(query) &&
+                    !(log.Endpoint?.ToLower().Contains(query) ?? false))
+                    return false;
+            }
+
+            // Date range filter
+            if (log.Timestamp.Date < startDate.Date || log.Timestamp.Date > endDate.Date)
+                return false;
+
+            // Event type filter
+            if (!string.IsNullOrEmpty(selectedEventType) && log.EventType != selectedEventType)
+                return false;
+
+            // Status filter
+            if (!string.IsNullOrEmpty(selectedStatus) && log.Status != selectedStatus)
+                return false;
+
+            return true;
+        }).ToList();
+
+        // Apply sorting
+        filteredLogs = sortColumn switch
+        {
+            "Timestamp" => sortAscending ? filteredLogs.OrderBy(l => l.Timestamp).ToList() : filteredLogs.OrderByDescending(l => l.Timestamp).ToList(),
+            "User" => sortAscending ? filteredLogs.OrderBy(l => l.UserName).ToList() : filteredLogs.OrderByDescending(l => l.UserName).ToList(),
+            "EventType" => sortAscending ? filteredLogs.OrderBy(l => l.EventType).ToList() : filteredLogs.OrderByDescending(l => l.EventType).ToList(),
+            "Status" => sortAscending ? filteredLogs.OrderBy(l => l.Status).ToList() : filteredLogs.OrderByDescending(l => l.Status).ToList(),
+            _ => filteredLogs
+        };
+
+        currentPage = 1;
+        UpdatePagedLogs();
+    }
+
+    private void UpdatePagedLogs()
+    {
+        pagedLogs = filteredLogs
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = "";
+        startDate = DateTime.Today.AddDays(-7);
+        endDate = DateTime.Today;
+        selectedEventType = "";
+        selectedStatus = "";
+        ApplyFilters();
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = "";
+        ApplyFilters();
+    }
+
+    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ApplyFilters();
+        }
+    }
+
+    private void SortBy(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortAscending = column != "Timestamp"; // Default descending for timestamp
+        }
+        ApplyFilters();
+    }
+
+    private string GetSortClass(string column)
+    {
+        if (sortColumn != column) return "";
+        return sortAscending ? "asc" : "desc";
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        UpdatePagedLogs();
+    }
+
+    private void OnPageSizeChanged()
+    {
+        currentPage = 1;
+        UpdatePagedLogs();
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        int start = Math.Max(1, currentPage - 2);
+        int end = Math.Min(totalPages, currentPage + 2);
+
+        if (end - start < 4)
+        {
+            if (start == 1)
+                end = Math.Min(totalPages, start + 4);
+            else if (end == totalPages)
+                start = Math.Max(1, end - 4);
+        }
+
+        return Enumerable.Range(start, end - start + 1);
+    }
+
+    private void ViewLogDetails(AccessLog log)
+    {
+        selectedLog = log;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedLog = null;
+    }
+
+    private async Task CopyLogId(Guid id)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", id.ToString());
+        Toast.ShowSuccess("Log ID copied to clipboard");
+    }
+
+    private async Task ExportLogs()
+    {
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Timestamp,User,Email,Event Type,Status,IP Address,Endpoint,Duration (ms),Browser,OS");
+
+        foreach (var log in filteredLogs)
+        {
+            csv.AppendLine($"\"{log.Timestamp:yyyy-MM-dd HH:mm:ss}\",\"{log.UserName}\",\"{log.UserEmail}\",\"{log.EventType}\",\"{log.Status}\",\"{log.IpAddress}\",\"{log.Endpoint}\",{log.DurationMs},\"{log.Browser}\",\"{log.OperatingSystem}\"");
+        }
+
+        var fileName = $"access-logs-{DateTime.Now:yyyyMMdd-HHmmss}.csv";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", fileName, $"data:text/csv;base64,{base64}");
+        Toast.ShowSuccess($"Exported {filteredLogs.Count} log entries");
+    }
+
+    private string GetRowClass(AccessLog log)
+    {
+        return log.Status.ToLower() switch
+        {
+            "failed" => "failed",
+            "warning" => "warning",
+            "blocked" => "blocked",
+            _ => ""
+        };
+    }
+
+    private string GetEventTypeClass(string eventType)
+    {
+        return eventType.ToLower().Replace(" ", "");
+    }
+
+    private string GetEventTypeIcon(string eventType)
+    {
+        return eventType switch
+        {
+            "Login" => "fa-sign-in-alt",
+            "Logout" => "fa-sign-out-alt",
+            "FailedLogin" => "fa-exclamation-circle",
+            "ApiAccess" => "fa-code",
+            "PageView" => "fa-eye",
+            "DataExport" => "fa-download",
+            "PasswordChange" => "fa-key",
+            "SettingsChange" => "fa-cog",
+            _ => "fa-circle"
+        };
+    }
+
+    private string GetDurationClass(int ms)
+    {
+        if (ms < 200) return "fast";
+        if (ms < 1000) return "normal";
+        return "slow";
+    }
+
+    private string TruncateText(string? text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength) return text ?? "";
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    // Data Models
+    private class AccessLog
+    {
+        public Guid Id { get; set; }
+        public DateTime Timestamp { get; set; }
+        public Guid UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string? UserRole { get; set; }
+        public string EventType { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string IpAddress { get; set; } = string.Empty;
+        public string? Country { get; set; }
+        public string? CountryFlag { get; set; }
+        public string? Location { get; set; }
+        public string? HttpMethod { get; set; }
+        public string? Endpoint { get; set; }
+        public int? ResponseCode { get; set; }
+        public int DurationMs { get; set; }
+        public string? UserAgent { get; set; }
+        public string? Browser { get; set; }
+        public string? OperatingSystem { get; set; }
+        public string? DeviceType { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string? StackTrace { get; set; }
+        public string? AdditionalData { get; set; }
+    }
+
+    private class LogStats
+    {
+        public int TotalLogs { get; set; }
+        public int LoginAttempts { get; set; }
+        public int FailedAttempts { get; set; }
+        public int UniqueUsers { get; set; }
     }
 }

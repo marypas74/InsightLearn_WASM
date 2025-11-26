@@ -1,84 +1,589 @@
 @page "/admin/courses"
 @attribute [Authorize(Roles = "Admin")]
+@inject InsightLearn.WebAssembly.Services.Admin.ICourseManagementService CourseService
 @inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.WebAssembly.Models.Admin
+@using InsightLearn.WebAssembly.Models.Courses
+@using InsightLearn.WebAssembly.Services.Admin
+@using InsightLearn.WebAssembly.Components.Admin
+@implements IDisposable
 
 <PageTitle>Course Management - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
-    <div class="breadcrumb-nav">
-        <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item">Home</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/admin" class="breadcrumb-item">Admin</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Course Management</span>
-        </nav>
-    </div>
+<link href="css/admin-courses.css" rel="stylesheet" />
 
+<div class="admin-page-container">
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">Course Management</h1>
-        <p class="page-description">Manage all courses</p>
+        <div>
+            <h1 class="page-title">Course Management</h1>
+            <p class="page-description">Manage all courses, instructors, and content</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" @onclick="NavigateToCreateCourse">
+                <i class="fas fa-plus"></i> Create Course
+            </button>
+        </div>
     </div>
 
-    @if (isLoading)
-    {
-        <div class="loading-state">
-            <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
-        </div>
-    }
-    else if (error != null)
-    {
-        <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
-        </div>
-    }
-    else
-    {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Course Management</h2>
+    <!-- KPI Cards -->
+    <div class="kpi-cards-row">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-primary">
+                <i class="fas fa-book-open"></i>
             </div>
-            <div class="card-content">
-                <p>Manage all courses page content goes here.</p>
-                <!-- TODO: Implement CourseManagement functionality -->
+            <div class="kpi-content">
+                <span class="kpi-value">@(stats?.TotalCourses ?? 0)</span>
+                <span class="kpi-label">Total Courses</span>
             </div>
         </div>
-    }
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@(stats?.PublishedCourses ?? 0)</span>
+                <span class="kpi-label">Published</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-warning">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@(stats?.DraftCourses ?? 0)</span>
+                <span class="kpi-label">Draft</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-info">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@FormatCurrency(stats?.TotalRevenue ?? 0)</span>
+                <span class="kpi-label">Total Revenue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text"
+                   placeholder="Search courses by title or instructor..."
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp" />
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="search-clear" @onclick="ClearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            }
+        </div>
+        <div class="filter-group">
+            <div class="filter-item">
+                <label>Status</label>
+                <select @bind="selectedStatus" @bind:after="OnFilterChanged">
+                    <option value="All">All Status</option>
+                    <option value="Published">Published</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Archived">Archived</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>Category</label>
+                <select @bind="selectedCategoryId" @bind:after="OnFilterChanged">
+                    <option value="@Guid.Empty">All Categories</option>
+                    @if (categories != null)
+                    {
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Id">@category.Name (@category.CourseCount)</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-secondary" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <DataTable TItem="CourseListItem"
+               Items="@courses"
+               CurrentPage="@currentPage"
+               PageSize="@pageSize"
+               TotalCount="@totalCount"
+               TotalPages="@totalPages"
+               IsLoading="@isLoading"
+               EmptyMessage="No courses found matching your criteria"
+               OnPageChanged="LoadPage">
+        <TableHeader>
+            <th class="col-thumbnail">Thumbnail</th>
+            <th class="col-title sortable" @onclick='() => SortBy("title")'>
+                Title
+                @if (sortColumn == "title")
+                {
+                    <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                }
+            </th>
+            <th class="col-instructor">Instructor</th>
+            <th class="col-category">Category</th>
+            <th class="col-price sortable" @onclick='() => SortBy("price")'>
+                Price
+                @if (sortColumn == "price")
+                {
+                    <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                }
+            </th>
+            <th class="col-status">Status</th>
+            <th class="col-enrollments sortable" @onclick='() => SortBy("enrollments")'>
+                Enrollments
+                @if (sortColumn == "enrollments")
+                {
+                    <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                }
+            </th>
+            <th class="col-rating sortable" @onclick='() => SortBy("rating")'>
+                Rating
+                @if (sortColumn == "rating")
+                {
+                    <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                }
+            </th>
+            <th class="col-actions">Actions</th>
+        </TableHeader>
+        <RowTemplate Context="course">
+            <td class="col-thumbnail">
+                <div class="course-thumbnail">
+                    @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                    {
+                        <img src="@course.ThumbnailUrl" alt="@course.Title" />
+                    }
+                    else
+                    {
+                        <div class="thumbnail-placeholder">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    }
+                </div>
+            </td>
+            <td class="col-title">
+                <div class="course-title-cell">
+                    <span class="course-title">@course.Title</span>
+                    @if (!string.IsNullOrEmpty(course.Level))
+                    {
+                        <span class="level-badge level-@course.Level.ToLower()">@course.Level</span>
+                    }
+                </div>
+            </td>
+            <td class="col-instructor">
+                <div class="instructor-cell">
+                    <div class="instructor-avatar">
+                        @GetInitials(course.InstructorName)
+                    </div>
+                    <span>@course.InstructorName</span>
+                </div>
+            </td>
+            <td class="col-category">
+                <span class="category-badge">@course.CategoryName</span>
+            </td>
+            <td class="col-price">
+                <div class="price-cell">
+                    @if (course.DiscountPercentage > 0)
+                    {
+                        <span class="original-price">@FormatCurrency(course.Price)</span>
+                        <span class="current-price">@FormatCurrency(course.CurrentPrice)</span>
+                        <span class="discount-badge">-@course.DiscountPercentage%</span>
+                    }
+                    else
+                    {
+                        <span class="current-price">@FormatCurrency(course.Price)</span>
+                    }
+                </div>
+            </td>
+            <td class="col-status">
+                <span class="status-badge status-@course.Status?.ToLower()">
+                    <i class="fas fa-circle"></i> @course.Status
+                </span>
+            </td>
+            <td class="col-enrollments">
+                <div class="enrollments-cell">
+                    <i class="fas fa-users"></i>
+                    <span>@course.EnrollmentCount.ToString("N0")</span>
+                </div>
+            </td>
+            <td class="col-rating">
+                <div class="rating-cell">
+                    @if (course.AverageRating > 0)
+                    {
+                        <div class="stars">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starIndex = i;
+                                <i class="@GetStarClass(course.AverageRating, starIndex)"></i>
+                            }
+                        </div>
+                        <span class="rating-value">@course.AverageRating.ToString("F1")</span>
+                        <span class="review-count">(@course.ReviewCount)</span>
+                    }
+                    else
+                    {
+                        <span class="no-rating">No ratings</span>
+                    }
+                </div>
+            </td>
+            <td class="col-actions">
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-icon btn-info"
+                            @onclick="() => ViewCourse(course.Id)"
+                            title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-icon btn-primary"
+                            @onclick="() => EditCourse(course.Id)"
+                            title="Edit Course">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    @if (course.Status == "Draft")
+                    {
+                        <button class="btn btn-sm btn-icon btn-success"
+                                @onclick="() => PublishCourse(course)"
+                                title="Publish Course">
+                            <i class="fas fa-globe"></i>
+                        </button>
+                    }
+                    else if (course.Status == "Published")
+                    {
+                        <button class="btn btn-sm btn-icon btn-warning"
+                                @onclick="() => UnpublishCourse(course)"
+                                title="Unpublish Course">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    }
+                    <button class="btn btn-sm btn-icon btn-danger"
+                            @onclick="() => ShowDeleteConfirm(course)"
+                            title="Delete Course">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </RowTemplate>
+    </DataTable>
 </div>
 
+<!-- Delete Confirmation Dialog -->
+<ConfirmDialog IsVisible="@showDeleteDialog"
+               Title="Delete Course"
+               Message="@deleteConfirmMessage"
+               Type="danger"
+               ConfirmText="Delete"
+               CancelText="Cancel"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+<!-- Publish Confirmation Dialog -->
+<ConfirmDialog IsVisible="@showPublishDialog"
+               Title="@publishDialogTitle"
+               Message="@publishDialogMessage"
+               Type="@publishDialogType"
+               ConfirmText="@publishDialogConfirmText"
+               CancelText="Cancel"
+               OnConfirm="ConfirmStatusChange"
+               OnCancel="CancelStatusChange" />
+
 @code {
-    private bool isLoading = true;
-    private string? error;
+    private List<CourseListItem> courses = new();
+    private List<CategoryFilterItem>? categories;
+    private InsightLearn.WebAssembly.Services.Admin.CourseStatsDto? stats;
+
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount = 0;
+    private int totalPages = 0;
+    private bool isLoading = false;
+
+    private string searchTerm = "";
+    private string selectedStatus = "All";
+    private Guid selectedCategoryId = Guid.Empty;
+    private string sortColumn = "createdAt";
+    private bool sortDescending = true;
+
+    private System.Threading.Timer? searchTimer;
+
+    // Delete dialog state
+    private bool showDeleteDialog = false;
+    private CourseListItem? courseToDelete;
+    private string deleteConfirmMessage = "";
+
+    // Publish/Unpublish dialog state
+    private bool showPublishDialog = false;
+    private CourseListItem? courseToChangeStatus;
+    private string newStatus = "";
+    private string publishDialogTitle = "";
+    private string publishDialogMessage = "";
+    private string publishDialogType = "info";
+    private string publishDialogConfirmText = "Confirm";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadInitialData();
     }
 
-    private async Task LoadData()
+    private async Task LoadInitialData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Load categories and stats in parallel
+            var categoriesTask = CourseService.GetCategoriesAsync();
+            var statsTask = CourseService.GetCourseStatsAsync();
+
+            await Task.WhenAll(categoriesTask, statsTask);
+
+            categories = await categoriesTask;
+            stats = await statsTask;
+
+            // Load courses
+            await LoadPage(1);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadPage(int page)
     {
         try
         {
             isLoading = true;
-            error = null;
+            currentPage = page;
 
-            // TODO: Implement API call for CourseManagement
-            await Task.Delay(500); // Placeholder
+            var result = await CourseService.GetCoursesAsync(
+                page,
+                pageSize,
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+                selectedStatus == "All" ? null : selectedStatus,
+                selectedCategoryId == Guid.Empty ? null : selectedCategoryId,
+                sortColumn,
+                sortDescending);
 
-            isLoading = false;
+            if (result != null)
+            {
+                courses = result.Items;
+                totalCount = result.TotalCount;
+                totalPages = result.TotalPages;
+            }
+            else
+            {
+                Toast.ShowError("Failed to load courses");
+                courses = new List<CourseListItem>();
+            }
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
-            Console.WriteLine($"CourseManagement error: {ex}");
-            isLoading = false;
+            Toast.ShowError($"Error loading courses: {ex.Message}");
+            courses = new List<CourseListItem>();
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadPage(1);
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task ClearSearch()
+    {
+        searchTerm = "";
+        await LoadPage(1);
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadPage(1);
+    }
+
+    private async Task SortBy(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortDescending = !sortDescending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortDescending = true;
+        }
+        await LoadPage(1);
+    }
+
+    private async Task RefreshData()
+    {
+        stats = await CourseService.GetCourseStatsAsync();
+        await LoadPage(currentPage);
+    }
+
+    private void NavigateToCreateCourse()
+    {
+        Navigation.NavigateTo("/admin/courses/create");
+    }
+
+    private void ViewCourse(Guid courseId)
+    {
+        Navigation.NavigateTo($"/courses/{courseId}");
+    }
+
+    private void EditCourse(Guid courseId)
+    {
+        Navigation.NavigateTo($"/admin/courses/{courseId}/edit");
+    }
+
+    // Delete functionality
+    private void ShowDeleteConfirm(CourseListItem course)
+    {
+        courseToDelete = course;
+        deleteConfirmMessage = $"Are you sure you want to delete the course '{course.Title}'? This action cannot be undone and will remove all associated content, enrollments, and student progress.";
+        showDeleteDialog = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (courseToDelete != null)
+        {
+            var success = await CourseService.DeleteCourseAsync(courseToDelete.Id);
+
+            if (success)
+            {
+                Toast.ShowSuccess($"Course '{courseToDelete.Title}' deleted successfully");
+                stats = await CourseService.GetCourseStatsAsync();
+                await LoadPage(currentPage);
+            }
+            else
+            {
+                Toast.ShowError($"Failed to delete course '{courseToDelete.Title}'");
+            }
+        }
+
+        showDeleteDialog = false;
+        courseToDelete = null;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteDialog = false;
+        courseToDelete = null;
+    }
+
+    // Publish/Unpublish functionality
+    private void PublishCourse(CourseListItem course)
+    {
+        courseToChangeStatus = course;
+        newStatus = "Published";
+        publishDialogTitle = "Publish Course";
+        publishDialogMessage = $"Are you sure you want to publish '{course.Title}'? This will make the course visible to all students.";
+        publishDialogType = "success";
+        publishDialogConfirmText = "Publish";
+        showPublishDialog = true;
+    }
+
+    private void UnpublishCourse(CourseListItem course)
+    {
+        courseToChangeStatus = course;
+        newStatus = "Draft";
+        publishDialogTitle = "Unpublish Course";
+        publishDialogMessage = $"Are you sure you want to unpublish '{course.Title}'? This will hide the course from students. Existing enrollments will be preserved.";
+        publishDialogType = "warning";
+        publishDialogConfirmText = "Unpublish";
+        showPublishDialog = true;
+    }
+
+    private async Task ConfirmStatusChange()
+    {
+        if (courseToChangeStatus != null)
+        {
+            var success = await CourseService.UpdateCourseStatusAsync(courseToChangeStatus.Id, newStatus);
+
+            if (success)
+            {
+                Toast.ShowSuccess($"Course status updated to '{newStatus}'");
+                stats = await CourseService.GetCourseStatsAsync();
+                await LoadPage(currentPage);
+            }
+            else
+            {
+                Toast.ShowError($"Failed to update course status");
+            }
+        }
+
+        showPublishDialog = false;
+        courseToChangeStatus = null;
+    }
+
+    private void CancelStatusChange()
+    {
+        showPublishDialog = false;
+        courseToChangeStatus = null;
+    }
+
+    // Helper methods
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        }
+        return name.Length >= 2 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+    }
+
+    private string GetStarClass(double rating, int starIndex)
+    {
+        if (rating >= starIndex)
+        {
+            return "fas fa-star filled";
+        }
+        else if (rating >= starIndex - 0.5)
+        {
+            return "fas fa-star-half-alt filled";
+        }
+        return "far fa-star";
+    }
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
     }
 }

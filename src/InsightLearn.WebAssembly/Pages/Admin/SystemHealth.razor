@@ -4,6 +4,7 @@
 @inject IApiClient ApiClient
 @inject IToastService Toast
 @using Microsoft.AspNetCore.Authorization
+@implements IDisposable
 
 <PageTitle>System Health - InsightLearn Admin</PageTitle>
 
@@ -19,66 +20,1386 @@
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">System Health</h1>
-        <p class="page-description">Monitor system health and performance</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-heartbeat"></i>
+                System Health
+            </h1>
+            <p class="page-description">Monitor system health, services, and performance metrics</p>
+        </div>
+        <div class="header-actions">
+            <div class="auto-refresh-toggle">
+                <label class="toggle-label">
+                    <span>Auto-refresh</span>
+                    <div class="toggle-switch">
+                        <input type="checkbox" @bind="autoRefresh" @bind:event="oninput" @onchange="ToggleAutoRefresh" />
+                        <span class="toggle-slider"></span>
+                    </div>
+                </label>
+            </div>
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+        </div>
     </div>
 
-    @if (isLoading)
+    @if (isLoading && healthData == null)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading system health data...</p>
         </div>
     }
-    else if (error != null)
+    else if (error != null && healthData == null)
     {
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+            <button class="btn btn-primary" @onclick="RefreshData">Retry</button>
         </div>
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>System Health</h2>
+        <!-- Overall Health Status Banner -->
+        <div class="health-status-banner @GetOverallHealthClass()">
+            <div class="status-icon">
+                <i class="fas @GetOverallHealthIcon()"></i>
             </div>
-            <div class="card-content">
-                <p>Monitor system health and performance page content goes here.</p>
-                <!-- TODO: Implement SystemHealth functionality -->
+            <div class="status-info">
+                <h2>@GetOverallHealthStatus()</h2>
+                <p>Last checked: @lastChecked.ToString("MMM dd, yyyy HH:mm:ss")</p>
+            </div>
+            <div class="status-uptime">
+                <span class="uptime-value">@healthData?.Uptime.Days days @healthData?.Uptime.Hours h @healthData?.Uptime.Minutes m</span>
+                <span class="uptime-label">System Uptime</span>
+            </div>
+        </div>
+
+        <!-- Service Health Cards -->
+        <div class="section-header">
+            <h2><i class="fas fa-server"></i> Service Status</h2>
+            <span class="service-count">@GetHealthyServiceCount()/@services.Count services healthy</span>
+        </div>
+
+        <div class="services-grid">
+            @foreach (var service in services)
+            {
+                <div class="service-card @GetServiceStatusClass(service)">
+                    <div class="service-header">
+                        <div class="service-icon">
+                            <i class="fas @service.Icon"></i>
+                        </div>
+                        <div class="service-status-indicator">
+                            <span class="status-dot"></span>
+                        </div>
+                    </div>
+                    <div class="service-info">
+                        <h3>@service.Name</h3>
+                        <p class="service-description">@service.Description</p>
+                    </div>
+                    <div class="service-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Status</span>
+                            <span class="metric-value status-@service.Status.ToLower()">@service.Status</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Response</span>
+                            <span class="metric-value">@(service.ResponseTimeMs > 0 ? $"{service.ResponseTimeMs}ms" : "N/A")</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Last Check</span>
+                            <span class="metric-value">@service.LastChecked.ToString("HH:mm:ss")</span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(service.ErrorMessage))
+                    {
+                        <div class="service-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>@service.ErrorMessage</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Server Metrics -->
+        <div class="section-header">
+            <h2><i class="fas fa-tachometer-alt"></i> Server Metrics</h2>
+        </div>
+
+        <div class="metrics-grid">
+            <!-- CPU Usage -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon cpu">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div class="metric-title">
+                        <h3>CPU Usage</h3>
+                        <p>Processing load</p>
+                    </div>
+                </div>
+                <div class="metric-gauge">
+                    <div class="gauge-circle">
+                        <svg viewBox="0 0 36 36">
+                            <path class="gauge-bg"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="gauge-fill @GetGaugeClass(healthData?.CpuUsagePercent ?? 0)"
+                                  stroke-dasharray="@(healthData?.CpuUsagePercent ?? 0), 100"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <span class="gauge-value">@(healthData?.CpuUsagePercent ?? 0)%</span>
+                    </div>
+                </div>
+                <div class="metric-details">
+                    <div class="detail-row">
+                        <span>Cores</span>
+                        <span>@(healthData?.CpuCores ?? 0)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Threads</span>
+                        <span>@(healthData?.ActiveThreads ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory Usage -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon memory">
+                        <i class="fas fa-memory"></i>
+                    </div>
+                    <div class="metric-title">
+                        <h3>Memory Usage</h3>
+                        <p>RAM utilization</p>
+                    </div>
+                </div>
+                <div class="metric-gauge">
+                    <div class="gauge-circle">
+                        <svg viewBox="0 0 36 36">
+                            <path class="gauge-bg"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="gauge-fill @GetGaugeClass(healthData?.MemoryUsagePercent ?? 0)"
+                                  stroke-dasharray="@(healthData?.MemoryUsagePercent ?? 0), 100"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <span class="gauge-value">@(healthData?.MemoryUsagePercent ?? 0)%</span>
+                    </div>
+                </div>
+                <div class="metric-details">
+                    <div class="detail-row">
+                        <span>Used</span>
+                        <span>@FormatBytes(healthData?.MemoryUsedBytes ?? 0)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Total</span>
+                        <span>@FormatBytes(healthData?.MemoryTotalBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disk Usage -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon disk">
+                        <i class="fas fa-hdd"></i>
+                    </div>
+                    <div class="metric-title">
+                        <h3>Disk Usage</h3>
+                        <p>Storage utilization</p>
+                    </div>
+                </div>
+                <div class="metric-gauge">
+                    <div class="gauge-circle">
+                        <svg viewBox="0 0 36 36">
+                            <path class="gauge-bg"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="gauge-fill @GetGaugeClass(healthData?.DiskUsagePercent ?? 0)"
+                                  stroke-dasharray="@(healthData?.DiskUsagePercent ?? 0), 100"
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <span class="gauge-value">@(healthData?.DiskUsagePercent ?? 0)%</span>
+                    </div>
+                </div>
+                <div class="metric-details">
+                    <div class="detail-row">
+                        <span>Used</span>
+                        <span>@FormatBytes(healthData?.DiskUsedBytes ?? 0)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Total</span>
+                        <span>@FormatBytes(healthData?.DiskTotalBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network -->
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon network">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="metric-title">
+                        <h3>Network</h3>
+                        <p>Active connections</p>
+                    </div>
+                </div>
+                <div class="metric-value-large">
+                    <span class="value">@(healthData?.ActiveConnections ?? 0)</span>
+                    <span class="label">Active Connections</span>
+                </div>
+                <div class="metric-details">
+                    <div class="detail-row">
+                        <span>Requests/min</span>
+                        <span>@(healthData?.RequestsPerMinute ?? 0)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Avg Response</span>
+                        <span>@(healthData?.AverageResponseTimeMs ?? 0)ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@(healthData?.SuccessfulRequests ?? 0)</span>
+                    <span class="stat-label">Successful Requests (24h)</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@(healthData?.FailedRequests ?? 0)</span>
+                    <span class="stat-label">Failed Requests (24h)</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@(healthData?.ErrorRate ?? 0)%</span>
+                    <span class="stat-label">Error Rate</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon info">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@(healthData?.ActiveUsers ?? 0)</span>
+                    <span class="stat-label">Active Users (Now)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Health Checks -->
+        <div class="section-header">
+            <h2><i class="fas fa-history"></i> Recent Health Checks</h2>
+            <button class="btn btn-sm btn-outline" @onclick="ClearHealthHistory">
+                <i class="fas fa-trash"></i>
+                Clear History
+            </button>
+        </div>
+
+        <div class="clean-card">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Service</th>
+                            <th>Status</th>
+                            <th>Response Time</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (healthChecks.Any())
+                        {
+                            @foreach (var check in healthChecks.Take(20))
+                            {
+                                <tr>
+                                    <td>@check.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                    <td>
+                                        <div class="service-name">
+                                            <i class="fas @GetServiceIcon(check.ServiceName)"></i>
+                                            <span>@check.ServiceName</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-@check.Status.ToLower()">
+                                            @check.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="response-time @GetResponseTimeClass(check.ResponseTimeMs)">
+                                            @(check.ResponseTimeMs)ms
+                                        </span>
+                                    </td>
+                                    <td class="details-cell">
+                                        @if (!string.IsNullOrEmpty(check.Details))
+                                        {
+                                            <span class="details-text" title="@check.Details">@TruncateText(check.Details, 50)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No health check history available
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Database Stats -->
+        <div class="section-header">
+            <h2><i class="fas fa-database"></i> Database Statistics</h2>
+        </div>
+
+        <div class="database-stats-grid">
+            <div class="db-stat-card">
+                <div class="db-header">
+                    <i class="fas fa-database"></i>
+                    <span>SQL Server</span>
+                </div>
+                <div class="db-metrics">
+                    <div class="db-metric">
+                        <span class="label">Connections</span>
+                        <span class="value">@(healthData?.SqlServerConnections ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Active Queries</span>
+                        <span class="value">@(healthData?.SqlServerActiveQueries ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">DB Size</span>
+                        <span class="value">@FormatBytes(healthData?.SqlServerDbSizeBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="db-stat-card">
+                <div class="db-header">
+                    <i class="fas fa-leaf"></i>
+                    <span>MongoDB</span>
+                </div>
+                <div class="db-metrics">
+                    <div class="db-metric">
+                        <span class="label">Connections</span>
+                        <span class="value">@(healthData?.MongoDbConnections ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Collections</span>
+                        <span class="value">@(healthData?.MongoDbCollections ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Storage</span>
+                        <span class="value">@FormatBytes(healthData?.MongoDbStorageBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="db-stat-card">
+                <div class="db-header">
+                    <i class="fas fa-bolt"></i>
+                    <span>Redis</span>
+                </div>
+                <div class="db-metrics">
+                    <div class="db-metric">
+                        <span class="label">Connected Clients</span>
+                        <span class="value">@(healthData?.RedisConnectedClients ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Cached Keys</span>
+                        <span class="value">@(healthData?.RedisCachedKeys ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Memory</span>
+                        <span class="value">@FormatBytes(healthData?.RedisMemoryBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="db-stat-card">
+                <div class="db-header">
+                    <i class="fas fa-search"></i>
+                    <span>Elasticsearch</span>
+                </div>
+                <div class="db-metrics">
+                    <div class="db-metric">
+                        <span class="label">Indices</span>
+                        <span class="value">@(healthData?.ElasticsearchIndices ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Documents</span>
+                        <span class="value">@(healthData?.ElasticsearchDocuments ?? 0)</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Storage</span>
+                        <span class="value">@FormatBytes(healthData?.ElasticsearchStorageBytes ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="section-header">
+            <h2><i class="fas fa-info-circle"></i> System Information</h2>
+        </div>
+
+        <div class="clean-card">
+            <div class="system-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Platform</span>
+                    <span class="info-value">@(healthData?.Platform ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">OS Version</span>
+                    <span class="info-value">@(healthData?.OsVersion ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">.NET Version</span>
+                    <span class="info-value">@(healthData?.DotNetVersion ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">App Version</span>
+                    <span class="info-value">@(healthData?.AppVersion ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Environment</span>
+                    <span class="info-value">@(healthData?.Environment ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Host Name</span>
+                    <span class="info-value">@(healthData?.HostName ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Start Time</span>
+                    <span class="info-value">@(healthData?.StartTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Deploy</span>
+                    <span class="info-value">@(healthData?.LastDeployTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</span>
+                </div>
             </div>
         </div>
     }
 </div>
 
+<style>
+    /* Health Status Banner */
+    .health-status-banner {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+
+    .health-status-banner.healthy {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .health-status-banner.degraded {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .health-status-banner.unhealthy {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .status-icon {
+        width: 64px;
+        height: 64px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+
+    .status-info {
+        flex: 1;
+    }
+
+    .status-info h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .status-info p {
+        margin: 0.25rem 0 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .status-uptime {
+        text-align: right;
+    }
+
+    .uptime-value {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .uptime-label {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    /* Services Grid */
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .service-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid transparent;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .service-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .service-card.healthy {
+        border-left-color: #10b981;
+    }
+
+    .service-card.degraded {
+        border-left-color: #f59e0b;
+    }
+
+    .service-card.unhealthy {
+        border-left-color: #ef4444;
+    }
+
+    .service-card.unknown {
+        border-left-color: #6b7280;
+    }
+
+    .service-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .service-icon {
+        width: 48px;
+        height: 48px;
+        background: #f3f4f6;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: #4b5563;
+    }
+
+    .service-status-indicator .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .service-card.healthy .status-dot {
+        background: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .service-card.degraded .status-dot {
+        background: #f59e0b;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    .service-card.unhealthy .status-dot {
+        background: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+
+    .service-card.unknown .status-dot {
+        background: #6b7280;
+    }
+
+    .service-info h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .service-description {
+        margin: 0.25rem 0 0;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .service-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .service-metrics .metric {
+        text-align: center;
+    }
+
+    .service-metrics .metric-label {
+        display: block;
+        font-size: 0.625rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .service-metrics .metric-value {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .metric-value.status-healthy { color: #10b981; }
+    .metric-value.status-degraded { color: #f59e0b; }
+    .metric-value.status-unhealthy { color: #ef4444; }
+
+    .service-error {
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        background: #fef2f2;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: #dc2626;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .metric-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .metric-icon.cpu { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .metric-icon.memory { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .metric-icon.disk { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .metric-icon.network { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+    .metric-title h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .metric-title p {
+        margin: 0.25rem 0 0;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* Gauge Circle */
+    .metric-gauge {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .gauge-circle {
+        position: relative;
+        width: 100px;
+        height: 100px;
+    }
+
+    .gauge-circle svg {
+        transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+        fill: none;
+        stroke: #e5e7eb;
+        stroke-width: 3;
+    }
+
+    .gauge-fill {
+        fill: none;
+        stroke-width: 3;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.5s ease;
+    }
+
+    .gauge-fill.low { stroke: #10b981; }
+    .gauge-fill.medium { stroke: #f59e0b; }
+    .gauge-fill.high { stroke: #ef4444; }
+
+    .gauge-value {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .metric-value-large {
+        text-align: center;
+        padding: 1rem 0;
+    }
+
+    .metric-value-large .value {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .metric-value-large .label {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .metric-details {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 1rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .detail-row span:first-child {
+        color: #6b7280;
+    }
+
+    .detail-row span:last-child {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.success {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .stat-icon.danger {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .stat-icon.warning {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .stat-icon.info {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+
+    .stat-info {
+        flex: 1;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* Database Stats */
+    .database-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .db-stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .db-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .db-header i {
+        color: #6366f1;
+    }
+
+    .db-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .db-metric {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+    }
+
+    .db-metric .label {
+        color: #6b7280;
+    }
+
+    .db-metric .value {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    /* System Info */
+    .system-info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .info-item {
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    /* Health Checks Table */
+    .response-time {
+        font-family: monospace;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .response-time.fast {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .response-time.normal {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .response-time.slow {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .service-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .details-cell {
+        max-width: 200px;
+    }
+
+    .details-text {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Auto-refresh Toggle */
+    .auto-refresh-toggle {
+        margin-right: 1rem;
+    }
+
+    .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #4b5563;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e5e7eb;
+        transition: 0.3s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #6366f1;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+    }
+
+    .section-header .service-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: normal;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .metrics-grid,
+        .database-stats-grid,
+        .stats-row,
+        .system-info-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .health-status-banner {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .status-uptime {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .metrics-grid,
+        .database-stats-grid,
+        .stats-row,
+        .system-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .services-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
     private string? error;
+    private bool autoRefresh = true;
+    private DateTime lastChecked = DateTime.Now;
+    private System.Threading.Timer? refreshTimer;
+
+    private SystemHealthData? healthData;
+    private List<ServiceHealth> services = new();
+    private List<HealthCheckRecord> healthChecks = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        StartAutoRefresh();
     }
 
-    private async Task LoadData()
+    private async Task RefreshData()
+    {
+        await LoadData(silent: false);
+    }
+
+    private void StartAutoRefresh()
+    {
+        if (autoRefresh)
+        {
+            refreshTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadData(silent: true);
+                    StateHasChanged();
+                });
+            }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        }
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        if (autoRefresh)
+        {
+            StartAutoRefresh();
+        }
+        else
+        {
+            refreshTimer?.Dispose();
+            refreshTimer = null;
+        }
+    }
+
+    private async Task LoadData(bool silent = false)
     {
         try
         {
-            isLoading = true;
+            if (!silent) isLoading = true;
             error = null;
 
-            // TODO: Implement API call for SystemHealth
-            await Task.Delay(500); // Placeholder
+            // Simulate API call - replace with actual API endpoint
+            await Task.Delay(500);
 
-            isLoading = false;
+            // Mock data - replace with actual API response
+            healthData = new SystemHealthData
+            {
+                Uptime = TimeSpan.FromDays(12).Add(TimeSpan.FromHours(5)).Add(TimeSpan.FromMinutes(32)),
+                CpuUsagePercent = 35,
+                CpuCores = 8,
+                ActiveThreads = 124,
+                MemoryUsagePercent = 68,
+                MemoryUsedBytes = 11_274_289_152,
+                MemoryTotalBytes = 16_589_934_592,
+                DiskUsagePercent = 45,
+                DiskUsedBytes = 96_636_764_160,
+                DiskTotalBytes = 214_748_364_800,
+                ActiveConnections = 47,
+                RequestsPerMinute = 856,
+                AverageResponseTimeMs = 124,
+                SuccessfulRequests = 125_847,
+                FailedRequests = 234,
+                ErrorRate = 0.19m,
+                ActiveUsers = 23,
+                SqlServerConnections = 15,
+                SqlServerActiveQueries = 3,
+                SqlServerDbSizeBytes = 2_147_483_648,
+                MongoDbConnections = 8,
+                MongoDbCollections = 12,
+                MongoDbStorageBytes = 536_870_912,
+                RedisConnectedClients = 5,
+                RedisCachedKeys = 1_247,
+                RedisMemoryBytes = 67_108_864,
+                ElasticsearchIndices = 4,
+                ElasticsearchDocuments = 15_678,
+                ElasticsearchStorageBytes = 134_217_728,
+                Platform = "Linux",
+                OsVersion = "Rocky Linux 9.3",
+                DotNetVersion = ".NET 8.0.10",
+                AppVersion = "2.1.0-dev",
+                Environment = "Production",
+                HostName = "insightlearn-k3s",
+                StartTime = DateTime.Now.AddDays(-12).AddHours(-5),
+                LastDeployTime = DateTime.Now.AddDays(-2)
+            };
+
+            services = new List<ServiceHealth>
+            {
+                new() { Name = "API", Description = "Main application API", Icon = "fa-cogs", Status = "Healthy", ResponseTimeMs = 45, LastChecked = DateTime.Now },
+                new() { Name = "SQL Server", Description = "Primary database", Icon = "fa-database", Status = "Healthy", ResponseTimeMs = 12, LastChecked = DateTime.Now },
+                new() { Name = "MongoDB", Description = "Video & document storage", Icon = "fa-leaf", Status = "Healthy", ResponseTimeMs = 18, LastChecked = DateTime.Now },
+                new() { Name = "Redis", Description = "Cache & sessions", Icon = "fa-bolt", Status = "Healthy", ResponseTimeMs = 3, LastChecked = DateTime.Now },
+                new() { Name = "Elasticsearch", Description = "Search engine", Icon = "fa-search", Status = "Healthy", ResponseTimeMs = 25, LastChecked = DateTime.Now },
+                new() { Name = "Ollama", Description = "AI/LLM service", Icon = "fa-robot", Status = "Healthy", ResponseTimeMs = 1245, LastChecked = DateTime.Now },
+                new() { Name = "Prometheus", Description = "Metrics collection", Icon = "fa-chart-line", Status = "Healthy", ResponseTimeMs = 8, LastChecked = DateTime.Now },
+                new() { Name = "Grafana", Description = "Monitoring dashboard", Icon = "fa-tachometer-alt", Status = "Healthy", ResponseTimeMs = 32, LastChecked = DateTime.Now }
+            };
+
+            // Add some health check history
+            var random = new Random();
+            healthChecks = services.SelectMany(s => Enumerable.Range(0, 5).Select(i => new HealthCheckRecord
+            {
+                Timestamp = DateTime.Now.AddMinutes(-i * 5),
+                ServiceName = s.Name,
+                Status = random.Next(100) > 5 ? "Healthy" : "Degraded",
+                ResponseTimeMs = s.ResponseTimeMs + random.Next(-10, 50),
+                Details = random.Next(100) > 90 ? "Temporary latency spike detected" : null
+            })).OrderByDescending(h => h.Timestamp).ToList();
+
+            lastChecked = DateTime.Now;
+            if (!silent) isLoading = false;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
+            error = "Failed to load system health data";
+            if (!silent) Toast.ShowError(error);
             Console.WriteLine($"SystemHealth error: {ex}");
-            isLoading = false;
+            if (!silent) isLoading = false;
         }
+    }
+
+    private async Task ClearHealthHistory()
+    {
+        healthChecks.Clear();
+        Toast.ShowSuccess("Health check history cleared");
+        await Task.CompletedTask;
+    }
+
+    private string GetOverallHealthStatus()
+    {
+        var unhealthyCount = services.Count(s => s.Status == "Unhealthy");
+        var degradedCount = services.Count(s => s.Status == "Degraded");
+
+        if (unhealthyCount > 0)
+            return $"System Unhealthy ({unhealthyCount} service{(unhealthyCount > 1 ? "s" : "")} down)";
+        if (degradedCount > 0)
+            return $"System Degraded ({degradedCount} service{(degradedCount > 1 ? "s" : "")} affected)";
+        return "All Systems Operational";
+    }
+
+    private string GetOverallHealthClass()
+    {
+        if (services.Any(s => s.Status == "Unhealthy")) return "unhealthy";
+        if (services.Any(s => s.Status == "Degraded")) return "degraded";
+        return "healthy";
+    }
+
+    private string GetOverallHealthIcon()
+    {
+        if (services.Any(s => s.Status == "Unhealthy")) return "fa-times-circle";
+        if (services.Any(s => s.Status == "Degraded")) return "fa-exclamation-circle";
+        return "fa-check-circle";
+    }
+
+    private int GetHealthyServiceCount() => services.Count(s => s.Status == "Healthy");
+
+    private string GetServiceStatusClass(ServiceHealth service) => service.Status.ToLower();
+
+    private string GetServiceIcon(string serviceName)
+    {
+        return services.FirstOrDefault(s => s.Name == serviceName)?.Icon ?? "fa-server";
+    }
+
+    private string GetGaugeClass(int percent)
+    {
+        if (percent < 60) return "low";
+        if (percent < 85) return "medium";
+        return "high";
+    }
+
+    private string GetResponseTimeClass(int ms)
+    {
+        if (ms < 100) return "fast";
+        if (ms < 500) return "normal";
+        return "slow";
+    }
+
+    private string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size = size / 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength) return text;
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+
+    // Data models
+    private class SystemHealthData
+    {
+        public TimeSpan Uptime { get; set; }
+        public int CpuUsagePercent { get; set; }
+        public int CpuCores { get; set; }
+        public int ActiveThreads { get; set; }
+        public int MemoryUsagePercent { get; set; }
+        public long MemoryUsedBytes { get; set; }
+        public long MemoryTotalBytes { get; set; }
+        public int DiskUsagePercent { get; set; }
+        public long DiskUsedBytes { get; set; }
+        public long DiskTotalBytes { get; set; }
+        public int ActiveConnections { get; set; }
+        public int RequestsPerMinute { get; set; }
+        public int AverageResponseTimeMs { get; set; }
+        public int SuccessfulRequests { get; set; }
+        public int FailedRequests { get; set; }
+        public decimal ErrorRate { get; set; }
+        public int ActiveUsers { get; set; }
+        public int SqlServerConnections { get; set; }
+        public int SqlServerActiveQueries { get; set; }
+        public long SqlServerDbSizeBytes { get; set; }
+        public int MongoDbConnections { get; set; }
+        public int MongoDbCollections { get; set; }
+        public long MongoDbStorageBytes { get; set; }
+        public int RedisConnectedClients { get; set; }
+        public int RedisCachedKeys { get; set; }
+        public long RedisMemoryBytes { get; set; }
+        public int ElasticsearchIndices { get; set; }
+        public int ElasticsearchDocuments { get; set; }
+        public long ElasticsearchStorageBytes { get; set; }
+        public string Platform { get; set; } = string.Empty;
+        public string OsVersion { get; set; } = string.Empty;
+        public string DotNetVersion { get; set; } = string.Empty;
+        public string AppVersion { get; set; } = string.Empty;
+        public string Environment { get; set; } = string.Empty;
+        public string HostName { get; set; } = string.Empty;
+        public DateTime StartTime { get; set; }
+        public DateTime? LastDeployTime { get; set; }
+    }
+
+    private class ServiceHealth
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int ResponseTimeMs { get; set; }
+        public DateTime LastChecked { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    private class HealthCheckRecord
+    {
+        public DateTime Timestamp { get; set; }
+        public string ServiceName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int ResponseTimeMs { get; set; }
+        public string? Details { get; set; }
     }
 }

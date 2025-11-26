@@ -2,12 +2,17 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager Navigation
 @inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
+@inject IJSRuntime JS
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.WebAssembly.Services.Http
 
 <PageTitle>Reports - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
+<link href="css/admin-components.css" rel="stylesheet" />
+
+<div class="admin-page-container">
+    <!-- Breadcrumb -->
     <div class="breadcrumb-nav">
         <nav class="breadcrumb">
             <a href="/" class="breadcrumb-item">Home</a>
@@ -18,16 +23,19 @@
         </nav>
     </div>
 
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">Reports</h1>
-        <p class="page-description">Generate and view reports</p>
+        <div>
+            <h1 class="page-title">Reports</h1>
+            <p class="page-description">Generate and export analytics reports</p>
+        </div>
     </div>
 
     @if (isLoading)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading reports...</p>
         </div>
     }
     else if (error != null)
@@ -40,21 +48,453 @@
     }
     else
     {
-        <div class="clean-card">
+        <!-- Report Generator Section -->
+        <div class="form-card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
-                <h2>Reports</h2>
+                <h2><i class="fas fa-file-alt"></i> Generate Report</h2>
             </div>
             <div class="card-content">
-                <p>Generate and view reports page content goes here.</p>
-                <!-- TODO: Implement Reports functionality -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Report Type</label>
+                        <select class="form-control" @bind="selectedReportType">
+                            <option value="revenue">Revenue Report</option>
+                            <option value="users">User Growth Report</option>
+                            <option value="courses">Course Performance Report</option>
+                            <option value="enrollments">Enrollment Report</option>
+                            <option value="engagement">User Engagement Report</option>
+                            <option value="instructors">Instructor Earnings Report</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-control" @bind="selectedDateRange">
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="365">Last 12 months</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                    @if (selectedDateRange == "custom")
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" @bind="customStartDate" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" @bind="customEndDate" />
+                        </div>
+                    }
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Format</label>
+                        <select class="form-control" @bind="selectedFormat">
+                            <option value="preview">Preview Only</option>
+                            <option value="csv">CSV Export</option>
+                            <option value="pdf">PDF Export</option>
+                            <option value="excel">Excel Export</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" @onclick="GenerateReport" disabled="@isGenerating">
+                            @if (isGenerating)
+                            {
+                                <span class="spinner spinner-sm"></span>
+                                <span>Generating...</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-chart-bar"></i>
+                                <span>Generate Report</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Preview Section -->
+        @if (currentReport != null)
+        {
+            <div class="form-card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h2><i class="fas fa-eye"></i> Report Preview: @currentReport.Title</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary btn-sm" @onclick="ExportCsv">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button class="btn btn-secondary btn-sm" @onclick="ExportPdf">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <!-- Report Summary KPIs -->
+                    <div class="kpi-grid" style="margin-bottom: 1.5rem;">
+                        @foreach (var metric in currentReport.KeyMetrics)
+                        {
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background: @metric.Color;">
+                                    <i class="fas @metric.Icon"></i>
+                                </div>
+                                <div class="kpi-content">
+                                    <span class="kpi-value">@metric.Value</span>
+                                    <span class="kpi-label">@metric.Label</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(metric.Change))
+                                {
+                                    <div class="kpi-change @(metric.IsPositive ? "positive" : "negative")">
+                                        <i class="fas fa-arrow-@(metric.IsPositive ? "up" : "down")"></i>
+                                        @metric.Change
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Report Data Table -->
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    @foreach (var column in currentReport.Columns)
+                                    {
+                                        <th>@column</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in currentReport.Rows)
+                                {
+                                    <tr>
+                                        @foreach (var cell in row)
+                                        {
+                                            <td>@cell</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="report-footer">
+                        <p class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Report generated on @currentReport.GeneratedAt.ToString("MMM dd, yyyy HH:mm") •
+                            Period: @currentReport.StartDate.ToString("MMM dd, yyyy") - @currentReport.EndDate.ToString("MMM dd, yyyy")
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Available Reports Section -->
+        <div class="form-card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2><i class="fas fa-list"></i> Available Report Types</h2>
+            </div>
+            <div class="card-content">
+                <div class="report-types-grid">
+                    @foreach (var reportType in availableReportTypes)
+                    {
+                        <div class="report-type-card" @onclick="() => SelectReportType(reportType.Type)">
+                            <div class="report-type-icon" style="background: @reportType.Color;">
+                                <i class="fas @reportType.Icon"></i>
+                            </div>
+                            <div class="report-type-info">
+                                <h4>@reportType.Name</h4>
+                                <p>@reportType.Description</p>
+                            </div>
+                            <div class="report-type-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Reports Section -->
+        <div class="form-card">
+            <div class="card-header">
+                <h2><i class="fas fa-history"></i> Recently Generated Reports</h2>
+            </div>
+            <div class="card-content">
+                @if (recentReports.Count == 0)
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>No recent reports</h3>
+                        <p>Generate your first report using the form above</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Type</th>
+                                    <th>Period</th>
+                                    <th>Generated</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var report in recentReports)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="report-name">
+                                                <i class="fas @GetReportIcon(report.Type)"></i>
+                                                @report.Title
+                                            </span>
+                                        </td>
+                                        <td>@GetReportTypeName(report.Type)</td>
+                                        <td>@report.StartDate.ToString("MMM dd") - @report.EndDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@report.GeneratedAt.ToString("MMM dd, HH:mm")</td>
+                                        <td>
+                                            <span class="status-badge @report.Status.ToLower()">
+                                                @report.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-icon" title="View" @onclick="() => ViewReport(report)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn-icon" title="Download" @onclick="() => DownloadReport(report)">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                                <button class="btn-icon danger" title="Delete" @onclick="() => DeleteReport(report)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
     }
 </div>
 
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .kpi-card {
+        background: var(--bg-secondary, #f8f9fa);
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+    }
+
+    .kpi-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary, #333);
+    }
+
+    .kpi-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary, #666);
+    }
+
+    .kpi-change {
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .kpi-change.positive {
+        color: #22c55e;
+    }
+
+    .kpi-change.negative {
+        color: #ef4444;
+    }
+
+    .report-types-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .report-type-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary, #f8f9fa);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .report-type-card:hover {
+        border-color: var(--primary, #6366f1);
+        background: white;
+    }
+
+    .report-type-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .report-type-info {
+        flex: 1;
+    }
+
+    .report-type-info h4 {
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+        color: var(--text-primary, #333);
+    }
+
+    .report-type-info p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--text-secondary, #666);
+    }
+
+    .report-type-arrow {
+        color: var(--text-tertiary, #999);
+    }
+
+    .report-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .report-name i {
+        color: var(--primary, #6366f1);
+    }
+
+    .report-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color, #e5e7eb);
+    }
+
+    .text-muted {
+        color: var(--text-secondary, #666);
+        font-size: 0.875rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+
+    .status-badge.completed {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .status-badge.failed {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary, #666);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 0.5rem;
+        color: var(--text-primary, #333);
+    }
+
+    .empty-state p {
+        margin: 0;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+</style>
+
 @code {
     private bool isLoading = true;
+    private bool isGenerating = false;
     private string? error;
+
+    private string selectedReportType = "revenue";
+    private string selectedDateRange = "30";
+    private string selectedFormat = "preview";
+    private DateTime customStartDate = DateTime.Now.AddDays(-30);
+    private DateTime customEndDate = DateTime.Now;
+
+    private ReportData? currentReport;
+    private List<ReportData> recentReports = new();
+    private List<ReportTypeInfo> availableReportTypes = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,18 +507,393 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for Reports
-            await Task.Delay(500); // Placeholder
+            // Initialize available report types
+            availableReportTypes = new List<ReportTypeInfo>
+            {
+                new() { Type = "revenue", Name = "Revenue Report", Description = "Track revenue, transactions, and payment trends", Icon = "fa-dollar-sign", Color = "#22c55e" },
+                new() { Type = "users", Name = "User Growth Report", Description = "Monitor user registrations and activity patterns", Icon = "fa-users", Color = "#3b82f6" },
+                new() { Type = "courses", Name = "Course Performance", Description = "Analyze course completion rates and ratings", Icon = "fa-graduation-cap", Color = "#8b5cf6" },
+                new() { Type = "enrollments", Name = "Enrollment Report", Description = "Track enrollment trends and popular courses", Icon = "fa-user-plus", Color = "#f59e0b" },
+                new() { Type = "engagement", Name = "User Engagement", Description = "Measure video watch time and quiz completion", Icon = "fa-chart-line", Color = "#ec4899" },
+                new() { Type = "instructors", Name = "Instructor Earnings", Description = "Review instructor payouts and performance", Icon = "fa-chalkboard-teacher", Color = "#06b6d4" }
+            };
 
-            isLoading = false;
+            // Load recent reports (simulated data)
+            recentReports = new List<ReportData>
+            {
+                new() {
+                    Id = Guid.NewGuid(),
+                    Type = "revenue",
+                    Title = "Revenue Report - November 2025",
+                    StartDate = new DateTime(2025, 11, 1),
+                    EndDate = new DateTime(2025, 11, 25),
+                    GeneratedAt = DateTime.Now.AddHours(-2),
+                    Status = "Completed"
+                },
+                new() {
+                    Id = Guid.NewGuid(),
+                    Type = "users",
+                    Title = "User Growth - Q4 2025",
+                    StartDate = new DateTime(2025, 10, 1),
+                    EndDate = new DateTime(2025, 11, 25),
+                    GeneratedAt = DateTime.Now.AddDays(-1),
+                    Status = "Completed"
+                },
+                new() {
+                    Id = Guid.NewGuid(),
+                    Type = "courses",
+                    Title = "Course Performance - Last 30 Days",
+                    StartDate = DateTime.Now.AddDays(-30),
+                    EndDate = DateTime.Now,
+                    GeneratedAt = DateTime.Now.AddDays(-3),
+                    Status = "Completed"
+                }
+            };
+
+            await Task.Delay(300); // Simulate API call
         }
         catch (Exception ex)
         {
             error = "An error occurred while loading data";
             Toast.ShowError(error);
             Console.WriteLine($"Reports error: {ex}");
-            isLoading = false;
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectReportType(string type)
+    {
+        selectedReportType = type;
+        StateHasChanged();
+    }
+
+    private async Task GenerateReport()
+    {
+        try
+        {
+            isGenerating = true;
+            StateHasChanged();
+
+            // Calculate date range
+            var endDate = DateTime.Now;
+            var startDate = selectedDateRange switch
+            {
+                "7" => endDate.AddDays(-7),
+                "30" => endDate.AddDays(-30),
+                "90" => endDate.AddDays(-90),
+                "365" => endDate.AddDays(-365),
+                "custom" => customStartDate,
+                _ => endDate.AddDays(-30)
+            };
+
+            if (selectedDateRange == "custom")
+            {
+                endDate = customEndDate;
+            }
+
+            // Simulate report generation
+            await Task.Delay(1500);
+
+            // Generate report data based on type
+            currentReport = GenerateReportData(selectedReportType, startDate, endDate);
+
+            // Add to recent reports
+            recentReports.Insert(0, currentReport);
+
+            if (selectedFormat != "preview")
+            {
+                await ExportReport(selectedFormat);
+            }
+
+            Toast.ShowSuccess($"Report generated successfully!");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to generate report");
+            Console.WriteLine($"Generate report error: {ex}");
+        }
+        finally
+        {
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private ReportData GenerateReportData(string type, DateTime startDate, DateTime endDate)
+    {
+        var report = new ReportData
+        {
+            Id = Guid.NewGuid(),
+            Type = type,
+            StartDate = startDate,
+            EndDate = endDate,
+            GeneratedAt = DateTime.Now,
+            Status = "Completed"
+        };
+
+        switch (type)
+        {
+            case "revenue":
+                report.Title = $"Revenue Report - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "Total Revenue", Value = "$24,580", Icon = "fa-dollar-sign", Color = "#22c55e", Change = "+12%", IsPositive = true },
+                    new() { Label = "Transactions", Value = "342", Icon = "fa-receipt", Color = "#3b82f6", Change = "+8%", IsPositive = true },
+                    new() { Label = "Avg. Order Value", Value = "$71.87", Icon = "fa-calculator", Color = "#8b5cf6", Change = "+3%", IsPositive = true },
+                    new() { Label = "Refunds", Value = "$890", Icon = "fa-undo", Color = "#ef4444", Change = "-15%", IsPositive = true }
+                };
+                report.Columns = new List<string> { "Date", "Transactions", "Revenue", "Refunds", "Net Revenue" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "Nov 25", "45", "$3,210", "$120", "$3,090" },
+                    new() { "Nov 24", "38", "$2,890", "$0", "$2,890" },
+                    new() { "Nov 23", "52", "$3,540", "$180", "$3,360" },
+                    new() { "Nov 22", "41", "$2,980", "$90", "$2,890" },
+                    new() { "Nov 21", "35", "$2,650", "$0", "$2,650" }
+                };
+                break;
+
+            case "users":
+                report.Title = $"User Growth Report - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "New Users", Value = "1,245", Icon = "fa-user-plus", Color = "#3b82f6", Change = "+18%", IsPositive = true },
+                    new() { Label = "Active Users", Value = "8,432", Icon = "fa-users", Color = "#22c55e", Change = "+5%", IsPositive = true },
+                    new() { Label = "Churn Rate", Value = "2.3%", Icon = "fa-user-minus", Color = "#ef4444", Change = "-0.5%", IsPositive = true },
+                    new() { Label = "Retention Rate", Value = "87%", Icon = "fa-heart", Color = "#ec4899", Change = "+2%", IsPositive = true }
+                };
+                report.Columns = new List<string> { "Date", "New Signups", "Active Users", "Churned", "Net Growth" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "Week 47", "312", "8,432", "18", "+294" },
+                    new() { "Week 46", "285", "8,156", "22", "+263" },
+                    new() { "Week 45", "298", "7,915", "15", "+283" },
+                    new() { "Week 44", "276", "7,647", "19", "+257" },
+                    new() { "Week 43", "268", "7,409", "21", "+247" }
+                };
+                break;
+
+            case "courses":
+                report.Title = $"Course Performance - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "Active Courses", Value = "156", Icon = "fa-book", Color = "#8b5cf6", Change = "+4", IsPositive = true },
+                    new() { Label = "Completion Rate", Value = "68%", Icon = "fa-check-circle", Color = "#22c55e", Change = "+3%", IsPositive = true },
+                    new() { Label = "Avg. Rating", Value = "4.6", Icon = "fa-star", Color = "#f59e0b", Change = "+0.1", IsPositive = true },
+                    new() { Label = "Total Reviews", Value = "892", Icon = "fa-comment", Color = "#3b82f6", Change = "+45", IsPositive = true }
+                };
+                report.Columns = new List<string> { "Course", "Enrollments", "Completion %", "Rating", "Revenue" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "Web Development Masterclass", "234", "72%", "4.8", "$11,692" },
+                    new() { "Python for Beginners", "198", "65%", "4.7", "$9,900" },
+                    new() { "Data Science Essentials", "156", "58%", "4.5", "$7,800" },
+                    new() { "Machine Learning A-Z", "142", "45%", "4.6", "$7,100" },
+                    new() { "React Development", "128", "70%", "4.9", "$6,400" }
+                };
+                break;
+
+            case "enrollments":
+                report.Title = $"Enrollment Report - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "New Enrollments", Value = "1,892", Icon = "fa-user-plus", Color = "#f59e0b", Change = "+22%", IsPositive = true },
+                    new() { Label = "Unique Students", Value = "1,456", Icon = "fa-user-graduate", Color = "#3b82f6", Change = "+15%", IsPositive = true },
+                    new() { Label = "Avg. per Course", Value = "12.1", Icon = "fa-chart-bar", Color = "#8b5cf6", Change = "+1.2", IsPositive = true },
+                    new() { Label = "Free Enrollments", Value = "234", Icon = "fa-gift", Color = "#22c55e", Change = "+8%", IsPositive = true }
+                };
+                report.Columns = new List<string> { "Date", "Enrollments", "Free", "Paid", "Revenue" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "Nov 25", "89", "12", "77", "$3,850" },
+                    new() { "Nov 24", "76", "8", "68", "$3,400" },
+                    new() { "Nov 23", "95", "15", "80", "$4,000" },
+                    new() { "Nov 22", "82", "10", "72", "$3,600" },
+                    new() { "Nov 21", "71", "9", "62", "$3,100" }
+                };
+                break;
+
+            case "engagement":
+                report.Title = $"User Engagement - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "Watch Time", Value = "45,230h", Icon = "fa-clock", Color = "#ec4899", Change = "+18%", IsPositive = true },
+                    new() { Label = "Lessons Completed", Value = "12,456", Icon = "fa-check", Color = "#22c55e", Change = "+12%", IsPositive = true },
+                    new() { Label = "Quiz Attempts", Value = "3,892", Icon = "fa-question-circle", Color = "#3b82f6", Change = "+8%", IsPositive = true },
+                    new() { Label = "Avg. Session", Value = "42min", Icon = "fa-hourglass-half", Color = "#8b5cf6", Change = "+5min", IsPositive = true }
+                };
+                report.Columns = new List<string> { "Date", "Sessions", "Watch Time", "Lessons Done", "Quiz Taken" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "Nov 25", "2,340", "1,890h", "456", "142" },
+                    new() { "Nov 24", "2,156", "1,720h", "398", "128" },
+                    new() { "Nov 23", "2,489", "2,010h", "512", "156" },
+                    new() { "Nov 22", "2,078", "1,650h", "378", "118" },
+                    new() { "Nov 21", "1,945", "1,540h", "342", "105" }
+                };
+                break;
+
+            case "instructors":
+                report.Title = $"Instructor Earnings - {startDate:MMM dd} to {endDate:MMM dd, yyyy}";
+                report.KeyMetrics = new List<ReportMetric>
+                {
+                    new() { Label = "Total Payouts", Value = "$18,650", Icon = "fa-money-bill", Color = "#22c55e", Change = "+15%", IsPositive = true },
+                    new() { Label = "Active Instructors", Value = "45", Icon = "fa-chalkboard-teacher", Color = "#06b6d4", Change = "+3", IsPositive = true },
+                    new() { Label = "Avg. Earnings", Value = "$414", Icon = "fa-calculator", Color = "#8b5cf6", Change = "+8%", IsPositive = true },
+                    new() { Label = "Pending Payouts", Value = "$2,340", Icon = "fa-hourglass-half", Color = "#f59e0b" }
+                };
+                report.Columns = new List<string> { "Instructor", "Courses", "Students", "Revenue", "Payout (80%)" };
+                report.Rows = new List<List<string>>
+                {
+                    new() { "John Smith", "8", "1,245", "$6,225", "$4,980" },
+                    new() { "Sarah Johnson", "5", "892", "$4,460", "$3,568" },
+                    new() { "Mike Chen", "6", "756", "$3,780", "$3,024" },
+                    new() { "Emily Davis", "4", "634", "$3,170", "$2,536" },
+                    new() { "Alex Wilson", "3", "512", "$2,560", "$2,048" }
+                };
+                break;
+        }
+
+        return report;
+    }
+
+    private async Task ExportReport(string format)
+    {
+        try
+        {
+            var fileName = $"{currentReport?.Type ?? "report"}_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+            switch (format)
+            {
+                case "csv":
+                    await ExportCsv();
+                    break;
+                case "pdf":
+                    await ExportPdf();
+                    break;
+                case "excel":
+                    Toast.ShowInfo("Excel export coming soon!");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Export failed: {ex.Message}");
+        }
+    }
+
+    private async Task ExportCsv()
+    {
+        if (currentReport == null) return;
+
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine(string.Join(",", currentReport.Columns));
+        foreach (var row in currentReport.Rows)
+        {
+            csv.AppendLine(string.Join(",", row.Select(c => $"\"{c}\"")));
+        }
+
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv.ToString()));
+        await JS.InvokeVoidAsync("downloadFile",
+            $"{currentReport.Type}_report_{DateTime.Now:yyyyMMdd}.csv",
+            "text/csv",
+            base64);
+
+        Toast.ShowSuccess("CSV exported successfully!");
+    }
+
+    private async Task ExportPdf()
+    {
+        Toast.ShowInfo("PDF export functionality requires server-side processing. Coming soon!");
+        await Task.CompletedTask;
+    }
+
+    private void ViewReport(ReportData report)
+    {
+        currentReport = report;
+        // Regenerate the report data for viewing
+        currentReport = GenerateReportData(report.Type, report.StartDate, report.EndDate);
+        currentReport.Id = report.Id;
+        currentReport.GeneratedAt = report.GeneratedAt;
+        StateHasChanged();
+    }
+
+    private async Task DownloadReport(ReportData report)
+    {
+        currentReport = GenerateReportData(report.Type, report.StartDate, report.EndDate);
+        await ExportCsv();
+    }
+
+    private void DeleteReport(ReportData report)
+    {
+        recentReports.Remove(report);
+        if (currentReport?.Id == report.Id)
+        {
+            currentReport = null;
+        }
+        Toast.ShowSuccess("Report deleted");
+        StateHasChanged();
+    }
+
+    private string GetReportIcon(string type) => type switch
+    {
+        "revenue" => "fa-dollar-sign",
+        "users" => "fa-users",
+        "courses" => "fa-graduation-cap",
+        "enrollments" => "fa-user-plus",
+        "engagement" => "fa-chart-line",
+        "instructors" => "fa-chalkboard-teacher",
+        _ => "fa-file-alt"
+    };
+
+    private string GetReportTypeName(string type) => type switch
+    {
+        "revenue" => "Revenue",
+        "users" => "User Growth",
+        "courses" => "Course Performance",
+        "enrollments" => "Enrollments",
+        "engagement" => "Engagement",
+        "instructors" => "Instructor Earnings",
+        _ => "Report"
+    };
+
+    // Internal classes
+    private class ReportData
+    {
+        public Guid Id { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime GeneratedAt { get; set; }
+        public string Status { get; set; } = "Completed";
+        public List<ReportMetric> KeyMetrics { get; set; } = new();
+        public List<string> Columns { get; set; } = new();
+        public List<List<string>> Rows { get; set; } = new();
+    }
+
+    private class ReportMetric
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public string? Change { get; set; }
+        public bool IsPositive { get; set; }
+    }
+
+    private class ReportTypeInfo
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
     }
 }

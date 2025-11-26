@@ -1,33 +1,100 @@
 @page "/admin/categories"
 @attribute [Authorize(Roles = "Admin")]
+@inject ICategoryService CategoryService
 @inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.WebAssembly.Services
+@implements IDisposable
 
 <PageTitle>Category Management - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
-    <div class="breadcrumb-nav">
-        <nav class="breadcrumb">
-            <a href="/" class="breadcrumb-item">Home</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/admin" class="breadcrumb-item">Admin</a>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Category Management</span>
-        </nav>
-    </div>
+<link href="css/admin-components.css" rel="stylesheet" />
 
+<div class="admin-page-container">
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">Category Management</h1>
-        <p class="page-description">Manage course categories</p>
+        <div>
+            <h1 class="page-title">Category Management</h1>
+            <p class="page-description">Manage course categories and organization</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" @onclick="NavigateToCreateCategory">
+                <i class="fas fa-plus"></i> Create Category
+            </button>
+        </div>
     </div>
 
+    <!-- KPI Cards -->
+    <div class="kpi-cards-row">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-primary">
+                <i class="fas fa-folder"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@totalCategories</span>
+                <span class="kpi-label">Total Categories</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-success">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@totalCourses</span>
+                <span class="kpi-label">Total Courses</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-warning">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@topCategoryName</span>
+                <span class="kpi-label">Top Category</span>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-info">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="kpi-content">
+                <span class="kpi-value">@avgCoursesPerCategory.ToString("F1")</span>
+                <span class="kpi-label">Avg Courses/Category</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text"
+                   placeholder="Search categories by name..."
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp" />
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="search-clear" @onclick="ClearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            }
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-secondary" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
     @if (isLoading)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading categories...</p>
         </div>
     }
     else if (error != null)
@@ -35,26 +102,194 @@
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+            <button class="btn btn-primary" @onclick="RefreshData">Retry</button>
         </div>
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Category Management</h2>
-            </div>
-            <div class="card-content">
-                <p>Manage course categories page content goes here.</p>
-                <!-- TODO: Implement CategoryManagement functionality -->
-            </div>
+        <!-- Categories Table -->
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th class="col-color">Color</th>
+                        <th class="col-name sortable" @onclick='() => SortBy("name")'>
+                            Name
+                            @if (sortColumn == "name")
+                            {
+                                <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                            }
+                        </th>
+                        <th class="col-slug">Slug</th>
+                        <th class="col-courses sortable" @onclick='() => SortBy("courses")'>
+                            Courses
+                            @if (sortColumn == "courses")
+                            {
+                                <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                            }
+                        </th>
+                        <th class="col-order sortable" @onclick='() => SortBy("order")'>
+                            Order
+                            @if (sortColumn == "order")
+                            {
+                                <i class="fas fa-sort-@(sortDescending ? "down" : "up")"></i>
+                            }
+                        </th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (filteredCategories == null || !filteredCategories.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="empty-message">
+                                <i class="fas fa-folder-open"></i>
+                                <p>No categories found</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var category in GetPagedCategories())
+                        {
+                            <tr>
+                                <td class="col-color">
+                                    <span class="color-badge" style="background-color: @(category.ColorCode ?? "#6c757d")"></span>
+                                </td>
+                                <td class="col-name">
+                                    <div class="category-name-cell">
+                                        @if (!string.IsNullOrEmpty(category.IconUrl))
+                                        {
+                                            <img src="@category.IconUrl" alt="@category.Name" class="category-icon" />
+                                        }
+                                        else
+                                        {
+                                            <span class="category-icon-placeholder">
+                                                <i class="fas fa-folder"></i>
+                                            </span>
+                                        }
+                                        <span>@category.Name</span>
+                                    </div>
+                                </td>
+                                <td class="col-slug">
+                                    <code>@category.Slug</code>
+                                </td>
+                                <td class="col-courses">
+                                    <span class="badge badge-info">@category.CourseCount courses</span>
+                                </td>
+                                <td class="col-order">
+                                    <span class="order-badge">@category.OrderIndex</span>
+                                </td>
+                                <td class="col-actions">
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="View Courses" @onclick="() => ViewCategoryCourses(category.Id)">
+                                            <i class="fas fa-book-open"></i>
+                                        </button>
+                                        <button class="btn-icon btn-edit" title="Edit" @onclick="() => EditCategory(category.Id)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon btn-delete" title="Delete" @onclick="() => ConfirmDelete(category)" disabled="@(category.CourseCount > 0)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing @((currentPage - 1) * pageSize + 1) - @Math.Min(currentPage * pageSize, totalCount) of @totalCount categories
+                </div>
+                <div class="pagination-controls">
+                    <button class="btn-page" disabled="@(currentPage == 1)" @onclick="() => GoToPage(1)">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button class="btn-page" disabled="@(currentPage == 1)" @onclick="() => GoToPage(currentPage - 1)">
+                        <i class="fas fa-angle-left"></i>
+                    </button>
+
+                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                    {
+                        var pageNum = i;
+                        <button class="btn-page @(pageNum == currentPage ? "active" : "")" @onclick="() => GoToPage(pageNum)">
+                            @pageNum
+                        </button>
+                    }
+
+                    <button class="btn-page" disabled="@(currentPage == totalPages)" @onclick="() => GoToPage(currentPage + 1)">
+                        <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button class="btn-page" disabled="@(currentPage == totalPages)" @onclick="() => GoToPage(totalPages)">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                </div>
+            </div>
+        }
     }
 </div>
 
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal && categoryToDelete != null)
+{
+    <div class="modal-overlay" @onclick="CloseDeleteModal">
+        <div class="modal-content" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle text-danger"></i> Confirm Delete</h3>
+                <button class="modal-close" @onclick="CloseDeleteModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the category "<strong>@categoryToDelete.Name</strong>"?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                <button class="btn btn-danger" @onclick="DeleteCategory" disabled="@isDeleting">
+                    @if (isDeleting)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                    }
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    private List<CategoryDto>? categories;
+    private List<CategoryDto>? filteredCategories;
     private bool isLoading = true;
+    private bool isDeleting = false;
     private string? error;
+    private string searchTerm = "";
+    private string sortColumn = "order";
+    private bool sortDescending = false;
+    private System.Threading.Timer? searchDebounceTimer;
+
+    // KPI values
+    private int totalCategories = 0;
+    private int totalCourses = 0;
+    private string topCategoryName = "-";
+    private double avgCoursesPerCategory = 0;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount = 0;
+    private int totalPages = 0;
+
+    // Delete modal
+    private bool showDeleteModal = false;
+    private CategoryDto? categoryToDelete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,18 +302,220 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for CategoryManagement
-            await Task.Delay(500); // Placeholder
+            var response = await CategoryService.GetAllCategoriesAsync();
 
-            isLoading = false;
+            if (response.Success && response.Data != null)
+            {
+                categories = response.Data;
+                CalculateKPIs();
+                ApplyFiltersAndSort();
+            }
+            else
+            {
+                error = response.Message ?? "Failed to load categories";
+                Toast.ShowError(error);
+            }
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "An error occurred while loading categories";
             Toast.ShowError(error);
             Console.WriteLine($"CategoryManagement error: {ex}");
-            isLoading = false;
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CalculateKPIs()
+    {
+        if (categories == null || !categories.Any())
+        {
+            totalCategories = 0;
+            totalCourses = 0;
+            topCategoryName = "-";
+            avgCoursesPerCategory = 0;
+            return;
+        }
+
+        totalCategories = categories.Count;
+        totalCourses = categories.Sum(c => c.CourseCount);
+
+        var topCategory = categories.OrderByDescending(c => c.CourseCount).FirstOrDefault();
+        topCategoryName = topCategory?.Name ?? "-";
+
+        avgCoursesPerCategory = totalCategories > 0 ? (double)totalCourses / totalCategories : 0;
+    }
+
+    private void ApplyFiltersAndSort()
+    {
+        if (categories == null)
+        {
+            filteredCategories = new List<CategoryDto>();
+            return;
+        }
+
+        var query = categories.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.ToLower();
+            query = query.Where(c =>
+                c.Name.ToLower().Contains(term) ||
+                c.Slug.ToLower().Contains(term));
+        }
+
+        // Apply sorting
+        query = sortColumn switch
+        {
+            "name" => sortDescending ? query.OrderByDescending(c => c.Name) : query.OrderBy(c => c.Name),
+            "courses" => sortDescending ? query.OrderByDescending(c => c.CourseCount) : query.OrderBy(c => c.CourseCount),
+            "order" => sortDescending ? query.OrderByDescending(c => c.OrderIndex) : query.OrderBy(c => c.OrderIndex),
+            _ => query.OrderBy(c => c.OrderIndex)
+        };
+
+        filteredCategories = query.ToList();
+        totalCount = filteredCategories.Count;
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        // Reset to page 1 if current page is out of range
+        if (currentPage > totalPages && totalPages > 0)
+        {
+            currentPage = 1;
+        }
+    }
+
+    private List<CategoryDto> GetPagedCategories()
+    {
+        if (filteredCategories == null) return new List<CategoryDto>();
+
+        return filteredCategories
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void SortBy(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortDescending = !sortDescending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortDescending = false;
+        }
+        ApplyFiltersAndSort();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        // Debounce search
+        searchDebounceTimer?.Dispose();
+        searchDebounceTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                ApplyFiltersAndSort();
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = "";
+        ApplyFiltersAndSort();
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+        }
+    }
+
+    private void NavigateToCreateCategory()
+    {
+        Navigation.NavigateTo("/admin/categories/create");
+    }
+
+    private void EditCategory(Guid id)
+    {
+        Navigation.NavigateTo($"/admin/categories/edit/{id}");
+    }
+
+    private void ViewCategoryCourses(Guid categoryId)
+    {
+        Navigation.NavigateTo($"/admin/courses?categoryId={categoryId}");
+    }
+
+    private void ConfirmDelete(CategoryDto category)
+    {
+        if (category.CourseCount > 0)
+        {
+            Toast.ShowWarning("Cannot delete a category that has courses. Remove or reassign courses first.");
+            return;
+        }
+
+        categoryToDelete = category;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        categoryToDelete = null;
+    }
+
+    private async Task DeleteCategory()
+    {
+        if (categoryToDelete == null) return;
+
+        try
+        {
+            isDeleting = true;
+            StateHasChanged();
+
+            var response = await CategoryService.DeleteCategoryAsync(categoryToDelete.Id);
+
+            if (response.Success)
+            {
+                Toast.ShowSuccess($"Category '{categoryToDelete.Name}' deleted successfully");
+                CloseDeleteModal();
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError(response.Message ?? "Failed to delete category");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("An error occurred while deleting the category");
+            Console.WriteLine($"Delete category error: {ex}");
+        }
+        finally
+        {
+            isDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        searchDebounceTimer?.Dispose();
     }
 }

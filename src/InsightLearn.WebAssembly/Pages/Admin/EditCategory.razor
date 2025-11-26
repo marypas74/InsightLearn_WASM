@@ -1,33 +1,49 @@
-@page "/admin/categories/edit/{id}"
+@page "/admin/categories/edit/{Id:guid}"
 @attribute [Authorize(Roles = "Admin")]
+@inject ICategoryService CategoryService
 @inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.Shared.DTOs
+@using InsightLearn.WebAssembly.Services
+@using System.ComponentModel.DataAnnotations
 
 <PageTitle>Edit Category - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
+<link href="css/admin-components.css" rel="stylesheet" />
+
+<div class="admin-page-container">
+    <!-- Breadcrumb -->
     <div class="breadcrumb-nav">
         <nav class="breadcrumb">
             <a href="/" class="breadcrumb-item">Home</a>
             <span class="breadcrumb-separator">/</span>
             <a href="/admin" class="breadcrumb-item">Admin</a>
             <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Edit Category</span>
+            <a href="/admin/categories" class="breadcrumb-item">Categories</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Edit</span>
         </nav>
     </div>
 
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">Edit Category</h1>
-        <p class="page-description">Edit category</p>
+        <div>
+            <h1 class="page-title">Edit Category</h1>
+            <p class="page-description">Modify category details</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" @onclick="NavigateBack">
+                <i class="fas fa-arrow-left"></i> Back to Categories
+            </button>
+        </div>
     </div>
 
     @if (isLoading)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading category...</p>
         </div>
     }
     else if (error != null)
@@ -40,21 +56,123 @@
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Edit Category</h2>
-            </div>
-            <div class="card-content">
-                <p>Edit category page content goes here.</p>
-                <!-- TODO: Implement EditCategory functionality -->
-            </div>
+        <!-- Form Card -->
+        <div class="form-card">
+            <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="form-section">
+                    <h3 class="section-title">Basic Information</h3>
+
+                    <div class="form-group">
+                        <label for="name" class="form-label required">Category Name</label>
+                        <InputText id="name" @bind-Value="model.Name" class="form-control" placeholder="Enter category name" />
+                        <ValidationMessage For="@(() => model.Name)" class="validation-error" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="slug" class="form-label">Slug (URL-friendly)</label>
+                            <InputText id="slug" @bind-Value="model.Slug" class="form-control" placeholder="e.g., web-development" />
+                            <span class="form-hint">Only lowercase letters, numbers, and hyphens allowed.</span>
+                            <ValidationMessage For="@(() => model.Slug)" class="validation-error" />
+                        </div>
+                        <div class="form-group">
+                            <label for="orderIndex" class="form-label">Display Order</label>
+                            <InputNumber id="orderIndex" @bind-Value="model.OrderIndex" class="form-control" />
+                            <span class="form-hint">Lower numbers appear first (0 = highest priority)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">Appearance</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="colorCode" class="form-label">Category Color</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="colorPicker" value="@(model.ColorCode ?? "#6c757d")" @onchange="OnColorChange" class="color-picker" />
+                                <InputText id="colorCode" @bind-Value="model.ColorCode" class="form-control color-input" placeholder="#6c757d" maxlength="7" />
+                            </div>
+                            <span class="form-hint">Hex color code (e.g., #FF5733)</span>
+                            <ValidationMessage For="@(() => model.ColorCode)" class="validation-error" />
+                        </div>
+                        <div class="form-group">
+                            <label for="iconUrl" class="form-label">Icon URL</label>
+                            <InputText id="iconUrl" @bind-Value="model.IconUrl" class="form-control" placeholder="https://example.com/icon.png" />
+                            <span class="form-hint">URL to category icon image (optional)</span>
+                            <ValidationMessage For="@(() => model.IconUrl)" class="validation-error" />
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="preview-section">
+                        <label class="form-label">Preview</label>
+                        <div class="category-preview">
+                            <span class="color-badge preview-badge" style="background-color: @(model.ColorCode ?? "#6c757d")"></span>
+                            @if (!string.IsNullOrEmpty(model.IconUrl))
+                            {
+                                <img src="@model.IconUrl" alt="Icon preview" class="preview-icon" />
+                            }
+                            else
+                            {
+                                <span class="preview-icon-placeholder">
+                                    <i class="fas fa-folder"></i>
+                                </span>
+                            }
+                            <span class="preview-name">@(string.IsNullOrEmpty(model.Name) ? "Category Name" : model.Name)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Stats (Read-only) -->
+                <div class="form-section">
+                    <h3 class="section-title">Statistics</h3>
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <span class="stat-label">Course Count</span>
+                            <span class="stat-value">@courseCount</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Category ID</span>
+                            <code class="stat-value">@Id</code>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" @onclick="NavigateBack" disabled="@isSaving">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save"></i>
+                            <span>Save Changes</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
         </div>
     }
 </div>
 
 @code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private CategoryFormModel model = new();
     private bool isLoading = true;
+    private bool isSaving = false;
     private string? error;
+    private int courseCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,18 +185,114 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for EditCategory
-            await Task.Delay(500); // Placeholder
+            var response = await CategoryService.GetCategoryByIdAsync(Id);
 
-            isLoading = false;
+            if (response.Success && response.Data != null)
+            {
+                var category = response.Data;
+                model = new CategoryFormModel
+                {
+                    Name = category.Name,
+                    Slug = category.Slug,
+                    IconUrl = category.IconUrl,
+                    ColorCode = category.ColorCode,
+                    OrderIndex = category.OrderIndex
+                };
+                courseCount = category.CourseCount;
+            }
+            else
+            {
+                error = response.Message ?? "Category not found";
+                Toast.ShowError(error);
+            }
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "An error occurred while loading the category";
             Toast.ShowError(error);
-            Console.WriteLine($"EditCategory error: {ex}");
-            isLoading = false;
+            Console.WriteLine($"EditCategory load error: {ex}");
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnColorChange(ChangeEventArgs e)
+    {
+        model.ColorCode = e.Value?.ToString();
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/admin/categories");
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            // Create CategoryDto from model
+            var categoryDto = new CategoryDto
+            {
+                Id = Id,
+                Name = model.Name,
+                Slug = model.Slug ?? "",
+                IconUrl = model.IconUrl,
+                ColorCode = model.ColorCode,
+                OrderIndex = model.OrderIndex,
+                CourseCount = courseCount
+            };
+
+            var response = await CategoryService.UpdateCategoryAsync(Id, categoryDto);
+
+            if (response.Success)
+            {
+                Toast.ShowSuccess($"Category '{model.Name}' updated successfully!");
+                Navigation.NavigateTo("/admin/categories");
+            }
+            else
+            {
+                Toast.ShowError(response.Message ?? "Failed to update category");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("An error occurred while updating the category");
+            Console.WriteLine($"EditCategory save error: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private class CategoryFormModel
+    {
+        [Required(ErrorMessage = "Category name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(50, ErrorMessage = "Slug cannot exceed 50 characters")]
+        [RegularExpression(@"^[a-z0-9-]*$", ErrorMessage = "Slug can only contain lowercase letters, numbers, and hyphens")]
+        public string? Slug { get; set; }
+
+        [StringLength(200, ErrorMessage = "Icon URL cannot exceed 200 characters")]
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string? IconUrl { get; set; }
+
+        [StringLength(7, ErrorMessage = "Color code must be 7 characters")]
+        [RegularExpression(@"^#[0-9A-Fa-f]{6}$", ErrorMessage = "Color code must be in hex format (e.g., #FF5733)")]
+        public string? ColorCode { get; set; }
+
+        [Range(0, 1000, ErrorMessage = "Order index must be between 0 and 1000")]
+        public int OrderIndex { get; set; } = 0;
     }
 }

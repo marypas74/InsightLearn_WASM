@@ -106,14 +106,14 @@
                      Trend="@stats.RevenueTrend" />
 
             <KpiCard Icon="server"
-                     IconColor="@(stats.PlatformStatus == "healthy" ? "success" : "danger")"
+                     IconColor="@(stats.PlatformStatus?.Equals("healthy", StringComparison.OrdinalIgnoreCase) == true ? "success" : "danger")"
                      Label="Platform Status"
-                     Value="@stats.PlatformStatus.ToUpper()" />
+                     Value="@(stats.PlatformStatus?.ToUpper() ?? "UNKNOWN")" />
 
             <KpiCard Icon="database"
                      IconColor="info"
                      Label="Storage Used"
-                     Value="@stats.Storage.TotalUsedFormatted" />
+                     Value="@(stats.Storage?.TotalUsedFormatted ?? "N/A")" />
         </div>
 
         <!-- Quick Stats -->
@@ -330,7 +330,7 @@
                             </div>
                             <div class="health-item">
                                 <span class="health-label">Videos</span>
-                                <span class="health-value">@stats.Storage.TotalVideos</span>
+                                <span class="health-value">@(stats.Storage?.TotalVideos ?? 0)</span>
                             </div>
                         </div>
                     </div>

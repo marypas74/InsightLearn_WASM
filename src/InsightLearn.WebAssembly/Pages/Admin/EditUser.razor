@@ -1,33 +1,48 @@
-@page "/admin/users/edit/{id}"
+@page "/admin/users/edit/{Id:guid}"
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager Navigation
 @inject IApiClient ApiClient
-@inject IToastService Toast
+@inject Blazored.Toast.Services.IToastService Toast
 @using Microsoft.AspNetCore.Authorization
+@using InsightLearn.WebAssembly.Services.Http
+@using System.ComponentModel.DataAnnotations
 
 <PageTitle>Edit User - InsightLearn Admin</PageTitle>
 
-<div class="dashboard-layout">
+<link href="css/admin-components.css" rel="stylesheet" />
+
+<div class="admin-page-container">
+    <!-- Breadcrumb -->
     <div class="breadcrumb-nav">
         <nav class="breadcrumb">
             <a href="/" class="breadcrumb-item">Home</a>
             <span class="breadcrumb-separator">/</span>
             <a href="/admin" class="breadcrumb-item">Admin</a>
             <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-item active">Edit User</span>
+            <a href="/admin/users" class="breadcrumb-item">Users</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Edit</span>
         </nav>
     </div>
 
+    <!-- Page Header -->
     <div class="page-header">
-        <h1 class="page-title">Edit User</h1>
-        <p class="page-description">Edit user details</p>
+        <div>
+            <h1 class="page-title">Edit User</h1>
+            <p class="page-description">Modify user details and settings</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" @onclick="NavigateBack">
+                <i class="fas fa-arrow-left"></i> Back to Users
+            </button>
+        </div>
     </div>
 
     @if (isLoading)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading user...</p>
         </div>
     }
     else if (error != null)
@@ -40,20 +55,670 @@
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>Edit User</h2>
+        <!-- User Summary Card -->
+        <div class="user-summary-card">
+            <div class="user-avatar">
+                @if (!string.IsNullOrEmpty(model.ProfilePictureUrl))
+                {
+                    <img src="@model.ProfilePictureUrl" alt="@model.FirstName @model.LastName" />
+                }
+                else
+                {
+                    <div class="avatar-placeholder">
+                        @((model.FirstName?.FirstOrDefault().ToString() ?? "U") + (model.LastName?.FirstOrDefault().ToString() ?? ""))
+                    </div>
+                }
             </div>
-            <div class="card-content">
-                <p>Edit user details page content goes here.</p>
-                <!-- TODO: Implement EditUser functionality -->
+            <div class="user-info">
+                <h2>@model.FirstName @model.LastName</h2>
+                <p class="user-email">@model.Email</p>
+                <div class="user-badges">
+                    <span class="role-badge @model.Role?.ToLower()">@model.Role</span>
+                    <span class="status-badge @(model.IsActive ? "active" : "inactive")">
+                        @(model.IsActive ? "Active" : "Inactive")
+                    </span>
+                    @if (model.EmailConfirmed)
+                    {
+                        <span class="verified-badge">
+                            <i class="fas fa-check-circle"></i> Verified
+                        </span>
+                    }
+                </div>
             </div>
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-value">@userStats.EnrolledCourses</span>
+                    <span class="stat-label">Courses</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">@userStats.CompletedCourses</span>
+                    <span class="stat-label">Completed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">@userStats.TotalPayments.ToString("C0")</span>
+                    <span class="stat-label">Spent</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">@userStats.LastActive.ToString("MMM dd")</span>
+                    <span class="stat-label">Last Active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <!-- Personal Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i> Personal Information
+                    </h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName" class="form-label required">First Name</label>
+                            <InputText id="firstName" @bind-Value="model.FirstName" class="form-control" placeholder="Enter first name" />
+                            <ValidationMessage For="@(() => model.FirstName)" class="validation-error" />
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName" class="form-label required">Last Name</label>
+                            <InputText id="lastName" @bind-Value="model.LastName" class="form-control" placeholder="Enter last name" />
+                            <ValidationMessage For="@(() => model.LastName)" class="validation-error" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email" class="form-label required">Email Address</label>
+                            <InputText id="email" @bind-Value="model.Email" class="form-control" placeholder="user@example.com" type="email" />
+                            <ValidationMessage For="@(() => model.Email)" class="validation-error" />
+                        </div>
+                        <div class="form-group">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <InputText id="phone" @bind-Value="model.PhoneNumber" class="form-control" placeholder="+1 (555) 123-4567" />
+                            <ValidationMessage For="@(() => model.PhoneNumber)" class="validation-error" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-shield-alt"></i> Account Settings
+                    </h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="role" class="form-label required">User Role</label>
+                            <InputSelect id="role" @bind-Value="model.Role" class="form-control">
+                                <option value="">Select a role...</option>
+                                <option value="Student">Student</option>
+                                <option value="Instructor">Instructor</option>
+                                <option value="Admin">Administrator</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.Role)" class="validation-error" />
+                            <span class="form-hint">
+                                @GetRoleDescription(model.Role)
+                            </span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Account Status</label>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <InputCheckbox @bind-Value="model.IsActive" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">@(model.IsActive ? "Active" : "Inactive")</span>
+                            </div>
+                            <span class="form-hint">Inactive users cannot log in</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email Verification</label>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <InputCheckbox @bind-Value="model.EmailConfirmed" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">@(model.EmailConfirmed ? "Verified" : "Not Verified")</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Two-Factor Authentication</label>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <InputCheckbox @bind-Value="model.TwoFactorEnabled" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">@(model.TwoFactorEnabled ? "Enabled" : "Disabled")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password Reset Section -->
+                    <div class="password-section">
+                        <h4>Password Management</h4>
+                        <p class="form-hint">Send a password reset link to the user's email</p>
+                        <button type="button" class="btn btn-outline" @onclick="SendPasswordReset" disabled="@isSendingReset">
+                            @if (isSendingReset)
+                            {
+                                <span class="spinner spinner-sm"></span>
+                                <span>Sending...</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-key"></i>
+                                <span>Send Password Reset Email</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Profile Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-id-card"></i> Profile Information
+                    </h3>
+
+                    <div class="form-group">
+                        <label for="profilePicture" class="form-label">Profile Picture URL</label>
+                        <div class="avatar-input-wrapper">
+                            <InputText id="profilePicture" @bind-Value="model.ProfilePictureUrl" class="form-control"
+                                       placeholder="https://example.com/avatar.jpg" />
+                            @if (!string.IsNullOrEmpty(model.ProfilePictureUrl))
+                            {
+                                <div class="avatar-preview">
+                                    <img src="@model.ProfilePictureUrl" alt="Avatar preview" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="avatar-preview placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            }
+                        </div>
+                        <ValidationMessage For="@(() => model.ProfilePictureUrl)" class="validation-error" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bio" class="form-label">Bio</label>
+                        <InputTextArea id="bio" @bind-Value="model.Bio" class="form-control" rows="3"
+                                       placeholder="Brief description about the user..." />
+                        <ValidationMessage For="@(() => model.Bio)" class="validation-error" />
+                        <span class="form-hint">@(model.Bio?.Length ?? 0) / 500 characters</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="jobTitle" class="form-label">Job Title</label>
+                            <InputText id="jobTitle" @bind-Value="model.JobTitle" class="form-control"
+                                       placeholder="e.g., Software Developer" />
+                        </div>
+                        <div class="form-group">
+                            <label for="company" class="form-label">Company</label>
+                            <InputText id="company" @bind-Value="model.Company" class="form-control"
+                                       placeholder="e.g., Tech Corp" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="location" class="form-label">Location</label>
+                            <InputText id="location" @bind-Value="model.Location" class="form-control"
+                                       placeholder="e.g., New York, USA" />
+                        </div>
+                        <div class="form-group">
+                            <label for="website" class="form-label">Website</label>
+                            <InputText id="website" @bind-Value="model.Website" class="form-control"
+                                       placeholder="https://example.com" />
+                            <ValidationMessage For="@(() => model.Website)" class="validation-error" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Information (Read-Only) -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i> Account Information
+                    </h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">User ID</span>
+                            <code class="info-value">@Id</code>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Registered</span>
+                            <span class="info-value">@userStats.RegisteredAt.ToString("MMM dd, yyyy HH:mm")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Login</span>
+                            <span class="info-value">@userStats.LastLogin.ToString("MMM dd, yyyy HH:mm")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Login Count</span>
+                            <span class="info-value">@userStats.LoginCount</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger" @onclick="ShowDeleteModal" disabled="@isSaving">
+                        <i class="fas fa-trash"></i> Delete User
+                    </button>
+                    <div class="action-spacer"></div>
+                    <button type="button" class="btn btn-secondary" @onclick="NavigateBack" disabled="@isSaving">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save"></i>
+                            <span>Save Changes</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
         </div>
     }
 </div>
 
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal)
+{
+    <div class="modal-backdrop" @onclick="HideDeleteModal">
+        <div class="modal-dialog" @onclick:stopPropagation="true">
+            <div class="modal-header danger">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete User</h3>
+                <button class="modal-close" @onclick="HideDeleteModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>@model.FirstName @model.LastName</strong>?</p>
+                <p class="text-danger">This action cannot be undone. All user data will be permanently removed.</p>
+                <div class="delete-impact">
+                    <h4>This will delete:</h4>
+                    <ul>
+                        <li>@userStats.EnrolledCourses course enrollment(s)</li>
+                        <li>@userStats.ReviewsCount course review(s)</li>
+                        <li>All progress and certificates</li>
+                        <li>Payment history (archived)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="HideDeleteModal" disabled="@isDeleting">Cancel</button>
+                <button class="btn btn-danger" @onclick="DeleteUser" disabled="@isDeleting">
+                    @if (isDeleting)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                        <span>Deleting...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-trash"></i>
+                        <span>Delete User</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .user-summary-card {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .user-info {
+        flex: 1;
+    }
+
+    .user-info h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1.25rem;
+    }
+
+    .user-email {
+        margin: 0 0 0.5rem;
+        color: var(--text-secondary, #666);
+    }
+
+    .user-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .role-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+
+    .role-badge.admin {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .role-badge.instructor {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .role-badge.student {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.active {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .verified-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .user-stats {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary, #333);
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #666);
+    }
+
+    .toggle-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 24px;
+        margin: 0;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.3s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #22c55e;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(24px);
+    }
+
+    .toggle-label {
+        font-size: 0.875rem;
+        color: var(--text-primary, #333);
+    }
+
+    .password-section {
+        background: var(--bg-secondary, #f8f9fa);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .password-section h4 {
+        margin: 0 0 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .password-section .form-hint {
+        margin-bottom: 0.75rem;
+    }
+
+    .avatar-input-wrapper {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .avatar-input-wrapper .form-control {
+        flex: 1;
+    }
+
+    .avatar-preview {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid var(--border-color, #e5e7eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-secondary, #f8f9fa);
+        flex-shrink: 0;
+    }
+
+    .avatar-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-preview.placeholder {
+        color: var(--text-tertiary, #999);
+        font-size: 1.5rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #666);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-value {
+        font-size: 0.875rem;
+        color: var(--text-primary, #333);
+    }
+
+    .action-spacer {
+        flex: 1;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color, #e5e7eb);
+        color: var(--text-primary, #333);
+    }
+
+    .btn-outline:hover {
+        background: var(--bg-secondary, #f8f9fa);
+    }
+
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+        border: none;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    .delete-impact {
+        background: #fee2e2;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .delete-impact h4 {
+        margin: 0 0 0.5rem;
+        color: #b91c1c;
+        font-size: 0.875rem;
+    }
+
+    .delete-impact ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #991b1b;
+        font-size: 0.875rem;
+    }
+
+    .text-danger {
+        color: #ef4444;
+    }
+
+    .modal-header.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    @@media (max-width: 768px) {
+        .user-summary-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .user-badges {
+            justify-content: center;
+        }
+
+        .user-stats {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    }
+</style>
+
 @code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private EditUserModel model = new();
+    private UserStats userStats = new();
     private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isSendingReset = false;
+    private bool isDeleting = false;
+    private bool showDeleteModal = false;
     private string? error;
 
     protected override async Task OnInitializedAsync()
@@ -67,18 +732,199 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for EditUser
-            await Task.Delay(500); // Placeholder
+            // Simulate API call - load user data
+            await Task.Delay(500);
 
-            isLoading = false;
+            // Mock user data
+            model = new EditUserModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                Email = "john.doe@example.com",
+                PhoneNumber = "+1 (555) 123-4567",
+                Role = "Student",
+                IsActive = true,
+                EmailConfirmed = true,
+                TwoFactorEnabled = false,
+                ProfilePictureUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+                Bio = "Passionate learner with a focus on web development and data science.",
+                JobTitle = "Software Developer",
+                Company = "Tech Innovations Inc.",
+                Location = "San Francisco, CA",
+                Website = "https://johndoe.dev"
+            };
+
+            userStats = new UserStats
+            {
+                EnrolledCourses = 12,
+                CompletedCourses = 8,
+                TotalPayments = 459.00m,
+                LastActive = DateTime.Now.AddHours(-3),
+                RegisteredAt = DateTime.Now.AddMonths(-8),
+                LastLogin = DateTime.Now.AddDays(-1),
+                LoginCount = 156,
+                ReviewsCount = 5
+            };
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "An error occurred while loading user data";
             Toast.ShowError(error);
             Console.WriteLine($"EditUser error: {ex}");
-            isLoading = false;
         }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/admin/users");
+    }
+
+    private string GetRoleDescription(string? role) => role switch
+    {
+        "Student" => "Can enroll in courses and track progress",
+        "Instructor" => "Can create and manage courses",
+        "Admin" => "Full access to all platform features",
+        _ => "Select a role to see description"
+    };
+
+    private async Task SendPasswordReset()
+    {
+        try
+        {
+            isSendingReset = true;
+            StateHasChanged();
+
+            await Task.Delay(1000);
+            Toast.ShowSuccess($"Password reset email sent to {model.Email}");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to send password reset email");
+            Console.WriteLine($"Password reset error: {ex}");
+        }
+        finally
+        {
+            isSendingReset = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowDeleteModal()
+    {
+        showDeleteModal = true;
+    }
+
+    private void HideDeleteModal()
+    {
+        showDeleteModal = false;
+    }
+
+    private async Task DeleteUser()
+    {
+        try
+        {
+            isDeleting = true;
+            StateHasChanged();
+
+            await Task.Delay(1500);
+            Toast.ShowSuccess($"User '{model.FirstName} {model.LastName}' has been deleted");
+            Navigation.NavigateTo("/admin/users");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to delete user");
+            Console.WriteLine($"Delete user error: {ex}");
+        }
+        finally
+        {
+            isDeleting = false;
+            showDeleteModal = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            await Task.Delay(1500);
+            Toast.ShowSuccess($"User '{model.FirstName} {model.LastName}' updated successfully!");
+            Navigation.NavigateTo("/admin/users");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("An error occurred while saving changes");
+            Console.WriteLine($"EditUser save error: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private class EditUserModel
+    {
+        [Required(ErrorMessage = "First name is required")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 50 characters")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last name is required")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Last name must be between 2 and 50 characters")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Phone(ErrorMessage = "Invalid phone number")]
+        public string? PhoneNumber { get; set; }
+
+        [Required(ErrorMessage = "Role is required")]
+        public string Role { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+        public bool EmailConfirmed { get; set; } = false;
+        public bool TwoFactorEnabled { get; set; } = false;
+
+        [Url(ErrorMessage = "Invalid URL")]
+        public string? ProfilePictureUrl { get; set; }
+
+        [StringLength(500, ErrorMessage = "Bio cannot exceed 500 characters")]
+        public string? Bio { get; set; }
+
+        [StringLength(100)]
+        public string? JobTitle { get; set; }
+
+        [StringLength(100)]
+        public string? Company { get; set; }
+
+        [StringLength(100)]
+        public string? Location { get; set; }
+
+        [Url(ErrorMessage = "Invalid URL")]
+        public string? Website { get; set; }
+    }
+
+    private class UserStats
+    {
+        public int EnrolledCourses { get; set; }
+        public int CompletedCourses { get; set; }
+        public decimal TotalPayments { get; set; }
+        public DateTime LastActive { get; set; }
+        public DateTime RegisteredAt { get; set; }
+        public DateTime LastLogin { get; set; }
+        public int LoginCount { get; set; }
+        public int ReviewsCount { get; set; }
     }
 }
