@@ -99,6 +99,14 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [AITakeawaysPanel.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/AITakeawaysPanel.razor) - AI key concepts con feedback
 - [VideoProgressIndicator.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/VideoProgressIndicator.razor) - Progress bar con bookmarks
 
+**Admin Console Components** (v2.1.0 - ✅ COMPLETE - 2025-11-24):
+- [Instructors.razor](src/InsightLearn.WebAssembly/Pages/Admin/Instructors.razor) - Instructor management with KPI cards, pagination, search, status filtering
+- [Payments.razor](src/InsightLearn.WebAssembly/Pages/Admin/Payments.razor) - Payment management with refund processing, transaction stats, revenue metrics
+
+**Admin Console Styles**:
+- [admin-instructors.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-instructors.css) - KPI cards, status badges (Active/Suspended/Pending), responsive table
+- [admin-payments.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-payments.css) - Transaction table, refund modal, status badges (4 colors)
+
 ### Authentication & Authorization
 
 - **JWT-based authentication**: Tokens stored in browser localStorage
@@ -1183,6 +1191,14 @@ Esempio modifica version:
 | [src/InsightLearn.Application/Program.cs](/src/InsightLearn.Application/Program.cs) | ⚠️ API entry point (creato manualmente) |
 | [src/InsightLearn.Application/InsightLearn.Application.csproj](/src/InsightLearn.Application/InsightLearn.Application.csproj) | Project file (SDK.Web) |
 | [src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs](/src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs) | EF Core DbContext |
+| [src/InsightLearn.Core/DTOs/Admin/InstructorDtos.cs](/src/InsightLearn.Core/DTOs/Admin/InstructorDtos.cs) | Admin DTOs per gestione istruttori (NEW 2025-11-24) |
+| [src/InsightLearn.Core/DTOs/Admin/PaymentAdminDtos.cs](/src/InsightLearn.Core/DTOs/Admin/PaymentAdminDtos.cs) | Admin DTOs per gestione pagamenti (NEW 2025-11-24) |
+
+**⚠️ IMPORTANTE - DTO Namespace Isolation (2025-11-24)**:
+- Frontend WebAssembly **NON PUÒ** accedere a `InsightLearn.Application.DTOs` (server-side only)
+- DTOs condivisi frontend/backend **DEVONO** essere in `InsightLearn.Core.DTOs` o `InsightLearn.Shared.DTOs`
+- **Errore risolto**: Rimossi DTO duplicati da `Application/DTOs/AdminDtos.cs`, mantenuti solo in `Core/DTOs/Admin/`
+- DTOs Admin: InstructorSummaryDto, InstructorStatsDto, TopCourseDto, SuspendInstructorDto, RefundRequestDto, RefundResponseDto, PaymentStatsDto, DailyRevenueDto
 
 ### Docker
 
@@ -1200,10 +1216,11 @@ Esempio modifica version:
 3. Usare `EndpointsConfig` per configurazione centralizzata
 4. Health check: `/health` (per liveness probes)
 
-#### 📋 Endpoint Completi (46 totali, 45 implementati)
+#### 📋 Endpoint Completi (51 totali, 50 implementati)
 
 **Legenda**: ✅ = Implementato | ❌ = NON Implementato (solo configurato in DB)
 
+**⚠️ Aggiornamento 2025-11-24**: Admin Console completata - 5 nuovi endpoint API implementati (Instructors + Payments management).
 **⚠️ Aggiornamento 2025-11-10**: Phase 3 completata - 31 nuovi endpoint API implementati in [Program.cs](src/InsightLearn.Application/Program.cs). La piattaforma LMS è ora completamente funzionale.
 
 ##### Authentication (6 endpoint - 5 implementati)
@@ -1311,6 +1328,23 @@ Esempio modifica version:
 | `api/dashboard/stats` | GET | ✅ | Get dashboard statistics (Admin only) |
 | `api/dashboard/recent-activity` | GET | ✅ | Get recent activity (Admin only) |
 
+##### Admin Instructors (3 endpoint - 3 implementati) ✅
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/admin/instructors` | GET | ✅ | List instructors with pagination, search, status filtering (Admin only) |
+| `api/admin/instructors/{id}/stats` | GET | ✅ | Get instructor statistics (courses, students, earnings) (Admin only) |
+| `api/admin/instructors/{id}/suspend` | POST | ✅ | Suspend instructor account with reason (Admin only) |
+
+##### Admin Payments (2 endpoint - 2 implementati) ✅
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/admin/payments/{id}/refund` | POST | ✅ | Process payment refund with validation (Admin only) |
+| `api/admin/payments/stats` | GET | ✅ | Get payment statistics with date range filtering (Admin only) |
+
+**✅ ADMIN CONSOLE COMPLETATA (2025-11-24)**: 5 nuovi endpoint implementati per gestione Instructors e Payments.
+
 **✅ PHASE 3 COMPLETATA (2025-11-10)**: Tutti i 31 endpoint LMS critici sono stati implementati. La piattaforma è ora completamente funzionale come LMS enterprise con:
 - Gestione completa dei corsi (Courses, Categories)
 - Sistema di iscrizioni (Enrollments)
@@ -1318,8 +1352,10 @@ Esempio modifica version:
 - Sistema di recensioni (Reviews)
 - Gestione utenti (Users Admin)
 - Dashboard amministrativa (Dashboard Stats)
+- **Gestione istruttori (Admin Instructors)** ← NEW
+- **Gestione pagamenti amministrativa (Admin Payments)** ← NEW
 
-**Unico endpoint mancante**: `api/auth/complete-registration` (1/46 endpoint totali).
+**Unico endpoint mancante**: `api/auth/complete-registration` (1/51 endpoint totali).
 
 ### Sicurezza
 
