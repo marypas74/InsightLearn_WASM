@@ -1797,3 +1797,457 @@
         font-size: 18px;
     }
 }
+
+/* =============================================================================
+   LEARNING SPACE PAGE (Learn.razor) - Production Styles
+   ============================================================================= */
+
+/* Loading & Error States */
+.learning-space-loading,
+.learning-space-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+}
+
+.learning-space-loading p {
+    margin-top: 1rem;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.learning-space-error .alert {
+    max-width: 600px;
+    text-align: left;
+}
+
+/* Main Container */
+.learning-space-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+/* Top Navigation Bar */
+.learning-navbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    flex-shrink: 0;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    max-width: 100%;
+}
+
+.btn-back {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-right: 1rem;
+    transition: color 0.2s;
+}
+
+.btn-back:hover {
+    color: #0073b1;
+}
+
+.course-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.course-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lesson-progress {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.navbar-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 3-Column Layout */
+.learning-space-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebars */
+.learning-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.3s ease;
+}
+
+.left-sidebar {
+    width: 300px;
+}
+
+.right-sidebar {
+    width: 350px;
+    border-right: none;
+    border-left: 1px solid #e0e0e0;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+}
+
+.sidebar-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.btn-collapse {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-collapse:hover {
+    color: #0073b1;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* Collapsed sidebars */
+.left-sidebar.collapsed {
+    width: 0;
+}
+
+.right-sidebar.collapsed {
+    width: 0;
+}
+
+/* Main Content Area */
+.learning-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.video-player-wrapper {
+    background: #000000;
+    position: relative;
+}
+
+.progress-indicator-wrapper {
+    background: #ffffff;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.lesson-header {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.lesson-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #1a1a1a;
+}
+
+.lesson-description {
+    color: #666;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Tabs */
+.learning-tabs {
+    background: #ffffff;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.learning-tabs .nav-tabs {
+    border-bottom: 2px solid #e0e0e0;
+    padding: 0 1.5rem;
+    background: #f8f9fa;
+}
+
+.learning-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.learning-tabs .nav-link:hover {
+    color: #0073b1;
+    background: rgba(0, 115, 177, 0.05);
+}
+
+.learning-tabs .nav-link.active {
+    color: #0073b1;
+    border-bottom-color: #0073b1;
+    background: #ffffff;
+}
+
+.learning-tabs .nav-link i {
+    margin-right: 0.5rem;
+}
+
+.learning-tabs .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.learning-tabs .tab-pane {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Lesson Overview Tab */
+.lesson-overview h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #1a1a1a;
+}
+
+.lesson-overview h4 i {
+    color: #0073b1;
+    margin-right: 0.5rem;
+}
+
+.lesson-overview ul {
+    list-style: none;
+    padding: 0;
+}
+
+.lesson-overview ul li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.lesson-overview ul li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: #0073b1;
+    font-weight: bold;
+}
+
+/* AI Features */
+.ai-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+    .learning-space-layout {
+        flex-direction: column;
+    }
+
+    .left-sidebar,
+    .right-sidebar {
+        width: 100%;
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        max-height: 300px;
+    }
+
+    .sidebar-content {
+        max-height: 250px;
+    }
+
+    .navbar-content {
+        padding: 0.5rem 1rem;
+    }
+
+    .course-title {
+        font-size: 1rem;
+    }
+
+    .navbar-actions {
+        flex-wrap: wrap;
+    }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+    .learning-navbar {
+        padding: 0.5rem;
+    }
+
+    .navbar-content {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .btn-back {
+        margin-right: 0.5rem;
+    }
+
+    .course-info {
+        order: 1;
+        width: 100%;
+    }
+
+    .course-title {
+        font-size: 0.95rem;
+    }
+
+    .lesson-progress {
+        font-size: 0.75rem;
+    }
+
+    .navbar-actions {
+        order: 2;
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .navbar-actions .btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .learning-sidebar {
+        max-height: 200px;
+    }
+
+    .sidebar-header h3 {
+        font-size: 0.9rem;
+    }
+
+    .lesson-header {
+        padding: 1rem;
+    }
+
+    .lesson-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .learning-tabs .nav-tabs {
+        padding: 0 0.5rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .learning-tabs .nav-link {
+        font-size: 0.85rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .learning-tabs .tab-content {
+        padding: 1rem;
+    }
+
+    .progress-indicator-wrapper {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Small Mobile (< 375px) */
+@media (max-width: 374px) {
+    .course-title {
+        font-size: 0.85rem;
+    }
+
+    .navbar-actions .btn {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+    .lesson-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .learning-tabs .nav-link {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .learning-navbar,
+    .left-sidebar,
+    .right-sidebar,
+    .navbar-actions,
+    .btn-collapse,
+    .learning-tabs .nav-tabs {
+        display: none !important;
+    }
+
+    .learning-main-content {
+        overflow: visible;
+    }
+
+    .tab-content {
+        display: block !important;
+    }
+
+    .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+}

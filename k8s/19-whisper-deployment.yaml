@@ -1,0 +1,160 @@
+---
+# Whisper ASR Service - Automatic Speech Recognition for video transcription
+# Part of Student Learning Space v2.1.0
+# Uses OpenAI Whisper large-v3 model for high-accuracy transcription
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisper-models-pvc
+  namespace: insightlearn
+  labels:
+    app: whisper
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # Storage for Whisper model cache (~6GB for large-v3)
+  storageClassName: local-path
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper
+  namespace: insightlearn
+  labels:
+    app: whisper
+    component: asr
+    version: v1.0.0
+spec:
+  replicas: 1  # Single replica (GPU-intensive workload)
+  strategy:
+    type: Recreate  # Recreate strategy (GPU resources)
+  selector:
+    matchLabels:
+      app: whisper
+  template:
+    metadata:
+      labels:
+        app: whisper
+        component: asr
+    spec:
+      containers:
+      - name: whisper
+        image: onerahmet/openai-whisper-asr-webservice:latest
+        imagePullPolicy: Always
+        env:
+        # Whisper Model Configuration
+        - name: ASR_MODEL
+          value: "large-v3"  # Options: tiny, base, small, medium, large-v2, large-v3
+        - name: ASR_ENGINE
+          value: "faster_whisper"  # Optimized inference engine (4x faster than original)
+
+        # Performance Tuning
+        - name: ASR_COMPUTE_TYPE
+          value: "float16"  # Options: float16 (GPU), int8 (CPU), float32 (high precision)
+        - name: ASR_BEAM_SIZE
+          value: "5"  # Beam search size (higher = more accurate, slower)
+        - name: ASR_VAD_FILTER
+          value: "1"  # Voice Activity Detection (removes silence)
+
+        # API Configuration
+        - name: ASR_PORT
+          value: "9000"
+        - name: ASR_HOST
+          value: "0.0.0.0"
+
+        ports:
+        - containerPort: 9000
+          name: http
+          protocol: TCP
+
+        # Resource Limits
+        resources:
+          limits:
+            # Uncomment if GPU available
+            # nvidia.com/gpu: 1
+            memory: "8Gi"
+            cpu: "4"
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 60  # Allow time for model loading
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Volume Mounts
+        volumeMounts:
+        - name: whisper-models
+          mountPath: /root/.cache/whisper
+          subPath: models
+        - name: whisper-tmp
+          mountPath: /tmp
+
+      # Volumes
+      volumes:
+      - name: whisper-models
+        persistentVolumeClaim:
+          claimName: whisper-models-pvc
+      - name: whisper-tmp
+        emptyDir:
+          sizeLimit: 5Gi  # Temporary storage for audio processing
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-service
+  namespace: insightlearn
+  labels:
+    app: whisper
+    component: asr
+spec:
+  selector:
+    app: whisper
+  ports:
+  - name: http
+    port: 9000
+    targetPort: 9000
+    protocol: TCP
+  type: ClusterIP  # Internal service only (not exposed publicly)
+  sessionAffinity: None
+
+---
+# Optional: NodePort for external testing
+# Uncomment to expose Whisper service externally
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: whisper-nodeport
+#   namespace: insightlearn
+#   labels:
+#     app: whisper
+# spec:
+#   selector:
+#     app: whisper
+#   ports:
+#   - name: http
+#     port: 9000
+#     targetPort: 9000
+#     nodePort: 32000  # External access at http://localhost:32000
+#     protocol: TCP
+#   type: NodePort

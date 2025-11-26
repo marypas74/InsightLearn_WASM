@@ -42,6 +42,8 @@
     <link rel="stylesheet" href="css/admin.css" />
     <link rel="stylesheet" href="css/admin-components.css" />
     <link rel="stylesheet" href="css/admin-dashboard.css" />
+    <link rel="stylesheet" href="css/admin-instructors.css" />
+    <link rel="stylesheet" href="css/admin-payments.css" />
     <link rel="stylesheet" href="css/courses.css" />
     <link rel="stylesheet" href="css/video-components.css" />
     <link rel="stylesheet" href="css/learning-space.css" />
@@ -247,6 +249,12 @@
     <script src="js/cookie-consent-wall.js"></script>
     <script src="js/new-home-2025.js"></script>
 
+    <!-- Video Player JS Interop (Student Learning Space v2.1.0) -->
+    <script src="js/videoPlayer.js"></script>
+
+    <!-- Session Timeout - User Activity Tracking (v2.1.0-dev) -->
+    <script src="js/sessionTimeout.js"></script>
+
     <!-- Hide static wall and show app after Blazor loads -->
     <script>
         window.addEventListener('load', function() {
@@ -301,6 +309,16 @@
                 return parts.pop().split(';').shift();
             }
             return null;
+        }
+
+        // Download file helper for CSV export (Analytics Dashboard)
+        function downloadFile(filename, contentType, base64Content) {
+            const link = document.createElement('a');
+            link.href = 'data:' + contentType + ';base64,' + base64Content;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>

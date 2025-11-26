@@ -1,0 +1,482 @@
+@page "/learn/{CourseId:guid}/{LessonId:guid}"
+@using InsightLearn.WebAssembly.Components
+@using InsightLearn.WebAssembly.Components.LearningSpace
+@using InsightLearn.Shared.DTOs
+@inject ICourseService CourseService
+@inject IEnrollmentService EnrollmentService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IToastService ToastService
+@attribute [Authorize]
+
+<PageTitle>@(lesson?.Title ?? "Learning") - InsightLearn</PageTitle>
+
+@if (isLoading)
+{
+    <div class="learning-space-loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading lesson...</span>
+        </div>
+        <p>Preparing your learning environment...</p>
+    </div>
+}
+else if (errorMessage != null)
+{
+    <div class="learning-space-error">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Unable to load lesson</h4>
+            <p>@errorMessage</p>
+            <button class="btn btn-primary mt-3" @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
+                <i class="fas fa-arrow-left"></i> Back to Course
+            </button>
+        </div>
+    </div>
+}
+else if (lesson != null && course != null)
+{
+    <div class="learning-space-container">
+        <!-- Top Navigation Bar -->
+        <nav class="learning-navbar">
+            <div class="navbar-content">
+                <button class="btn-back" @onclick="BackToCourse" title="Back to course">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="course-info">
+                    <h1 class="course-title">@course.Title</h1>
+                    <span class="lesson-progress">Lesson @currentLessonIndex of @totalLessons</span>
+                </div>
+                <div class="navbar-actions">
+                    @if (hasPreviousLesson)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="NavigateToPreviousLesson">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                    }
+                    @if (hasNextLesson)
+                    {
+                        <button class="btn btn-sm btn-primary" @onclick="NavigateToNextLesson">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
+                            <i class="fas fa-check-circle"></i> Complete Course
+                        </button>
+                    }
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Learning Space Layout (3 columns) -->
+        <div class="learning-space-layout">
+            <!-- Left Sidebar: Course Curriculum -->
+            <aside class="learning-sidebar left-sidebar">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-list"></i> Course Content</h3>
+                    <button class="btn-collapse" @onclick="ToggleCurriculumSidebar" title="Collapse">
+                        <i class="fas fa-@(curriculumSidebarCollapsed ? "chevron-right" : "chevron-left")"></i>
+                    </button>
+                </div>
+                @if (!curriculumSidebarCollapsed)
+                {
+                    <div class="sidebar-content">
+                        <CourseCurriculum Sections="@course.Sections"
+                                          CurrentLessonId="@LessonId"
+                                          OnLessonClick="NavigateToLesson" />
+                    </div>
+                }
+            </aside>
+
+            <!-- Center: Video Player + Tabs -->
+            <main class="learning-main-content">
+                <!-- Video Player -->
+                <div class="video-player-wrapper">
+                    <VideoPlayer @ref="videoPlayerRef"
+                                 LessonId="@LessonId"
+                                 VideoUrl="@lesson.VideoUrl"
+                                 ShowControls="true"
+                                 ShowMetadata="false"
+                                 OnTimeUpdate="@HandleTimeUpdate"
+                                 OnPlayStateChanged="@HandlePlayStateChanged"
+                                 OnVideoEnded="@HandleVideoEnded" />
+                </div>
+
+                <!-- Video Progress Indicator -->
+                <div class="progress-indicator-wrapper">
+                    <VideoProgressIndicator LessonId="@LessonId"
+                                            CurrentTime="@currentVideoTime"
+                                            Duration="@videoDuration"
+                                            OnSeek="@HandleProgressSeek" />
+                </div>
+
+                <!-- Lesson Info -->
+                <div class="lesson-header">
+                    <h2>@lesson.Title</h2>
+                    @if (!string.IsNullOrEmpty(lesson.Description))
+                    {
+                        <p class="lesson-description">@lesson.Description</p>
+                    }
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="learning-tabs">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "notes" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("notes"))"
+                                    type="button" role="tab">
+                                <i class="fas fa-sticky-note"></i> Notes
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "transcript" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("transcript"))"
+                                    type="button" role="tab">
+                                <i class="fas fa-file-alt"></i> Transcript
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "overview" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("overview"))"
+                                    type="button" role="tab">
+                                <i class="fas fa-info-circle"></i> Overview
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        @if (activeTab == "notes")
+                        {
+                            <div class="tab-pane active">
+                                <StudentNotesPanel LessonId="@LessonId"
+                                                   CurrentVideoTimestamp="@((int)currentVideoTime)"
+                                                   OnTimestampClick="@HandleNotesTimestampClick" />
+                            </div>
+                        }
+                        else if (activeTab == "transcript")
+                        {
+                            <div class="tab-pane active">
+                                <VideoTranscriptViewer LessonId="@LessonId"
+                                                       CurrentVideoTimestamp="@((int)currentVideoTime)"
+                                                       OnTimestampClick="@HandleTranscriptTimestampClick" />
+                            </div>
+                        }
+                        else if (activeTab == "overview")
+                        {
+                            <div class="tab-pane active">
+                                <div class="lesson-overview">
+                                    @if (!string.IsNullOrEmpty(lesson.Description))
+                                    {
+                                        <section class="mb-4">
+                                            <h4><i class="fas fa-info-circle"></i> Description</h4>
+                                            <p>@lesson.Description</p>
+                                        </section>
+                                    }
+                                    @if (!string.IsNullOrEmpty(lesson.AttachmentUrl))
+                                    {
+                                        <section class="mb-4">
+                                            <h4><i class="fas fa-download"></i> Resources</h4>
+                                            <a href="@lesson.AttachmentUrl" target="_blank" class="btn btn-outline-primary">
+                                                <i class="fas fa-file-download"></i>
+                                                @(lesson.AttachmentName ?? "Download Attachment")
+                                            </a>
+                                        </section>
+                                    }
+                                    <section>
+                                        <h4><i class="fas fa-clock"></i> Lesson Info</h4>
+                                        <p><strong>Duration:</strong> @FormatDuration(lesson.DurationMinutes)</p>
+                                        <p><strong>Section:</strong> @currentSection?.Title</p>
+                                        <p><strong>Type:</strong> @lesson.Type</p>
+                                        @if (lesson.IsFree)
+                                        {
+                                            <p><span class="badge bg-info">Free Preview Available</span></p>
+                                        }
+                                        @if (lesson.IsCompleted)
+                                        {
+                                            <p><span class="badge bg-success">Completed</span></p>
+                                        }
+                                    </section>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar: AI Features -->
+            <aside class="learning-sidebar right-sidebar">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-robot"></i> AI Assistant</h3>
+                    <button class="btn-collapse" @onclick="ToggleAISidebar" title="Collapse">
+                        <i class="fas fa-@(aiSidebarCollapsed ? "chevron-left" : "chevron-right")"></i>
+                    </button>
+                </div>
+                @if (!aiSidebarCollapsed)
+                {
+                    <div class="sidebar-content">
+                        <div class="ai-features">
+                            <AITakeawaysPanel LessonId="@LessonId"
+                                              OnTimestampClick="@HandleTakeawayTimestampClick" />
+                        </div>
+                    </div>
+                }
+            </aside>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid CourseId { get; set; }
+    [Parameter] public Guid LessonId { get; set; }
+
+    private VideoPlayer? videoPlayerRef;
+    private CourseDto? course;
+    private LessonDto? lesson;
+    private SectionDto? currentSection;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private bool isEnrolled = false;
+
+    // Video state
+    private double currentVideoTime = 0;
+    private double videoDuration = 0;
+    private bool isPlaying = false;
+
+    // UI state
+    private string activeTab = "notes";
+    private bool curriculumSidebarCollapsed = false;
+    private bool aiSidebarCollapsed = false;
+
+    // Navigation state
+    private int currentLessonIndex = 1;
+    private int totalLessons = 1;
+    private bool hasPreviousLesson = false;
+    private bool hasNextLesson = false;
+    private Guid? previousLessonId;
+    private Guid? nextLessonId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLearningEnvironment();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (LessonId != Guid.Empty && lesson?.Id != LessonId)
+        {
+            await LoadLearningEnvironment();
+        }
+    }
+
+    private async Task LoadLearningEnvironment()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            // Check authentication
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.Identity?.IsAuthenticated ?? true)
+            {
+                errorMessage = "You must be logged in to access lessons.";
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            // Check enrollment
+            var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+            isEnrolled = enrollmentResponse.Data;
+
+            if (!isEnrolled)
+            {
+                errorMessage = "You must be enrolled in this course to access lessons.";
+                return;
+            }
+
+            // Load course data
+            var courseResponse = await CourseService.GetCourseByIdAsync(CourseId);
+            if (!courseResponse.Success || courseResponse.Data == null)
+            {
+                errorMessage = "Course not found.";
+                return;
+            }
+            course = courseResponse.Data;
+
+            // Find current lesson
+            lesson = FindLesson(course, LessonId);
+            if (lesson == null)
+            {
+                errorMessage = "Lesson not found in this course.";
+                return;
+            }
+
+            // Calculate lesson navigation
+            CalculateLessonNavigation();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading lesson: {ex.Message}";
+            Console.Error.WriteLine($"[Learn] Error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private LessonDto? FindLesson(CourseDto course, Guid lessonId)
+    {
+        foreach (var section in course.Sections ?? Enumerable.Empty<SectionDto>())
+        {
+            var foundLesson = section.Lessons?.FirstOrDefault(l => l.Id == lessonId);
+            if (foundLesson != null)
+            {
+                currentSection = section;
+                return foundLesson;
+            }
+        }
+        return null;
+    }
+
+    private void CalculateLessonNavigation()
+    {
+        if (course == null || lesson == null) return;
+
+        var allLessons = course.Sections?
+            .SelectMany(s => s.Lessons ?? Enumerable.Empty<LessonDto>())
+            .ToList() ?? new List<LessonDto>();
+
+        totalLessons = allLessons.Count;
+        currentLessonIndex = allLessons.FindIndex(l => l.Id == LessonId) + 1;
+
+        if (currentLessonIndex > 1)
+        {
+            previousLessonId = allLessons[currentLessonIndex - 2].Id;
+            hasPreviousLesson = true;
+        }
+
+        if (currentLessonIndex < totalLessons)
+        {
+            nextLessonId = allLessons[currentLessonIndex].Id;
+            hasNextLesson = true;
+        }
+    }
+
+    // Video event handlers
+    private void HandleTimeUpdate(VideoPlayer.VideoTimeUpdate timeUpdate)
+    {
+        currentVideoTime = timeUpdate.CurrentTime;
+        videoDuration = timeUpdate.Duration;
+    }
+
+    private void HandlePlayStateChanged(bool playing)
+    {
+        isPlaying = playing;
+    }
+
+    private void HandleVideoEnded()
+    {
+        ToastService.ShowSuccess("Lesson completed! Great job!", settings => settings.Position = ToastPosition.TopCenter);
+        if (hasNextLesson)
+        {
+            NavigateToNextLesson();
+        }
+    }
+
+    // Timestamp click handlers (from components → video)
+    private async Task HandleNotesTimestampClick(int timestamp)
+    {
+        if (videoPlayerRef != null)
+        {
+            await videoPlayerRef.SeekToAsync(timestamp);
+        }
+    }
+
+    private async Task HandleTranscriptTimestampClick(double timestamp)
+    {
+        if (videoPlayerRef != null)
+        {
+            await videoPlayerRef.SeekToAsync(timestamp);
+        }
+    }
+
+    private async Task HandleTakeawayTimestampClick(double timestamp)
+    {
+        if (videoPlayerRef != null)
+        {
+            await videoPlayerRef.SeekToAsync(timestamp);
+        }
+    }
+
+    private async Task HandleProgressSeek(double timestamp)
+    {
+        if (videoPlayerRef != null)
+        {
+            await videoPlayerRef.SeekToAsync(timestamp);
+        }
+    }
+
+    // Navigation
+    private void NavigateToLesson(Guid lessonId)
+    {
+        Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
+    }
+
+    private void NavigateToPreviousLesson()
+    {
+        if (previousLessonId.HasValue)
+        {
+            Navigation.NavigateTo($"/learn/{CourseId}/{previousLessonId.Value}");
+        }
+    }
+
+    private void NavigateToNextLesson()
+    {
+        if (nextLessonId.HasValue)
+        {
+            Navigation.NavigateTo($"/learn/{CourseId}/{nextLessonId.Value}");
+        }
+    }
+
+    private void BackToCourse()
+    {
+        Navigation.NavigateTo($"/courses/{CourseId}");
+    }
+
+    // UI helpers
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void ToggleCurriculumSidebar()
+    {
+        curriculumSidebarCollapsed = !curriculumSidebarCollapsed;
+    }
+
+    private void ToggleAISidebar()
+    {
+        aiSidebarCollapsed = !aiSidebarCollapsed;
+    }
+
+    private List<string> ParseList(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return new List<string>();
+        return input.Split(new[] { ';', '\n', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                   .Select(s => s.Trim())
+                   .Where(s => !string.IsNullOrEmpty(s))
+                   .ToList();
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes} min";
+        var hours = minutes / 60;
+        var mins = minutes % 60;
+        return mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
+    }
+}

@@ -109,3 +109,9 @@ secret-backup-*.yaml
 publish/
 database/
 restart-after-reboot.sh
+
+# Large video files (too big for GitHub)
+educational-content/videos/**/*.mp4
+educational-content/videos/**/*.m4a
+educational-content/videos/**/*.webm
+educational-content/videos/**/*.mkv

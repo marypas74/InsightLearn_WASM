@@ -168,25 +168,10 @@ cat >> "$TEMP_METRICS" <<EOF
 insightlearn_dr_cron_job_configured $CRON_JOB_CONFIGURED
 EOF
 
-# K3s cluster health (pod count)
-K3S_PODS_RUNNING=0
-K3S_PODS_TOTAL=0
-
-if command -v kubectl &>/dev/null; then
-    K3S_PODS_RUNNING=$(kubectl get pods --all-namespaces --no-headers 2>/dev/null | grep -c "Running" || echo "0")
-    K3S_PODS_TOTAL=$(kubectl get pods --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0")
-fi
-
-cat >> "$TEMP_METRICS" <<EOF
-
-# HELP insightlearn_dr_k3s_pods_running Number of running pods in cluster
-# TYPE insightlearn_dr_k3s_pods_running gauge
-insightlearn_dr_k3s_pods_running $K3S_PODS_RUNNING
-
-# HELP insightlearn_dr_k3s_pods_total Total number of pods in cluster
-# TYPE insightlearn_dr_k3s_pods_total gauge
-insightlearn_dr_k3s_pods_total $K3S_PODS_TOTAL
-EOF
+# K3s cluster health (pod count) - REMOVED
+# This section was causing duplicate metrics with the insightlearn namespace metrics below
+# The all-namespaces count (21/23) conflicted with namespace-specific count (14/14)
+# Keeping only the insightlearn namespace metrics at the end of the file
 
 # Backup age (seconds since last backup)
 CURRENT_TIME=$(date +%s)
@@ -200,8 +185,9 @@ insightlearn_dr_backup_age_seconds $BACKUP_AGE
 EOF
 
 # Next backup scheduled time (calculated from cron schedule "5 * * * *")
-CURRENT_HOUR=$(date +%H)
-CURRENT_MINUTE=$(date +%M)
+# Use 10# prefix to force base-10 interpretation (avoids octal conversion errors for 08, 09)
+CURRENT_HOUR=$((10#$(date +%H)))
+CURRENT_MINUTE=$((10#$(date +%M)))
 
 if [[ $CURRENT_MINUTE -lt 5 ]]; then
     # Next backup is at :05 of current hour
@@ -266,6 +252,31 @@ insightlearn_dr_disk_usage_percent $DISK_USAGE_PERCENT
 # HELP insightlearn_dr_backup_count Number of backup files
 # TYPE insightlearn_dr_backup_count gauge
 insightlearn_dr_backup_count $BACKUP_COUNT
+EOF
+
+# K3s Cluster Pod Metrics
+# Get pod counts from namespace insightlearn
+# Use k3s kubectl for K3s cluster (Rocky Linux)
+if [[ -x /usr/local/bin/k3s ]]; then
+    # Count running pods
+    K3S_PODS_RUNNING=$(/usr/local/bin/k3s kubectl get pods -n insightlearn --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+
+    # Count total pods (all states)
+    K3S_PODS_TOTAL=$(/usr/local/bin/k3s kubectl get pods -n insightlearn --no-headers 2>/dev/null | wc -l || echo "0")
+else
+    K3S_PODS_RUNNING=0
+    K3S_PODS_TOTAL=0
+fi
+
+cat >> "$TEMP_METRICS" <<EOF
+
+# HELP insightlearn_dr_k3s_pods_running Number of running pods in insightlearn namespace
+# TYPE insightlearn_dr_k3s_pods_running gauge
+insightlearn_dr_k3s_pods_running $K3S_PODS_RUNNING
+
+# HELP insightlearn_dr_k3s_pods_total Total number of pods in insightlearn namespace
+# TYPE insightlearn_dr_k3s_pods_total gauge
+insightlearn_dr_k3s_pods_total $K3S_PODS_TOTAL
 EOF
 
 # Move temp file to final location atomically

@@ -1,5 +1,6 @@
 @using InsightLearn.Shared.DTOs
-@inject IJSRuntime JS
+@using Blazored.Toast.Services
+@inject IToastService ToastService
 
 <div class="enrollment-card" id="enrollmentCard">
     <div class="card-header">
@@ -114,14 +115,14 @@
     private async Task HandleAddToCart()
     {
         await OnAddToCart.InvokeAsync();
-        await JS.InvokeVoidAsync("alert", "Course added to cart!"); // TODO: Replace with toast notification
+        ToastService.ShowSuccess("Course added to cart!");
     }
 
     private async Task HandleAddToWishlist()
     {
         isInWishlist = !isInWishlist;
         await OnAddToWishlist.InvokeAsync();
-        await JS.InvokeVoidAsync("alert", isInWishlist ? "Added to wishlist!" : "Removed from wishlist!");
+        ToastService.ShowSuccess(isInWishlist ? "Added to wishlist!" : "Removed from wishlist!");
     }
 
     private string GetCountdownText()

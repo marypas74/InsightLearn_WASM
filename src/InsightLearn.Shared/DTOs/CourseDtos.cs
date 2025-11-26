@@ -236,6 +236,7 @@ public class CategoryDto
     public string Slug { get; set; } = string.Empty;
     public string? IconUrl { get; set; }
     public string? ColorCode { get; set; }
+    public int OrderIndex { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
     public List<CategoryDto> SubCategories { get; set; } = new();

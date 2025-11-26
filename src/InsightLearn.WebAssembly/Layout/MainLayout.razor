@@ -237,6 +237,9 @@
     <CookieConsentWall />
 }
 
+<!-- Session Timeout Warning - Auto logout after inactivity (v2.1.0-dev) -->
+<SessionTimeoutWarning />
+
 @code {
     [Inject] private IAuthService AuthService { get; set; } = default!;
 

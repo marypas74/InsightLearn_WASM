@@ -59,15 +59,116 @@ public class AuthHttpClient : IAuthHttpClient
 
             _logger.LogInformation("✅ Response Status: {StatusCode} from {FullUrl}", response.StatusCode, fullUrl);
 
-            if (!response.IsSuccessStatusCode)
+            // Handle both successful and error responses
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            // Special handling for 4xx errors with valid JSON body
+            if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                // Try to deserialize as the expected type T
+                // This is useful when the API returns an AuthResponse even for errors
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(responseContent))
+                    {
+                        _logger.LogDebug("📥 Attempting to deserialize 4xx response as {Type}", typeof(T).Name);
+                        _logger.LogDebug("📥 Response content: {Content}", responseContent);
+
+                        var result = JsonSerializer.Deserialize<T>(responseContent, jsonOptions);
+                        if (result != null)
+                        {
+                            // Check if this is an AuthResponse with error information
+                            if (result is Models.Auth.AuthResponse authResponse)
+                            {
+                                // Log the business error, not as an HTTP exception
+                                _logger.LogWarning("⚠️ Authentication failed: {Errors}",
+                                    authResponse.Errors?.Count > 0 ? string.Join(", ", authResponse.Errors) : authResponse.Message);
+
+                                // Return the AuthResponse with error info (don't throw exception)
+                                return result;
+                            }
+
+                            // For other types, also return the result
+                            return result;
+                        }
+                        else
+                        {
+                            _logger.LogDebug("📥 Deserialization returned null");
+                        }
+                    }
+                }
+                catch (JsonException jsonEx)
+                {
+                    // Not a valid JSON response or not the expected type
+                    _logger.LogDebug("Response is not valid JSON of type {Type}: {Error}", typeof(T).Name, jsonEx.Message);
+                }
+
+                // If we couldn't deserialize as T, create an AuthResponse if that's what was expected
+                if (typeof(T) == typeof(Models.Auth.AuthResponse))
+                {
+                    _logger.LogInformation("📦 Creating error AuthResponse for 4xx status");
+
+                    // Try to extract error message from response
+                    string errorMsg = "Authentication failed";
+                    List<string> errors = new();
+
+                    try
+                    {
+                        // Try to parse the response as a generic JSON object to extract error info
+                        using var doc = JsonDocument.Parse(responseContent);
+                        if (doc.RootElement.TryGetProperty("Errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var error in errorsElement.EnumerateArray())
+                            {
+                                errors.Add(error.GetString() ?? "Unknown error");
+                            }
+                        }
+                        else if (doc.RootElement.TryGetProperty("Message", out var messageElement))
+                        {
+                            errorMsg = messageElement.GetString() ?? errorMsg;
+                        }
+                        else if (doc.RootElement.TryGetProperty("ErrorMessage", out var errorMessageElement))
+                        {
+                            errorMsg = errorMessageElement.GetString() ?? errorMsg;
+                        }
+                    }
+                    catch
+                    {
+                        // If we can't parse the JSON, use the raw response
+                        errors.Add(responseContent);
+                    }
+
+                    if (!errors.Any() && !string.IsNullOrWhiteSpace(errorMsg))
+                    {
+                        errors.Add(errorMsg);
+                    }
+
+                    var errorResponse = new Models.Auth.AuthResponse
+                    {
+                        IsSuccess = false,
+                        Success = false,
+                        Message = errorMsg,
+                        Errors = errors
+                    };
+
+                    return (T)(object)errorResponse;
+                }
+
+                // For other types, throw an exception for 4xx errors
                 _logger.LogError("❌ HTTP {StatusCode} from {FullUrl} - Response: {ErrorContent}",
-                    response.StatusCode, fullUrl, errorContent);
-                throw new HttpRequestException($"HTTP {response.StatusCode} calling {fullUrl}: {errorContent}");
+                    response.StatusCode, fullUrl, responseContent);
+                throw new HttpRequestException($"HTTP {response.StatusCode}: {responseContent}");
             }
 
-            response.EnsureSuccessStatusCode();
+            // For 5xx errors, always throw
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("❌ HTTP {StatusCode} from {FullUrl} - Response: {ErrorContent}",
+                    response.StatusCode, fullUrl, responseContent);
+                throw new HttpRequestException($"HTTP {response.StatusCode} calling {fullUrl}: {responseContent}");
+            }
+
+            // For successful responses, deserialize normally
             return await response.Content.ReadFromJsonAsync<T>(jsonOptions);
         }
         catch (HttpRequestException ex)

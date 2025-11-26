@@ -73,6 +73,9 @@ builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStatePr
 builder.Services.AddScoped<JwtAuthenticationStateProvider>(sp =>
     (JwtAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
+// Session Timeout Service (v2.1.0-dev) - Auto-logout after inactivity
+builder.Services.AddScoped<SessionTimeoutService>();
+
 // Business Services
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -93,6 +96,7 @@ builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IEnhancedDash
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IUserManagementService, InsightLearn.WebAssembly.Services.Admin.UserManagementService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.ICourseManagementService, InsightLearn.WebAssembly.Services.Admin.CourseManagementService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IPrometheusMetricsService, InsightLearn.WebAssembly.Services.Admin.PrometheusMetricsService>();
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Admin.IAnalyticsClientService, InsightLearn.WebAssembly.Services.Admin.AnalyticsClientService>();
 
 // Student Learning Space Services (v2.1.0 - 6 services)
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IStudentNoteClientService, InsightLearn.WebAssembly.Services.LearningSpace.StudentNoteClientService>();

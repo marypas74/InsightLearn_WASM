@@ -234,6 +234,54 @@ dotnet run --project src/InsightLearn.Application
 # Expected: App starts successfully
 ```
 
+#### 🔐 Session Timeout & Auto-Logout (v2.1.0-dev)
+
+**Status**: ✅ Implemented 2025-11-26
+**Purpose**: Auto-logout utenti inattivi dopo 30 minuti per sicurezza
+
+**Componenti Implementati**:
+1. **[SessionTimeoutService.cs](src/InsightLearn.WebAssembly/Services/Auth/SessionTimeoutService.cs)** - Service C# per monitoraggio inattività
+   - Timer inattività con check ogni 30 secondi
+   - Warning countdown 5 minuti prima della scadenza
+   - Eventi: `OnWarningShown`, `OnSessionExpired`, `OnCountdownTick`
+   - Reset automatico su attività utente
+
+2. **[sessionTimeout.js](src/InsightLearn.WebAssembly/wwwroot/js/sessionTimeout.js)** - JavaScript per tracking attività
+   - Event listeners: mousemove, keydown, click, scroll, touchstart
+   - Debounce 5 secondi per performance
+   - Visibility change detection (tab switching)
+   - JSInterop callback `OnUserActivity`
+
+3. **[SessionTimeoutWarning.razor](src/InsightLearn.WebAssembly/Components/SessionTimeoutWarning.razor)** - Componente UI warning
+   - Modal overlay con countdown
+   - Pulsante "Stay Logged In" per estendere sessione
+   - Pulsante "Logout Now" per uscita immediata
+   - Auto-redirect a `/login?expired=true` alla scadenza
+
+**Configurazione** (valori default):
+```csharp
+// In SessionTimeoutService.cs
+public int TimeoutMinutes { get; set; } = 30;    // Timeout totale
+public int WarningMinutes { get; set; } = 5;     // Warning prima della scadenza
+```
+
+**Flusso**:
+1. Utente loggato → Service inizializza tracking
+2. 25 minuti inattività → Warning modal con countdown 5:00
+3. Utente attività → Warning chiuso, timer reset
+4. 30 minuti inattività → Auto-logout, redirect a `/login?expired=true`
+
+**Registrazione** (Program.cs WebAssembly):
+```csharp
+builder.Services.AddScoped<SessionTimeoutService>();
+```
+
+**Integrazione** (MainLayout.razor):
+```razor
+<!-- Session Timeout Warning - Auto logout after inactivity (v2.1.0-dev) -->
+<SessionTimeoutWarning />
+```
+
 ### 🔴 CRITOCO: Endpoint Configuration (Database-Driven Architecture)
 
 ⚠️ **TUTTI GLI ENDPOINT SONO MEMORIZZATI NEL DATABASE** ⚠️
@@ -3166,6 +3214,147 @@ Professional student learning interface matching LinkedIn Learning quality stand
 
 ---
 
-**Last Updated**: 2025-11-18
-**Document Version**: 1.0
-**Status**: ✅ Ready for Development Kickoff
+## 📊 Work Progress Status (v2.1.0-dev) - Updated 2025-11-26
+
+### Overall Completion: **95%** ✅ Production Ready
+
+| Area | Status | Completion |
+|------|--------|------------|
+| Admin Console (22 pages) | ✅ Complete | 100% |
+| Session Timeout Feature | ✅ Complete | 100% |
+| Student Learning Space | ✅ Complete | 100% |
+| Video Player Component | ✅ Complete | 100% |
+| Analytics Service | ✅ Complete | 100% |
+| API Endpoints | ✅ Mostly Complete | 91% (42/46) |
+| CSS/Styling | ✅ Complete | 100% |
+
+---
+
+### 🔴 Pending Work Items - Task Decomposition
+
+#### ITEM #1: AI Chat Endpoints (SignalR Integration)
+| Attribute | Value |
+|-----------|-------|
+| **Assigned To** | 🔧 Backend Developer |
+| **Priority** | LOW (Phase 4) |
+| **Effort** | 8-10 hours |
+| **Complexity** | Complex |
+| **Status** | ⏳ Pending |
+
+**Sub-tasks:**
+1. `POST /api/ai-chat/message` - Context-aware message with video timestamp
+2. `GET /api/ai-chat/history` - Pagination support
+3. `POST /api/ai-chat/sessions/{sessionId}/end` - Session cleanup
+4. `GET /api/ai-chat/sessions` - List sessions per lesson
+
+**Files to modify:**
+- `src/InsightLearn.Application/Program.cs` (lines 4990-5061)
+- `src/InsightLearn.Application/Services/AIChatService.cs` (NEW)
+- `src/InsightLearn.Application/Hubs/ChatHub.cs` (NEW - SignalR)
+
+---
+
+#### ITEM #2: Reports Page - Data Generation
+| Attribute | Value |
+|-----------|-------|
+| **Assigned To** | 🔧 Fullstack Developer |
+| **Priority** | MEDIUM |
+| **Effort** | 4-6 hours |
+| **Complexity** | Medium |
+| **Status** | ⏳ Pending |
+
+**Sub-tasks:**
+1. Create `ReportGenerationService.cs` backend service
+2. Implement PDF export (iTextSharp or QuestPDF)
+3. Implement Excel export (EPPlus or ClosedXML)
+4. Connect Reports.razor UI to backend endpoints
+
+**Files to modify:**
+- `src/InsightLearn.Application/Services/ReportGenerationService.cs` (NEW)
+- `src/InsightLearn.WebAssembly/Pages/Admin/Reports.razor`
+- `src/InsightLearn.Application/Program.cs` (add endpoints)
+
+---
+
+#### ITEM #3: VideoPlayer Progress Tracking Refactor
+| Attribute | Value |
+|-----------|-------|
+| **Assigned To** | 🎨 Frontend Developer |
+| **Priority** | LOW (Optional) |
+| **Effort** | 1 hour |
+| **Complexity** | Simple |
+| **Status** | ⏳ Pending |
+
+**Sub-tasks:**
+1. Move progress tracking logic to `IVideoProgressClientService`
+2. Remove direct API calls from component
+
+**Files to modify:**
+- `src/InsightLearn.WebAssembly/Components/VideoPlayer.razor.cs` (line ~156)
+
+---
+
+#### ITEM #4: EnrollmentCard Toast Notification
+| Attribute | Value |
+|-----------|-------|
+| **Assigned To** | 🎨 Frontend Developer |
+| **Priority** | LOW |
+| **Effort** | 30 minutes |
+| **Complexity** | Simple |
+| **Status** | ⏳ Pending |
+
+**Sub-tasks:**
+1. Replace `JS.InvokeVoidAsync("alert", ...)` with `ToastService.ShowSuccess(...)`
+
+**Files to modify:**
+- `src/InsightLearn.WebAssembly/Components/EnrollmentCard.razor`
+
+---
+
+### ✅ Recently Completed (2025-11-26)
+
+| Feature | Expert | Status |
+|---------|--------|--------|
+| Session Timeout Service | Backend Dev | ✅ Complete |
+| Session Timeout JS Interop | Frontend Dev | ✅ Complete |
+| Session Timeout Warning UI | UI/UX | ✅ Complete |
+| MainLayout Integration | Frontend Dev | ✅ Complete |
+| Admin Analytics Service | Backend Dev | ✅ Complete |
+| IAdminAnalyticsService Interface | Backend Dev | ✅ Complete |
+| WASM Docker Image Build | DevOps | ✅ Complete |
+| K3s Deployment Rollout | DevOps | ✅ Complete |
+
+---
+
+### 📋 Expert Assignment Matrix
+
+| Expert Role | Pending Tasks | Total Effort |
+|-------------|---------------|--------------|
+| 🔧 **Backend Developer** | AI Chat Endpoints, Report Service | 12-16 hours |
+| 🎨 **Frontend Developer** | VideoPlayer refactor, EnrollmentCard fix | 1.5 hours |
+| 🔧 **Fullstack Developer** | Reports Page complete | 4-6 hours |
+| 🚀 **DevOps** | Git commit, CI/CD | 1 hour |
+
+---
+
+### 🎯 Recommended Sprint Plan
+
+**Sprint 1 (Quick Wins - 2 hours)**
+- [ ] #4 EnrollmentCard Toast (30 min) - Frontend Dev
+- [ ] #3 VideoPlayer Refactor (1 hour) - Frontend Dev
+- [ ] Git commit all changes - DevOps
+
+**Sprint 2 (Reports - 6 hours)**
+- [ ] #2 Reports Page Backend (4 hours) - Fullstack Dev
+- [ ] #2 Reports Page UI Connection (2 hours) - Fullstack Dev
+
+**Sprint 3 (AI Chat - 10 hours)** - Phase 4
+- [ ] #1 SignalR Hub Setup (2 hours) - Backend Dev
+- [ ] #1 AI Chat Service (4 hours) - Backend Dev
+- [ ] #1 AI Chat Endpoints (4 hours) - Backend Dev
+
+---
+
+**Last Updated**: 2025-11-26
+**Document Version**: 1.1
+**Status**: ✅ 95% Complete - Production Ready

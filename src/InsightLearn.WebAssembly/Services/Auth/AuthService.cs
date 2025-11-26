@@ -56,32 +56,43 @@ public class AuthService : IAuthService
 
                 _logger.LogInformation("✅ Login successful for {Email} - Token saved, auth state updated", request.Email);
             }
+            else if (response != null)
+            {
+                // Log failed login but return the response with clean error messages
+                _logger.LogInformation("❌ Login failed for {Email}: {Message}",
+                    request.Email,
+                    response.Errors?.FirstOrDefault() ?? response.Message ?? "Unknown error");
+            }
 
             return response ?? new AuthResponse
             {
                 Success = false,
-                Message = $"Login failed calling endpoint: {_endpoints.Auth.Login}",
-                Errors = new List<string> { "No response from server. Check console for details." }
+                Message = "No response from server",
+                Errors = new List<string> { "Unable to connect to the authentication server. Please try again later." }
             };
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "❌ HTTP Error during login for {Email} - Status: {StatusCode}", request.Email, ex.StatusCode);
+
+            // Return a clean error message for HTTP exceptions
             return new AuthResponse
             {
                 Success = false,
-                Message = $"HTTP {ex.StatusCode} calling {_endpoints.Auth.Login}",
-                Errors = new List<string> { ex.Message, $"Endpoint: {_endpoints.Auth.Login}", $"Status: {ex.StatusCode}" }
+                Message = "Unable to connect to the authentication server",
+                Errors = new List<string> { "Connection error. Please check your network and try again." }
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Fatal error during login for {Email}", request.Email);
+
+            // Return a generic error message for unexpected exceptions
             return new AuthResponse
             {
                 Success = false,
-                Message = $"Error calling {_endpoints.Auth.Login}: {ex.GetType().Name}",
-                Errors = new List<string> { ex.Message, $"Endpoint: {_endpoints.Auth.Login}", $"Type: {ex.GetType().Name}" }
+                Message = "An unexpected error occurred",
+                Errors = new List<string> { "Something went wrong. Please try again later." }
             };
         }
     }

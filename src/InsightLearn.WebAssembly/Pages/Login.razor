@@ -2,6 +2,7 @@
 @inject IAuthService AuthService
 @inject IToastService ToastService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Login - InsightLearn</PageTitle>
 
@@ -77,11 +78,11 @@
                             <p class="remember-me-hint">For your security, don't check this on shared devices</p>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(errorMessage))
+                        @if (!string.IsNullOrEmpty(displayError))
                         {
                             <div class="error-message" role="alert">
                                 <i class="fas fa-exclamation-circle"></i>
-                                <span>@errorMessage</span>
+                                <span class="error-text">@displayError</span>
                             </div>
                         }
 
@@ -155,7 +156,7 @@
 
 @code {
     private LoginRequest loginRequest = new();
-    private string? errorMessage;
+    private string? displayError;
     private bool isLoading = false;
     private bool showPassword = false;
 
@@ -167,10 +168,98 @@
         showPassword = !showPassword;
     }
 
+    /// <summary>
+    /// Extracts a clean, user-friendly error message from various error formats
+    /// </summary>
+    private string ExtractCleanError(string? rawError)
+    {
+        if (string.IsNullOrWhiteSpace(rawError))
+            return "Login failed. Please try again.";
+
+        // Try to extract error from JSON response like {"IsSuccess":false,"Errors":["Invalid email or password."]}
+        if (rawError.Contains("\"Errors\":["))
+        {
+            try
+            {
+                var startIdx = rawError.IndexOf("\"Errors\":[\"") + 11;
+                var endIdx = rawError.IndexOf("\"]", startIdx);
+                if (startIdx > 10 && endIdx > startIdx)
+                {
+                    return rawError.Substring(startIdx, endIdx - startIdx);
+                }
+            }
+            catch { }
+        }
+
+        // Remove technical HTTP prefixes
+        if (rawError.Contains("HTTP") && rawError.Contains("calling"))
+        {
+            // Try to find the actual error message after the JSON
+            if (rawError.Contains("\"Errors\""))
+            {
+                return ExtractCleanError(rawError.Substring(rawError.IndexOf("{")));
+            }
+            // Generic fallback for HTTP errors
+            if (rawError.Contains("BadRequest") || rawError.Contains("400"))
+                return "Invalid email or password.";
+            if (rawError.Contains("Unauthorized") || rawError.Contains("401"))
+                return "Invalid email or password.";
+            if (rawError.Contains("500") || rawError.Contains("InternalServerError"))
+                return "Server error. Please try again later.";
+            return "Connection error. Please check your internet and try again.";
+        }
+
+        // Return as-is if it's already a clean message
+        return rawError;
+    }
+
+    /// <summary>
+    /// Sanitizes the return URL to ensure it's a relative path for Blazor navigation
+    /// </summary>
+    private string SanitizeReturnUrl(string? url)
+    {
+        // Default to dashboard if no URL provided
+        if (string.IsNullOrEmpty(url))
+        {
+            Console.WriteLine("[LOGIN] No return URL provided, defaulting to /dashboard");
+            return "/dashboard";
+        }
+
+        Console.WriteLine($"[LOGIN] Original return URL: {url}");
+
+        // Handle absolute URLs (extract path and query)
+        if (url.StartsWith("http://") || url.StartsWith("https://"))
+        {
+            try
+            {
+                var uri = new Uri(url);
+                var sanitized = uri.PathAndQuery;
+                Console.WriteLine($"[LOGIN] Extracted relative path from absolute URL: {sanitized}");
+                return sanitized;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOGIN] Failed to parse absolute URL: {ex.Message}");
+                return "/dashboard";
+            }
+        }
+
+        // Ensure path starts with /
+        if (!url.StartsWith("/"))
+        {
+            var sanitized = "/" + url;
+            Console.WriteLine($"[LOGIN] Added leading slash to path: {sanitized}");
+            return sanitized;
+        }
+
+        Console.WriteLine($"[LOGIN] Using return URL as-is: {url}");
+        return url;
+    }
+
     private async Task HandleLogin()
     {
         isLoading = true;
-        errorMessage = null;
+        displayError = null;
 
         try
         {
@@ -179,35 +268,69 @@
             if (response.Success)
             {
                 ToastService.ShowSuccess("Login successful!");
-
-                // Add logging to debug authentication flow
                 Console.WriteLine($"[LOGIN] Login successful for user");
-                Console.WriteLine($"[LOGIN] Token saved to localStorage");
-                Console.WriteLine($"[LOGIN] Auth state updated");
 
-                // FIX: L'API non restituisce IsProfileComplete nel UserDto
-                // Quindi andiamo direttamente alla dashboard per utenti già registrati
-                // La registrazione completa è solo per nuovi utenti che arrivano da /register
-                var redirectUrl = ReturnUrl ?? "/dashboard";
+                // CRITICAL FIX: Wait and VERIFY auth state is actually propagated
+                // Poll the AuthenticationStateProvider until user is authenticated
+                var maxAttempts = 10;
+                var authenticated = false;
 
-                // CRITICAL FIX: Remove 'true' parameter to avoid forced page reload
-                // Forced reload causes auth state to be lost temporarily
-                Navigation.NavigateTo(redirectUrl);
+                for (int i = 0; i < maxAttempts; i++)
+                {
+                    await Task.Delay(100);
+                    var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                    if (authState.User.Identity?.IsAuthenticated == true)
+                    {
+                        authenticated = true;
+                        Console.WriteLine($"[LOGIN] Auth state verified after {i + 1} attempts");
+                        break;
+                    }
+                    Console.WriteLine($"[LOGIN] Auth state not ready, attempt {i + 1}/{maxAttempts}");
+                }
+
+                if (!authenticated)
+                {
+                    Console.WriteLine("[LOGIN] WARNING: Auth state not verified, navigating anyway");
+                }
+
+                // Sanitize the return URL to ensure it's a relative path
+                var redirectUrl = SanitizeReturnUrl(ReturnUrl);
+                Console.WriteLine($"[LOGIN] Navigating to: {redirectUrl}");
+
+                // Navigate without forceLoad - Blazor should now have correct auth state
+                Navigation.NavigateTo(redirectUrl, forceLoad: false);
             }
             else
             {
-                errorMessage = response.Message ?? "Login failed";
-                if (response.Errors.Any())
+                // Extract single clean error message
+                string cleanError;
+
+                if (response.Errors != null && response.Errors.Any())
                 {
-                    errorMessage += ": " + string.Join(", ", response.Errors);
+                    cleanError = ExtractCleanError(response.Errors.First());
                 }
-                ToastService.ShowError(errorMessage);
+                else if (!string.IsNullOrEmpty(response.Message))
+                {
+                    cleanError = ExtractCleanError(response.Message);
+                }
+                else if (!string.IsNullOrEmpty(response.ErrorMessage))
+                {
+                    cleanError = ExtractCleanError(response.ErrorMessage);
+                }
+                else
+                {
+                    cleanError = "Login failed. Please try again.";
+                }
+
+                displayError = cleanError;
+                ToastService.ShowError(cleanError);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An error occurred: {ex.Message}";
-            ToastService.ShowError(errorMessage);
+            displayError = "An unexpected error occurred. Please try again later.";
+            Console.WriteLine($"[LOGIN ERROR] {ex.GetType().Name}: {ex.Message}");
+            ToastService.ShowError(displayError);
         }
         finally
         {
@@ -217,9 +340,9 @@
 
     private void LoginWithGoogle()
     {
-        // OAuth flow - redirect to API endpoint that handles Google OAuth
-        var returnUrl = ReturnUrl ?? "/dashboard";
-        // Note: OAuth requires full navigation to external auth provider, so 'true' is correct here
+        // Sanitize the return URL before passing it to Google OAuth
+        var returnUrl = SanitizeReturnUrl(ReturnUrl);
+        Console.WriteLine($"[LOGIN] Google OAuth redirect with return URL: {returnUrl}");
         Navigation.NavigateTo($"/api/auth/google-login?returnUrl={Uri.EscapeDataString(returnUrl)}", true);
     }
 }

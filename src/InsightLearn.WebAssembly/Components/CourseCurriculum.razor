@@ -26,13 +26,16 @@
                         {
                             @foreach (var lesson in courseSection.Lessons)
                             {
-                                <div class="lesson-item @(lesson.IsFree ? "free-preview" : "")">
+                                var isCurrentLesson = CurrentLessonId.HasValue && lesson.Id == CurrentLessonId.Value;
+                                var isClickable = OnLessonClick.HasDelegate;
+                                <div class="lesson-item @(lesson.IsFree ? "free-preview" : "") @(isCurrentLesson ? "current" : "") @(isClickable ? "clickable" : "")"
+                                     @onclick="@(() => HandleLessonClick(lesson.Id))">
                                     <div class="lesson-info">
                                         <i class="@GetLessonIcon(lesson.Type)"></i>
                                         <span class="lesson-title">@lesson.Title</span>
-                                        @if (lesson.IsFree)
+                                        @if (lesson.IsFree && !OnLessonClick.HasDelegate)
                                         {
-                                            <button class="preview-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))">
+                                            <button class="preview-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))" @onclick:stopPropagation="true">
                                                 <i class="fas fa-play-circle"></i>
                                                 Preview
                                             </button>
@@ -42,6 +45,10 @@
                                         @if (lesson.IsCompleted)
                                         {
                                             <i class="fas fa-check-circle completed-icon"></i>
+                                        }
+                                        @if (isCurrentLesson)
+                                        {
+                                            <span class="badge bg-primary">Now Playing</span>
                                         }
                                         <span class="lesson-duration">@FormatDuration(lesson.DurationMinutes)</span>
                                     </div>
@@ -70,6 +77,8 @@
 @code {
     [Parameter] public List<SectionDto> Sections { get; set; } = new();
     [Parameter] public EventCallback<Guid> OnPreviewClick { get; set; }
+    [Parameter] public Guid? CurrentLessonId { get; set; }
+    [Parameter] public EventCallback<Guid> OnLessonClick { get; set; }
 
     private HashSet<Guid> expandedSections = new();
 
@@ -97,6 +106,14 @@
     private async Task HandlePreviewClick(Guid lessonId)
     {
         await OnPreviewClick.InvokeAsync(lessonId);
+    }
+
+    private async Task HandleLessonClick(Guid lessonId)
+    {
+        if (OnLessonClick.HasDelegate)
+        {
+            await OnLessonClick.InvokeAsync(lessonId);
+        }
     }
 
     private string GetLessonIcon(LessonType type)

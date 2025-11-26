@@ -1,156 +1,75 @@
 @*
-    VideoPlayer Component - Placeholder
+    Enhanced VideoPlayer Component with JS Interop
+    Part of Student Learning Space v2.1.0
 
-    This is a simplified placeholder component that compiles successfully.
-    The full implementation has Razor compiler issues with inline @code blocks.
+    Features:
+    - MongoDB GridFS video streaming
+    - Progress tracking (every 5 seconds)
+    - Timestamp navigation (SeekToAsync)
+    - Event callbacks (OnTimeUpdate, OnPlayStateChanged, OnVideoEnded)
+    - Proper disposal pattern (IAsyncDisposable)
 
-    To implement fully with custom controls:
-    1. Use code-behind file pattern (VideoPlayer.razor.cs) OR
-    2. Implement JS interop for video controls OR
-    3. Use standard HTML5 video element with native controls
-
-    Backend API endpoints are ready at:
-    - GET /api/video/stream/{id} - Stream video
-    - GET /api/video/metadata/{id} - Get video metadata
+    Code-behind: VideoPlayer.razor.cs
+    JavaScript: wwwroot/js/videoPlayer.js
 *@
 
 <div class="video-player-container">
     @if (isLoading)
     {
-        <div class="video-loading" style="text-align: center; padding: 40px;">
-            <div class="spinner"></div>
+        <div class="video-loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading video...</span>
+            </div>
             <p>Loading video...</p>
         </div>
     }
     else if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="video-error" style="padding: 40px; text-align: center; color: #d32f2f;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
+        <div class="video-error alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
             <p>@errorMessage</p>
-            <button class="btn btn-primary" @onclick="RetryLoad">
+            <button class="btn btn-sm btn-primary" @onclick="RetryLoad">
                 <i class="fas fa-redo"></i> Retry
             </button>
         </div>
     }
-    else if (!string.IsNullOrEmpty(videoUrl))
+    else
     {
         <div class="video-wrapper">
             <video
                 id="@videoId"
                 class="video-element"
-                controls
-                preload="metadata"
-                style="width: 100%; max-width: 800px; margin: 0 auto; display: block;">
+                controls="@ShowControls"
+                autoplay="@AutoPlay"
+                preload="metadata">
                 <source src="@videoUrl" type="@contentType" />
                 Your browser does not support the video tag.
             </video>
 
             @if (ShowMetadata && metadata != null)
             {
-                <div class="video-metadata" style="margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 4px;">
-                    <p><strong>Format:</strong> @metadata.Format</p>
-                    <p><strong>Size:</strong> @((metadata.FileSize / 1024.0 / 1024.0).ToString("F2")) MB (Original)</p>
-                    <p><strong>Uploaded:</strong> @metadata.UploadDate.ToString("MMM d, yyyy")</p>
+                <div class="video-metadata">
+                    <div class="metadata-item">
+                        <strong>File:</strong> @metadata.FileName
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Size:</strong> @FormatFileSize(metadata.FileSize)
+                        @if (metadata.CompressedSize > 0 && metadata.CompressedSize < metadata.FileSize)
+                        {
+                            <span class="text-muted">
+                                (Compressed: @FormatFileSize(metadata.CompressedSize),
+                                Ratio: @metadata.CompressionRatio.ToString("F2")x)
+                            </span>
+                        }
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Format:</strong> @metadata.Format
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Uploaded:</strong> @metadata.UploadDate.ToString("MMM dd, yyyy HH:mm")
+                    </div>
                 </div>
             }
         </div>
     }
 </div>
-
-@code {
-    [Parameter] public string? VideoFileId { get; set; }
-    [Parameter] public string? VideoUrl { get; set; }
-    [Parameter] public bool ShowControls { get; set; } = true;
-    [Parameter] public bool ShowMetadata { get; set; } = false;
-    [Parameter] public bool AutoPlay { get; set; } = false;
-    [Parameter] public EventCallback<double> OnProgressUpdate { get; set; }
-    [Parameter] public EventCallback OnVideoEnded { get; set; }
-
-    [Inject] private HttpClient Http { get; set; } = default!;
-    [Inject] private ILogger<VideoPlayer> Logger { get; set; } = default!;
-
-    private string videoId = $"video_{Guid.NewGuid():N}";
-    private string videoUrl = "";
-    private string contentType = "video/mp4";
-    private bool isLoading = true;
-    private string errorMessage = "";
-    private VideoMetadata? metadata;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadVideo();
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (!string.IsNullOrEmpty(VideoFileId) || !string.IsNullOrEmpty(VideoUrl))
-        {
-            await LoadVideo();
-        }
-    }
-
-    private async Task LoadVideo()
-    {
-        try
-        {
-            isLoading = true;
-            errorMessage = "";
-
-            if (!string.IsNullOrEmpty(VideoUrl))
-            {
-                videoUrl = VideoUrl;
-            }
-            else if (!string.IsNullOrEmpty(VideoFileId))
-            {
-                videoUrl = $"/api/video/stream/{VideoFileId}";
-
-                if (ShowMetadata)
-                {
-                    var metadataResponse = await Http.GetAsync($"/api/video/metadata/{VideoFileId}");
-                    if (metadataResponse.IsSuccessStatusCode)
-                    {
-                        metadata = await metadataResponse.Content.ReadFromJsonAsync<VideoMetadata>();
-                        if (metadata != null)
-                        {
-                            contentType = metadata.ContentType;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                errorMessage = "No video source specified";
-                return;
-            }
-
-            Logger.LogInformation("Video loaded: {VideoUrl}", videoUrl);
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Failed to load video: {ex.Message}";
-            Logger.LogError(ex, "Error loading video");
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private async Task RetryLoad()
-    {
-        await LoadVideo();
-    }
-
-    public class VideoMetadata
-    {
-        public string FileId { get; set; } = "";
-        public string FileName { get; set; } = "";
-        public long FileSize { get; set; }
-        public long CompressedSize { get; set; }
-        public string ContentType { get; set; } = "";
-        public DateTime UploadDate { get; set; }
-        public Guid LessonId { get; set; }
-        public string Format { get; set; } = "";
-        public double CompressionRatio { get; set; }
-    }
-}

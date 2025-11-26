@@ -283,19 +283,6 @@ public class ReportDataDto
     public string Period { get; set; } = "";
 }
 
-public class TopCourseDto
-{
-    public Guid Id { get; set; }
-    public string Title { get; set; } = "";
-    public string Category { get; set; } = "";
-    public string Instructor { get; set; } = "";
-    public int EnrollmentCount { get; set; }
-    public decimal Revenue { get; set; }
-    public decimal AverageRating { get; set; }
-    public decimal CompletionRate { get; set; }
-    public DateTime CreatedDate { get; set; }
-}
-
 public class DetailedReportDto
 {
     public Guid CourseId { get; set; }
@@ -401,3 +388,10 @@ public class AdminFilterDto
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
 }
+
+
+
+
+
+
+

@@ -15,6 +15,15 @@ using InsightLearn.Core.DTOs.Course;
 using InsightLearn.Core.DTOs.Enrollment;
 using InsightLearn.Core.DTOs.Payment;
 using InsightLearn.Core.DTOs.Review;
+using InsightLearn.Core.DTOs.StudentNotes;
+using InsightLearn.Core.DTOs.VideoTranscript;
+using InsightLearn.Core.DTOs.AITakeaways;
+using InsightLearn.Core.DTOs.AIChat;
+using InsightLearn.Core.DTOs.VideoBookmarks;
+using InsightLearn.Core.DTOs.Engagement;
+using Hangfire;
+using Hangfire.SqlServer;
+using InsightLearn.Application.BackgroundJobs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -385,6 +394,10 @@ Console.WriteLine("[CONFIG] MetricsService registered (custom Prometheus metrics
 builder.Services.AddScoped<IAuditService, AuditService>();
 Console.WriteLine("[CONFIG] Audit Service registered (database-backed compliance logging)");
 
+// Register Logging Service (required by AdminService)
+builder.Services.AddScoped<ILoggingService, LoggingService>();
+Console.WriteLine("[CONFIG] Logging Service registered (database-backed error/access logging)");
+
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 {
@@ -610,6 +623,10 @@ builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
 // Register Enhanced Dashboard Service
 builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>();
 
+// Register Analytics Service for Admin Analytics page
+builder.Services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();
+Console.WriteLine("[CONFIG] Admin Analytics Service registered");
+
 // Register Core LMS Repositories
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -629,6 +646,14 @@ builder.Services.AddScoped<IInstructorPayoutRepository, InstructorPayoutReposito
 builder.Services.AddScoped<ISubscriptionRevenueRepository, SubscriptionRevenueRepository>();
 builder.Services.AddScoped<IInstructorConnectAccountRepository, InstructorConnectAccountRepository>();
 Console.WriteLine("[CONFIG] SaaS Subscription Repositories registered (6 repositories)");
+
+// Register Student Learning Space Repositories (v2.1.0)
+builder.Services.AddScoped<IStudentNoteRepository, StudentNoteRepository>();
+builder.Services.AddScoped<IVideoBookmarkRepository, VideoBookmarkRepository>();
+builder.Services.AddScoped<IVideoTranscriptRepository, VideoTranscriptRepository>();
+builder.Services.AddScoped<IAITakeawayRepository, AITakeawayRepository>();
+builder.Services.AddScoped<IAIConversationRepository, AIConversationRepository>();
+Console.WriteLine("[CONFIG] Student Learning Space Repositories registered (5 repositories)");
 
 // Register SaaS Subscription Services (Week 1 - All 6 services implemented with 10/10 score)
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
@@ -666,6 +691,48 @@ Console.WriteLine("[CONFIG] Admin Services registered (Admin, UserAdmin, Dashboa
 builder.Services.AddScoped<ICertificateTemplateService, CertificateTemplateService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 Console.WriteLine("[CONFIG] Certificate Services registered (QuestPDF template + certificate generation)");
+
+// Register Student Learning Space Services (v2.1.0)
+builder.Services.AddScoped<IVideoTranscriptService, VideoTranscriptService>();
+builder.Services.AddScoped<IAIAnalysisService, AIAnalysisService>();
+builder.Services.AddScoped<IStudentNoteService, StudentNoteService>();
+builder.Services.AddScoped<IVideoBookmarkService, VideoBookmarkService>();
+builder.Services.AddScoped<IVideoProgressService, VideoProgressService>();
+Console.WriteLine("[CONFIG] Student Learning Space Services registered (5 services)");
+
+// Register Hangfire Background Job Processing (v2.1.0)
+// Configure Hangfire with SQL Server storage for job persistence
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true,
+        PrepareSchemaIfNecessary = true, // Auto-create Hangfire tables
+        SchemaName = "HangfireSchema" // Separate schema for Hangfire tables
+    }));
+
+// Add Hangfire server with optimized configuration
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Environment.ProcessorCount * 2; // 2x CPU cores for parallel job processing
+    options.Queues = new[] { "critical", "default", "low" }; // Priority queues (high → low)
+    options.ServerName = $"{Environment.MachineName}-{Guid.NewGuid().ToString("N")[..8]}";
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(15); // Check for scheduled jobs every 15s
+    options.ServerTimeout = TimeSpan.FromMinutes(5);
+    options.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
+
+// Register background job classes
+builder.Services.AddScoped<TranscriptGenerationJob>();
+builder.Services.AddScoped<AITakeawayGenerationJob>();
+Console.WriteLine("[CONFIG] Hangfire Background Jobs configured (SQL Server storage, {0} workers, 3 priority queues)",
+    Environment.ProcessorCount * 2);
 
 Console.WriteLine("[CONFIG] MongoDB Video Storage Services registered");
 Console.WriteLine("[CONFIG] Enhanced Dashboard Service registered");
@@ -994,6 +1061,17 @@ app.UseAuthentication();
 // app.UseMiddleware<CsrfProtectionMiddleware>();
 Console.WriteLine("[SECURITY] CSRF protection middleware DISABLED (debugging mode)");
 app.UseAuthorization();
+
+// Hangfire Dashboard - Background job monitoring (Admin only)
+// Dashboard available at: /hangfire
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireDashboardAuthorizationFilter() },
+    DashboardTitle = "InsightLearn Background Jobs",
+    StatsPollingInterval = 2000, // Refresh stats every 2 seconds
+    DisplayStorageConnectionString = false // Hide connection string for security
+});
+Console.WriteLine("[CONFIG] Hangfire Dashboard enabled at /hangfire (Admin access only)");
 
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
 // Positioned AFTER authentication to capture user context (userId, email, roles)
@@ -2287,6 +2365,277 @@ app.MapDelete("/api/admin/users/{id:guid}", async (
 .WithName("DeleteAdminUser")
 .WithTags("Admin");
 
+// INSTRUCTOR MANAGEMENT ENDPOINTS
+
+// Get all instructors with pagination and filtering
+app.MapGet("/api/admin/instructors", async (
+    [FromServices] UserManager<User> userManager,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20,
+    [FromQuery] string? search = null,
+    [FromQuery] string? status = null) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching instructors (page: {Page}, pageSize: {PageSize}, search: {Search}, status: {Status})",
+            page, pageSize, search ?? "none", status ?? "all");
+
+        // Base query: only instructors
+        var query = userManager.Users.Where(u => u.IsInstructor);
+
+        // Apply search filter
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(u =>
+                u.Email.Contains(search) ||
+                u.FirstName.Contains(search) ||
+                u.LastName.Contains(search));
+        }
+
+        // Apply status filter
+        if (!string.IsNullOrEmpty(status))
+        {
+            switch (status.ToLower())
+            {
+                case "active":
+                    query = query.Where(u => !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd < DateTimeOffset.UtcNow);
+                    break;
+                case "suspended":
+                    query = query.Where(u => u.LockoutEnabled && u.LockoutEnd != null && u.LockoutEnd > DateTimeOffset.UtcNow);
+                    break;
+                case "pending":
+                    query = query.Where(u => !u.IsVerified);
+                    break;
+            }
+        }
+
+        var totalCount = await query.CountAsync();
+        var instructors = await query
+            .OrderByDescending(u => u.DateJoined)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var instructorDtos = new List<InstructorSummaryDto>();
+        foreach (var instructor in instructors)
+        {
+            // Count courses
+            var coursesCount = await dbContext.Courses.CountAsync(c => c.InstructorId == instructor.Id);
+
+            // Count unique students
+            var studentsCount = await dbContext.Enrollments
+                .Where(e => e.Course.InstructorId == instructor.Id)
+                .Select(e => e.UserId)
+                .Distinct()
+                .CountAsync();
+
+            // Calculate total earnings
+            var totalEarnings = await dbContext.Payments
+                .Where(p => p.Course.InstructorId == instructor.Id && p.Status == PaymentStatus.Completed)
+                .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+            // Determine status
+            string instructorStatus;
+            if (!instructor.IsVerified)
+            {
+                instructorStatus = "Pending";
+            }
+            else if (instructor.LockoutEnabled && instructor.LockoutEnd != null && instructor.LockoutEnd > DateTimeOffset.UtcNow)
+            {
+                instructorStatus = "Suspended";
+            }
+            else
+            {
+                instructorStatus = "Active";
+            }
+
+            instructorDtos.Add(new InstructorSummaryDto
+            {
+                Id = instructor.Id,
+                Name = instructor.FullName,
+                Email = instructor.Email,
+                Status = instructorStatus,
+                CoursesCount = coursesCount,
+                StudentsCount = studentsCount,
+                TotalEarnings = totalEarnings,
+                JoinedDate = instructor.DateJoined,
+                LastActive = instructor.LastLoginDate,
+                ProfilePictureUrl = instructor.ProfilePictureUrl
+            });
+        }
+
+        var result = new PagedResultDto<InstructorSummaryDto>
+        {
+            Items = instructorDtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        logger.LogInformation("[ADMIN] Retrieved {Count} instructors", instructorDtos.Count);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching instructors");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetInstructors")
+.WithTags("Admin", "Instructors");
+
+// Get instructor detailed statistics
+app.MapGet("/api/admin/instructors/{id:guid}/stats", async (
+    Guid id,
+    [FromServices] UserManager<User> userManager,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching instructor stats for {InstructorId}", id);
+
+        var instructor = await userManager.FindByIdAsync(id.ToString());
+        if (instructor == null || !instructor.IsInstructor)
+        {
+            return Results.NotFound(new { error = "Instructor not found" });
+        }
+
+        // Get courses
+        var courses = await dbContext.Courses
+            .Where(c => c.InstructorId == id)
+            .Include(c => c.Reviews)
+            .Include(c => c.Enrollments)
+            .ToListAsync();
+
+        var totalCourses = courses.Count;
+        var publishedCourses = courses.Count(c => c.Status == CourseStatus.Published);
+        var draftCourses = courses.Count(c => c.Status == CourseStatus.Draft);
+
+        // Get enrollments
+        var allEnrollments = courses.SelectMany(c => c.Enrollments).ToList();
+        var totalEnrollments = allEnrollments.Count;
+        var activeStudents = allEnrollments.Select(e => e.UserId).Distinct().Count();
+
+        // Calculate revenue
+        var totalRevenue = await dbContext.Payments
+            .Where(p => p.Course.InstructorId == id && p.Status == PaymentStatus.Completed)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+        // Calculate average rating
+        var allReviews = courses.SelectMany(c => c.Reviews).ToList();
+        var averageRating = allReviews.Any() ? (decimal)allReviews.Average(r => r.Rating) : 0m;
+        var totalReviews = allReviews.Count;
+
+        // Top courses by enrollments
+        var topCourses = courses
+            .OrderByDescending(c => c.Enrollments.Count)
+            .Take(5)
+            .Select(c => new InsightLearn.Core.DTOs.Admin.InstructorTopCourseDto
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Category = c.Category?.Name ?? "Uncategorized",
+                Instructor = instructor.FullName,
+                EnrollmentCount = c.Enrollments.Count,
+                Revenue = dbContext.Payments
+                    .Where(p => p.CourseId == c.Id && p.Status == PaymentStatus.Completed)
+                    .Sum(p => p.Amount),
+                AverageRating = c.Reviews.Any() ? (decimal)c.Reviews.Average(r => r.Rating) : 0m,
+                CompletionRate = c.Enrollments.Any() ? (decimal)c.Enrollments.Count(e => e.Status == EnrollmentStatus.Completed) / c.Enrollments.Count * 100 : 0m,
+                CreatedDate = c.CreatedAt
+            })
+            .ToList();
+
+        // Enrollments by month (last 12 months)
+        var twelveMonthsAgo = DateTime.UtcNow.AddMonths(-12);
+        var enrollmentsByMonth = allEnrollments
+            .Where(e => e.EnrolledAt >= twelveMonthsAgo)
+            .GroupBy(e => new { e.EnrolledAt.Year, e.EnrolledAt.Month })
+            .ToDictionary(
+                g => $"{g.Key.Year}-{g.Key.Month:D2}",
+                g => g.Count()
+            );
+
+        var stats = new InstructorStatsDto
+        {
+            InstructorId = id,
+            InstructorName = instructor.FullName,
+            TotalCourses = totalCourses,
+            PublishedCourses = publishedCourses,
+            DraftCourses = draftCourses,
+            TotalEnrollments = totalEnrollments,
+            ActiveStudents = activeStudents,
+            TotalRevenue = totalRevenue,
+            AverageRating = averageRating,
+            TotalReviews = totalReviews,
+            TopCourses = topCourses,
+            EnrollmentsByMonth = enrollmentsByMonth
+        };
+
+        logger.LogInformation("[ADMIN] Retrieved stats for instructor {InstructorId}", id);
+        return Results.Ok(stats);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching instructor stats for {InstructorId}", id);
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetInstructorStats")
+.WithTags("Admin", "Instructors");
+
+// Suspend instructor account
+app.MapPost("/api/admin/instructors/{id:guid}/suspend", async (
+    Guid id,
+    [FromBody] SuspendInstructorDto suspendRequest,
+    [FromServices] UserManager<User> userManager,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Suspending instructor {InstructorId}", id);
+
+        var instructor = await userManager.FindByIdAsync(id.ToString());
+        if (instructor == null || !instructor.IsInstructor)
+        {
+            return Results.NotFound(new { error = "Instructor not found" });
+        }
+
+        // Set lockout
+        instructor.LockoutEnabled = true;
+        instructor.LockoutEnd = suspendRequest.SuspendUntil ?? DateTimeOffset.MaxValue; // Permanent if no end date
+
+        var result = await userManager.UpdateAsync(instructor);
+        if (!result.Succeeded)
+        {
+            return Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+        }
+
+        logger.LogInformation("[ADMIN] Instructor {InstructorId} suspended until {SuspendUntil}. Reason: {Reason}",
+            id, instructor.LockoutEnd, suspendRequest.Reason);
+
+        return Results.Ok(new
+        {
+            success = true,
+            message = "Instructor suspended successfully",
+            suspendedUntil = instructor.LockoutEnd
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error suspending instructor {InstructorId}", id);
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("SuspendInstructor")
+.WithTags("Admin", "Instructors");
+
 // COURSE MANAGEMENT ENDPOINTS
 
 // Get all courses (admin view)
@@ -3514,6 +3863,364 @@ app.MapGet("/api/payments/transactions/{id:guid}", async (
 .Produces(404)
 .Produces(500);
 
+// POST /api/admin/payments/{id:guid}/refund - Process refund (Admin only)
+app.MapPost("/api/admin/payments/{id:guid}/refund", async (
+    Guid id,
+    [FromBody] RefundRequestDto refundRequest,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Processing refund for payment {PaymentId}, Amount: {Amount}",
+            id, refundRequest.RefundAmount);
+
+        // Find the payment
+        var payment = await dbContext.Payments
+            .Include(p => p.Course)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (payment == null)
+        {
+            return Results.NotFound(new { error = "Payment not found" });
+        }
+
+        // Validate payment status
+        if (payment.Status != PaymentStatus.Completed)
+        {
+            return Results.BadRequest(new { error = "Only completed payments can be refunded" });
+        }
+
+        // Validate refund amount
+        var alreadyRefunded = payment.RefundAmount ?? 0m;
+        var maxRefundable = payment.Amount - alreadyRefunded;
+
+        if (refundRequest.RefundAmount > maxRefundable)
+        {
+            return Results.BadRequest(new
+            {
+                error = "Refund amount exceeds refundable amount",
+                maxRefundable,
+                alreadyRefunded
+            });
+        }
+
+        // Process refund (in a real scenario, this would call Stripe/PayPal API)
+        // For now, we'll just update the database
+        payment.RefundAmount = (payment.RefundAmount ?? 0m) + refundRequest.RefundAmount;
+        payment.RefundedAt = DateTime.UtcNow;
+
+        // Update payment status
+        if (payment.RefundAmount >= payment.Amount)
+        {
+            payment.Status = PaymentStatus.Refunded;
+        }
+        else
+        {
+            payment.Status = PaymentStatus.PartiallyRefunded;
+        }
+
+        // Create a refund record in Payment table (negative amount)
+        var refundRecord = new Payment
+        {
+            Id = Guid.NewGuid(),
+            UserId = payment.UserId,
+            CourseId = payment.CourseId,
+            Amount = -refundRequest.RefundAmount, // Negative for refund
+            OriginalAmount = refundRequest.RefundAmount,
+            DiscountAmount = 0,
+            Currency = payment.Currency,
+            PaymentMethod = payment.PaymentMethod,
+            Status = PaymentStatus.Refunded,
+            CreatedAt = DateTime.UtcNow,
+            RefundedAt = DateTime.UtcNow,
+            InvoiceNumber = $"REFUND-{payment.InvoiceNumber}"
+        };
+
+        dbContext.Payments.Add(refundRecord);
+        await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("[ADMIN] Refund processed for payment {PaymentId}. Refund ID: {RefundId}",
+            id, refundRecord.Id);
+
+        var response = new RefundResponseDto
+        {
+            Success = true,
+            PaymentId = payment.Id,
+            RefundId = refundRecord.Id,
+            RefundAmount = refundRequest.RefundAmount,
+            OriginalAmount = payment.Amount,
+            RefundedAt = refundRecord.RefundedAt!.Value,
+            Message = "Refund processed successfully",
+            RefundProvider = payment.PaymentMethod.ToString()
+        };
+
+        return Results.Ok(response);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error processing refund for payment {PaymentId}", id);
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("RefundPayment")
+.WithTags("Admin", "Payments")
+.Produces<RefundResponseDto>(200)
+.Produces(400)
+.Produces(404)
+.Produces(500);
+
+// GET /api/admin/payments/stats - Get payment statistics (Admin only)
+app.MapGet("/api/admin/payments/stats", async (
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] DateTime? fromDate = null,
+    [FromQuery] DateTime? toDate = null) =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching payment stats (from: {From}, to: {To})",
+            fromDate ?? DateTime.MinValue, toDate ?? DateTime.MaxValue);
+
+        // Set default date range (last 30 days if not specified)
+        var from = fromDate ?? DateTime.UtcNow.AddDays(-30);
+        var to = toDate ?? DateTime.UtcNow;
+
+        // Get all payments in range
+        var paymentsQuery = dbContext.Payments
+            .Where(p => p.CreatedAt >= from && p.CreatedAt <= to);
+
+        var allPayments = await paymentsQuery.ToListAsync();
+
+        // Calculate totals
+        var totalRevenue = allPayments
+            .Where(p => p.Status == PaymentStatus.Completed && p.Amount > 0)
+            .Sum(p => p.Amount);
+
+        var totalRefunded = allPayments
+            .Where(p => p.Amount < 0) // Negative amounts are refunds
+            .Sum(p => Math.Abs(p.Amount));
+
+        var totalTransactions = allPayments.Count;
+        var successfulTransactions = allPayments.Count(p => p.Status == PaymentStatus.Completed);
+        var failedTransactions = allPayments.Count(p => p.Status == PaymentStatus.Failed);
+        var refundedTransactions = allPayments.Count(p => p.Status == PaymentStatus.Refunded || p.Status == PaymentStatus.PartiallyRefunded);
+
+        // Revenue by payment method
+        var revenueByMethod = allPayments
+            .Where(p => p.Status == PaymentStatus.Completed && p.Amount > 0)
+            .GroupBy(p => p.PaymentMethod.ToString())
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(p => p.Amount)
+            );
+
+        // Transactions by status
+        var transactionsByStatus = allPayments
+            .GroupBy(p => p.Status.ToString())
+            .ToDictionary(
+                g => g.Key,
+                g => g.Count()
+            );
+
+        // Daily revenue (last 30 days)
+        var dailyRevenue = allPayments
+            .Where(p => p.Status == PaymentStatus.Completed && p.Amount > 0)
+            .GroupBy(p => p.CreatedAt.Date)
+            .Select(g => new DailyRevenueDto
+            {
+                Date = g.Key,
+                Revenue = g.Sum(p => p.Amount),
+                Transactions = g.Count()
+            })
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        var stats = new PaymentStatsDto
+        {
+            TotalRevenue = totalRevenue,
+            TotalRefunded = totalRefunded,
+            TotalTransactions = totalTransactions,
+            SuccessfulTransactions = successfulTransactions,
+            FailedTransactions = failedTransactions,
+            RefundedTransactions = refundedTransactions,
+            RevenueByMethod = revenueByMethod,
+            TransactionsByStatus = transactionsByStatus,
+            DailyRevenue = dailyRevenue
+        };
+
+        logger.LogInformation("[ADMIN] Retrieved payment stats: Revenue={Revenue}, Transactions={Count}",
+            totalRevenue, totalTransactions);
+
+        return Results.Ok(stats);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching payment stats");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetPaymentStats")
+.WithTags("Admin", "Payments")
+.Produces<PaymentStatsDto>(200)
+.Produces(500);
+
+// ========================================
+// ANALYTICS API ENDPOINTS (Admin only)
+// ========================================
+
+// GET /api/admin/analytics/overview - Get analytics overview with KPIs and trends
+app.MapGet("/api/admin/analytics/overview", async (
+    [FromServices] IAdminAnalyticsService analyticsService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] string range = "30days") =>
+{
+    try
+    {
+        logger.LogInformation("[ADMIN] Fetching analytics overview for range: {Range}", range);
+
+        var overview = await analyticsService.GetOverviewAsync(range);
+
+        logger.LogInformation("[ADMIN] Analytics overview retrieved: {Users} users, {Revenue} revenue",
+            overview.TotalUsers, overview.TotalRevenue);
+
+        return Results.Ok(overview);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching analytics overview");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetAnalyticsOverview")
+.WithTags("Admin", "Analytics")
+.Produces<InsightLearn.Core.DTOs.Admin.AnalyticsOverviewDto>(200)
+.Produces(500);
+
+// GET /api/admin/analytics/user-growth - Get user growth data for charts
+app.MapGet("/api/admin/analytics/user-growth", async (
+    [FromServices] IAdminAnalyticsService analyticsService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int? days = null) =>
+{
+    try
+    {
+        var daysValue = days ?? 30;
+        logger.LogInformation("[ADMIN] Fetching user growth data for {Days} days", daysValue);
+
+        var userGrowth = await analyticsService.GetUserGrowthAsync(daysValue);
+
+        logger.LogInformation("[ADMIN] User growth data retrieved: {DataPoints} data points",
+            userGrowth.DataPoints.Count);
+
+        return Results.Ok(userGrowth);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching user growth data");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetUserGrowthData")
+.WithTags("Admin", "Analytics")
+.Produces<InsightLearn.Core.DTOs.Admin.AnalyticsChartDataDto>(200)
+.Produces(500);
+
+// GET /api/admin/analytics/revenue-trends - Get revenue trends for charts
+app.MapGet("/api/admin/analytics/revenue-trends", async (
+    [FromServices] IAdminAnalyticsService analyticsService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int? months = null) =>
+{
+    try
+    {
+        var monthsValue = months ?? 12;
+        logger.LogInformation("[ADMIN] Fetching revenue trends for {Months} months", monthsValue);
+
+        var revenueTrends = await analyticsService.GetRevenueTrendsAsync(monthsValue);
+
+        logger.LogInformation("[ADMIN] Revenue trends retrieved: {DataPoints} data points",
+            revenueTrends.DataPoints.Count);
+
+        return Results.Ok(revenueTrends);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching revenue trends");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetRevenueTrends")
+.WithTags("Admin", "Analytics")
+.Produces<InsightLearn.Core.DTOs.Admin.AnalyticsChartDataDto>(200)
+.Produces(500);
+
+// GET /api/admin/analytics/top-courses - Get top performing courses
+app.MapGet("/api/admin/analytics/top-courses", async (
+    [FromServices] IAdminAnalyticsService analyticsService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int? limit = null,
+    [FromQuery] string range = "all") =>
+{
+    try
+    {
+        var limitValue = limit ?? 10;
+        logger.LogInformation("[ADMIN] Fetching top {Limit} courses for range: {Range}", limitValue, range);
+
+        var topCourses = await analyticsService.GetTopCoursesAsync(limitValue, range);
+
+        logger.LogInformation("[ADMIN] Top courses retrieved: {Count} courses",
+            topCourses.Courses.Count);
+
+        return Results.Ok(topCourses);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching top courses");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetTopCourses")
+.WithTags("Admin", "Analytics")
+.Produces<InsightLearn.Core.DTOs.Admin.TopCoursesResponseDto>(200)
+.Produces(500);
+
+// GET /api/admin/analytics/enrollment-trends - Get enrollment trends for charts
+app.MapGet("/api/admin/analytics/enrollment-trends", async (
+    [FromServices] IAdminAnalyticsService analyticsService,
+    [FromServices] ILogger<Program> logger,
+    [FromQuery] int? days = null) =>
+{
+    try
+    {
+        var daysValue = days ?? 90;
+        logger.LogInformation("[ADMIN] Fetching enrollment trends for {Days} days", daysValue);
+
+        var enrollmentTrends = await analyticsService.GetEnrollmentTrendsAsync(daysValue);
+
+        logger.LogInformation("[ADMIN] Enrollment trends retrieved: {DataPoints} data points",
+            enrollmentTrends.DataPoints.Count);
+
+        return Results.Ok(enrollmentTrends);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ADMIN] Error fetching enrollment trends");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetEnrollmentTrends")
+.WithTags("Admin", "Analytics")
+.Produces<InsightLearn.Core.DTOs.Admin.AnalyticsChartDataDto>(200)
+.Produces(500);
+
 // ========================================
 // USER ADMIN API ENDPOINTS
 // ========================================
@@ -3783,6 +4490,917 @@ app.MapGet("/api/dashboard/recent-activity", async (
 .Produces(401)
 .Produces(403)
 .Produces(500);
+
+// ========================================
+// STUDENT LEARNING SPACE ENDPOINTS (v2.1.0)
+// ========================================
+// Phase 3: 28 REST API endpoints for Student Learning Space
+// - Video Transcripts (5 endpoints)
+// - AI Takeaways (3 endpoints)
+// - Student Notes (6 endpoints)
+// - AI Chat (4 endpoints)
+// - Video Bookmarks (4 endpoints)
+// - Video Progress (2 endpoints)
+// - Background Jobs (4 endpoints)
+
+// ========================================
+// VIDEO TRANSCRIPT ENDPOINTS (5)
+// ========================================
+
+// GET /api/transcripts/{lessonId} - Get complete transcript
+app.MapGet("/api/transcripts/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Getting transcript for lesson {LessonId}", lessonId);
+        var transcript = await transcriptService.GetTranscriptAsync(lessonId);
+
+        if (transcript == null)
+        {
+            logger.LogWarning("[TRANSCRIPT] Transcript not found for lesson {LessonId}", lessonId);
+            return Results.NotFound(new { error = "Transcript not found" });
+        }
+
+        return Results.Ok(transcript);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error getting transcript for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTranscript")
+.WithTags("Transcripts")
+.Produces<VideoTranscriptDto>(200)
+.Produces(404)
+.Produces(500);
+
+// GET /api/transcripts/{lessonId}/search?query={text} - Search transcript
+app.MapGet("/api/transcripts/{lessonId:guid}/search", async (
+    Guid lessonId,
+    [FromQuery] string query,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Results.BadRequest(new { error = "Query parameter is required" });
+        }
+
+        logger.LogInformation("[TRANSCRIPT] Searching transcript for lesson {LessonId} with query: {Query}", lessonId, query);
+        var results = await transcriptService.SearchTranscriptAsync(lessonId, query);
+
+        return Results.Ok(results);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error searching transcript for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("SearchTranscript")
+.WithTags("Transcripts")
+.Produces<IEnumerable<TranscriptSearchResultDto>>(200)
+.Produces(400)
+.Produces(500);
+
+// POST /api/transcripts/{lessonId}/generate - Queue transcript generation (Admin/Instructor)
+app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
+    Guid lessonId,
+    [FromBody] GenerateTranscriptRequestDto request,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Queueing transcript generation for lesson {LessonId}, language: {Language}",
+            lessonId, request.Language ?? "en-US");
+        // Note: Video URL is obtained from lesson metadata by the service
+        var jobId = await transcriptService.QueueTranscriptGenerationAsync(lessonId, string.Empty, request.Language ?? "en-US");
+
+        return Results.Accepted($"/api/transcripts/{lessonId}/status", new { jobId, lessonId });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error queueing transcript generation for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GenerateTranscript")
+.WithTags("Transcripts")
+.Produces<object>(202)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/transcripts/{lessonId}/status - Check processing status
+app.MapGet("/api/transcripts/{lessonId:guid}/status", async (
+    Guid lessonId,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Checking status for lesson {LessonId}", lessonId);
+        var status = await transcriptService.GetProcessingStatusAsync(lessonId);
+
+        if (status == null)
+        {
+            return Results.NotFound(new { error = "No processing status found" });
+        }
+
+        return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error checking status for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTranscriptStatus")
+.WithTags("Transcripts")
+.Produces<TranscriptProcessingStatusDto>(200)
+.Produces(404)
+.Produces(500);
+
+// DELETE /api/transcripts/{lessonId} - Delete transcript (Admin)
+app.MapDelete("/api/transcripts/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Deleting transcript for lesson {LessonId}", lessonId);
+        await transcriptService.DeleteTranscriptAsync(lessonId);
+
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error deleting transcript for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("DeleteTranscript")
+.WithTags("Transcripts")
+.Produces(204)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// ========================================
+// AI TAKEAWAYS ENDPOINTS (3)
+// ========================================
+
+// GET /api/takeaways/{lessonId} - Get AI-extracted key takeaways
+app.MapGet("/api/takeaways/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[AI_TAKEAWAYS] Getting takeaways for lesson {LessonId}", lessonId);
+        var takeaways = await aiService.GetTakeawaysAsync(lessonId);
+
+        if (takeaways == null)
+        {
+            logger.LogWarning("[AI_TAKEAWAYS] Takeaways not found for lesson {LessonId}", lessonId);
+            return Results.NotFound(new { error = "Takeaways not found" });
+        }
+
+        return Results.Ok(takeaways);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error getting takeaways for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTakeaways")
+.WithTags("AI Takeaways")
+.Produces<VideoKeyTakeawaysDto>(200)
+.Produces(404)
+.Produces(500);
+
+// POST /api/takeaways/{lessonId}/generate - Queue AI takeaway generation (Admin/Instructor)
+app.MapPost("/api/takeaways/{lessonId:guid}/generate", async (
+    Guid lessonId,
+    [FromBody] GenerateTakeawayRequestDto request,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[AI_TAKEAWAYS] Queueing takeaway generation for lesson {LessonId}", lessonId);
+        // Note: Transcript text is fetched from database by the service
+        var jobId = await aiService.QueueTakeawayGenerationAsync(lessonId, null);
+
+        return Results.Accepted($"/api/takeaways/{lessonId}/status", new { jobId, lessonId });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error queueing takeaway generation for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GenerateTakeaways")
+.WithTags("AI Takeaways")
+.Produces<object>(202)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// POST /api/takeaways/{lessonId}/feedback - Submit thumbs up/down feedback
+app.MapPost("/api/takeaways/{lessonId:guid}/feedback", async (
+    Guid lessonId,
+    [FromBody] SubmitFeedbackDto feedback,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[AI_TAKEAWAYS] Submitting feedback for lesson {LessonId}, takeaway {TakeawayId} by user {UserId}",
+            lessonId, feedback.TakeawayId, userId);
+        await aiService.SubmitFeedbackAsync(lessonId, feedback.TakeawayId, feedback.Feedback);
+
+        return Results.Ok(new { message = "Feedback submitted successfully" });
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error submitting feedback for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("SubmitTakeawayFeedback")
+.WithTags("AI Takeaways")
+.Produces(200)
+.Produces(401)
+.Produces(500);
+
+// ========================================
+// STUDENT NOTES ENDPOINTS (6)
+// ========================================
+
+// GET /api/notes?lessonId={id} - Get user notes for lesson
+app.MapGet("/api/notes", async (
+    [FromQuery] Guid lessonId,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Getting notes for lesson {LessonId} by user {UserId}", lessonId, userId);
+        var notes = await noteService.GetNotesByUserAndLessonAsync(userId, lessonId);
+
+        return Results.Ok(notes);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error getting notes for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetNotesByLesson")
+.WithTags("Student Notes")
+.Produces<IEnumerable<StudentNoteDto>>(200)
+.Produces(401)
+.Produces(500);
+
+// GET /api/notes/{id} - Get note by ID
+app.MapGet("/api/notes/{id:guid}", async (
+    Guid id,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Getting note {NoteId} by user {UserId}", id, userId);
+        var note = await noteService.GetByIdAsync(id, userId);
+
+        if (note == null)
+        {
+            return Results.NotFound(new { error = "Note not found" });
+        }
+
+        return Results.Ok(note);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error getting note {NoteId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetNoteById")
+.WithTags("Student Notes")
+.Produces<StudentNoteDto>(200)
+.Produces(401)
+.Produces(404)
+.Produces(500);
+
+// POST /api/notes - Create note
+app.MapPost("/api/notes", async (
+    [FromBody] CreateStudentNoteDto createDto,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Creating note for lesson {LessonId} by user {UserId}", createDto.LessonId, userId);
+        var note = await noteService.CreateNoteAsync(userId, createDto);
+
+        return Results.Created($"/api/notes/{note.Id}", note);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error creating note for lesson {LessonId}", createDto.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CreateNote")
+.WithTags("Student Notes")
+.Produces<StudentNoteDto>(201)
+.Produces(401)
+.Produces(500);
+
+// PUT /api/notes/{id} - Update note
+app.MapPut("/api/notes/{id:guid}", async (
+    Guid id,
+    [FromBody] UpdateStudentNoteDto updateDto,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Updating note {NoteId} by user {UserId}", id, userId);
+        var note = await noteService.UpdateNoteAsync(id, userId, updateDto);
+
+        if (note == null)
+        {
+            return Results.NotFound(new { error = "Note not found" });
+        }
+
+        return Results.Ok(note);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error updating note {NoteId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("UpdateNote")
+.WithTags("Student Notes")
+.Produces<StudentNoteDto>(200)
+.Produces(401)
+.Produces(404)
+.Produces(500);
+
+// DELETE /api/notes/{id} - Delete note
+app.MapDelete("/api/notes/{id:guid}", async (
+    Guid id,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Deleting note {NoteId} by user {UserId}", id, userId);
+        await noteService.DeleteNoteAsync(id, userId);
+
+        return Results.NoContent();
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error deleting note {NoteId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("DeleteNote")
+.WithTags("Student Notes")
+.Produces(204)
+.Produces(401)
+.Produces(500);
+
+// POST /api/notes/{id}/toggle-bookmark - Toggle bookmark status
+app.MapPost("/api/notes/{id:guid}/toggle-bookmark", async (
+    Guid id,
+    [FromServices] IStudentNoteService noteService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[NOTES] Toggling bookmark for note {NoteId} by user {UserId}", id, userId);
+        var note = await noteService.ToggleBookmarkAsync(id, userId);
+
+        if (note == null)
+        {
+            return Results.NotFound(new { error = "Note not found" });
+        }
+
+        return Results.Ok(note);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[NOTES] Error toggling bookmark for note {NoteId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("ToggleNoteBookmark")
+.WithTags("Student Notes")
+.Produces<StudentNoteDto>(200)
+.Produces(401)
+.Produces(404)
+.Produces(500);
+
+// ========================================
+// AI CHAT ENDPOINTS (4)
+// ========================================
+// NOTE: These endpoints are planned for Phase 4 (real-time features)
+// Currently returning 501 Not Implemented - full implementation requires SignalR integration
+
+// POST /api/ai-chat/message - Send message with context
+app.MapPost("/api/ai-chat/message", (
+    [FromBody] AIChatMessageDto messageDto,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
+    return Results.Problem(
+        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
+        statusCode: 501,
+        title: "Not Implemented");
+})
+.RequireAuthorization()
+.WithName("SendAIChatMessage")
+.WithTags("AI Chat")
+.Produces<AIChatResponseDto>(200)
+.Produces(401)
+.Produces(501);
+
+// GET /api/ai-chat/history?sessionId={id}&limit={n} - Get chat history
+app.MapGet("/api/ai-chat/history", (
+    [FromQuery] Guid sessionId,
+    [FromQuery] int limit,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
+    return Results.Problem(
+        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
+        statusCode: 501,
+        title: "Not Implemented");
+})
+.RequireAuthorization()
+.WithName("GetAIChatHistory")
+.WithTags("AI Chat")
+.Produces<AIConversationHistoryDto>(200)
+.Produces(401)
+.Produces(501);
+
+// POST /api/ai-chat/sessions/{sessionId}/end - End chat session
+app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", (
+    Guid sessionId,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
+    return Results.Problem(
+        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
+        statusCode: 501,
+        title: "Not Implemented");
+})
+.RequireAuthorization()
+.WithName("EndChatSession")
+.WithTags("AI Chat")
+.Produces(200)
+.Produces(401)
+.Produces(501);
+
+// GET /api/ai-chat/sessions?lessonId={id} - List sessions for lesson
+app.MapGet("/api/ai-chat/sessions", (
+    [FromQuery] Guid? lessonId,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
+    return Results.Problem(
+        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
+        statusCode: 501,
+        title: "Not Implemented");
+})
+.RequireAuthorization()
+.WithName("GetChatSessions")
+.WithTags("AI Chat")
+.Produces<IEnumerable<CreateAISessionDto>>(200)
+.Produces(401)
+.Produces(501);
+
+// ========================================
+// VIDEO BOOKMARKS ENDPOINTS (4)
+// ========================================
+
+// GET /api/bookmarks?lessonId={id} - Get bookmarks for lesson
+app.MapGet("/api/bookmarks", async (
+    [FromQuery] Guid lessonId,
+    [FromServices] IVideoBookmarkService bookmarkService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[BOOKMARKS] Getting bookmarks for lesson {LessonId} by user {UserId}", lessonId, userId);
+        var bookmarks = await bookmarkService.GetBookmarksByUserAndLessonAsync(userId, lessonId);
+
+        return Results.Ok(bookmarks);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BOOKMARKS] Error getting bookmarks for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetBookmarksByLesson")
+.WithTags("Video Bookmarks")
+.Produces<IEnumerable<VideoBookmark>>(200)
+.Produces(401)
+.Produces(500);
+
+// POST /api/bookmarks - Create bookmark
+app.MapPost("/api/bookmarks", async (
+    [FromBody] CreateVideoBookmarkDto createDto,
+    [FromServices] IVideoBookmarkService bookmarkService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[BOOKMARKS] Creating bookmark for lesson {LessonId} at {Timestamp}s by user {UserId}",
+            createDto.LessonId, createDto.VideoTimestamp, userId);
+        var bookmark = await bookmarkService.CreateBookmarkAsync(userId, createDto);
+
+        return Results.Created($"/api/bookmarks/{bookmark.Id}", bookmark);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BOOKMARKS] Error creating bookmark for lesson {LessonId}", createDto.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CreateBookmark")
+.WithTags("Video Bookmarks")
+.Produces<VideoBookmark>(201)
+.Produces(401)
+.Produces(500);
+
+// PUT /api/bookmarks/{id} - Update bookmark
+app.MapPut("/api/bookmarks/{id:guid}", async (
+    Guid id,
+    [FromBody] UpdateVideoBookmarkDto updateDto,
+    [FromServices] IVideoBookmarkService bookmarkService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[BOOKMARKS] Updating bookmark {BookmarkId} by user {UserId}", id, userId);
+        var bookmark = await bookmarkService.UpdateBookmarkAsync(id, userId, updateDto);
+
+        return Results.Ok(bookmark);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BOOKMARKS] Error updating bookmark {BookmarkId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("UpdateBookmark")
+.WithTags("Video Bookmarks")
+.Produces<VideoBookmark>(200)
+.Produces(401)
+.Produces(404)
+.Produces(500);
+
+// DELETE /api/bookmarks/{id} - Delete bookmark
+app.MapDelete("/api/bookmarks/{id:guid}", async (
+    Guid id,
+    [FromServices] IVideoBookmarkService bookmarkService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[BOOKMARKS] Deleting bookmark {BookmarkId} by user {UserId}", id, userId);
+        await bookmarkService.DeleteBookmarkAsync(id, userId);
+
+        return Results.NoContent();
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[BOOKMARKS] Error deleting bookmark {BookmarkId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("DeleteBookmark")
+.WithTags("Video Bookmarks")
+.Produces(204)
+.Produces(401)
+.Produces(500);
+
+// ========================================
+// VIDEO PROGRESS ENDPOINTS (2)
+// ========================================
+
+// POST /api/progress/sync - Sync progress (multi-device support)
+app.MapPost("/api/progress/sync", async (
+    [FromBody] TrackVideoProgressDto trackDto,
+    [FromServices] IVideoProgressService progressService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[PROGRESS] Tracking progress for lesson {LessonId} by user {UserId}",
+            trackDto.LessonId, userId);
+        var progress = await progressService.TrackProgressAsync(userId, trackDto);
+
+        return Results.Ok(progress);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROGRESS] Error tracking progress for lesson {LessonId}", trackDto.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("SyncProgress")
+.WithTags("Video Progress")
+.Produces<VideoProgressResponseDto>(200)
+.Produces(401)
+.Produces(500);
+
+// GET /api/progress/resume?lessonId={id} - Get resume position
+app.MapGet("/api/progress/resume", async (
+    [FromQuery] Guid lessonId,
+    [FromServices] IVideoProgressService progressService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
+{
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[PROGRESS] Getting resume position for lesson {LessonId} by user {UserId}", lessonId, userId);
+        var lastPosition = await progressService.GetLastPositionAsync(userId, lessonId);
+
+        return Results.Ok(new { lessonId, lastPosition });
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[PROGRESS] Error getting resume position for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetResumePosition")
+.WithTags("Video Progress")
+.Produces<object>(200)
+.Produces(401)
+.Produces(500);
+
+// ========================================
+// BACKGROUND JOB ENDPOINTS (4)
+// ========================================
+
+// GET /api/jobs/transcripts/{lessonId}/status - Get transcript job status
+app.MapGet("/api/jobs/transcripts/{lessonId:guid}/status", async (
+    Guid lessonId,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[JOBS] Checking transcript job status for lesson {LessonId}", lessonId);
+        var status = await transcriptService.GetProcessingStatusAsync(lessonId);
+
+        if (status == null)
+        {
+            return Results.NotFound(new { error = "No job found for this lesson" });
+        }
+
+        return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[JOBS] Error checking transcript job status for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GetTranscriptJobStatus")
+.WithTags("Background Jobs")
+.Produces<TranscriptProcessingStatusDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(404)
+.Produces(500);
+
+// GET /api/jobs/takeaways/{lessonId}/status - Get takeaway job status
+app.MapGet("/api/jobs/takeaways/{lessonId:guid}/status", async (
+    Guid lessonId,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[JOBS] Checking takeaway job status for lesson {LessonId}", lessonId);
+        var status = await aiService.GetProcessingStatusAsync(lessonId);
+
+        return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[JOBS] Error checking takeaway job status for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GetTakeawayJobStatus")
+.WithTags("Background Jobs")
+.Produces<TakeawayProcessingStatusDto>(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// POST /api/jobs/transcripts/{lessonId}/queue - Queue transcript generation job
+app.MapPost("/api/jobs/transcripts/{lessonId:guid}/queue", async (
+    Guid lessonId,
+    [FromBody] GenerateTranscriptRequestDto request,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[JOBS] Queueing transcript generation job for lesson {LessonId}, language: {Language}",
+            lessonId, request.Language ?? "en-US");
+        // Note: Video URL is obtained from lesson metadata by the service
+        var jobId = await transcriptService.QueueTranscriptGenerationAsync(lessonId, string.Empty, request.Language ?? "en-US");
+
+        return Results.Accepted($"/api/jobs/transcripts/{lessonId}/status", new { jobId, lessonId });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[JOBS] Error queueing transcript job for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("QueueTranscriptJob")
+.WithTags("Background Jobs")
+.Produces<object>(202)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// POST /api/jobs/takeaways/{lessonId}/queue - Queue takeaway generation job
+app.MapPost("/api/jobs/takeaways/{lessonId:guid}/queue", async (
+    Guid lessonId,
+    [FromBody] GenerateTakeawayRequestDto request,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[JOBS] Queueing takeaway generation job for lesson {LessonId}", lessonId);
+        // Note: Transcript text is fetched from database by the service
+        var jobId = await aiService.QueueTakeawayGenerationAsync(lessonId, null);
+
+        return Results.Accepted($"/api/jobs/takeaways/{lessonId}/status", new { jobId, lessonId });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[JOBS] Error queueing takeaway job for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("QueueTakeawayJob")
+.WithTags("Background Jobs")
+.Produces<object>(202)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+Console.WriteLine("[ENDPOINTS] Student Learning Space v2.1.0 endpoints registered (28 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Video Transcripts: /api/transcripts/* (5 endpoints)");
+Console.WriteLine("[ENDPOINTS] - AI Takeaways: /api/takeaways/* (3 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Student Notes: /api/notes/* (6 endpoints)");
+Console.WriteLine("[ENDPOINTS] - AI Chat: /api/ai-chat/* (4 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Video Bookmarks: /api/bookmarks/* (4 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Video Progress: /api/progress/* (2 endpoints)");
+Console.WriteLine("[ENDPOINTS] - Background Jobs: /api/jobs/* (4 endpoints)");
 
 // ========================================
 // DEBUG TEST ENDPOINTS
