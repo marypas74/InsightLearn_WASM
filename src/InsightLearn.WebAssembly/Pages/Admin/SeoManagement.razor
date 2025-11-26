@@ -19,44 +19,1215 @@
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">SEO Management</h1>
-        <p class="page-description">Manage SEO settings</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-search"></i>
+                SEO Management
+            </h1>
+            <p class="page-description">Optimize your site for search engines</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+            <button class="btn btn-primary" @onclick="SaveAllSettings" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner spinner-sm"></span>
+                }
+                else
+                {
+                    <i class="fas fa-save"></i>
+                }
+                Save All Changes
+            </button>
+        </div>
     </div>
 
-    @if (isLoading)
+    @if (isLoading && globalSeo == null)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading SEO settings...</p>
         </div>
     }
-    else if (error != null)
+    else if (error != null && globalSeo == null)
     {
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+            <button class="btn btn-primary" @onclick="RefreshData">Retry</button>
         </div>
     }
     else
     {
-        <div class="clean-card">
-            <div class="card-header">
-                <h2>SEO Management</h2>
+        <!-- SEO Health Score -->
+        <div class="seo-score-card">
+            <div class="score-circle @GetScoreClass(seoScore)">
+                <span class="score-value">@seoScore</span>
+                <span class="score-label">SEO Score</span>
             </div>
-            <div class="card-content">
-                <p>Manage SEO settings page content goes here.</p>
-                <!-- TODO: Implement SeoManagement functionality -->
+            <div class="score-details">
+                <h3>SEO Health Overview</h3>
+                <div class="score-breakdown">
+                    <div class="score-item">
+                        <span class="item-label">Meta Tags</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: @metaTagsScore%"></div>
+                        </div>
+                        <span class="item-value">@metaTagsScore%</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="item-label">Content Optimization</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: @contentScore%"></div>
+                        </div>
+                        <span class="item-value">@contentScore%</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="item-label">Technical SEO</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: @technicalScore%"></div>
+                        </div>
+                        <span class="item-value">@technicalScore%</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="item-label">Social Media</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: @socialScore%"></div>
+                        </div>
+                        <span class="item-value">@socialScore%</span>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Tabs Navigation -->
+        <div class="seo-tabs">
+            <button class="tab-btn @(activeTab == "global" ? "active" : "")" @onclick="@(() => activeTab = "global")">
+                <i class="fas fa-globe"></i> Global Settings
+            </button>
+            <button class="tab-btn @(activeTab == "pages" ? "active" : "")" @onclick="@(() => activeTab = "pages")">
+                <i class="fas fa-file-alt"></i> Page SEO
+            </button>
+            <button class="tab-btn @(activeTab == "social" ? "active" : "")" @onclick="@(() => activeTab = "social")">
+                <i class="fas fa-share-alt"></i> Social Media
+            </button>
+            <button class="tab-btn @(activeTab == "technical" ? "active" : "")" @onclick="@(() => activeTab = "technical")">
+                <i class="fas fa-cog"></i> Technical
+            </button>
+            <button class="tab-btn @(activeTab == "analytics" ? "active" : "")" @onclick="@(() => activeTab = "analytics")">
+                <i class="fas fa-chart-line"></i> Analytics
+            </button>
+        </div>
+
+        <!-- Global Settings Tab -->
+        @if (activeTab == "global")
+        {
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-globe"></i>
+                        Global SEO Settings
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="siteTitle">Site Title</label>
+                            <input type="text" id="siteTitle" @bind="globalSeo.SiteTitle"
+                                   placeholder="InsightLearn - Online Learning Platform" maxlength="60" />
+                            <span class="char-count @(globalSeo.SiteTitle.Length > 60 ? "over-limit" : "")">
+                                @globalSeo.SiteTitle.Length / 60
+                            </span>
+                            <span class="form-hint">Recommended: 50-60 characters</span>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="siteDescription">Site Description</label>
+                            <textarea id="siteDescription" @bind="globalSeo.SiteDescription" rows="3"
+                                      placeholder="Learn new skills online with expert-led courses..." maxlength="160"></textarea>
+                            <span class="char-count @(globalSeo.SiteDescription.Length > 160 ? "over-limit" : "")">
+                                @globalSeo.SiteDescription.Length / 160
+                            </span>
+                            <span class="form-hint">Recommended: 150-160 characters</span>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="siteKeywords">Primary Keywords</label>
+                            <input type="text" id="siteKeywords" @bind="globalSeo.Keywords"
+                                   placeholder="online learning, courses, education, skills" />
+                            <span class="form-hint">Comma-separated list of primary keywords</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="canonicalUrl">Canonical URL</label>
+                            <input type="url" id="canonicalUrl" @bind="globalSeo.CanonicalUrl"
+                                   placeholder="https://insightlearn.cloud" />
+                        </div>
+                        <div class="form-group">
+                            <label for="defaultLang">Default Language</label>
+                            <select id="defaultLang" @bind="globalSeo.DefaultLanguage">
+                                <option value="en">English</option>
+                                <option value="it">Italian</option>
+                                <option value="es">Spanish</option>
+                                <option value="de">German</option>
+                                <option value="fr">French</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Search Engine Indexing</h3>
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="globalSeo.AllowIndexing" />
+                                <span class="toggle-label">Allow Search Engine Indexing</span>
+                                <span class="toggle-description">Enable robots to crawl and index your site</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="globalSeo.AllowFollowLinks" />
+                                <span class="toggle-label">Allow Link Following</span>
+                                <span class="toggle-description">Allow search engines to follow links on your pages</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="globalSeo.EnableSitemap" />
+                                <span class="toggle-label">Auto-Generate Sitemap</span>
+                                <span class="toggle-description">Automatically generate and update XML sitemap</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Page SEO Tab -->
+        @if (activeTab == "pages")
+        {
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-file-alt"></i>
+                        Page-Specific SEO
+                    </h2>
+                    <div class="header-tools">
+                        <select @bind="selectedPageType" @bind:after="FilterPages">
+                            <option value="">All Pages</option>
+                            <option value="Course">Courses</option>
+                            <option value="Category">Categories</option>
+                            <option value="Static">Static Pages</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="table-responsive">
+                        <table class="data-table seo-pages-table">
+                            <thead>
+                                <tr>
+                                    <th>Page</th>
+                                    <th>Title Tag</th>
+                                    <th>Meta Description</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var seoPage in filteredPages)
+                                {
+                                    <tr>
+                                        <td class="page-cell">
+                                            <div class="page-info">
+                                                <span class="page-name">@seoPage.Name</span>
+                                                <span class="page-url">@seoPage.Url</span>
+                                            </div>
+                                        </td>
+                                        <td class="title-cell">
+                                            <span class="@GetTitleStatusClass(seoPage.Title)">
+                                                @(seoPage.Title.Length > 40 ? seoPage.Title.Substring(0, 40) + "..." : seoPage.Title)
+                                            </span>
+                                            <span class="char-badge @(seoPage.Title.Length > 60 ? "badge-danger" : "badge-success")">
+                                                @seoPage.Title.Length
+                                            </span>
+                                        </td>
+                                        <td class="description-cell">
+                                            <span class="@GetDescriptionStatusClass(seoPage.Description)">
+                                                @(seoPage.Description.Length > 60 ? seoPage.Description.Substring(0, 60) + "..." : seoPage.Description)
+                                            </span>
+                                            <span class="char-badge @(seoPage.Description.Length > 160 ? "badge-danger" : "badge-success")">
+                                                @seoPage.Description.Length
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge @GetPageStatusBadge(seoPage)">
+                                                @GetPageStatus(seoPage)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline" @onclick="@(() => EditPageSeo(seoPage))">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Social Media Tab -->
+        @if (activeTab == "social")
+        {
+            <div class="settings-grid">
+                <!-- Open Graph Settings -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fab fa-facebook"></i>
+                            Open Graph (Facebook)
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="ogTitle">OG Title</label>
+                            <input type="text" id="ogTitle" @bind="socialSeo.OgTitle"
+                                   placeholder="InsightLearn - Learn Anywhere, Anytime" />
+                        </div>
+                        <div class="form-group">
+                            <label for="ogDescription">OG Description</label>
+                            <textarea id="ogDescription" @bind="socialSeo.OgDescription" rows="2"
+                                      placeholder="Transform your career with expert-led courses..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="ogImage">OG Image URL</label>
+                            <input type="url" id="ogImage" @bind="socialSeo.OgImage"
+                                   placeholder="https://insightlearn.cloud/images/og-image.jpg" />
+                            <span class="form-hint">Recommended size: 1200x630 pixels</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="ogType">OG Type</label>
+                            <select id="ogType" @bind="socialSeo.OgType">
+                                <option value="website">Website</option>
+                                <option value="article">Article</option>
+                                <option value="product">Product</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fbAppId">Facebook App ID</label>
+                            <input type="text" id="fbAppId" @bind="socialSeo.FacebookAppId"
+                                   placeholder="Your Facebook App ID" />
+                        </div>
+
+                        <!-- OG Preview -->
+                        <div class="social-preview og-preview">
+                            <h4>Preview</h4>
+                            <div class="preview-card">
+                                <div class="preview-image" style="background-image: url('@(string.IsNullOrEmpty(socialSeo.OgImage) ? "/images/placeholder.jpg" : socialSeo.OgImage)')">
+                                    @if (string.IsNullOrEmpty(socialSeo.OgImage))
+                                    {
+                                        <i class="fas fa-image"></i>
+                                    }
+                                </div>
+                                <div class="preview-content">
+                                    <span class="preview-domain">insightlearn.cloud</span>
+                                    <h5>@(string.IsNullOrEmpty(socialSeo.OgTitle) ? "Your Page Title" : socialSeo.OgTitle)</h5>
+                                    <p>@(string.IsNullOrEmpty(socialSeo.OgDescription) ? "Your page description will appear here..." : socialSeo.OgDescription)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Twitter Card Settings -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fab fa-twitter"></i>
+                            Twitter Card
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="twitterCard">Card Type</label>
+                            <select id="twitterCard" @bind="socialSeo.TwitterCardType">
+                                <option value="summary">Summary</option>
+                                <option value="summary_large_image">Summary with Large Image</option>
+                                <option value="app">App</option>
+                                <option value="player">Player</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="twitterSite">Twitter @@ Site</label>
+                            <input type="text" id="twitterSite" @bind="socialSeo.TwitterSite"
+                                   placeholder="@@insightlearn" />
+                        </div>
+                        <div class="form-group">
+                            <label for="twitterCreator">Twitter @@ Creator</label>
+                            <input type="text" id="twitterCreator" @bind="socialSeo.TwitterCreator"
+                                   placeholder="@@insightlearn" />
+                        </div>
+                        <div class="form-group">
+                            <label for="twitterTitle">Twitter Title</label>
+                            <input type="text" id="twitterTitle" @bind="socialSeo.TwitterTitle"
+                                   placeholder="InsightLearn - Online Learning Platform" />
+                        </div>
+                        <div class="form-group">
+                            <label for="twitterDescription">Twitter Description</label>
+                            <textarea id="twitterDescription" @bind="socialSeo.TwitterDescription" rows="2"
+                                      placeholder="Learn new skills online..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="twitterImage">Twitter Image URL</label>
+                            <input type="url" id="twitterImage" @bind="socialSeo.TwitterImage"
+                                   placeholder="https://insightlearn.cloud/images/twitter-card.jpg" />
+                        </div>
+
+                        <!-- Twitter Preview -->
+                        <div class="social-preview twitter-preview">
+                            <h4>Preview</h4>
+                            <div class="preview-card twitter">
+                                <div class="preview-image" style="background-image: url('@(string.IsNullOrEmpty(socialSeo.TwitterImage) ? "/images/placeholder.jpg" : socialSeo.TwitterImage)')">
+                                    @if (string.IsNullOrEmpty(socialSeo.TwitterImage))
+                                    {
+                                        <i class="fas fa-image"></i>
+                                    }
+                                </div>
+                                <div class="preview-content">
+                                    <h5>@(string.IsNullOrEmpty(socialSeo.TwitterTitle) ? "Your Page Title" : socialSeo.TwitterTitle)</h5>
+                                    <p>@(string.IsNullOrEmpty(socialSeo.TwitterDescription) ? "Your page description..." : socialSeo.TwitterDescription)</p>
+                                    <span class="preview-domain">insightlearn.cloud</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Technical Tab -->
+        @if (activeTab == "technical")
+        {
+            <div class="settings-grid">
+                <!-- Sitemap Settings -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-sitemap"></i>
+                            Sitemap
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="sitemap-info">
+                            <div class="info-row">
+                                <span class="info-label">Sitemap URL</span>
+                                <a href="/sitemap.xml" target="_blank" class="info-value link">
+                                    /sitemap.xml <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Last Generated</span>
+                                <span class="info-value">@technicalSeo.SitemapLastGenerated.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">URLs in Sitemap</span>
+                                <span class="info-value">@technicalSeo.SitemapUrlCount</span>
+                            </div>
+                        </div>
+                        <div class="sitemap-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.IncludeCourses" />
+                                <span class="toggle-label">Include Course Pages</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.IncludeCategories" />
+                                <span class="toggle-label">Include Category Pages</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.IncludeInstructors" />
+                                <span class="toggle-label">Include Instructor Profiles</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="sitemapFrequency">Update Frequency</label>
+                            <select id="sitemapFrequency" @bind="technicalSeo.SitemapFrequency">
+                                <option value="hourly">Hourly</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline" @onclick="RegenerateSitemap">
+                            <i class="fas fa-sync"></i> Regenerate Sitemap
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Robots.txt Settings -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-robot"></i>
+                            Robots.txt
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="robotsTxt">Robots.txt Content</label>
+                            <textarea id="robotsTxt" class="code-editor" @bind="technicalSeo.RobotsTxt" rows="12"
+                                      placeholder="User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Allow: /
+Sitemap: https://insightlearn.cloud/sitemap.xml"></textarea>
+                        </div>
+                        <div class="robots-actions">
+                            <button class="btn btn-outline btn-sm" @onclick="ResetRobotsTxt">
+                                <i class="fas fa-undo"></i> Reset to Default
+                            </button>
+                            <a href="/robots.txt" target="_blank" class="btn btn-outline btn-sm">
+                                <i class="fas fa-external-link-alt"></i> View Current
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structured Data -->
+                <div class="clean-card full-width">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-code"></i>
+                            Structured Data (JSON-LD)
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="structured-data-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.EnableOrganizationSchema" />
+                                <span class="toggle-label">Organization Schema</span>
+                                <span class="toggle-description">Add organization structured data to homepage</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.EnableCourseSchema" />
+                                <span class="toggle-label">Course Schema</span>
+                                <span class="toggle-description">Add Course structured data to course pages</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.EnableBreadcrumbSchema" />
+                                <span class="toggle-label">Breadcrumb Schema</span>
+                                <span class="toggle-description">Add breadcrumb structured data to all pages</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="technicalSeo.EnableFaqSchema" />
+                                <span class="toggle-label">FAQ Schema</span>
+                                <span class="toggle-description">Add FAQ structured data to relevant pages</span>
+                            </label>
+                        </div>
+                        <button class="btn btn-outline" @onclick="ValidateStructuredData">
+                            <i class="fas fa-check-circle"></i> Validate with Google
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Analytics Tab -->
+        @if (activeTab == "analytics")
+        {
+            <div class="settings-grid">
+                <!-- Google Analytics -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fab fa-google"></i>
+                            Google Analytics
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.GoogleAnalyticsEnabled" />
+                                <span class="toggle-label">Enable Google Analytics</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="gaId">Measurement ID</label>
+                            <input type="text" id="gaId" @bind="analyticsSeo.GoogleAnalyticsId"
+                                   placeholder="G-XXXXXXXXXX" disabled="@(!analyticsSeo.GoogleAnalyticsEnabled)" />
+                            <span class="form-hint">Find this in Google Analytics > Admin > Property Settings</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="gaStreamId">Data Stream ID</label>
+                            <input type="text" id="gaStreamId" @bind="analyticsSeo.GoogleAnalyticsStreamId"
+                                   placeholder="1234567890" disabled="@(!analyticsSeo.GoogleAnalyticsEnabled)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Search Console -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-search"></i>
+                            Google Search Console
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.SearchConsoleEnabled" />
+                                <span class="toggle-label">Enable Search Console Integration</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="gscVerification">Verification Meta Tag</label>
+                            <input type="text" id="gscVerification" @bind="analyticsSeo.SearchConsoleVerification"
+                                   placeholder="google-site-verification=XXXXXX" disabled="@(!analyticsSeo.SearchConsoleEnabled)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bing Webmaster -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fab fa-microsoft"></i>
+                            Bing Webmaster Tools
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.BingEnabled" />
+                                <span class="toggle-label">Enable Bing Integration</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="bingVerification">Verification Meta Tag</label>
+                            <input type="text" id="bingVerification" @bind="analyticsSeo.BingVerification"
+                                   placeholder="MSVALIDATE.01=XXXXXX" disabled="@(!analyticsSeo.BingEnabled)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Facebook Pixel -->
+                <div class="clean-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fab fa-facebook"></i>
+                            Facebook Pixel
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.FacebookPixelEnabled" />
+                                <span class="toggle-label">Enable Facebook Pixel</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="fbPixelId">Pixel ID</label>
+                            <input type="text" id="fbPixelId" @bind="analyticsSeo.FacebookPixelId"
+                                   placeholder="1234567890" disabled="@(!analyticsSeo.FacebookPixelEnabled)" />
+                        </div>
+                        <div class="toggle-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.FacebookPixelPageView" disabled="@(!analyticsSeo.FacebookPixelEnabled)" />
+                                <span class="toggle-label">Track Page Views</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="checkbox" @bind="analyticsSeo.FacebookPixelPurchase" disabled="@(!analyticsSeo.FacebookPixelEnabled)" />
+                                <span class="toggle-label">Track Purchases</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 </div>
 
+<!-- Edit Page SEO Modal -->
+@if (showEditPageModal && selectedPage != null)
+{
+    <div class="modal-overlay" @onclick="CloseModals">
+        <div class="modal modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-edit"></i>
+                    Edit Page SEO - @selectedPage.Name
+                </h3>
+                <button class="modal-close" @onclick="CloseModals">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="pageTitle">Title Tag</label>
+                    <input type="text" id="pageTitle" @bind="selectedPage.Title" maxlength="70" />
+                    <span class="char-count @(selectedPage.Title.Length > 60 ? "over-limit" : "")">
+                        @selectedPage.Title.Length / 60
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label for="pageDescription">Meta Description</label>
+                    <textarea id="pageDescription" @bind="selectedPage.Description" rows="3" maxlength="170"></textarea>
+                    <span class="char-count @(selectedPage.Description.Length > 160 ? "over-limit" : "")">
+                        @selectedPage.Description.Length / 160
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label for="pageKeywords">Keywords</label>
+                    <input type="text" id="pageKeywords" @bind="selectedPage.Keywords"
+                           placeholder="keyword1, keyword2, keyword3" />
+                </div>
+                <div class="form-group">
+                    <label for="pageCanonical">Canonical URL</label>
+                    <input type="url" id="pageCanonical" @bind="selectedPage.CanonicalUrl"
+                           placeholder="https://insightlearn.cloud/..." />
+                </div>
+                <div class="toggle-options">
+                    <label class="toggle-option">
+                        <input type="checkbox" @bind="selectedPage.NoIndex" />
+                        <span class="toggle-label">No Index</span>
+                        <span class="toggle-description">Prevent search engines from indexing this page</span>
+                    </label>
+                    <label class="toggle-option">
+                        <input type="checkbox" @bind="selectedPage.NoFollow" />
+                        <span class="toggle-label">No Follow</span>
+                        <span class="toggle-description">Prevent search engines from following links on this page</span>
+                    </label>
+                </div>
+
+                <!-- SERP Preview -->
+                <div class="serp-preview">
+                    <h4>Search Result Preview</h4>
+                    <div class="serp-card">
+                        <span class="serp-url">https://insightlearn.cloud@selectedPage.Url</span>
+                        <h5 class="serp-title @(selectedPage.Title.Length > 60 ? "truncated" : "")">
+                            @(selectedPage.Title.Length > 60 ? selectedPage.Title.Substring(0, 60) + "..." : selectedPage.Title)
+                        </h5>
+                        <p class="serp-description @(selectedPage.Description.Length > 160 ? "truncated" : "")">
+                            @(selectedPage.Description.Length > 160 ? selectedPage.Description.Substring(0, 160) + "..." : selectedPage.Description)
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseModals">Cancel</button>
+                <button class="btn btn-primary" @onclick="SavePageSeo" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-save"></i>
+                    }
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .seo-score-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 3rem;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+
+    .score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid white;
+    }
+
+    .score-circle.excellent { border-color: #28a745; }
+    .score-circle.good { border-color: #ffc107; }
+    .score-circle.poor { border-color: #dc3545; }
+
+    .score-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+
+    .score-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+
+    .score-details {
+        flex: 1;
+    }
+
+    .score-details h3 {
+        margin: 0 0 1rem;
+        font-size: 1.25rem;
+    }
+
+    .score-breakdown {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .score-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .score-item .item-label {
+        min-width: 140px;
+        font-size: 0.875rem;
+    }
+
+    .score-item .progress-bar {
+        flex: 1;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .score-item .progress-fill {
+        height: 100%;
+        background: white;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .score-item .item-value {
+        min-width: 40px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .seo-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.5rem;
+        overflow-x: auto;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 1.25rem;
+        border: none;
+        background: none;
+        color: #6b7280;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .tab-btn.active {
+        background: #6366f1;
+        color: white;
+    }
+
+    .tab-btn i {
+        margin-right: 0.5rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    .form-group {
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #374151;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.9375rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
+    }
+
+    .char-count {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+
+    .char-count.over-limit {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .form-hint {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    .settings-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .settings-section h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #374151;
+    }
+
+    .toggle-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .toggle-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .toggle-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+    }
+
+    .toggle-label {
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .toggle-description {
+        display: block;
+        font-size: 0.8125rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .settings-grid .clean-card.full-width {
+        grid-column: span 2;
+    }
+
+    .seo-pages-table .page-cell {
+        min-width: 200px;
+    }
+
+    .page-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-name {
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .page-url {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .char-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 20px;
+        border-radius: 10px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.optimized { background: #d4edda; color: #155724; }
+    .status-badge.needs-work { background: #fff3cd; color: #856404; }
+    .status-badge.missing { background: #f8d7da; color: #721c24; }
+
+    .social-preview {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .social-preview h4 {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 1rem;
+    }
+
+    .preview-card {
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        overflow: hidden;
+        max-width: 500px;
+    }
+
+    .preview-card .preview-image {
+        height: 260px;
+        background-color: #f0f0f0;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        font-size: 3rem;
+    }
+
+    .preview-card .preview-content {
+        padding: 1rem;
+    }
+
+    .preview-card .preview-domain {
+        font-size: 0.75rem;
+        color: #70757a;
+        text-transform: uppercase;
+    }
+
+    .preview-card h5 {
+        font-size: 1.125rem;
+        color: #1a0dab;
+        margin: 0.25rem 0;
+        line-height: 1.3;
+    }
+
+    .preview-card p {
+        font-size: 0.875rem;
+        color: #545454;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .preview-card.twitter .preview-image {
+        height: 200px;
+    }
+
+    .sitemap-info {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #6b7280;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .info-value.link {
+        color: #6366f1;
+        text-decoration: none;
+    }
+
+    .info-value.link:hover {
+        text-decoration: underline;
+    }
+
+    .code-editor {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.875rem;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: none;
+    }
+
+    .structured-data-options {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .serp-preview {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .serp-preview h4 {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 1rem;
+    }
+
+    .serp-card {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .serp-url {
+        font-size: 0.8125rem;
+        color: #202124;
+    }
+
+    .serp-title {
+        font-size: 1.125rem;
+        color: #1a0dab;
+        margin: 0.25rem 0;
+        line-height: 1.3;
+    }
+
+    .serp-title.truncated::after {
+        content: "...";
+    }
+
+    .serp-description {
+        font-size: 0.875rem;
+        color: #545454;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    @@media (max-width: 1024px) {
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .settings-grid .clean-card.full-width {
+            grid-column: span 1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .seo-score-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .score-breakdown {
+            grid-template-columns: 1fr;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full-width {
+            grid-column: span 1;
+        }
+
+        .structured-data-options {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
+    private bool isSaving = false;
     private string? error;
+    private string activeTab = "global";
+
+    // SEO Scores
+    private int seoScore = 82;
+    private int metaTagsScore = 90;
+    private int contentScore = 78;
+    private int technicalScore = 85;
+    private int socialScore = 75;
+
+    // Settings Models
+    private GlobalSeoSettings globalSeo = new();
+    private SocialSeoSettings socialSeo = new();
+    private TechnicalSeoSettings technicalSeo = new();
+    private AnalyticsSeoSettings analyticsSeo = new();
+    private List<PageSeoSettings> pages = new();
+    private List<PageSeoSettings> filteredPages = new();
+
+    // Page filter
+    private string selectedPageType = "";
+
+    // Modal state
+    private bool showEditPageModal = false;
+    private PageSeoSettings? selectedPage;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task RefreshData()
     {
         await LoadData();
     }
@@ -67,18 +1238,295 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for SeoManagement
-            await Task.Delay(500); // Placeholder
+            await Task.Delay(300); // Simulated API call
+
+            // Initialize mock data
+            globalSeo = new GlobalSeoSettings
+            {
+                SiteTitle = "InsightLearn - Online Learning Platform",
+                SiteDescription = "Transform your career with expert-led online courses. Learn programming, design, business, and more from industry professionals.",
+                Keywords = "online learning, courses, education, programming, design, business",
+                CanonicalUrl = "https://insightlearn.cloud",
+                DefaultLanguage = "en",
+                AllowIndexing = true,
+                AllowFollowLinks = true,
+                EnableSitemap = true
+            };
+
+            socialSeo = new SocialSeoSettings
+            {
+                OgTitle = "InsightLearn - Learn Anywhere, Anytime",
+                OgDescription = "Transform your career with expert-led online courses. Join millions of learners worldwide.",
+                OgImage = "https://insightlearn.cloud/images/og-image.jpg",
+                OgType = "website",
+                FacebookAppId = "",
+                TwitterCardType = "summary_large_image",
+                TwitterSite = "@insightlearn",
+                TwitterCreator = "@insightlearn",
+                TwitterTitle = "InsightLearn - Online Learning Platform",
+                TwitterDescription = "Learn new skills online with expert-led courses.",
+                TwitterImage = "https://insightlearn.cloud/images/twitter-card.jpg"
+            };
+
+            technicalSeo = new TechnicalSeoSettings
+            {
+                SitemapLastGenerated = DateTime.Now.AddHours(-6),
+                SitemapUrlCount = 1247,
+                SitemapFrequency = "daily",
+                IncludeCourses = true,
+                IncludeCategories = true,
+                IncludeInstructors = true,
+                RobotsTxt = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: https://insightlearn.cloud/sitemap.xml",
+                EnableOrganizationSchema = true,
+                EnableCourseSchema = true,
+                EnableBreadcrumbSchema = true,
+                EnableFaqSchema = false
+            };
+
+            analyticsSeo = new AnalyticsSeoSettings
+            {
+                GoogleAnalyticsEnabled = true,
+                GoogleAnalyticsId = "G-XXXXXXXXXX",
+                GoogleAnalyticsStreamId = "1234567890",
+                SearchConsoleEnabled = true,
+                SearchConsoleVerification = "google-site-verification=abcd1234",
+                BingEnabled = false,
+                BingVerification = "",
+                FacebookPixelEnabled = true,
+                FacebookPixelId = "1234567890",
+                FacebookPixelPageView = true,
+                FacebookPixelPurchase = true
+            };
+
+            pages = GenerateMockPages();
+            FilterPages();
 
             isLoading = false;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "An error occurred while loading SEO settings";
             Toast.ShowError(error);
             Console.WriteLine($"SeoManagement error: {ex}");
             isLoading = false;
         }
+    }
+
+    private void FilterPages()
+    {
+        filteredPages = string.IsNullOrEmpty(selectedPageType)
+            ? pages.ToList()
+            : pages.Where(p => p.Type == selectedPageType).ToList();
+    }
+
+    private async Task SaveAllSettings()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(800); // Simulated API call
+            Toast.ShowSuccess("SEO settings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to save SEO settings");
+            Console.WriteLine($"Save error: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void EditPageSeo(PageSeoSettings page)
+    {
+        selectedPage = page;
+        showEditPageModal = true;
+    }
+
+    private async Task SavePageSeo()
+    {
+        if (selectedPage == null) return;
+
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(500); // Simulated API call
+            Toast.ShowSuccess($"SEO settings for '{selectedPage.Name}' saved");
+            CloseModals();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to save page SEO settings");
+            Console.WriteLine($"Save page error: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task RegenerateSitemap()
+    {
+        try
+        {
+            Toast.ShowInfo("Regenerating sitemap...");
+            await Task.Delay(1000);
+            technicalSeo.SitemapLastGenerated = DateTime.Now;
+            Toast.ShowSuccess("Sitemap regenerated successfully");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to regenerate sitemap");
+            Console.WriteLine($"Sitemap error: {ex}");
+        }
+    }
+
+    private void ResetRobotsTxt()
+    {
+        technicalSeo.RobotsTxt = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: https://insightlearn.cloud/sitemap.xml";
+        Toast.ShowInfo("Robots.txt reset to default");
+    }
+
+    private void ValidateStructuredData()
+    {
+        Navigation.NavigateTo("https://search.google.com/test/rich-results", forceLoad: true);
+    }
+
+    private void CloseModals()
+    {
+        showEditPageModal = false;
+        selectedPage = null;
+    }
+
+    private string GetScoreClass(int score) => score switch
+    {
+        >= 80 => "excellent",
+        >= 60 => "good",
+        _ => "poor"
+    };
+
+    private string GetTitleStatusClass(string title) => title.Length switch
+    {
+        > 60 => "text-danger",
+        > 50 => "text-warning",
+        _ => ""
+    };
+
+    private string GetDescriptionStatusClass(string description) => description.Length switch
+    {
+        > 160 => "text-danger",
+        > 150 => "text-warning",
+        _ => ""
+    };
+
+    private string GetPageStatusBadge(PageSeoSettings page)
+    {
+        if (string.IsNullOrEmpty(page.Title) || string.IsNullOrEmpty(page.Description))
+            return "missing";
+        if (page.Title.Length > 60 || page.Description.Length > 160)
+            return "needs-work";
+        return "optimized";
+    }
+
+    private string GetPageStatus(PageSeoSettings page)
+    {
+        if (string.IsNullOrEmpty(page.Title) || string.IsNullOrEmpty(page.Description))
+            return "Missing";
+        if (page.Title.Length > 60 || page.Description.Length > 160)
+            return "Needs Work";
+        return "Optimized";
+    }
+
+    private List<PageSeoSettings> GenerateMockPages()
+    {
+        return new List<PageSeoSettings>
+        {
+            new() { Name = "Homepage", Url = "/", Type = "Static", Title = "InsightLearn - Online Learning Platform", Description = "Transform your career with expert-led online courses. Learn programming, design, business, and more.", Keywords = "online learning, courses" },
+            new() { Name = "Courses", Url = "/courses", Type = "Static", Title = "Browse All Courses | InsightLearn", Description = "Discover thousands of online courses in programming, design, business, and more. Start learning today.", Keywords = "courses, online courses" },
+            new() { Name = "Python Masterclass", Url = "/courses/python-masterclass", Type = "Course", Title = "Python Masterclass: From Zero to Hero | InsightLearn", Description = "Complete Python course covering basics to advanced topics. Build real-world projects and become a Python developer.", Keywords = "python, programming, course" },
+            new() { Name = "Web Development", Url = "/courses/web-development", Type = "Course", Title = "Full Stack Web Development Course | InsightLearn", Description = "Learn HTML, CSS, JavaScript, React, and Node.js. Build professional web applications from scratch.", Keywords = "web development, javascript, react" },
+            new() { Name = "Programming", Url = "/categories/programming", Type = "Category", Title = "Programming Courses | InsightLearn", Description = "Master programming languages like Python, JavaScript, Java, and more with our expert-led courses.", Keywords = "programming, coding" },
+            new() { Name = "Design", Url = "/categories/design", Type = "Category", Title = "Design Courses | InsightLearn", Description = "Learn graphic design, UI/UX, and web design with hands-on projects and real-world examples.", Keywords = "design, graphic design, ui ux" },
+            new() { Name = "About Us", Url = "/about", Type = "Static", Title = "About InsightLearn | Our Story & Mission", Description = "Learn about InsightLearn's mission to make quality education accessible to everyone worldwide.", Keywords = "about, mission" },
+            new() { Name = "Contact", Url = "/contact", Type = "Static", Title = "Contact Us | InsightLearn Support", Description = "Get in touch with InsightLearn support team. We're here to help with any questions.", Keywords = "contact, support" },
+        };
+    }
+
+    // Internal Models
+    private class GlobalSeoSettings
+    {
+        public string SiteTitle { get; set; } = "";
+        public string SiteDescription { get; set; } = "";
+        public string Keywords { get; set; } = "";
+        public string CanonicalUrl { get; set; } = "";
+        public string DefaultLanguage { get; set; } = "en";
+        public bool AllowIndexing { get; set; } = true;
+        public bool AllowFollowLinks { get; set; } = true;
+        public bool EnableSitemap { get; set; } = true;
+    }
+
+    private class SocialSeoSettings
+    {
+        public string OgTitle { get; set; } = "";
+        public string OgDescription { get; set; } = "";
+        public string OgImage { get; set; } = "";
+        public string OgType { get; set; } = "website";
+        public string FacebookAppId { get; set; } = "";
+        public string TwitterCardType { get; set; } = "summary_large_image";
+        public string TwitterSite { get; set; } = "";
+        public string TwitterCreator { get; set; } = "";
+        public string TwitterTitle { get; set; } = "";
+        public string TwitterDescription { get; set; } = "";
+        public string TwitterImage { get; set; } = "";
+    }
+
+    private class TechnicalSeoSettings
+    {
+        public DateTime SitemapLastGenerated { get; set; }
+        public int SitemapUrlCount { get; set; }
+        public string SitemapFrequency { get; set; } = "daily";
+        public bool IncludeCourses { get; set; } = true;
+        public bool IncludeCategories { get; set; } = true;
+        public bool IncludeInstructors { get; set; } = true;
+        public string RobotsTxt { get; set; } = "";
+        public bool EnableOrganizationSchema { get; set; } = true;
+        public bool EnableCourseSchema { get; set; } = true;
+        public bool EnableBreadcrumbSchema { get; set; } = true;
+        public bool EnableFaqSchema { get; set; } = false;
+    }
+
+    private class AnalyticsSeoSettings
+    {
+        public bool GoogleAnalyticsEnabled { get; set; }
+        public string GoogleAnalyticsId { get; set; } = "";
+        public string GoogleAnalyticsStreamId { get; set; } = "";
+        public bool SearchConsoleEnabled { get; set; }
+        public string SearchConsoleVerification { get; set; } = "";
+        public bool BingEnabled { get; set; }
+        public string BingVerification { get; set; } = "";
+        public bool FacebookPixelEnabled { get; set; }
+        public string FacebookPixelId { get; set; } = "";
+        public bool FacebookPixelPageView { get; set; }
+        public bool FacebookPixelPurchase { get; set; }
+    }
+
+    private class PageSeoSettings
+    {
+        public string Name { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Keywords { get; set; } = "";
+        public string CanonicalUrl { get; set; } = "";
+        public bool NoIndex { get; set; }
+        public bool NoFollow { get; set; }
     }
 }

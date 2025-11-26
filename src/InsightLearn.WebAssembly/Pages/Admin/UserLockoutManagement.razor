@@ -5,7 +5,7 @@
 @inject IToastService Toast
 @using Microsoft.AspNetCore.Authorization
 
-<PageTitle>User Lockout - InsightLearn Admin</PageTitle>
+<PageTitle>User Lockout Management - InsightLearn Admin</PageTitle>
 
 <div class="dashboard-layout">
     <div class="breadcrumb-nav">
@@ -19,44 +19,985 @@
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">User Lockout</h1>
-        <p class="page-description">Manage locked out users</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-user-lock"></i>
+                User Lockout Management
+            </h1>
+            <p class="page-description">Manage locked and suspended user accounts</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+            @if (selectedUserIds.Count > 0)
+            {
+                <button class="btn btn-success" @onclick="BulkUnlock">
+                    <i class="fas fa-unlock"></i>
+                    Unlock Selected (@selectedUserIds.Count)
+                </button>
+            }
+        </div>
     </div>
 
-    @if (isLoading)
+    @if (isLoading && stats == null)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading lockout data...</p>
         </div>
     }
-    else if (error != null)
+    else if (error != null && stats == null)
     {
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
             <h3>@error</h3>
-            <button class="btn btn-primary" @onclick="LoadData">Retry</button>
+            <button class="btn btn-primary" @onclick="RefreshData">Retry</button>
         </div>
     }
     else
     {
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card stat-danger">
+                <div class="stat-icon">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats?.TotalLocked</span>
+                    <span class="stat-label">Total Locked</span>
+                </div>
+            </div>
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats?.LockedToday</span>
+                    <span class="stat-label">Locked Today</span>
+                </div>
+            </div>
+            <div class="stat-card stat-dark">
+                <div class="stat-icon">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats?.PermanentLockouts</span>
+                    <span class="stat-label">Permanent Lockouts</span>
+                </div>
+            </div>
+            <div class="stat-card stat-info">
+                <div class="stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats?.ExpiringIn24h</span>
+                    <span class="stat-label">Expiring in 24h</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="clean-card filters-card">
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label>Search</label>
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search by name, email, or IP..."
+                               @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+                        @if (!string.IsNullOrEmpty(searchQuery))
+                        {
+                            <button class="clear-btn" @onclick="ClearSearch">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Lockout Type</label>
+                    <select @bind="selectedLockoutType" @bind:after="ApplyFilters">
+                        <option value="">All Types</option>
+                        <option value="FailedLogin">Failed Login</option>
+                        <option value="AdminAction">Admin Action</option>
+                        <option value="Suspicious">Suspicious Activity</option>
+                        <option value="SecurityPolicy">Security Policy</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select @bind="selectedStatus" @bind:after="ApplyFilters">
+                        <option value="">All Status</option>
+                        <option value="Active">Active (Locked)</option>
+                        <option value="Expiring">Expiring Soon</option>
+                        <option value="Permanent">Permanent</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-outline btn-sm" @onclick="ClearFilters">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Locked Users Table -->
         <div class="clean-card">
             <div class="card-header">
-                <h2>User Lockout</h2>
+                <h2>
+                    <i class="fas fa-list"></i>
+                    Locked Users
+                    <span class="badge badge-secondary">@filteredUsers.Count</span>
+                </h2>
+                <div class="header-tools">
+                    <label class="select-all-label">
+                        <input type="checkbox" @bind="selectAll" @bind:after="ToggleSelectAll" />
+                        <span>Select All</span>
+                    </label>
+                </div>
             </div>
             <div class="card-content">
-                <p>Manage locked out users page content goes here.</p>
-                <!-- TODO: Implement UserLockoutManagement functionality -->
+                @if (!filteredUsers.Any())
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No Locked Users</h3>
+                        <p>There are no locked users matching your filters.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="data-table lockout-table">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-col">
+                                        <input type="checkbox" @bind="selectAll" @bind:after="ToggleSelectAll" />
+                                    </th>
+                                    <th class="sortable @GetSortClass("User")" @onclick="@(() => SortBy("User"))">
+                                        User <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th class="sortable @GetSortClass("LockedAt")" @onclick="@(() => SortBy("LockedAt"))">
+                                        Locked At <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Reason</th>
+                                    <th class="sortable @GetSortClass("ExpiresAt")" @onclick="@(() => SortBy("ExpiresAt"))">
+                                        Expires <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th>Failed Attempts</th>
+                                    <th>IP Address</th>
+                                    <th class="actions-col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in pagedUsers)
+                                {
+                                    <tr class="@(selectedUserIds.Contains(user.Id) ? "selected" : "")">
+                                        <td class="checkbox-col">
+                                            <input type="checkbox" checked="@selectedUserIds.Contains(user.Id)"
+                                                   @onchange="@(() => ToggleUserSelection(user.Id))" />
+                                        </td>
+                                        <td class="user-cell">
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    @(user.UserName?.Substring(0, 1).ToUpper() ?? "?")
+                                                </div>
+                                                <div class="user-details">
+                                                    <span class="user-name">@user.UserName</span>
+                                                    <span class="user-email">@user.Email</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="timestamp-cell">
+                                            <span class="date">@user.LockedAt.ToString("MMM dd, yyyy")</span>
+                                            <span class="time">@user.LockedAt.ToString("HH:mm:ss")</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetReasonBadgeClass(user.LockoutReason)">
+                                                @user.LockoutReason
+                                            </span>
+                                        </td>
+                                        <td class="expires-cell">
+                                            @if (user.ExpiresAt == null)
+                                            {
+                                                <span class="badge badge-dark">
+                                                    <i class="fas fa-infinity"></i> Permanent
+                                                </span>
+                                            }
+                                            else if (user.ExpiresAt < DateTime.Now)
+                                            {
+                                                <span class="badge badge-success">Expired</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="@GetExpiresClass(user.ExpiresAt.Value)">
+                                                    @GetTimeRemaining(user.ExpiresAt.Value)
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="center">
+                                            <span class="attempts-badge @GetAttemptsBadgeClass(user.FailedAttempts)">
+                                                @user.FailedAttempts
+                                            </span>
+                                        </td>
+                                        <td class="ip-cell">
+                                            <span class="ip-address">@user.LastIpAddress</span>
+                                            @if (!string.IsNullOrEmpty(user.Location))
+                                            {
+                                                <span class="location">@user.Location</span>
+                                            }
+                                        </td>
+                                        <td class="actions-col">
+                                            <div class="action-buttons">
+                                                <button class="btn btn-icon btn-success" title="Unlock User"
+                                                        @onclick="@(() => UnlockUser(user))">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-warning" title="Extend Lockout"
+                                                        @onclick="@(() => OpenExtendModal(user))">
+                                                    <i class="fas fa-clock"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-info" title="View Details"
+                                                        @onclick="@(() => ViewDetails(user))">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (totalPages > 1)
+                    {
+                        <div class="pagination-container">
+                            <div class="pagination-info">
+                                Showing @((currentPage - 1) * pageSize + 1) to @Math.Min(currentPage * pageSize, filteredUsers.Count) of @filteredUsers.Count users
+                            </div>
+                            <div class="pagination">
+                                <button class="page-btn" disabled="@(currentPage == 1)" @onclick="@(() => GoToPage(1))">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </button>
+                                <button class="page-btn" disabled="@(currentPage == 1)" @onclick="@(() => GoToPage(currentPage - 1))">
+                                    <i class="fas fa-angle-left"></i>
+                                </button>
+                                @foreach (var pageNum in GetVisiblePages())
+                                {
+                                    <button class="page-btn @(pageNum == currentPage ? "active" : "")" @onclick="@(() => GoToPage(pageNum))">
+                                        @pageNum
+                                    </button>
+                                }
+                                <button class="page-btn" disabled="@(currentPage == totalPages)" @onclick="@(() => GoToPage(currentPage + 1))">
+                                    <i class="fas fa-angle-right"></i>
+                                </button>
+                                <button class="page-btn" disabled="@(currentPage == totalPages)" @onclick="@(() => GoToPage(totalPages))">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Recent Lockout Activity -->
+        <div class="clean-card">
+            <div class="card-header">
+                <h2>
+                    <i class="fas fa-history"></i>
+                    Recent Lockout Activity
+                </h2>
+            </div>
+            <div class="card-content">
+                <div class="activity-timeline">
+                    @foreach (var activity in recentActivity.Take(10))
+                    {
+                        <div class="activity-item @activity.Type.ToLower()">
+                            <div class="activity-icon">
+                                <i class="fas @GetActivityIcon(activity.Type)"></i>
+                            </div>
+                            <div class="activity-content">
+                                <p class="activity-text">
+                                    <strong>@activity.UserName</strong> @activity.Description
+                                </p>
+                                <span class="activity-time">
+                                    <i class="fas fa-clock"></i>
+                                    @GetRelativeTime(activity.Timestamp)
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     }
 </div>
 
+<!-- User Details Modal -->
+@if (showDetailsModal && selectedUser != null)
+{
+    <div class="modal-overlay" @onclick="CloseModals">
+        <div class="modal modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-user-lock"></i>
+                    Lockout Details - @selectedUser.UserName
+                </h3>
+                <button class="modal-close" @onclick="CloseModals">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <h4><i class="fas fa-user"></i> User Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Name</span>
+                            <span class="detail-value">@selectedUser.UserName</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Email</span>
+                            <span class="detail-value">@selectedUser.Email</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">User ID</span>
+                            <span class="detail-value monospace">@selectedUser.UserId</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Role</span>
+                            <span class="detail-value">@selectedUser.Role</span>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4><i class="fas fa-lock"></i> Lockout Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Locked At</span>
+                            <span class="detail-value">@selectedUser.LockedAt.ToString("MMM dd, yyyy HH:mm:ss")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Expires At</span>
+                            <span class="detail-value">
+                                @(selectedUser.ExpiresAt?.ToString("MMM dd, yyyy HH:mm:ss") ?? "Never (Permanent)")
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Reason</span>
+                            <span class="detail-value">
+                                <span class="badge @GetReasonBadgeClass(selectedUser.LockoutReason)">
+                                    @selectedUser.LockoutReason
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Failed Attempts</span>
+                            <span class="detail-value">@selectedUser.FailedAttempts</span>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4><i class="fas fa-globe"></i> Location & Device</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">IP Address</span>
+                            <span class="detail-value monospace">@selectedUser.LastIpAddress</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Location</span>
+                            <span class="detail-value">@(selectedUser.Location ?? "Unknown")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Browser</span>
+                            <span class="detail-value">@(selectedUser.Browser ?? "Unknown")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Device</span>
+                            <span class="detail-value">@(selectedUser.Device ?? "Unknown")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(selectedUser.AdminNotes))
+                {
+                    <div class="admin-notes-section">
+                        <h4><i class="fas fa-sticky-note"></i> Admin Notes</h4>
+                        <p>@selectedUser.AdminNotes</p>
+                    </div>
+                }
+
+                <div class="lockout-history-section">
+                    <h4><i class="fas fa-history"></i> Lockout History</h4>
+                    <div class="history-timeline">
+                        @foreach (var history in selectedUser.LockoutHistory)
+                        {
+                            <div class="history-item">
+                                <span class="history-date">@history.Timestamp.ToString("MMM dd, yyyy HH:mm")</span>
+                                <span class="history-action @history.Action.ToLower()">@history.Action</span>
+                                <span class="history-by">by @history.PerformedBy</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseModals">Close</button>
+                <button class="btn btn-success" @onclick="@(() => UnlockUser(selectedUser))">
+                    <i class="fas fa-unlock"></i> Unlock User
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Extend Lockout Modal -->
+@if (showExtendModal && selectedUser != null)
+{
+    <div class="modal-overlay" @onclick="CloseModals">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-clock"></i>
+                    Extend Lockout - @selectedUser.UserName
+                </h3>
+                <button class="modal-close" @onclick="CloseModals">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Current Expiry</label>
+                    <p class="current-expiry">
+                        @(selectedUser.ExpiresAt?.ToString("MMM dd, yyyy HH:mm:ss") ?? "Permanent")
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label for="extendDuration">Extend By</label>
+                    <select id="extendDuration" @bind="extendDuration">
+                        <option value="1">1 Hour</option>
+                        <option value="6">6 Hours</option>
+                        <option value="24">24 Hours</option>
+                        <option value="72">3 Days</option>
+                        <option value="168">1 Week</option>
+                        <option value="-1">Make Permanent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="extendReason">Reason for Extension</label>
+                    <textarea id="extendReason" @bind="extendReason" rows="3"
+                              placeholder="Enter reason for extending lockout..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseModals">Cancel</button>
+                <button class="btn btn-warning" @onclick="ExtendLockout" disabled="@isProcessing">
+                    @if (isProcessing)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-clock"></i>
+                    }
+                    Extend Lockout
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Confirm Unlock Modal -->
+@if (showUnlockConfirm && selectedUser != null)
+{
+    <div class="modal-overlay" @onclick="CloseModals">
+        <div class="modal modal-sm" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-unlock"></i>
+                    Confirm Unlock
+                </h3>
+                <button class="modal-close" @onclick="CloseModals">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to unlock <strong>@selectedUser.UserName</strong>?</p>
+                <p class="text-muted">This will allow the user to log in again and reset their failed login attempts.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseModals">Cancel</button>
+                <button class="btn btn-success" @onclick="ConfirmUnlock" disabled="@isProcessing">
+                    @if (isProcessing)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-unlock"></i>
+                    }
+                    Unlock User
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-left: 4px solid;
+    }
+
+    .stat-card.stat-danger { border-left-color: #dc3545; }
+    .stat-card.stat-warning { border-left-color: #ffc107; }
+    .stat-card.stat-dark { border-left-color: #343a40; }
+    .stat-card.stat-info { border-left-color: #17a2b8; }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-danger .stat-icon { background: #fce4e6; color: #dc3545; }
+    .stat-warning .stat-icon { background: #fff3cd; color: #856404; }
+    .stat-dark .stat-icon { background: #e9ecef; color: #343a40; }
+    .stat-info .stat-icon { background: #d1ecf1; color: #0c5460; }
+
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .filters-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .filters-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 200px;
+    }
+
+    .filter-group label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .search-input {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-input i {
+        position: absolute;
+        left: 12px;
+        color: #9ca3af;
+    }
+
+    .search-input input {
+        padding-left: 38px;
+        padding-right: 32px;
+        width: 100%;
+        min-width: 280px;
+    }
+
+    .search-input .clear-btn {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 4px;
+    }
+
+    .lockout-table .user-cell {
+        min-width: 200px;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .user-email {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .timestamp-cell {
+        white-space: nowrap;
+    }
+
+    .timestamp-cell .date {
+        display: block;
+        font-weight: 500;
+    }
+
+    .timestamp-cell .time {
+        display: block;
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .expires-cell .expiring-soon {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .expires-cell .expiring-later {
+        color: #28a745;
+    }
+
+    .attempts-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .attempts-badge.low { background: #d4edda; color: #155724; }
+    .attempts-badge.medium { background: #fff3cd; color: #856404; }
+    .attempts-badge.high { background: #f8d7da; color: #721c24; }
+
+    .ip-cell {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.875rem;
+    }
+
+    .ip-cell .location {
+        display: block;
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-family: inherit;
+    }
+
+    .checkbox-col {
+        width: 40px;
+        text-align: center;
+    }
+
+    .actions-col {
+        width: 140px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+    }
+
+    tr.selected {
+        background: #e8f4fd;
+    }
+
+    .select-all-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .activity-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 3px solid;
+    }
+
+    .activity-item.locked { border-left-color: #dc3545; }
+    .activity-item.unlocked { border-left-color: #28a745; }
+    .activity-item.extended { border-left-color: #ffc107; }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+    }
+
+    .activity-item.locked .activity-icon { background: #fce4e6; color: #dc3545; }
+    .activity-item.unlocked .activity-icon { background: #d4edda; color: #28a745; }
+    .activity-item.extended .activity-icon { background: #fff3cd; color: #856404; }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-text {
+        margin: 0;
+        color: #1a1a2e;
+    }
+
+    .activity-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-section h4 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-section h4 i {
+        margin-right: 0.5rem;
+        color: #6366f1;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .detail-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .detail-value {
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .detail-value.monospace {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8125rem;
+    }
+
+    .admin-notes-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-notes-section h4 {
+        margin: 0 0 0.75rem;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .admin-notes-section p {
+        margin: 0;
+        color: #1a1a2e;
+    }
+
+    .lockout-history-section h4 {
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .history-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .history-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        font-size: 0.875rem;
+    }
+
+    .history-date {
+        color: #6b7280;
+        min-width: 140px;
+    }
+
+    .history-action {
+        font-weight: 500;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+    }
+
+    .history-action.locked { background: #fce4e6; color: #dc3545; }
+    .history-action.unlocked { background: #d4edda; color: #28a745; }
+    .history-action.extended { background: #fff3cd; color: #856404; }
+
+    .history-by {
+        color: #6b7280;
+    }
+
+    .current-expiry {
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: #1a1a2e;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .filters-section {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .search-input input {
+            min-width: auto;
+        }
+
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 @code {
     private bool isLoading = true;
+    private bool isProcessing = false;
     private string? error;
+    private LockoutStats? stats;
+    private List<LockedUser> lockedUsers = new();
+    private List<LockedUser> filteredUsers = new();
+    private List<LockoutActivity> recentActivity = new();
+
+    // Filters
+    private string searchQuery = "";
+    private string selectedLockoutType = "";
+    private string selectedStatus = "";
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)filteredUsers.Count / pageSize);
+    private List<LockedUser> pagedUsers => filteredUsers.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+
+    // Sorting
+    private string sortColumn = "LockedAt";
+    private bool sortAscending = false;
+
+    // Selection
+    private HashSet<Guid> selectedUserIds = new();
+    private bool selectAll = false;
+
+    // Modals
+    private bool showDetailsModal = false;
+    private bool showExtendModal = false;
+    private bool showUnlockConfirm = false;
+    private LockedUser? selectedUser;
+
+    // Extend form
+    private int extendDuration = 24;
+    private string extendReason = "";
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task RefreshData()
     {
         await LoadData();
     }
@@ -67,18 +1008,434 @@
         {
             isLoading = true;
             error = null;
+            StateHasChanged();
 
-            // TODO: Implement API call for UserLockoutManagement
-            await Task.Delay(500); // Placeholder
+            await Task.Delay(300); // Simulated API call
+
+            // Generate mock data
+            stats = new LockoutStats
+            {
+                TotalLocked = 47,
+                LockedToday = 8,
+                PermanentLockouts = 5,
+                ExpiringIn24h = 12
+            };
+
+            lockedUsers = GenerateMockLockedUsers();
+            recentActivity = GenerateMockActivity();
+            ApplyFilters();
 
             isLoading = false;
         }
         catch (Exception ex)
         {
-            error = "An error occurred while loading data";
+            error = "An error occurred while loading lockout data";
             Toast.ShowError(error);
             Console.WriteLine($"UserLockoutManagement error: {ex}");
             isLoading = false;
         }
+    }
+
+    private void ApplyFilters()
+    {
+        filteredUsers = lockedUsers.Where(u =>
+        {
+            // Search filter
+            if (!string.IsNullOrEmpty(searchQuery))
+            {
+                var query = searchQuery.ToLower();
+                if (!u.UserName.ToLower().Contains(query) &&
+                    !u.Email.ToLower().Contains(query) &&
+                    !u.LastIpAddress.Contains(query))
+                    return false;
+            }
+
+            // Lockout type filter
+            if (!string.IsNullOrEmpty(selectedLockoutType) && u.LockoutReason != selectedLockoutType)
+                return false;
+
+            // Status filter
+            if (!string.IsNullOrEmpty(selectedStatus))
+            {
+                if (selectedStatus == "Active" && (u.ExpiresAt != null && u.ExpiresAt < DateTime.Now))
+                    return false;
+                if (selectedStatus == "Expiring" && (u.ExpiresAt == null || u.ExpiresAt > DateTime.Now.AddHours(24)))
+                    return false;
+                if (selectedStatus == "Permanent" && u.ExpiresAt != null)
+                    return false;
+            }
+
+            return true;
+        }).ToList();
+
+        // Apply sorting
+        filteredUsers = sortColumn switch
+        {
+            "User" => sortAscending ? filteredUsers.OrderBy(u => u.UserName).ToList() : filteredUsers.OrderByDescending(u => u.UserName).ToList(),
+            "LockedAt" => sortAscending ? filteredUsers.OrderBy(u => u.LockedAt).ToList() : filteredUsers.OrderByDescending(u => u.LockedAt).ToList(),
+            "ExpiresAt" => sortAscending ? filteredUsers.OrderBy(u => u.ExpiresAt ?? DateTime.MaxValue).ToList() : filteredUsers.OrderByDescending(u => u.ExpiresAt ?? DateTime.MaxValue).ToList(),
+            _ => filteredUsers
+        };
+
+        currentPage = 1;
+        StateHasChanged();
+    }
+
+    private void SortBy(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+        ApplyFilters();
+    }
+
+    private string GetSortClass(string column) => sortColumn == column ? (sortAscending ? "sort-asc" : "sort-desc") : "";
+
+    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            ApplyFilters();
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = "";
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = "";
+        selectedLockoutType = "";
+        selectedStatus = "";
+        ApplyFilters();
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var start = Math.Max(1, currentPage - 2);
+        var end = Math.Min(totalPages, currentPage + 2);
+        return Enumerable.Range(start, end - start + 1);
+    }
+
+    private void ToggleUserSelection(Guid userId)
+    {
+        if (selectedUserIds.Contains(userId))
+            selectedUserIds.Remove(userId);
+        else
+            selectedUserIds.Add(userId);
+
+        selectAll = selectedUserIds.Count == pagedUsers.Count;
+        StateHasChanged();
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (selectAll)
+            selectedUserIds = pagedUsers.Select(u => u.Id).ToHashSet();
+        else
+            selectedUserIds.Clear();
+        StateHasChanged();
+    }
+
+    private void ViewDetails(LockedUser user)
+    {
+        selectedUser = user;
+        showDetailsModal = true;
+    }
+
+    private void OpenExtendModal(LockedUser user)
+    {
+        selectedUser = user;
+        extendDuration = 24;
+        extendReason = "";
+        showExtendModal = true;
+    }
+
+    private void UnlockUser(LockedUser user)
+    {
+        selectedUser = user;
+        showUnlockConfirm = true;
+    }
+
+    private async Task ConfirmUnlock()
+    {
+        if (selectedUser == null) return;
+
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(500); // Simulated API call
+            lockedUsers.Remove(selectedUser);
+            recentActivity.Insert(0, new LockoutActivity
+            {
+                UserName = selectedUser.UserName,
+                Type = "Unlocked",
+                Description = "was unlocked by admin",
+                Timestamp = DateTime.Now
+            });
+            ApplyFilters();
+            Toast.ShowSuccess($"User {selectedUser.UserName} has been unlocked");
+            CloseModals();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to unlock user");
+            Console.WriteLine($"Unlock error: {ex}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ExtendLockout()
+    {
+        if (selectedUser == null) return;
+
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(500); // Simulated API call
+
+            if (extendDuration == -1)
+                selectedUser.ExpiresAt = null; // Permanent
+            else
+                selectedUser.ExpiresAt = (selectedUser.ExpiresAt ?? DateTime.Now).AddHours(extendDuration);
+
+            recentActivity.Insert(0, new LockoutActivity
+            {
+                UserName = selectedUser.UserName,
+                Type = "Extended",
+                Description = $"lockout was extended by {extendDuration} hours",
+                Timestamp = DateTime.Now
+            });
+
+            Toast.ShowSuccess($"Lockout extended for {selectedUser.UserName}");
+            CloseModals();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to extend lockout");
+            Console.WriteLine($"Extend error: {ex}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task BulkUnlock()
+    {
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(500);
+            var count = selectedUserIds.Count;
+            lockedUsers.RemoveAll(u => selectedUserIds.Contains(u.Id));
+            selectedUserIds.Clear();
+            selectAll = false;
+            ApplyFilters();
+            Toast.ShowSuccess($"Successfully unlocked {count} users");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError("Failed to unlock users");
+            Console.WriteLine($"Bulk unlock error: {ex}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void CloseModals()
+    {
+        showDetailsModal = false;
+        showExtendModal = false;
+        showUnlockConfirm = false;
+        selectedUser = null;
+    }
+
+    private string GetReasonBadgeClass(string reason) => reason switch
+    {
+        "FailedLogin" => "badge-danger",
+        "AdminAction" => "badge-warning",
+        "Suspicious" => "badge-dark",
+        "SecurityPolicy" => "badge-secondary",
+        _ => "badge-secondary"
+    };
+
+    private string GetExpiresClass(DateTime expiresAt)
+    {
+        var remaining = expiresAt - DateTime.Now;
+        return remaining.TotalHours <= 24 ? "expiring-soon" : "expiring-later";
+    }
+
+    private string GetTimeRemaining(DateTime expiresAt)
+    {
+        var remaining = expiresAt - DateTime.Now;
+        if (remaining.TotalDays >= 1)
+            return $"{(int)remaining.TotalDays}d {remaining.Hours}h";
+        if (remaining.TotalHours >= 1)
+            return $"{(int)remaining.TotalHours}h {remaining.Minutes}m";
+        return $"{remaining.Minutes}m";
+    }
+
+    private string GetAttemptsBadgeClass(int attempts) => attempts switch
+    {
+        <= 3 => "low",
+        <= 5 => "medium",
+        _ => "high"
+    };
+
+    private string GetActivityIcon(string type) => type switch
+    {
+        "Locked" => "fa-lock",
+        "Unlocked" => "fa-unlock",
+        "Extended" => "fa-clock",
+        _ => "fa-info-circle"
+    };
+
+    private string GetRelativeTime(DateTime timestamp)
+    {
+        var diff = DateTime.Now - timestamp;
+        if (diff.TotalMinutes < 1) return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        return $"{(int)diff.TotalDays}d ago";
+    }
+
+    private List<LockedUser> GenerateMockLockedUsers()
+    {
+        var random = new Random();
+        var reasons = new[] { "FailedLogin", "AdminAction", "Suspicious", "SecurityPolicy" };
+        var users = new List<LockedUser>();
+
+        var mockUsers = new[]
+        {
+            ("john.doe@example.com", "John Doe", "Student"),
+            ("jane.smith@example.com", "Jane Smith", "Student"),
+            ("bob.wilson@example.com", "Bob Wilson", "Instructor"),
+            ("alice.johnson@example.com", "Alice Johnson", "Student"),
+            ("mike.brown@example.com", "Mike Brown", "Student"),
+            ("sarah.davis@example.com", "Sarah Davis", "Student"),
+            ("tom.miller@example.com", "Tom Miller", "Instructor"),
+            ("emma.garcia@example.com", "Emma Garcia", "Student"),
+            ("chris.martinez@example.com", "Chris Martinez", "Student"),
+            ("lisa.anderson@example.com", "Lisa Anderson", "Student"),
+        };
+
+        for (int i = 0; i < 47; i++)
+        {
+            var user = mockUsers[i % mockUsers.Length];
+            var lockedAt = DateTime.Now.AddDays(-random.Next(0, 30)).AddHours(-random.Next(0, 24));
+            DateTime? expiresAt = random.Next(10) > 7 ? null : lockedAt.AddDays(random.Next(1, 14));
+            var failedAttempts = random.Next(1, 10);
+
+            users.Add(new LockedUser
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                UserName = $"{user.Item2} #{i + 1}",
+                Email = user.Item1.Replace("@", $"{i + 1}@"),
+                Role = user.Item3,
+                LockedAt = lockedAt,
+                ExpiresAt = expiresAt,
+                LockoutReason = reasons[random.Next(reasons.Length)],
+                FailedAttempts = failedAttempts,
+                LastIpAddress = $"{random.Next(1, 256)}.{random.Next(0, 256)}.{random.Next(0, 256)}.{random.Next(0, 256)}",
+                Location = new[] { "New York, US", "London, UK", "Berlin, DE", "Tokyo, JP", "Sydney, AU" }[random.Next(5)],
+                Browser = new[] { "Chrome 119", "Firefox 120", "Safari 17", "Edge 119" }[random.Next(4)],
+                Device = new[] { "Windows 11", "macOS 14", "Ubuntu 22", "iOS 17", "Android 14" }[random.Next(5)],
+                AdminNotes = random.Next(10) > 6 ? "Suspicious activity detected from multiple locations" : null,
+                LockoutHistory = new List<LockoutHistoryItem>
+                {
+                    new() { Timestamp = lockedAt, Action = "Locked", PerformedBy = "System" },
+                    new() { Timestamp = lockedAt.AddHours(random.Next(1, 12)), Action = "Extended", PerformedBy = "Admin" }
+                }
+            });
+        }
+
+        return users;
+    }
+
+    private List<LockoutActivity> GenerateMockActivity()
+    {
+        return new List<LockoutActivity>
+        {
+            new() { UserName = "John Doe", Type = "Locked", Description = "was locked due to failed login attempts", Timestamp = DateTime.Now.AddMinutes(-5) },
+            new() { UserName = "Jane Smith", Type = "Unlocked", Description = "was unlocked by admin", Timestamp = DateTime.Now.AddMinutes(-32) },
+            new() { UserName = "Bob Wilson", Type = "Extended", Description = "lockout was extended by 24 hours", Timestamp = DateTime.Now.AddHours(-2) },
+            new() { UserName = "Alice Johnson", Type = "Locked", Description = "was locked due to suspicious activity", Timestamp = DateTime.Now.AddHours(-4) },
+            new() { UserName = "Mike Brown", Type = "Unlocked", Description = "was unlocked by admin", Timestamp = DateTime.Now.AddHours(-6) },
+            new() { UserName = "Sarah Davis", Type = "Locked", Description = "was locked due to security policy", Timestamp = DateTime.Now.AddHours(-8) },
+            new() { UserName = "Tom Miller", Type = "Extended", Description = "lockout was made permanent", Timestamp = DateTime.Now.AddHours(-12) },
+            new() { UserName = "Emma Garcia", Type = "Locked", Description = "was locked due to failed login attempts", Timestamp = DateTime.Now.AddDays(-1) },
+            new() { UserName = "Chris Martinez", Type = "Unlocked", Description = "was unlocked after review", Timestamp = DateTime.Now.AddDays(-1) },
+            new() { UserName = "Lisa Anderson", Type = "Locked", Description = "was locked due to admin action", Timestamp = DateTime.Now.AddDays(-2) },
+        };
+    }
+
+    // Internal Models
+    private class LockoutStats
+    {
+        public int TotalLocked { get; set; }
+        public int LockedToday { get; set; }
+        public int PermanentLockouts { get; set; }
+        public int ExpiringIn24h { get; set; }
+    }
+
+    private class LockedUser
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public string UserName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Role { get; set; } = "";
+        public DateTime LockedAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
+        public string LockoutReason { get; set; } = "";
+        public int FailedAttempts { get; set; }
+        public string LastIpAddress { get; set; } = "";
+        public string? Location { get; set; }
+        public string? Browser { get; set; }
+        public string? Device { get; set; }
+        public string? AdminNotes { get; set; }
+        public List<LockoutHistoryItem> LockoutHistory { get; set; } = new();
+    }
+
+    private class LockoutHistoryItem
+    {
+        public DateTime Timestamp { get; set; }
+        public string Action { get; set; } = "";
+        public string PerformedBy { get; set; } = "";
+    }
+
+    private class LockoutActivity
+    {
+        public string UserName { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime Timestamp { get; set; }
     }
 }

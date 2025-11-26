@@ -1,0 +1,613 @@
+@page "/admin/payments"
+@attribute [Authorize(Roles = "Admin")]
+@using InsightLearn.Core.Entities
+@using InsightLearn.Core.DTOs.Admin
+@using System.Globalization
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Payment Management - InsightLearn Admin</PageTitle>
+
+<div class="admin-payments-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1 class="page-title">Payment Management</h1>
+            <p class="page-subtitle">View and manage platform transactions, process refunds, and track revenue</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" @onclick="ExportTransactions">
+                <i class="fas fa-download"></i> Export CSV
+            </button>
+            <button class="btn btn-primary" @onclick="RefreshData">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-success">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-value">@FormatCurrency(stats.TotalRevenue)</div>
+                <div class="kpi-trend kpi-trend-up">
+                    <i class="fas fa-arrow-up"></i> @CalculateGrowth()% this month
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-primary">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Successful Transactions</div>
+                <div class="kpi-value">@stats.SuccessfulTransactions</div>
+                <div class="kpi-trend">
+                    @CalculateSuccessRate()% success rate
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-danger">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Failed Transactions</div>
+                <div class="kpi-value">@stats.FailedTransactions</div>
+                <div class="kpi-trend">
+                    @CalculateFailureRate()% of total
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-info">
+                <i class="fas fa-undo"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Total Refunded</div>
+                <div class="kpi-value">@FormatCurrency(stats.TotalRefunded)</div>
+                <div class="kpi-trend">
+                    @stats.RefundedTransactions transactions
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text"
+                   placeholder="Search by transaction ID or invoice number..."
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="HandleSearchKeyUp" />
+        </div>
+
+        <select class="filter-select" @bind="filterStatus" @bind:after="LoadTransactions">
+            <option value="">All Statuses</option>
+            <option value="@PaymentStatus.Completed.ToString()">Completed</option>
+            <option value="@PaymentStatus.Pending.ToString()">Pending</option>
+            <option value="@PaymentStatus.Processing.ToString()">Processing</option>
+            <option value="@PaymentStatus.Failed.ToString()">Failed</option>
+            <option value="@PaymentStatus.Cancelled.ToString()">Cancelled</option>
+            <option value="@PaymentStatus.Refunded.ToString()">Refunded</option>
+            <option value="@PaymentStatus.PartiallyRefunded.ToString()">Partially Refunded</option>
+        </select>
+
+        <select class="filter-select" @bind="filterMethod" @bind:after="LoadTransactions">
+            <option value="">All Payment Methods</option>
+            <option value="@PaymentMethodType.CreditCard.ToString()">Credit Card</option>
+            <option value="@PaymentMethodType.PayPal.ToString()">PayPal</option>
+            <option value="@PaymentMethodType.BankTransfer.ToString()">Bank Transfer</option>
+            <option value="@PaymentMethodType.Crypto.ToString()">Crypto</option>
+            <option value="@PaymentMethodType.Wallet.ToString()">Wallet</option>
+        </select>
+
+        <input type="date" class="filter-date" @bind="startDate" @bind:after="LoadTransactions" />
+        <input type="date" class="filter-date" @bind="endDate" @bind:after="LoadTransactions" />
+
+        <select class="filter-select" @bind="pageSize" @bind:after="LoadTransactions">
+            <option value="10">10 per page</option>
+            <option value="20" selected>20 per page</option>
+            <option value="50">50 per page</option>
+            <option value="100">100 per page</option>
+        </select>
+    </div>
+
+    <!-- Transactions Table -->
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading transactions...</p>
+        </div>
+    }
+    else if (transactions.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="fas fa-receipt fa-3x"></i>
+            <h3>No Transactions Found</h3>
+            <p>Try adjusting your filters or search term.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="payments-table">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>User</th>
+                        <th>Course</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Method</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in transactions)
+                    {
+                        <tr>
+                            <td>
+                                <div class="transaction-id-cell">
+                                    <span class="transaction-id">@transaction.TransactionId</span>
+                                    @if (!string.IsNullOrEmpty(transaction.InvoiceNumber))
+                                    {
+                                        <span class="invoice-number">Invoice: @transaction.InvoiceNumber</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-name">@transaction.UserName</div>
+                                    <div class="user-email">@transaction.UserEmail</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="course-name">@transaction.CourseName</div>
+                            </td>
+                            <td>
+                                <div class="amount-cell">
+                                    <span class="amount">@FormatCurrency(transaction.Amount, transaction.Currency)</span>
+                                    @if (transaction.DiscountAmount > 0)
+                                    {
+                                        <span class="discount">-@FormatCurrency(transaction.DiscountAmount, transaction.Currency)</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-@transaction.Status.ToString().ToLower()">
+                                    @GetStatusDisplayName(transaction.Status)
+                                </span>
+                            </td>
+                            <td>
+                                <div class="payment-method">
+                                    @GetPaymentMethodIcon(transaction.PaymentMethod)
+                                    <span>@GetPaymentMethodName(transaction.PaymentMethod)</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="date-cell">
+                                    <div class="date-primary">@transaction.CreatedAt.ToString("MMM dd, yyyy")</div>
+                                    <div class="date-secondary">@transaction.CreatedAt.ToString("HH:mm")</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon" @onclick="() => ViewTransactionDetails(transaction.Id)" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    @if (transaction.Status == PaymentStatus.Completed && !transaction.IsRefunded)
+                                    {
+                                        <button class="btn-icon btn-warning" @onclick="() => ProcessRefund(transaction)" title="Process Refund">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    }
+                                    @if (transaction.Status == PaymentStatus.Failed)
+                                    {
+                                        <button class="btn-icon btn-danger" @onclick="() => ViewFailureReason(transaction)" title="View Failure Reason">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button class="btn btn-secondary"
+                    @onclick="PreviousPage"
+                    disabled="@(!hasPreviousPage)">
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+
+            <span class="pagination-info">
+                Page @currentPage of @totalPages (@totalCount total transactions)
+            </span>
+
+            <button class="btn btn-secondary"
+                    @onclick="NextPage"
+                    disabled="@(!hasNextPage)">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Refund Modal -->
+@if (showRefundModal)
+{
+    <div class="modal-overlay" @onclick="CloseRefundModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Process Refund</h3>
+                <button class="modal-close" @onclick="CloseRefundModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedTransaction != null)
+                {
+                    <div class="refund-info">
+                        <p><strong>Transaction ID:</strong> @selectedTransaction.TransactionId</p>
+                        <p><strong>Original Amount:</strong> @FormatCurrency(selectedTransaction.Amount, selectedTransaction.Currency)</p>
+                        <p><strong>User:</strong> @selectedTransaction.UserName</p>
+                        <p><strong>Course:</strong> @selectedTransaction.CourseName</p>
+                    </div>
+
+                    <EditForm Model="refundRequest" OnValidSubmit="SubmitRefund">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="form-group">
+                            <label for="refundAmount">Refund Amount</label>
+                            <InputNumber id="refundAmount" class="form-control" @bind-Value="refundRequest.RefundAmount"
+                                         max="@selectedTransaction.Amount" step="0.01" />
+                            <ValidationMessage For="@(() => refundRequest.RefundAmount)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reason">Reason</label>
+                            <InputTextArea id="reason" class="form-control" @bind-Value="refundRequest.Reason" rows="3" />
+                            <ValidationMessage For="@(() => refundRequest.Reason)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Additional Notes (Optional)</label>
+                            <InputTextArea id="notes" class="form-control" @bind-Value="refundRequest.Notes" rows="2" />
+                            <ValidationMessage For="@(() => refundRequest.Notes)" />
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseRefundModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessingRefund">
+                                @if (isProcessingRefund)
+                                {
+                                    <span class="spinner-small"></span>
+                                    <span>Processing...</span>
+                                }
+                                else
+                                {
+                                    <span>Process Refund</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<PaymentTransactionDto> transactions = new();
+    private PaymentStatsDto stats = new();
+    private string searchTerm = "";
+    private string filterStatus = "";
+    private string filterMethod = "";
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private int pageSize = 20;
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private int totalCount = 0;
+    private bool hasPreviousPage = false;
+    private bool hasNextPage = false;
+    private bool isLoading = true;
+
+    // Refund modal
+    private bool showRefundModal = false;
+    private PaymentTransactionDto? selectedTransaction;
+    private RefundRequestDto refundRequest = new();
+    private bool isProcessingRefund = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+        await LoadTransactions();
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<PaymentStatsDto>("/api/admin/payments/stats");
+            if (response != null)
+            {
+                stats = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", "Error loading payment stats:", ex.Message);
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        isLoading = true;
+        try
+        {
+            var url = $"/api/payments/transactions?page={currentPage}&pageSize={pageSize}";
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                url += $"&search={Uri.EscapeDataString(searchTerm)}";
+
+            if (!string.IsNullOrWhiteSpace(filterStatus))
+                url += $"&status={Uri.EscapeDataString(filterStatus)}";
+
+            if (!string.IsNullOrWhiteSpace(filterMethod))
+                url += $"&method={Uri.EscapeDataString(filterMethod)}";
+
+            if (startDate.HasValue)
+                url += $"&startDate={startDate.Value.ToString("yyyy-MM-dd")}";
+
+            if (endDate.HasValue)
+                url += $"&endDate={endDate.Value.ToString("yyyy-MM-dd")}";
+
+            var response = await Http.GetFromJsonAsync<PagedResultDto<PaymentTransactionDto>>(url);
+
+            if (response != null)
+            {
+                transactions = response.Items;
+                totalCount = response.TotalCount;
+                totalPages = response.TotalPages;
+                currentPage = response.Page;
+                hasPreviousPage = response.HasPreviousPage;
+                hasNextPage = response.HasNextPage;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", "Error loading transactions:", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadTransactions();
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (hasPreviousPage)
+        {
+            currentPage--;
+            await LoadTransactions();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (hasNextPage)
+        {
+            currentPage++;
+            await LoadTransactions();
+        }
+    }
+
+    private void ViewTransactionDetails(Guid transactionId)
+    {
+        Navigation.NavigateTo($"/admin/payments/{transactionId}");
+    }
+
+    private async Task ProcessRefund(PaymentTransactionDto transaction)
+    {
+        selectedTransaction = transaction;
+        refundRequest = new RefundRequestDto
+        {
+            RefundAmount = transaction.Amount,
+            Reason = "",
+            Notes = null
+        };
+        showRefundModal = true;
+    }
+
+    private void CloseRefundModal()
+    {
+        showRefundModal = false;
+        selectedTransaction = null;
+        refundRequest = new RefundRequestDto();
+        isProcessingRefund = false;
+    }
+
+    private async Task SubmitRefund()
+    {
+        if (selectedTransaction == null) return;
+
+        isProcessingRefund = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/admin/payments/{selectedTransaction.Id}/refund", refundRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<RefundResponseDto>();
+                if (result != null && result.Success)
+                {
+                    await JS.InvokeVoidAsync("alert", $"Refund processed successfully. Amount: {FormatCurrency(result.RefundAmount, selectedTransaction.Currency)}");
+                    CloseRefundModal();
+                    await LoadStats();
+                    await LoadTransactions();
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("alert", $"Refund failed: {result?.Message ?? "Unknown error"}");
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Failed to process refund. Please try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessingRefund = false;
+        }
+    }
+
+    private async Task ViewFailureReason(PaymentTransactionDto transaction)
+    {
+        var message = string.IsNullOrEmpty(transaction.FailureReason)
+            ? "No failure reason provided"
+            : transaction.FailureReason;
+        await JS.InvokeVoidAsync("alert", $"Transaction Failed\n\nReason: {message}");
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadStats();
+        await LoadTransactions();
+    }
+
+    private async Task ExportTransactions()
+    {
+        await JS.InvokeVoidAsync("alert", "Export feature coming soon!");
+    }
+
+    private string FormatCurrency(decimal amount, string currency = "USD")
+    {
+        var cultureInfo = currency switch
+        {
+            "EUR" => new CultureInfo("fr-FR"),
+            "GBP" => new CultureInfo("en-GB"),
+            "JPY" => new CultureInfo("ja-JP"),
+            _ => new CultureInfo("en-US")
+        };
+
+        return amount.ToString("C", cultureInfo);
+    }
+
+    private string GetStatusDisplayName(PaymentStatus status)
+    {
+        return status switch
+        {
+            PaymentStatus.PartiallyRefunded => "Partially Refunded",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetPaymentMethodName(PaymentMethodType method)
+    {
+        return method switch
+        {
+            PaymentMethodType.CreditCard => "Credit Card",
+            PaymentMethodType.BankTransfer => "Bank Transfer",
+            _ => method.ToString()
+        };
+    }
+
+    private MarkupString GetPaymentMethodIcon(PaymentMethodType method)
+    {
+        var icon = method switch
+        {
+            PaymentMethodType.CreditCard => "<i class='fas fa-credit-card'></i>",
+            PaymentMethodType.PayPal => "<i class='fab fa-paypal'></i>",
+            PaymentMethodType.BankTransfer => "<i class='fas fa-university'></i>",
+            PaymentMethodType.Crypto => "<i class='fab fa-bitcoin'></i>",
+            PaymentMethodType.Wallet => "<i class='fas fa-wallet'></i>",
+            _ => "<i class='fas fa-money-bill'></i>"
+        };
+        return new MarkupString(icon);
+    }
+
+    private decimal CalculateSuccessRate()
+    {
+        if (stats.TotalTransactions == 0) return 0;
+        return Math.Round(((decimal)stats.SuccessfulTransactions / stats.TotalTransactions) * 100, 1);
+    }
+
+    private decimal CalculateFailureRate()
+    {
+        if (stats.TotalTransactions == 0) return 0;
+        return Math.Round(((decimal)stats.FailedTransactions / stats.TotalTransactions) * 100, 1);
+    }
+
+    private decimal CalculateGrowth()
+    {
+        // This would normally calculate month-over-month growth
+        // For demo purposes, returning a static value
+        return 12.5m;
+    }
+
+    // DTO for payment transaction display
+    private class PaymentTransactionDto
+    {
+        public Guid Id { get; set; }
+        public string TransactionId { get; set; } = string.Empty;
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+        public string CourseName { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public decimal OriginalAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public string Currency { get; set; } = "USD";
+        public PaymentStatus Status { get; set; }
+        public PaymentMethodType PaymentMethod { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? ProcessedAt { get; set; }
+        public DateTime? RefundedAt { get; set; }
+        public decimal? RefundAmount { get; set; }
+        public string? FailureReason { get; set; }
+        public bool IsRefunded => Status == PaymentStatus.Refunded || Status == PaymentStatus.PartiallyRefunded;
+    }
+
+    // Paged result DTO
+    private class PagedResultDto<T>
+    {
+        public List<T> Items { get; set; } = new();
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+    }
+}

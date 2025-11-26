@@ -1,8 +1,5 @@
 @page "/admin/chatbot/analytics"
 @attribute [Authorize(Roles = "Admin")]
-@inject NavigationManager Navigation
-@inject IApiClient ApiClient
-@inject IToastService Toast
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Chatbot Analytics - InsightLearn Admin</PageTitle>
@@ -19,18 +16,42 @@
     </div>
 
     <div class="page-header">
-        <h1 class="page-title">Chatbot Analytics</h1>
-        <p class="page-description">View chatbot usage analytics</p>
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-robot"></i>
+                Chatbot Analytics
+            </h1>
+            <p class="page-description">Monitor AI chatbot usage, performance, and user engagement</p>
+        </div>
+        <div class="header-actions">
+            <div class="date-range-picker">
+                <select @bind="selectedPeriod" @bind:after="OnPeriodChanged">
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="30days">Last 30 Days</option>
+                    <option value="90days">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+            <button class="btn btn-primary" @onclick="ExportReport">
+                <i class="fas fa-download"></i>
+                Export Report
+            </button>
+        </div>
     </div>
 
-    @if (isLoading)
+    @if (isLoading && stats == null)
     {
         <div class="loading-state">
             <div class="spinner spinner-lg"></div>
-            <p>Loading...</p>
+            <p>Loading analytics...</p>
         </div>
     }
-    else if (error != null)
+    else if (error != null && stats == null)
     {
         <div class="error-state">
             <i class="fas fa-exclamation-triangle"></i>
@@ -40,45 +61,1277 @@
     }
     else
     {
+        <!-- Key Metrics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats!.TotalConversations.ToString("N0")</span>
+                    <span class="stat-label">Total Conversations</span>
+                    <span class="stat-change @(stats.ConversationsTrend >= 0 ? "positive" : "negative")">
+                        <i class="fas fa-@(stats.ConversationsTrend >= 0 ? "arrow-up" : "arrow-down")"></i>
+                        @Math.Abs(stats.ConversationsTrend).ToString("F1")%
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-card info">
+                <div class="stat-icon">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats.TotalMessages.ToString("N0")</span>
+                    <span class="stat-label">Total Messages</span>
+                    <span class="stat-change @(stats.MessagesTrend >= 0 ? "positive" : "negative")">
+                        <i class="fas fa-@(stats.MessagesTrend >= 0 ? "arrow-up" : "arrow-down")"></i>
+                        @Math.Abs(stats.MessagesTrend).ToString("F1")%
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats.AvgResponseTime.ToString("F2")s</span>
+                    <span class="stat-label">Avg Response Time</span>
+                    <span class="stat-change @(stats.ResponseTimeTrend <= 0 ? "positive" : "negative")">
+                        <i class="fas fa-@(stats.ResponseTimeTrend <= 0 ? "arrow-down" : "arrow-up")"></i>
+                        @Math.Abs(stats.ResponseTimeTrend).ToString("F1")%
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value">@stats.SatisfactionRate.ToString("F1")%</span>
+                    <span class="stat-label">Satisfaction Rate</span>
+                    <span class="stat-change @(stats.SatisfactionTrend >= 0 ? "positive" : "negative")">
+                        <i class="fas fa-@(stats.SatisfactionTrend >= 0 ? "arrow-up" : "arrow-down")"></i>
+                        @Math.Abs(stats.SatisfactionTrend).ToString("F1")%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Metrics Row -->
+        <div class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-icon users">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-value">@stats.UniqueUsers.ToString("N0")</span>
+                    <span class="metric-label">Unique Users</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon messages">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-value">@stats.AvgMessagesPerSession.ToString("F1")</span>
+                    <span class="metric-label">Msgs/Session</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon duration">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-value">@FormatDuration(stats.AvgSessionDuration)</span>
+                    <span class="metric-label">Avg Session</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon resolution">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-value">@stats.ResolutionRate.ToString("F1")%</span>
+                    <span class="metric-label">Resolution Rate</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon errors">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-value">@stats.ErrorCount.ToString("N0")</span>
+                    <span class="metric-label">Errors</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="analytics-grid">
+            <!-- Usage Chart -->
+            <div class="clean-card chart-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-chart-area"></i>
+                        Usage Over Time
+                    </h2>
+                    <div class="chart-toggle">
+                        <button class="toggle-btn @(chartView == "conversations" ? "active" : "")"
+                                @onclick="@(() => chartView = "conversations")">Conversations</button>
+                        <button class="toggle-btn @(chartView == "messages" ? "active" : "")"
+                                @onclick="@(() => chartView = "messages")">Messages</button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        @foreach (var dataPoint in usageData)
+                        {
+                            <div class="chart-bar-wrapper">
+                                <div class="chart-bar" style="height: @(GetBarHeight(dataPoint.Value))%">
+                                    <span class="bar-tooltip">@dataPoint.Value</span>
+                                </div>
+                                <span class="bar-label">@dataPoint.Label</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Questions -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-question-circle"></i>
+                        Top Questions
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="top-questions-list">
+                        @foreach (var question in topQuestions)
+                        {
+                            <div class="question-item">
+                                <div class="question-rank">@question.Rank</div>
+                                <div class="question-content">
+                                    <span class="question-text">@question.Text</span>
+                                    <div class="question-meta">
+                                        <span class="question-count">
+                                            <i class="fas fa-comment"></i> @question.Count asks
+                                        </span>
+                                        <span class="question-category @GetCategoryClass(question.Category)">
+                                            @question.Category
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="question-trend @(question.Trend >= 0 ? "up" : "down")">
+                                    <i class="fas fa-@(question.Trend >= 0 ? "arrow-up" : "arrow-down")"></i>
+                                    @Math.Abs(question.Trend)%
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="analytics-grid">
+            <!-- Response Time Distribution -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-tachometer-alt"></i>
+                        Response Time Distribution
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="response-distribution">
+                        @foreach (var bucket in responseTimeBuckets)
+                        {
+                            <div class="distribution-row">
+                                <span class="bucket-label">@bucket.Label</span>
+                                <div class="bucket-bar-container">
+                                    <div class="bucket-bar @bucket.ColorClass" style="width: @bucket.Percentage%"></div>
+                                </div>
+                                <span class="bucket-value">@bucket.Percentage.ToString("F1")%</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="response-stats">
+                        <div class="response-stat">
+                            <span class="stat-label">P50</span>
+                            <span class="stat-value">@stats.P50ResponseTime.ToString("F2")s</span>
+                        </div>
+                        <div class="response-stat">
+                            <span class="stat-label">P90</span>
+                            <span class="stat-value">@stats.P90ResponseTime.ToString("F2")s</span>
+                        </div>
+                        <div class="response-stat">
+                            <span class="stat-label">P99</span>
+                            <span class="stat-value">@stats.P99ResponseTime.ToString("F2")s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Feedback -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-thumbs-up"></i>
+                        User Feedback
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="feedback-summary">
+                        <div class="feedback-circle">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg"
+                                      d="M18 2.0845
+                                         a 15.9155 15.9155 0 0 1 0 31.831
+                                         a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path class="circle-progress positive"
+                                      stroke-dasharray="@stats.PositiveFeedbackPercent, 100"
+                                      d="M18 2.0845
+                                         a 15.9155 15.9155 0 0 1 0 31.831
+                                         a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <span class="feedback-percentage">@stats.PositiveFeedbackPercent.ToString("F0")%</span>
+                        </div>
+                        <div class="feedback-breakdown">
+                            <div class="feedback-item positive">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="feedback-count">@stats.PositiveFeedback.ToString("N0")</span>
+                                <span class="feedback-label">Helpful</span>
+                            </div>
+                            <div class="feedback-item negative">
+                                <i class="fas fa-thumbs-down"></i>
+                                <span class="feedback-count">@stats.NegativeFeedback.ToString("N0")</span>
+                                <span class="feedback-label">Not Helpful</span>
+                            </div>
+                            <div class="feedback-item neutral">
+                                <i class="fas fa-minus"></i>
+                                <span class="feedback-count">@stats.NoFeedback.ToString("N0")</span>
+                                <span class="feedback-label">No Feedback</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Third Row -->
+        <div class="analytics-grid three-cols">
+            <!-- Popular Topics -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-tags"></i>
+                        Popular Topics
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="topics-cloud">
+                        @foreach (var topic in popularTopics)
+                        {
+                            <span class="topic-tag" style="font-size: @(GetTopicFontSize(topic.Count))px">
+                                @topic.Name
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Peak Hours -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-clock"></i>
+                        Peak Hours
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="heatmap">
+                        @foreach (var hour in peakHours)
+                        {
+                            <div class="hour-cell @GetIntensityClass(hour.Intensity)" title="@hour.Hour:00 - @hour.Count messages">
+                                <span class="hour-label">@hour.Hour</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="heatmap-legend">
+                        <span>Low</span>
+                        <div class="legend-gradient"></div>
+                        <span>High</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Performance -->
+            <div class="clean-card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-brain"></i>
+                        Model Performance
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="model-info">
+                        <div class="model-badge">
+                            <i class="fas fa-microchip"></i>
+                            <span>@stats.ModelName</span>
+                        </div>
+                    </div>
+                    <div class="performance-metrics">
+                        <div class="perf-metric">
+                            <span class="perf-label">Tokens Generated</span>
+                            <span class="perf-value">@FormatNumber(stats.TotalTokensGenerated)</span>
+                        </div>
+                        <div class="perf-metric">
+                            <span class="perf-label">Avg Tokens/Response</span>
+                            <span class="perf-value">@stats.AvgTokensPerResponse.ToString("F0")</span>
+                        </div>
+                        <div class="perf-metric">
+                            <span class="perf-label">Context Window Usage</span>
+                            <span class="perf-value">@stats.ContextWindowUsage.ToString("F1")%</span>
+                        </div>
+                        <div class="perf-metric">
+                            <span class="perf-label">Model Uptime</span>
+                            <span class="perf-value">@stats.ModelUptime.ToString("F2")%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Conversations -->
         <div class="clean-card">
             <div class="card-header">
-                <h2>Chatbot Analytics</h2>
+                <h2>
+                    <i class="fas fa-history"></i>
+                    Recent Conversations
+                </h2>
+                <div class="header-tools">
+                    <button class="btn btn-sm btn-outline" @onclick="ViewAllConversations">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-content">
-                <p>View chatbot usage analytics page content goes here.</p>
-                <!-- TODO: Implement ChatbotAnalytics functionality -->
+                <div class="table-responsive">
+                    <table class="data-table conversations-table">
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>User</th>
+                                <th>Started</th>
+                                <th>Duration</th>
+                                <th>Messages</th>
+                                <th>Feedback</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var conv in recentConversations)
+                            {
+                                <tr>
+                                    <td>
+                                        <code class="session-id">@conv.SessionId.Substring(0, 8)...</code>
+                                    </td>
+                                    <td>
+                                        <div class="user-info">
+                                            <span class="user-name">@conv.UserName</span>
+                                            <span class="user-email">@conv.UserEmail</span>
+                                        </div>
+                                    </td>
+                                    <td>@conv.StartedAt.ToString("MMM dd, HH:mm")</td>
+                                    <td>@FormatDuration(conv.Duration)</td>
+                                    <td>
+                                        <span class="message-count">@conv.MessageCount</span>
+                                    </td>
+                                    <td>
+                                        @if (conv.Feedback == "positive")
+                                        {
+                                            <span class="feedback-badge positive">
+                                                <i class="fas fa-thumbs-up"></i>
+                                            </span>
+                                        }
+                                        else if (conv.Feedback == "negative")
+                                        {
+                                            <span class="feedback-badge negative">
+                                                <i class="fas fa-thumbs-down"></i>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="feedback-badge neutral">
+                                                <i class="fas fa-minus"></i>
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline" @onclick="@(() => ViewConversation(conv.SessionId))">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     }
 </div>
 
-@code {
-    private bool isLoading = true;
-    private string? error;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
-    }
-
-    private async Task LoadData()
-    {
-        try
-        {
-            isLoading = true;
-            error = null;
-
-            // TODO: Implement API call for ChatbotAnalytics
-            await Task.Delay(500); // Placeholder
-
-            isLoading = false;
-        }
-        catch (Exception ex)
-        {
-            error = "An error occurred while loading data";
-            Toast.ShowError(error);
-            Console.WriteLine($"ChatbotAnalytics error: {ex}");
-            isLoading = false;
-        }
-    }
+<!-- Conversation Details Modal -->
+@if (showConversationModal && selectedConversation != null)
+{
+    <div class="modal-overlay" @onclick="CloseModals">
+        <div class="modal modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-comments"></i>
+                    Conversation Details
+                </h3>
+                <button class="modal-close" @onclick="CloseModals">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="conversation-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Session ID</span>
+                        <code>@selectedConversation.SessionId</code>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">User</span>
+                        <span>@selectedConversation.UserName (@selectedConversation.UserEmail)</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Started</span>
+                        <span>@selectedConversation.StartedAt.ToString("MMMM dd, yyyy HH:mm:ss")</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Duration</span>
+                        <span>@FormatDuration(selectedConversation.Duration)</span>
+                    </div>
+                </div>
+                <div class="conversation-messages">
+                    @foreach (var msg in selectedConversation.Messages)
+                    {
+                        <div class="message @(msg.IsUser ? "user" : "bot")">
+                            <div class="message-avatar">
+                                <i class="fas fa-@(msg.IsUser ? "user" : "robot")"></i>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="sender">@(msg.IsUser ? selectedConversation.UserName : "AI Assistant")</span>
+                                    <span class="timestamp">@msg.Timestamp.ToString("HH:mm:ss")</span>
+                                </div>
+                                <div class="message-text">@msg.Text</div>
+                                @if (!msg.IsUser)
+                                {
+                                    <div class="message-meta">
+                                        <span class="response-time">
+                                            <i class="fas fa-clock"></i> @msg.ResponseTime.ToString("F2")s
+                                        </span>
+                                        <span class="tokens">
+                                            <i class="fas fa-text-width"></i> @msg.Tokens tokens
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseModals">Close</button>
+                <button class="btn btn-danger" @onclick="@(() => DeleteConversation(selectedConversation.SessionId))">
+                    <i class="fas fa-trash"></i> Delete Conversation
+                </button>
+            </div>
+        </div>
+    </div>
 }
+
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .stat-card.primary { border-left: 4px solid #6366f1; }
+    .stat-card.info { border-left: 4px solid #3b82f6; }
+    .stat-card.success { border-left: 4px solid #10b981; }
+    .stat-card.warning { border-left: 4px solid #f59e0b; }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-card.primary .stat-icon { background: #eef2ff; color: #6366f1; }
+    .stat-card.info .stat-icon { background: #eff6ff; color: #3b82f6; }
+    .stat-card.success .stat-icon { background: #ecfdf5; color: #10b981; }
+    .stat-card.warning .stat-icon { background: #fffbeb; color: #f59e0b; }
+
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.25rem;
+    }
+
+    .stat-change.positive { color: #10b981; }
+    .stat-change.negative { color: #ef4444; }
+
+    .metrics-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .metric-card {
+        flex: 1;
+        min-width: 150px;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+    }
+
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .metric-icon.users { background: #ede9fe; color: #7c3aed; }
+    .metric-icon.messages { background: #dbeafe; color: #2563eb; }
+    .metric-icon.duration { background: #fef3c7; color: #d97706; }
+    .metric-icon.resolution { background: #d1fae5; color: #059669; }
+    .metric-icon.errors { background: #fee2e2; color: #dc2626; }
+
+    .metric-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .metric-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .analytics-grid.three-cols {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .chart-card {
+        grid-column: span 1;
+    }
+
+    .chart-toggle {
+        display: flex;
+        gap: 0.25rem;
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 0.25rem;
+    }
+
+    .toggle-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        cursor: pointer;
+        color: #6b7280;
+        transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+        color: #374151;
+    }
+
+    .toggle-btn.active {
+        background: white;
+        color: #6366f1;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-container {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        height: 200px;
+        padding: 1rem 0;
+        gap: 0.5rem;
+    }
+
+    .chart-bar-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+    }
+
+    .chart-bar {
+        width: 100%;
+        max-width: 40px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px 4px 0 0;
+        position: relative;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        margin-top: auto;
+    }
+
+    .chart-bar:hover {
+        opacity: 0.8;
+    }
+
+    .bar-tooltip {
+        position: absolute;
+        top: -24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1a1a2e;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+        white-space: nowrap;
+    }
+
+    .chart-bar:hover .bar-tooltip {
+        opacity: 1;
+    }
+
+    .bar-label {
+        font-size: 0.6875rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+    }
+
+    .top-questions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .question-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .question-rank {
+        width: 28px;
+        height: 28px;
+        background: #6366f1;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        flex-shrink: 0;
+    }
+
+    .question-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .question-text {
+        display: block;
+        font-weight: 500;
+        color: #1a1a2e;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .question-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .question-count {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .question-category {
+        font-size: 0.6875rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .question-category.course { background: #dbeafe; color: #1d4ed8; }
+    .question-category.account { background: #fef3c7; color: #b45309; }
+    .question-category.technical { background: #fee2e2; color: #b91c1c; }
+    .question-category.billing { background: #d1fae5; color: #047857; }
+    .question-category.general { background: #e5e7eb; color: #374151; }
+
+    .question-trend {
+        font-size: 0.75rem;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    .question-trend.up { color: #10b981; }
+    .question-trend.down { color: #ef4444; }
+
+    .response-distribution {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .distribution-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .bucket-label {
+        width: 80px;
+        font-size: 0.8125rem;
+        color: #6b7280;
+    }
+
+    .bucket-bar-container {
+        flex: 1;
+        height: 20px;
+        background: #f3f4f6;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .bucket-bar {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .bucket-bar.excellent { background: #10b981; }
+    .bucket-bar.good { background: #34d399; }
+    .bucket-bar.average { background: #fbbf24; }
+    .bucket-bar.slow { background: #f97316; }
+    .bucket-bar.critical { background: #ef4444; }
+
+    .bucket-value {
+        width: 50px;
+        text-align: right;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .response-stats {
+        display: flex;
+        justify-content: space-around;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .response-stat {
+        text-align: center;
+    }
+
+    .response-stat .stat-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .response-stat .stat-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .feedback-summary {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .feedback-circle {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+
+    .circular-chart {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .circle-bg {
+        fill: none;
+        stroke: #e5e7eb;
+        stroke-width: 3;
+    }
+
+    .circle-progress {
+        fill: none;
+        stroke-width: 3;
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: center;
+    }
+
+    .circle-progress.positive { stroke: #10b981; }
+
+    .feedback-percentage {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #10b981;
+    }
+
+    .feedback-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .feedback-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .feedback-item i {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.75rem;
+    }
+
+    .feedback-item.positive i { background: #d1fae5; color: #059669; }
+    .feedback-item.negative i { background: #fee2e2; color: #dc2626; }
+    .feedback-item.neutral i { background: #f3f4f6; color: #6b7280; }
+
+    .feedback-count {
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .feedback-label {
+        font-size: 0.8125rem;
+        color: #6b7280;
+    }
+
+    .topics-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .topic-tag {
+        padding: 0.25rem 0.75rem;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .heatmap {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .hour-cell {
+        aspect-ratio: 1;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .hour-cell:hover {
+        transform: scale(1.1);
+    }
+
+    .hour-cell.low { background: #e0f2fe; }
+    .hour-cell.medium-low { background: #7dd3fc; }
+    .hour-cell.medium { background: #38bdf8; }
+    .hour-cell.medium-high { background: #0284c7; }
+    .hour-cell.high { background: #0369a1; }
+
+    .hour-label {
+        font-size: 0.625rem;
+        color: inherit;
+    }
+
+    .hour-cell.low .hour-label { color: #0369a1; }
+    .hour-cell.medium-low .hour-label { color: #0369a1; }
+    .hour-cell.medium .hour-label { color: white; }
+    .hour-cell.medium-high .hour-label { color: white; }
+    .hour-cell.high .hour-label { color: white; }
+
+    .heatmap-legend {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .legend-gradient {
+        width: 100px;
+        height: 8px;
+        background: linear-gradient(to right, #e0f2fe, #0369a1);
+        border-radius: 4px;
+    }
+
+    .model-info {
+        margin-bottom: 1.5rem;
+    }
+
+    .model-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        color: white;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .performance-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .perf-metric {
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .perf-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .perf-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .conversations-table .session-id {
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8125rem;
+        padding: 0.25rem 0.5rem;
+        background: #f3f4f6;
+        border-radius: 4px;
+    }
+
+    .conversations-table .user-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .conversations-table .user-name {
+        font-weight: 500;
+        color: #1a1a2e;
+    }
+
+    .conversations-table .user-email {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .conversations-table .message-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 24px;
+        background: #e5e7eb;
+        border-radius: 12px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    .feedback-badge {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.75rem;
+    }
+
+    .feedback-badge.positive { background: #d1fae5; color: #059669; }
+    .feedback-badge.negative { background: #fee2e2; color: #dc2626; }
+    .feedback-badge.neutral { background: #f3f4f6; color: #9ca3af; }
+
+    .conversation-meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .meta-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .conversation-messages {
+        max-height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .message {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .message.user {
+        flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+        background: #6366f1;
+        color: white;
+    }
+
+    .message.bot .message-avatar {
+        background: #10b981;
+        color: white;
+    }
+
+    .message-content {
+        max-width: 70%;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+    }
+
+    .message.user .message-content {
+        background: #6366f1;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message.bot .message-content {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+        font-size: 0.75rem;
+    }
+
+    .message.user .message-header {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .message.bot .message-header {
+        color: #6b7280;
+    }
+
+    .message.user .sender { font-weight: 500; }
+    .message.bot .sender { font-weight: 500; color: #10b981; }
+
+    .message-text {
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    }
+
+    .message-meta {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.6875rem;
+        color: #9ca3af;
+    }
+
+    .date-range-picker select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    @@media (max-width: 1200px) {
+        .analytics-grid.three-cols {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .analytics-grid.three-cols > *:last-child {
+            grid-column: span 2;
+        }
+    }
+
+    @@media (max-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .analytics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .analytics-grid.three-cols {
+            grid-template-columns: 1fr;
+        }
+
+        .analytics-grid.three-cols > *:last-child {
+            grid-column: span 1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .metrics-row {
+            flex-direction: column;
+        }
+
+        .metric-card {
+            min-width: auto;
+        }
+
+        .feedback-summary {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .heatmap {
+            grid-template-columns: repeat(6, 1fr);
+        }
+
+        .performance-metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .conversation-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

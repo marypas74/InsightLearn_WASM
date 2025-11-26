@@ -1,0 +1,383 @@
+@page "/admin/instructors"
+@attribute [Authorize(Roles = "Admin")]
+@using InsightLearn.Core.DTOs.Admin
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Instructor Management - InsightLearn Admin</PageTitle>
+
+<div class="admin-instructors-container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1 class="page-title">Instructor Management</h1>
+            <p class="page-subtitle">Manage instructor accounts, approvals, and performance</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" @onclick="ExportInstructors">
+                <i class="fas fa-download"></i> Export CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-primary">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Total Instructors</div>
+                <div class="kpi-value">@stats.TotalInstructors</div>
+                <div class="kpi-trend kpi-trend-up">
+                    <i class="fas fa-arrow-up"></i> @stats.NewInstructorsThisMonth this month
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Active Instructors</div>
+                <div class="kpi-value">@stats.ActiveInstructors</div>
+                <div class="kpi-trend">
+                    @stats.ActivePercentage% of total
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Pending Approvals</div>
+                <div class="kpi-value">@stats.PendingInstructors</div>
+                <div class="kpi-trend">
+                    Requires action
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-danger">
+                <i class="fas fa-ban"></i>
+            </div>
+            <div class="kpi-content">
+                <div class="kpi-label">Suspended</div>
+                <div class="kpi-value">@stats.SuspendedInstructors</div>
+                <div class="kpi-trend">
+                    Under review
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text"
+                   placeholder="Search by name or email..."
+                   @bind="searchTerm"
+                   @bind:event="oninput"
+                   @onkeyup="HandleSearchKeyUp" />
+        </div>
+
+        <select class="filter-select" @bind="filterStatus" @bind:after="LoadInstructors">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="suspended">Suspended</option>
+        </select>
+
+        <select class="filter-select" @bind="pageSize" @bind:after="LoadInstructors">
+            <option value="10">10 per page</option>
+            <option value="20" selected>20 per page</option>
+            <option value="50">50 per page</option>
+            <option value="100">100 per page</option>
+        </select>
+    </div>
+
+    <!-- Instructors Table -->
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading instructors...</p>
+        </div>
+    }
+    else if (instructors.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="fas fa-user-slash fa-3x"></i>
+            <h3>No Instructors Found</h3>
+            <p>Try adjusting your filters or search term.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table class="instructors-table">
+                <thead>
+                    <tr>
+                        <th>Instructor</th>
+                        <th>Status</th>
+                        <th>Courses</th>
+                        <th>Students</th>
+                        <th>Total Earnings</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var instructor in instructors)
+                    {
+                        <tr>
+                            <td>
+                                <div class="instructor-cell">
+                                    @if (!string.IsNullOrEmpty(instructor.ProfilePictureUrl))
+                                    {
+                                        <img src="@instructor.ProfilePictureUrl" alt="@instructor.Name" class="instructor-avatar" />
+                                    }
+                                    else
+                                    {
+                                        <div class="instructor-avatar-placeholder">
+                                            @GetInitials(instructor.Name)
+                                        </div>
+                                    }
+                                    <div class="instructor-info">
+                                        <div class="instructor-name">@instructor.Name</div>
+                                        <div class="instructor-email">@instructor.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-@instructor.Status.ToLower()">
+                                    @instructor.Status
+                                </span>
+                            </td>
+                            <td>@instructor.CoursesCount</td>
+                            <td>@instructor.StudentsCount</td>
+                            <td>$@instructor.TotalEarnings.ToString("N2")</td>
+                            <td>@instructor.JoinedDate.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-icon" @onclick="() => ViewInstructorDetails(instructor.Id)" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    @if (instructor.Status == "Pending")
+                                    {
+                                        <button class="btn-icon btn-success" @onclick="() => ApproveInstructor(instructor)" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    }
+                                    @if (instructor.Status == "Active")
+                                    {
+                                        <button class="btn-icon btn-warning" @onclick="() => SuspendInstructor(instructor)" title="Suspend">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    }
+                                    @if (instructor.Status == "Suspended")
+                                    {
+                                        <button class="btn-icon btn-success" @onclick="() => ReactivateInstructor(instructor)" title="Reactivate">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button class="btn btn-secondary"
+                    @onclick="PreviousPage"
+                    disabled="@(!hasPreviousPage)">
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+
+            <span class="pagination-info">
+                Page @currentPage of @totalPages (@totalCount total instructors)
+            </span>
+
+            <button class="btn btn-secondary"
+                    @onclick="NextPage"
+                    disabled="@(!hasNextPage)">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<InstructorSummaryDto> instructors = new();
+    private string searchTerm = "";
+    private string filterStatus = "";
+    private int pageSize = 20;
+    private int currentPage = 1;
+    private int totalPages = 1;
+    private int totalCount = 0;
+    private bool hasPreviousPage = false;
+    private bool hasNextPage = false;
+    private bool isLoading = true;
+
+    private InstructorStatsOverview stats = new()
+    {
+        TotalInstructors = 0,
+        ActiveInstructors = 0,
+        PendingInstructors = 0,
+        SuspendedInstructors = 0,
+        NewInstructorsThisMonth = 0,
+        ActivePercentage = 0
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInstructors();
+    }
+
+    private async Task LoadInstructors()
+    {
+        isLoading = true;
+        try
+        {
+            var url = $"/api/admin/instructors?page={currentPage}&pageSize={pageSize}";
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                url += $"&search={Uri.EscapeDataString(searchTerm)}";
+
+            if (!string.IsNullOrWhiteSpace(filterStatus))
+                url += $"&status={Uri.EscapeDataString(filterStatus)}";
+
+            var response = await Http.GetFromJsonAsync<PagedResultDto<InstructorSummaryDto>>(url);
+
+            if (response != null)
+            {
+                instructors = response.Items;
+                totalCount = response.TotalCount;
+                totalPages = response.TotalPages;
+                currentPage = response.Page;
+                hasPreviousPage = response.HasPreviousPage;
+                hasNextPage = response.HasNextPage;
+
+                // Calculate stats
+                stats.TotalInstructors = totalCount;
+                stats.ActiveInstructors = instructors.Count(i => i.Status == "Active");
+                stats.PendingInstructors = instructors.Count(i => i.Status == "Pending");
+                stats.SuspendedInstructors = instructors.Count(i => i.Status == "Suspended");
+                stats.ActivePercentage = totalCount > 0 ? (stats.ActiveInstructors * 100 / totalCount) : 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", "Error loading instructors:", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadInstructors();
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (hasPreviousPage)
+        {
+            currentPage--;
+            await LoadInstructors();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (hasNextPage)
+        {
+            currentPage++;
+            await LoadInstructors();
+        }
+    }
+
+    private void ViewInstructorDetails(Guid instructorId)
+    {
+        Navigation.NavigateTo($"/admin/instructors/{instructorId}");
+    }
+
+    private async Task ApproveInstructor(InstructorSummaryDto instructor)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Approve {instructor.Name} as an instructor?");
+        if (confirmed)
+        {
+            // TODO: Call approve API endpoint
+            await LoadInstructors();
+        }
+    }
+
+    private async Task SuspendInstructor(InstructorSummaryDto instructor)
+    {
+        var reason = await JS.InvokeAsync<string>("prompt", "Enter suspension reason:");
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            try
+            {
+                var suspendDto = new SuspendInstructorDto
+                {
+                    Reason = reason
+                };
+                await Http.PostAsJsonAsync($"/api/admin/instructors/{instructor.Id}/suspend", suspendDto);
+                await LoadInstructors();
+            }
+            catch (Exception ex)
+            {
+                await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ReactivateInstructor(InstructorSummaryDto instructor)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Reactivate {instructor.Name}?");
+        if (confirmed)
+        {
+            // TODO: Call reactivate API endpoint (remove lockout)
+            await LoadInstructors();
+        }
+    }
+
+    private async Task ExportInstructors()
+    {
+        await JS.InvokeVoidAsync("alert", "Export feature coming soon!");
+    }
+
+    private string GetInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "??";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+
+    private class InstructorStatsOverview
+    {
+        public int TotalInstructors { get; set; }
+        public int ActiveInstructors { get; set; }
+        public int PendingInstructors { get; set; }
+        public int SuspendedInstructors { get; set; }
+        public int NewInstructorsThisMonth { get; set; }
+        public int ActivePercentage { get; set; }
+    }
+}
