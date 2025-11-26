@@ -48,29 +48,90 @@
                         <span class="desktop-only">Categories</span>
                         <i class="fas fa-chevron-down dropdown-arrow @(isCategoriesOpen ? "rotated" : "")" aria-hidden="true"></i>
                     </button>
-                    <div class="dropdown-menu categories-menu @(isCategoriesOpen ? "show" : "")" role="menu">
-                        <div class="categories-grid">
+                    <div class="dropdown-menu categories-menu categories-menu-expanded @(isCategoriesOpen ? "show" : "")" role="menu">
+                        <div class="categories-grid categories-grid-expanded">
+                            @* Row 1: Tech & Development *@
                             <a href="/categories/development" class="category-item">
-                                <i class="fas fa-code"></i>
+                                <i class="fas fa-code" style="color: #3b82f6;"></i>
                                 <span>Development</span>
                             </a>
+                            <a href="/categories/it-software" class="category-item">
+                                <i class="fas fa-laptop-code" style="color: #6366f1;"></i>
+                                <span>IT & Software</span>
+                            </a>
+                            <a href="/categories/data-science" class="category-item">
+                                <i class="fas fa-database" style="color: #8b5cf6;"></i>
+                                <span>Data Science</span>
+                            </a>
+                            <a href="/categories/cloud-devops" class="category-item">
+                                <i class="fas fa-cloud" style="color: #0ea5e9;"></i>
+                                <span>Cloud & DevOps</span>
+                            </a>
+
+                            @* Row 2: Business & Finance *@
                             <a href="/categories/business" class="category-item">
-                                <i class="fas fa-briefcase"></i>
+                                <i class="fas fa-briefcase" style="color: #f59e0b;"></i>
                                 <span>Business</span>
                             </a>
-                            <a href="/categories/design" class="category-item">
-                                <i class="fas fa-palette"></i>
-                                <span>Design</span>
+                            <a href="/categories/finance" class="category-item">
+                                <i class="fas fa-calculator" style="color: #10b981;"></i>
+                                <span>Finance</span>
                             </a>
                             <a href="/categories/marketing" class="category-item">
-                                <i class="fas fa-bullhorn"></i>
+                                <i class="fas fa-bullhorn" style="color: #ef4444;"></i>
                                 <span>Marketing</span>
                             </a>
+                            <a href="/categories/entrepreneurship" class="category-item">
+                                <i class="fas fa-rocket" style="color: #f97316;"></i>
+                                <span>Entrepreneurship</span>
+                            </a>
+
+                            @* Row 3: Creative *@
+                            <a href="/categories/design" class="category-item">
+                                <i class="fas fa-palette" style="color: #ec4899;"></i>
+                                <span>Design</span>
+                            </a>
+                            <a href="/categories/photography" class="category-item">
+                                <i class="fas fa-camera" style="color: #14b8a6;"></i>
+                                <span>Photography</span>
+                            </a>
+                            <a href="/categories/video" class="category-item">
+                                <i class="fas fa-video" style="color: #a855f7;"></i>
+                                <span>Video & Film</span>
+                            </a>
+                            <a href="/categories/music" class="category-item">
+                                <i class="fas fa-music" style="color: #06b6d4;"></i>
+                                <span>Music</span>
+                            </a>
+
+                            @* Row 4: Personal & Lifestyle *@
+                            <a href="/categories/personal-development" class="category-item">
+                                <i class="fas fa-brain" style="color: #8b5cf6;"></i>
+                                <span>Personal Growth</span>
+                            </a>
+                            <a href="/categories/health-fitness" class="category-item">
+                                <i class="fas fa-heartbeat" style="color: #ef4444;"></i>
+                                <span>Health & Fitness</span>
+                            </a>
+                            <a href="/categories/languages" class="category-item">
+                                <i class="fas fa-language" style="color: #3b82f6;"></i>
+                                <span>Languages</span>
+                            </a>
+                            <a href="/categories/academics" class="category-item">
+                                <i class="fas fa-graduation-cap" style="color: #f59e0b;"></i>
+                                <span>Academics</span>
+                            </a>
                         </div>
-                        <a href="/categories" class="view-all-link">
-                            <i class="fas fa-th"></i>
-                            <span>View All Categories</span>
-                        </a>
+                        <div class="categories-footer">
+                            <a href="/categories" class="view-all-link">
+                                <i class="fas fa-th"></i>
+                                <span>View All Categories</span>
+                            </a>
+                            <a href="/courses" class="browse-courses-link">
+                                <i class="fas fa-book-open"></i>
+                                <span>Browse All Courses</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
 

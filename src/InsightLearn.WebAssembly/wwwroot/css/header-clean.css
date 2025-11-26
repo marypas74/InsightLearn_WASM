@@ -569,6 +569,142 @@ body {
     box-shadow: 0 8px 20px rgba(164, 53, 240, 0.4);
 }
 
+/* ===================================
+   EXPANDED CATEGORIES MENU (v2.1.0)
+   16 categories in 4x4 grid layout
+   =================================== */
+
+.categories-menu-expanded {
+    min-width: 520px;
+    max-width: 580px;
+    padding: 0;
+}
+
+.categories-grid-expanded {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-xs);
+    padding: var(--space-md);
+}
+
+.categories-grid-expanded .category-item {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-md) var(--space-sm);
+    gap: var(--space-sm);
+    min-height: 80px;
+    justify-content: center;
+}
+
+.categories-grid-expanded .category-item i {
+    font-size: 24px;
+    transition: transform 0.2s ease;
+}
+
+.categories-grid-expanded .category-item:hover i {
+    transform: scale(1.15);
+}
+
+.categories-grid-expanded .category-item span {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+}
+
+.categories-grid-expanded .category-item:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+/* Categories Footer with dual links */
+.categories-menu-expanded .categories-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-light);
+    gap: var(--space-md);
+}
+
+.categories-menu-expanded .view-all-link,
+.categories-menu-expanded .browse-courses-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.categories-menu-expanded .view-all-link:hover,
+.categories-menu-expanded .browse-courses-link:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.categories-menu-expanded .view-all-link i,
+.categories-menu-expanded .browse-courses-link i {
+    font-size: 14px;
+}
+
+/* Responsive: Tablet */
+@media (max-width: 768px) {
+    .categories-menu-expanded {
+        min-width: 320px;
+        max-width: 360px;
+        right: -60px;
+    }
+
+    .categories-grid-expanded {
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-xs);
+        padding: var(--space-sm);
+    }
+
+    .categories-grid-expanded .category-item {
+        min-height: 70px;
+        padding: var(--space-sm);
+    }
+
+    .categories-grid-expanded .category-item i {
+        font-size: 20px;
+    }
+
+    .categories-grid-expanded .category-item span {
+        font-size: 11px;
+    }
+
+    .categories-menu-expanded .categories-footer {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .categories-menu-expanded .view-all-link,
+    .categories-menu-expanded .browse-courses-link {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 480px) {
+    .categories-menu-expanded {
+        min-width: 280px;
+        max-width: 300px;
+        right: -80px;
+    }
+
+    .categories-grid-expanded {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Generic dropdown trigger (for non-categories dropdowns) */
 .dropdown-trigger:not(.categories-trigger) {
     display: flex;
