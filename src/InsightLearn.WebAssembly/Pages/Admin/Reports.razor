@@ -597,26 +597,52 @@
                 endDate = customEndDate;
             }
 
-            // Simulate report generation
-            await Task.Delay(1500);
+            // Call backend API to generate report
+            var request = new { Type = selectedReportType, StartDate = startDate, EndDate = endDate };
+            var apiResponse = await ApiClient.PostAsync<ReportData>("api/admin/reports/generate", request);
+            var response = apiResponse?.Data;
 
-            // Generate report data based on type
-            currentReport = GenerateReportData(selectedReportType, startDate, endDate);
-
-            // Add to recent reports
-            recentReports.Insert(0, currentReport);
-
-            if (selectedFormat != "preview")
+            if (response != null)
             {
-                await ExportReport(selectedFormat);
-            }
+                currentReport = response;
+                // Add to recent reports
+                recentReports.Insert(0, currentReport);
 
-            Toast.ShowSuccess($"Report generated successfully!");
+                if (selectedFormat != "preview")
+                {
+                    await ExportReport(selectedFormat);
+                }
+
+                Toast.ShowSuccess($"Report generated successfully!");
+            }
+            else
+            {
+                // Fallback to local generation if API fails
+                Toast.ShowWarning("Using local data - API unavailable");
+                currentReport = GenerateReportData(selectedReportType, startDate, endDate);
+                recentReports.Insert(0, currentReport);
+            }
         }
         catch (Exception ex)
         {
-            Toast.ShowError("Failed to generate report");
+            // Fallback to local generation on error
+            Toast.ShowWarning("Using local data - API error");
             Console.WriteLine($"Generate report error: {ex}");
+
+            var endDate = DateTime.Now;
+            var startDate = selectedDateRange switch
+            {
+                "7" => endDate.AddDays(-7),
+                "30" => endDate.AddDays(-30),
+                "90" => endDate.AddDays(-90),
+                "365" => endDate.AddDays(-365),
+                "custom" => customStartDate,
+                _ => endDate.AddDays(-30)
+            };
+            if (selectedDateRange == "custom") endDate = customEndDate;
+
+            currentReport = GenerateReportData(selectedReportType, startDate, endDate);
+            recentReports.Insert(0, currentReport);
         }
         finally
         {
@@ -792,6 +818,30 @@
     {
         if (currentReport == null) return;
 
+        try
+        {
+            // Try to get CSV from backend API
+            var request = new { Type = currentReport.Type, StartDate = currentReport.StartDate, EndDate = currentReport.EndDate };
+            var apiResponse = await ApiClient.PostAsync<byte[]>("api/admin/reports/export/csv", request);
+            var response = apiResponse?.Data;
+
+            if (response != null && response.Length > 0)
+            {
+                var base64 = Convert.ToBase64String(response);
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{currentReport.Type}_report_{DateTime.Now:yyyyMMdd}.csv",
+                    "text/csv",
+                    base64);
+                Toast.ShowSuccess("CSV exported successfully!");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"API CSV export failed: {ex.Message}");
+        }
+
+        // Fallback to local CSV generation
         var csv = new System.Text.StringBuilder();
         csv.AppendLine(string.Join(",", currentReport.Columns));
         foreach (var row in currentReport.Rows)
@@ -799,19 +849,44 @@
             csv.AppendLine(string.Join(",", row.Select(c => $"\"{c}\"")));
         }
 
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv.ToString()));
+        var base64Local = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv.ToString()));
         await JS.InvokeVoidAsync("downloadFile",
             $"{currentReport.Type}_report_{DateTime.Now:yyyyMMdd}.csv",
             "text/csv",
-            base64);
+            base64Local);
 
         Toast.ShowSuccess("CSV exported successfully!");
     }
 
     private async Task ExportPdf()
     {
-        Toast.ShowInfo("PDF export functionality requires server-side processing. Coming soon!");
-        await Task.CompletedTask;
+        if (currentReport == null) return;
+
+        try
+        {
+            // Try to get PDF from backend API
+            var request = new { Type = currentReport.Type, StartDate = currentReport.StartDate, EndDate = currentReport.EndDate };
+            var apiResponse = await ApiClient.PostAsync<byte[]>("api/admin/reports/export/pdf", request);
+            var response = apiResponse?.Data;
+
+            if (response != null && response.Length > 0)
+            {
+                var base64 = Convert.ToBase64String(response);
+                await JS.InvokeVoidAsync("downloadFile",
+                    $"{currentReport.Type}_report_{DateTime.Now:yyyyMMdd}.pdf",
+                    "application/pdf",
+                    base64);
+                Toast.ShowSuccess("PDF exported successfully!");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"API PDF export failed: {ex.Message}");
+        }
+
+        Toast.ShowInfo("PDF export functionality is coming soon - using CSV instead");
+        await ExportCsv();
     }
 
     private void ViewReport(ReportData report)

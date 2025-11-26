@@ -21,42 +21,62 @@ public class UserDto
     public string? SessionId { get; set; }
 }
 
+/// <summary>
+/// User registration DTO with comprehensive security validation.
+/// Security: OWASP A03:2021 (Injection), OWASP A07:2021 (Authentication Failures)
+/// </summary>
 public class RegisterDto
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
+    [Required(ErrorMessage = "First name is required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 100 characters")]
+    [RegularExpression(@"^[\p{L}\s\-'\.]+$", ErrorMessage = "First name can only contain letters, spaces, hyphens, apostrophes, and periods")]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
+    [Required(ErrorMessage = "Last name is required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Last name must be between 2 and 100 characters")]
+    [RegularExpression(@"^[\p{L}\s\-'\.]+$", ErrorMessage = "Last name can only contain letters, spaces, hyphens, apostrophes, and periods")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 6)]
+    /// <summary>
+    /// Password must be 8-128 characters with at least: 1 uppercase, 1 lowercase, 1 digit, 1 special char.
+    /// </summary>
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(128, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 128 characters")]
     [DataType(DataType.Password)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~])[A-Za-z\d@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~]{8,}$",
+        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
-    [Compare("Password")]
+    [Required(ErrorMessage = "Please confirm your password")]
+    [Compare("Password", ErrorMessage = "Passwords do not match")]
     [DataType(DataType.Password)]
     public string ConfirmPassword { get; set; } = string.Empty;
 
+    [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the terms and conditions")]
     public bool AgreeToTerms { get; set; }
-    
+
     public bool IsInstructor { get; set; }
 }
 
+/// <summary>
+/// Login DTO with security validation.
+/// Security: OWASP A07:2021 (Authentication Failures)
+/// Note: Rate limiting is handled at the API level, not DTO validation.
+/// </summary>
 public class LoginDto
 {
     [Required(ErrorMessage = "Email is required")]
     [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Password is required")]
+    [StringLength(128, ErrorMessage = "Password cannot exceed 128 characters")]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
@@ -91,19 +111,29 @@ public class UpdateProfileDto
     public string? ProfileImageUrl { get; set; }
 }
 
+/// <summary>
+/// Change password DTO with security validation.
+/// Security: OWASP A07:2021 (Authentication Failures)
+/// </summary>
 public class ChangePasswordDto
 {
-    [Required]
+    [Required(ErrorMessage = "Current password is required")]
+    [StringLength(128, ErrorMessage = "Current password cannot exceed 128 characters")]
     [DataType(DataType.Password)]
     public string CurrentPassword { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 6)]
+    /// <summary>
+    /// New password must be 8-128 characters with at least: 1 uppercase, 1 lowercase, 1 digit, 1 special char.
+    /// </summary>
+    [Required(ErrorMessage = "New password is required")]
+    [StringLength(128, MinimumLength = 8, ErrorMessage = "New password must be between 8 and 128 characters")]
     [DataType(DataType.Password)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~])[A-Za-z\d@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~]{8,}$",
+        ErrorMessage = "New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     public string NewPassword { get; set; } = string.Empty;
 
-    [Required]
-    [Compare("NewPassword")]
+    [Required(ErrorMessage = "Please confirm your new password")]
+    [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
     [DataType(DataType.Password)]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
@@ -115,22 +145,33 @@ public class ForgotPasswordDto
     public string Email { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// Reset password DTO with security validation.
+/// Security: OWASP A07:2021 (Authentication Failures)
+/// </summary>
 public class ResetPasswordDto
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Reset token is required")]
+    [StringLength(1024, ErrorMessage = "Token cannot exceed 1024 characters")]
     public string Token { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 6)]
+    /// <summary>
+    /// Password must be 8-128 characters with at least: 1 uppercase, 1 lowercase, 1 digit, 1 special char.
+    /// </summary>
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(128, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 128 characters")]
     [DataType(DataType.Password)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~])[A-Za-z\d@$!%*?&\#\^\(\)\-_=+\[\]{}|;:',.<>\/\\`~]{8,}$",
+        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
-    [Compare("Password")]
+    [Required(ErrorMessage = "Please confirm your password")]
+    [Compare("Password", ErrorMessage = "Passwords do not match")]
     [DataType(DataType.Password)]
     public string ConfirmPassword { get; set; } = string.Empty;
 }

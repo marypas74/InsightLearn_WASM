@@ -627,6 +627,14 @@ builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>(
 builder.Services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();
 Console.WriteLine("[CONFIG] Admin Analytics Service registered");
 
+// Register Report Service for Admin Reports page (v2.1.0-dev)
+builder.Services.AddScoped<IReportService, ReportService>();
+Console.WriteLine("[CONFIG] Report Service registered");
+
+// Register AI Chat Service for Student Learning Space (v2.1.0-dev)
+builder.Services.AddScoped<IAIChatService, AIChatService>();
+Console.WriteLine("[CONFIG] AI Chat Service registered");
+
 // Register Core LMS Repositories
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -4222,6 +4230,136 @@ app.MapGet("/api/admin/analytics/enrollment-trends", async (
 .Produces(500);
 
 // ========================================
+// ADMIN REPORTS API ENDPOINTS (v2.1.0-dev)
+// ========================================
+
+// POST /api/admin/reports/generate - Generate report based on type
+app.MapPost("/api/admin/reports/generate", async (
+    [FromServices] IReportService reportService,
+    [FromServices] ILogger<Program> logger,
+    [FromBody] GenerateReportRequest request) =>
+{
+    try
+    {
+        logger.LogInformation("[REPORTS] Generating {Type} report from {Start} to {End}",
+            request.Type, request.StartDate, request.EndDate);
+
+        ReportResult report = request.Type switch
+        {
+            "revenue" => await reportService.GenerateRevenueReportAsync(request.StartDate, request.EndDate),
+            "users" => await reportService.GenerateUserGrowthReportAsync(request.StartDate, request.EndDate),
+            "courses" => await reportService.GenerateCoursePerformanceReportAsync(request.StartDate, request.EndDate),
+            "enrollments" => await reportService.GenerateEnrollmentReportAsync(request.StartDate, request.EndDate),
+            "engagement" => await reportService.GenerateEngagementReportAsync(request.StartDate, request.EndDate),
+            "instructors" => await reportService.GenerateInstructorEarningsReportAsync(request.StartDate, request.EndDate),
+            _ => throw new ArgumentException($"Unknown report type: {request.Type}")
+        };
+
+        logger.LogInformation("[REPORTS] Report generated: {Title} with {Rows} rows",
+            report.Title, report.Rows.Count);
+
+        return Results.Ok(report);
+    }
+    catch (ArgumentException ex)
+    {
+        logger.LogWarning(ex, "[REPORTS] Invalid report type requested");
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REPORTS] Error generating report");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GenerateReport")
+.WithTags("Admin", "Reports")
+.Produces<ReportResult>(200)
+.Produces(400)
+.Produces(500);
+
+// POST /api/admin/reports/export/csv - Export report to CSV
+app.MapPost("/api/admin/reports/export/csv", async (
+    [FromServices] IReportService reportService,
+    [FromServices] ILogger<Program> logger,
+    [FromBody] ReportResult report) =>
+{
+    try
+    {
+        logger.LogInformation("[REPORTS] Exporting report to CSV: {Title}", report.Title);
+
+        var csvBytes = await reportService.ExportToCsvAsync(report);
+        var fileName = $"{report.Type}_report_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+
+        return Results.File(csvBytes, "text/csv", fileName);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REPORTS] Error exporting report to CSV");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("ExportReportCsv")
+.WithTags("Admin", "Reports")
+.Produces(200)
+.Produces(500);
+
+// POST /api/admin/reports/export/pdf - Export report to PDF
+app.MapPost("/api/admin/reports/export/pdf", async (
+    [FromServices] IReportService reportService,
+    [FromServices] ILogger<Program> logger,
+    [FromBody] ReportResult report) =>
+{
+    try
+    {
+        logger.LogInformation("[REPORTS] Exporting report to PDF: {Title}", report.Title);
+
+        var pdfBytes = await reportService.ExportToPdfAsync(report);
+        var fileName = $"{report.Type}_report_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+
+        return Results.File(pdfBytes, "application/pdf", fileName);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REPORTS] Error exporting report to PDF");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("ExportReportPdf")
+.WithTags("Admin", "Reports")
+.Produces(200)
+.Produces(500);
+
+// POST /api/admin/reports/export/excel - Export report to Excel
+app.MapPost("/api/admin/reports/export/excel", async (
+    [FromServices] IReportService reportService,
+    [FromServices] ILogger<Program> logger,
+    [FromBody] ReportResult report) =>
+{
+    try
+    {
+        logger.LogInformation("[REPORTS] Exporting report to Excel: {Title}", report.Title);
+
+        var excelBytes = await reportService.ExportToExcelAsync(report);
+        var fileName = $"{report.Type}_report_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+
+        return Results.File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[REPORTS] Error exporting report to Excel");
+        return Results.Json(new { error = ex.Message }, statusCode: (int)HttpStatusCode.InternalServerError);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("ExportReportExcel")
+.WithTags("Admin", "Reports")
+.Produces(200)
+.Produces(500);
+
+// ========================================
 // USER ADMIN API ENDPOINTS
 // ========================================
 
@@ -4982,83 +5120,157 @@ app.MapPost("/api/notes/{id:guid}/toggle-bookmark", async (
 .Produces(500);
 
 // ========================================
-// AI CHAT ENDPOINTS (4)
+// AI CHAT ENDPOINTS (4) - v2.1.0-dev IMPLEMENTED
 // ========================================
-// NOTE: These endpoints are planned for Phase 4 (real-time features)
-// Currently returning 501 Not Implemented - full implementation requires SignalR integration
+// Implemented with Ollama LLM integration and context-aware responses
+// Uses IAIChatService with conversation persistence and transcript enrichment
 
 // POST /api/ai-chat/message - Send message with context
-app.MapPost("/api/ai-chat/message", (
+app.MapPost("/api/ai-chat/message", async (
     [FromBody] AIChatMessageDto messageDto,
-    [FromServices] ILogger<Program> logger) =>
+    [FromServices] IAIChatService chatService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
 {
-    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
-    return Results.Problem(
-        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
-        statusCode: 501,
-        title: "Not Implemented");
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[AI_CHAT] Processing message from user {UserId}", userId);
+        var response = await chatService.SendMessageAsync(userId, messageDto);
+
+        return Results.Ok(response);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_CHAT] Error processing message");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 })
 .RequireAuthorization()
 .WithName("SendAIChatMessage")
 .WithTags("AI Chat")
 .Produces<AIChatResponseDto>(200)
 .Produces(401)
-.Produces(501);
+.Produces(500);
 
 // GET /api/ai-chat/history?sessionId={id}&limit={n} - Get chat history
-app.MapGet("/api/ai-chat/history", (
+app.MapGet("/api/ai-chat/history", async (
     [FromQuery] Guid sessionId,
-    [FromQuery] int limit,
-    [FromServices] ILogger<Program> logger) =>
+    [FromQuery] int? limit,
+    [FromServices] IAIChatService chatService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
 {
-    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
-    return Results.Problem(
-        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
-        statusCode: 501,
-        title: "Not Implemented");
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[AI_CHAT] Getting history for session {SessionId}", sessionId);
+        var history = await chatService.GetHistoryAsync(sessionId, limit ?? 50);
+
+        if (history == null)
+            return Results.NotFound($"Session {sessionId} not found");
+
+        // Verify ownership
+        if (history.UserId != userId)
+            return Results.Unauthorized();
+
+        return Results.Ok(history);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_CHAT] Error getting history for session {SessionId}", sessionId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 })
 .RequireAuthorization()
 .WithName("GetAIChatHistory")
 .WithTags("AI Chat")
 .Produces<AIConversationHistoryDto>(200)
 .Produces(401)
-.Produces(501);
+.Produces(404)
+.Produces(500);
 
 // POST /api/ai-chat/sessions/{sessionId}/end - End chat session
-app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", (
+app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
     Guid sessionId,
-    [FromServices] ILogger<Program> logger) =>
+    [FromServices] IAIChatService chatService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
 {
-    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
-    return Results.Problem(
-        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
-        statusCode: 501,
-        title: "Not Implemented");
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId, userId);
+        await chatService.EndSessionAsync(userId, sessionId);
+
+        return Results.Ok(new { message = "Session ended successfully", sessionId });
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(ex.Message);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_CHAT] Error ending session {SessionId}", sessionId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 })
 .RequireAuthorization()
 .WithName("EndChatSession")
 .WithTags("AI Chat")
 .Produces(200)
 .Produces(401)
-.Produces(501);
+.Produces(404)
+.Produces(500);
 
 // GET /api/ai-chat/sessions?lessonId={id} - List sessions for lesson
-app.MapGet("/api/ai-chat/sessions", (
+app.MapGet("/api/ai-chat/sessions", async (
     [FromQuery] Guid? lessonId,
-    [FromServices] ILogger<Program> logger) =>
+    [FromQuery] int? limit,
+    [FromServices] IAIChatService chatService,
+    [FromServices] ILogger<Program> logger,
+    ClaimsPrincipal user) =>
 {
-    logger.LogWarning("[AI_CHAT] AI Chat endpoints not yet implemented - requires SignalR (Phase 4)");
-    return Results.Problem(
-        detail: "AI Chat feature is planned for Phase 4. Currently requires SignalR integration for real-time streaming.",
-        statusCode: 501,
-        title: "Not Implemented");
+    try
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+
+        logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}", userId, lessonId);
+        var sessions = await chatService.GetSessionsAsync(userId, lessonId, limit ?? 50);
+
+        return Results.Ok(sessions);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_CHAT] Error getting sessions for user");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 })
 .RequireAuthorization()
 .WithName("GetChatSessions")
 .WithTags("AI Chat")
-.Produces<IEnumerable<CreateAISessionDto>>(200)
+.Produces<IEnumerable<AISessionSummaryDto>>(200)
 .Produces(401)
-.Produces(501);
+.Produces(500);
 
 // ========================================
 // VIDEO BOOKMARKS ENDPOINTS (4)

@@ -389,8 +389,18 @@ public class AdminFilterDto
     public int PageSize { get; set; } = 50;
 }
 
+// Report Generation Request DTO (v2.1.0-dev)
+public class GenerateReportRequest
+{
+    [Required(ErrorMessage = "Report type is required")]
+    public string Type { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Start date is required")]
+    public DateTime StartDate { get; set; }
 
+    [Required(ErrorMessage = "End date is required")]
+    public DateTime EndDate { get; set; }
+}
 
 
 

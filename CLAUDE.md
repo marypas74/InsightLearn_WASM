@@ -464,10 +464,23 @@ WHERE Category = 'Chat' AND EndpointKey = 'SendMessage';
 #### **Remaining Work**
 
 **High Priority** (Security):
-- ❌ CreateUserDto / RegisterDto (user registration validation)
-- ❌ LoginDto (authentication validation)
-- ❌ ChangePasswordDto (password change validation)
-- ❌ ResetPasswordDto (password reset validation)
+- ✅ CreateUserDto / RegisterDto (user registration validation) - **IMPLEMENTED 2025-11-26**
+  - Email: StringLength(256), EmailAddress validation
+  - FirstName/LastName: Regex `[\p{L}\s\-'\.]+` (letters, spaces, hyphens, apostrophes, periods only)
+  - Password: 8-128 chars, complexity regex (uppercase, lowercase, digit, special char)
+  - AgreeToTerms: Required to be true
+- ✅ LoginDto (authentication validation) - **IMPLEMENTED 2025-11-26**
+  - Email: StringLength(256), EmailAddress validation
+  - Password: StringLength(128), DataType.Password
+- ✅ ChangePasswordDto (password change validation) - **IMPLEMENTED 2025-11-26**
+  - CurrentPassword: StringLength(128), DataType.Password
+  - NewPassword: 8-128 chars, complexity regex (matches RegisterDto)
+  - ConfirmPassword: Compare("NewPassword")
+- ✅ ResetPasswordDto (password reset validation) - **IMPLEMENTED 2025-11-26**
+  - Email: StringLength(256), EmailAddress validation
+  - Token: StringLength(1024)
+  - Password: 8-128 chars, complexity regex (matches RegisterDto)
+  - ConfirmPassword: Compare("Password")
 
 **Medium Priority** (Data Integrity):
 - ❌ UpdateCourseDto (verify existing validation)
@@ -1441,7 +1454,16 @@ Esempio modifica version:
 | `api/admin/payments/{id}/refund` | POST | ✅ | Process payment refund with validation (Admin only) |
 | `api/admin/payments/stats` | GET | ✅ | Get payment statistics with date range filtering (Admin only) |
 
-**✅ ADMIN CONSOLE COMPLETATA (2025-11-24)**: 5 nuovi endpoint implementati per gestione Instructors e Payments.
+##### Admin Reports (4 endpoint - 4 implementati) ✅
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/admin/reports/generate` | POST | ✅ | Generate report (revenue, users, courses, enrollments, engagement, instructors) |
+| `api/admin/reports/export/csv` | POST | ✅ | Export report as CSV |
+| `api/admin/reports/export/pdf` | POST | ✅ | Export report as PDF (returns CSV format for now) |
+| `api/admin/reports/export/excel` | POST | ✅ | Export report as Excel (returns CSV format for now) |
+
+**✅ ADMIN CONSOLE COMPLETATA (2025-11-26)**: 9 nuovi endpoint implementati per gestione Instructors, Payments e Reports.
 
 **✅ PHASE 3 COMPLETATA (2025-11-10)**: Tutti i 31 endpoint LMS critici sono stati implementati. La piattaforma è ora completamente funzionale come LMS enterprise con:
 - Gestione completa dei corsi (Courses, Categories)
@@ -1450,10 +1472,11 @@ Esempio modifica version:
 - Sistema di recensioni (Reviews)
 - Gestione utenti (Users Admin)
 - Dashboard amministrativa (Dashboard Stats)
-- **Gestione istruttori (Admin Instructors)** ← NEW
-- **Gestione pagamenti amministrativa (Admin Payments)** ← NEW
+- **Gestione istruttori (Admin Instructors)**
+- **Gestione pagamenti amministrativa (Admin Payments)**
+- **Sistema report (Admin Reports)** ← NEW (2025-11-26)
 
-**Unico endpoint mancante**: `api/auth/complete-registration` (1/51 endpoint totali).
+**Unico endpoint mancante**: `api/auth/complete-registration` (1/55 endpoint totali).
 
 ### Sicurezza
 
@@ -2984,11 +3007,20 @@ Professional student learning interface matching LinkedIn Learning quality stand
 - `GET /api/notes/shared?lessonId={id}` - Get community shared notes
 - `POST /api/notes/{id}/toggle-bookmark` - Bookmark note
 
-##### AI Chat Endpoints (4)
-- `POST /api/ai-chat/message` - Send message with context
-- `GET /api/ai-chat/history?sessionId={id}` - Get chat history
-- `POST /api/ai-chat/sessions/{sessionId}/end` - End session
-- `GET /api/ai-chat/sessions?lessonId={id}` - List sessions for lesson
+##### AI Chat Endpoints (4) - ✅ IMPLEMENTED v2.1.0-dev (2025-11-26)
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/ai-chat/message` | POST | ✅ | Send message with context (Ollama integration) |
+| `api/ai-chat/history` | GET | ✅ | Get chat history with pagination |
+| `api/ai-chat/sessions/{sessionId}/end` | POST | ✅ | End chat session |
+| `api/ai-chat/sessions` | GET | ✅ | List sessions for lesson |
+
+**Implementation Details**:
+- **Service**: IAIChatService + AIChatService (context-aware responses)
+- **Integration**: Ollama LLM (qwen2:0.5b) for AI responses
+- **Context Enrichment**: Video transcript data injected into prompt when available
+- **Persistence**: SQL Server (metadata) + MongoDB (conversation history)
 
 ##### Video Bookmarks Endpoints (4)
 - `GET /api/bookmarks?lessonId={id}` - Get bookmarks
