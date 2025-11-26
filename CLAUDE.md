@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 🎓 Student Learning Space v2.1.0-dev (Phase 1,2,4 COMPLETE - Phase 3 API endpoints pending)
+**Latest Release**: 🎛️ Admin Console v2.1.0-dev COMPLETE (2025-11-26) - 20+ admin pages with CreateCourse wizard & EditCourse editor
 
 ✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.1.0-dev`.
 
@@ -99,13 +99,63 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [AITakeawaysPanel.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/AITakeawaysPanel.razor) - AI key concepts con feedback
 - [VideoProgressIndicator.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/VideoProgressIndicator.razor) - Progress bar con bookmarks
 
-**Admin Console Components** (v2.1.0 - ✅ COMPLETE - 2025-11-24):
+**Admin Console Components** (v2.1.0 - ✅ COMPLETE - 2025-11-26):
+
+*Course Management*:
+- [CreateCourse.razor](src/InsightLearn.WebAssembly/Pages/Admin/CreateCourse.razor) - **5-step wizard** (1468 lines): Basic Info → Pricing → Media → Curriculum → Outcomes
+  - Section/Lesson curriculum builder with drag-and-drop
+  - Price toggle (Free/Paid) with currency selection
+  - Tags input with add/remove functionality
+  - Video/Thumbnail upload placeholders
+- [EditCourse.razor](src/InsightLearn.WebAssembly/Pages/Admin/EditCourse.razor) - **Tab-based editor** (779 lines): Basic Info, Pricing, Media, Curriculum, Settings
+  - Course loading by GUID route parameter
+  - Delete confirmation modal
+  - Revenue statistics display
+  - Publish/Unpublish toggle
+- [CourseManagement.razor](src/InsightLearn.WebAssembly/Pages/Admin/CourseManagement.razor) - Course listing with KPI cards, search, status filtering
+
+*User & Instructor Management*:
 - [Instructors.razor](src/InsightLearn.WebAssembly/Pages/Admin/Instructors.razor) - Instructor management with KPI cards, pagination, search, status filtering
+- [CreateUser.razor](src/InsightLearn.WebAssembly/Pages/Admin/CreateUser.razor) - User creation form
+- [EditUser.razor](src/InsightLearn.WebAssembly/Pages/Admin/EditUser.razor) - User editing form
+- [UserLockoutManagement.razor](src/InsightLearn.WebAssembly/Pages/Admin/UserLockoutManagement.razor) - Locked users management
+
+*Categories*:
+- [CategoryManagement.razor](src/InsightLearn.WebAssembly/Pages/Admin/CategoryManagement.razor) - Category listing and management
+- [CreateCategory.razor](src/InsightLearn.WebAssembly/Pages/Admin/CreateCategory.razor) - Category creation form
+- [EditCategory.razor](src/InsightLearn.WebAssembly/Pages/Admin/EditCategory.razor) - Category editing form
+
+*Analytics & Reports*:
+- [Dashboard.razor](src/InsightLearn.WebAssembly/Pages/Admin/Dashboard.razor) - Main dashboard with KPIs
+- [Analytics.razor](src/InsightLearn.WebAssembly/Pages/Admin/Analytics.razor) - Analytics dashboard
+- [ChatbotAnalytics.razor](src/InsightLearn.WebAssembly/Pages/Admin/ChatbotAnalytics.razor) - Chatbot usage analytics
+- [Reports.razor](src/InsightLearn.WebAssembly/Pages/Admin/Reports.razor) - Report generation
+- [AccessLogs.razor](src/InsightLearn.WebAssembly/Pages/Admin/AccessLogs.razor) - Access logs viewer
+
+*Payments*:
 - [Payments.razor](src/InsightLearn.WebAssembly/Pages/Admin/Payments.razor) - Payment management with refund processing, transaction stats, revenue metrics
 
+*System*:
+- [Settings.razor](src/InsightLearn.WebAssembly/Pages/Admin/Settings.razor) - System settings
+- [SystemHealth.razor](src/InsightLearn.WebAssembly/Pages/Admin/SystemHealth.razor) - System health monitoring
+- [SeoManagement.razor](src/InsightLearn.WebAssembly/Pages/Admin/SeoManagement.razor) - SEO settings management
+- [AuthDiagnostics.razor](src/InsightLearn.WebAssembly/Pages/Admin/AuthDiagnostics.razor) - Auth debugging tools
+
+**Admin Console Services**:
+- [CourseManagementService.cs](src/InsightLearn.WebAssembly/Services/Admin/CourseManagementService.cs) - Course CRUD operations
+- [ICourseManagementService.cs](src/InsightLearn.WebAssembly/Services/Admin/ICourseManagementService.cs) - Service interface
+- [AnalyticsClientService.cs](src/InsightLearn.WebAssembly/Services/Admin/AnalyticsClientService.cs) - Analytics data fetching
+- [IAnalyticsClientService.cs](src/InsightLearn.WebAssembly/Services/Admin/IAnalyticsClientService.cs) - Analytics service interface
+- [EnhancedDashboardService.cs](src/InsightLearn.WebAssembly/Services/Admin/EnhancedDashboardService.cs) - Dashboard KPIs
+
 **Admin Console Styles**:
+- [admin-courses.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-courses.css) - Course wizard steps, curriculum builder, form validation
+- [admin-analytics.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-analytics.css) - Analytics charts, KPI cards
 - [admin-instructors.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-instructors.css) - KPI cards, status badges (Active/Suspended/Pending), responsive table
 - [admin-payments.css](src/InsightLearn.WebAssembly/wwwroot/css/admin-payments.css) - Transaction table, refund modal, status badges (4 colors)
+
+**Admin Console Models**:
+- [AnalyticsModels.cs](src/InsightLearn.WebAssembly/Models/Admin/AnalyticsModels.cs) - Analytics DTOs and view models
 
 ### Authentication & Authorization
 
