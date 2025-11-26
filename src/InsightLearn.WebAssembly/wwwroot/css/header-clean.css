@@ -1009,6 +1009,163 @@ body {
     color: #c82333 !important;
 }
 
+/* ===================================
+   EXPANDED USER DROPDOWN MENU (v2.1.0)
+   Role-based admin/instructor/user menu
+   =================================== */
+
+.user-dropdown-expanded {
+    min-width: 280px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: var(--space-sm) 0;
+}
+
+/* Scrollbar styling for expanded menu */
+.user-dropdown-expanded::-webkit-scrollbar {
+    width: 6px;
+}
+
+.user-dropdown-expanded::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.user-dropdown-expanded::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+.user-dropdown-expanded::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Dropdown Section */
+.dropdown-section {
+    padding: var(--space-xs) 0;
+}
+
+.dropdown-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.dropdown-section-title i {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* Admin section title color */
+.dropdown-section-title .fa-shield-alt {
+    color: #6366f1; /* Indigo for admin */
+}
+
+/* Instructor section title color */
+.dropdown-section-title .fa-chalkboard {
+    color: #8b5cf6; /* Purple for instructor */
+}
+
+/* User section title color */
+.dropdown-section-title .fa-user-circle {
+    color: #0ea5e9; /* Sky blue for user */
+}
+
+/* Dropdown Item Styling */
+.user-dropdown-expanded .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-radius: 0;
+    margin: 0;
+}
+
+.user-dropdown-expanded .dropdown-item i {
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+}
+
+.user-dropdown-expanded .dropdown-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--primary);
+}
+
+.user-dropdown-expanded .dropdown-item:hover i {
+    color: var(--primary);
+}
+
+/* Admin item hover - indigo accent */
+.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover {
+    background-color: rgba(99, 102, 241, 0.08);
+}
+
+.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover,
+.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover i {
+    color: #6366f1;
+}
+
+/* Instructor item hover - purple accent */
+.dropdown-section:has(.fa-chalkboard) .dropdown-item:hover {
+    background-color: rgba(139, 92, 246, 0.08);
+}
+
+.dropdown-section:has(.fa-chalkboard) .dropdown-item:hover,
+.dropdown-section:has(.fa-chalkboard) .dropdown-item:hover i {
+    color: #8b5cf6;
+}
+
+/* Dropdown Divider */
+.user-dropdown-expanded .dropdown-divider {
+    margin: var(--space-xs) var(--space-md);
+    border: none;
+    border-top: 1px solid var(--border-light);
+}
+
+/* Responsive adjustments for expanded menu */
+@media (max-width: 768px) {
+    .user-dropdown-expanded {
+        min-width: 260px;
+        max-height: 70vh;
+        right: -10px;
+    }
+
+    .dropdown-section-title {
+        font-size: 10px;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    .user-dropdown-expanded .dropdown-item {
+        padding: var(--space-sm) var(--space-sm);
+        font-size: 13px;
+    }
+
+    .user-dropdown-expanded .dropdown-item i {
+        width: 18px;
+        font-size: 13px;
+    }
+}
+
 /* Auth Buttons */
 .auth-buttons {
     display: flex;

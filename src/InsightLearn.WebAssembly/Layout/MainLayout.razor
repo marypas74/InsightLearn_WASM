@@ -101,19 +101,121 @@
                             </button>
                             @if (isUserMenuOpen)
                             {
-                                <div class="user-dropdown show">
-                                    <a href="/dashboard" class="dropdown-item">
-                                        <i class="fas fa-tachometer-alt"></i>
-                                        Dashboard
-                                    </a>
-                                    <a href="/profile" class="dropdown-item">
-                                        <i class="fas fa-user"></i>
-                                        My Profile
-                                    </a>
-                                    <a href="/my-courses" class="dropdown-item">
-                                        <i class="fas fa-book"></i>
-                                        My Courses
-                                    </a>
+                                <div class="user-dropdown show user-dropdown-expanded">
+                                    @* === ADMIN SECTION === *@
+                                    <AuthorizeView Roles="Admin">
+                                        <Authorized Context="adminContext">
+                                            <div class="dropdown-section">
+                                                <span class="dropdown-section-title">
+                                                    <i class="fas fa-shield-alt"></i> Administration
+                                                </span>
+                                                <a href="/admin/dashboard" class="dropdown-item">
+                                                    <i class="fas fa-tachometer-alt"></i>
+                                                    Admin Dashboard
+                                                </a>
+                                                <a href="/admin/courses" class="dropdown-item">
+                                                    <i class="fas fa-graduation-cap"></i>
+                                                    Course Management
+                                                </a>
+                                                <a href="/admin/users" class="dropdown-item">
+                                                    <i class="fas fa-users-cog"></i>
+                                                    User Management
+                                                </a>
+                                                <a href="/admin/instructors" class="dropdown-item">
+                                                    <i class="fas fa-chalkboard-teacher"></i>
+                                                    Instructors
+                                                </a>
+                                                <a href="/admin/categories" class="dropdown-item">
+                                                    <i class="fas fa-folder-tree"></i>
+                                                    Categories
+                                                </a>
+                                                <a href="/admin/payments" class="dropdown-item">
+                                                    <i class="fas fa-credit-card"></i>
+                                                    Payments
+                                                </a>
+                                                <a href="/admin/reports" class="dropdown-item">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                    Reports
+                                                </a>
+                                                <a href="/admin/analytics" class="dropdown-item">
+                                                    <i class="fas fa-chart-line"></i>
+                                                    Analytics
+                                                </a>
+                                                <a href="/admin/access-logs" class="dropdown-item">
+                                                    <i class="fas fa-history"></i>
+                                                    Access Logs
+                                                </a>
+                                                <a href="/admin/system-health" class="dropdown-item">
+                                                    <i class="fas fa-heartbeat"></i>
+                                                    System Health
+                                                </a>
+                                                <a href="/admin/settings" class="dropdown-item">
+                                                    <i class="fas fa-cogs"></i>
+                                                    System Settings
+                                                </a>
+                                            </div>
+                                            <hr class="dropdown-divider" />
+                                        </Authorized>
+                                    </AuthorizeView>
+
+                                    @* === INSTRUCTOR SECTION === *@
+                                    <AuthorizeView Roles="Instructor,Admin">
+                                        <Authorized Context="instructorContext">
+                                            <div class="dropdown-section">
+                                                <span class="dropdown-section-title">
+                                                    <i class="fas fa-chalkboard"></i> Instructor
+                                                </span>
+                                                <a href="/instructor/dashboard" class="dropdown-item">
+                                                    <i class="fas fa-home"></i>
+                                                    Instructor Dashboard
+                                                </a>
+                                                <a href="/instructor/courses" class="dropdown-item">
+                                                    <i class="fas fa-book-open"></i>
+                                                    My Teaching Courses
+                                                </a>
+                                                <a href="/instructor/analytics" class="dropdown-item">
+                                                    <i class="fas fa-chart-pie"></i>
+                                                    Course Analytics
+                                                </a>
+                                                <a href="/instructor/earnings" class="dropdown-item">
+                                                    <i class="fas fa-wallet"></i>
+                                                    Earnings
+                                                </a>
+                                            </div>
+                                            <hr class="dropdown-divider" />
+                                        </Authorized>
+                                    </AuthorizeView>
+
+                                    @* === USER SECTION (All logged-in users) === *@
+                                    <div class="dropdown-section">
+                                        <span class="dropdown-section-title">
+                                            <i class="fas fa-user-circle"></i> My Account
+                                        </span>
+                                        <a href="/dashboard" class="dropdown-item">
+                                            <i class="fas fa-home"></i>
+                                            Student Dashboard
+                                        </a>
+                                        <a href="/profile" class="dropdown-item">
+                                            <i class="fas fa-user"></i>
+                                            My Profile
+                                        </a>
+                                        <a href="/my-courses" class="dropdown-item">
+                                            <i class="fas fa-book"></i>
+                                            My Courses
+                                        </a>
+                                        <a href="/certificates" class="dropdown-item">
+                                            <i class="fas fa-certificate"></i>
+                                            My Certificates
+                                        </a>
+                                        <a href="/notifications" class="dropdown-item">
+                                            <i class="fas fa-bell"></i>
+                                            Notifications
+                                        </a>
+                                        <a href="/settings" class="dropdown-item">
+                                            <i class="fas fa-cog"></i>
+                                            Account Settings
+                                        </a>
+                                    </div>
                                     <hr class="dropdown-divider" />
                                     <button @onclick="Logout" class="dropdown-item logout-btn">
                                         <i class="fas fa-sign-out-alt"></i>
