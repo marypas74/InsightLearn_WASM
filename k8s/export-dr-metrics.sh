@@ -31,9 +31,10 @@ cat > "$TEMP_METRICS" <<EOF
 EOF
 
 # Get last backup timestamp (use latest-backup.tar.gz symlink to get most recent)
+# Use -L flag to dereference symlinks and get actual file stats (not symlink size)
 if [[ -f /var/backups/k3s-cluster/latest-backup.tar.gz ]]; then
-    BACKUP_TIMESTAMP=$(stat -c %Y /var/backups/k3s-cluster/latest-backup.tar.gz 2>/dev/null || echo "0")
-    BACKUP_SIZE=$(stat -c %s /var/backups/k3s-cluster/latest-backup.tar.gz 2>/dev/null || echo "0")
+    BACKUP_TIMESTAMP=$(stat -L -c %Y /var/backups/k3s-cluster/latest-backup.tar.gz 2>/dev/null || echo "0")
+    BACKUP_SIZE=$(stat -L -c %s /var/backups/k3s-cluster/latest-backup.tar.gz 2>/dev/null || echo "0")
     echo "insightlearn_dr_backup_last_success_timestamp_seconds $BACKUP_TIMESTAMP" >> "$TEMP_METRICS"
 else
     echo "insightlearn_dr_backup_last_success_timestamp_seconds 0" >> "$TEMP_METRICS"
