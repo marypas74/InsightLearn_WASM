@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-zfs-alerts
+  namespace: insightlearn
+  labels:
+    app: prometheus
+data:
+  zfs-alerts.yml: |
+    groups:
+    - name: zfs-alerts
+      rules:
+      - alert: ZFSPoolDeviceError
+        expr: node_filesystem_device_error{fstype="zfs",mountpoint="/k3s-zfs"} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ZFS Pool k3spool has device errors"
+          description: "ZFS pool k3spool is reporting device errors. Check immediately!"
+          
+      - alert: ZFSPoolLowSpace
+        expr: (node_filesystem_avail_bytes{fstype="zfs",mountpoint="/k3s-zfs"} / node_filesystem_size_bytes{fstype="zfs",mountpoint="/k3s-zfs"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ZFS Pool k3spool low on space"
+          description: "ZFS pool k3spool has less than 20% free space"
+          
+      - alert: ZFSPoolNotMounted
+        expr: absent(node_filesystem_avail_bytes{fstype="zfs",mountpoint="/k3s-zfs"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ZFS Pool k3spool not mounted"
+          description: "ZFS pool k3spool mount /k3s-zfs is not available!"
+          
+      - alert: RootDiskPressure
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Root disk above 85% usage"
+          description: "Root filesystem is {{ $value | printf \"%.1f\" }}% full"

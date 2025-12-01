@@ -3,16 +3,22 @@
 # InsightLearn HA Watchdog - Auto-Healing System
 #
 # Purpose: Continuous monitoring and automatic recovery
+# - FIRST: Imports ZFS pool if not mounted (CRITICAL for K3s storage)
 # - Monitors cluster health every 2 minutes
 # - Automatically restores from backup if cluster is unhealthy
 # - Verifies restoration success
-# - Repeats until cluster is fully operational
+# - Fixes CoreDNS issues after restart
 #
 # Author: InsightLearn DevOps Team
-# Version: 2.0.0
+# Version: 2.1.0 (Updated 2025-12-01)
+# Changes: Added ZFS auto-import, CoreDNS recovery, improved networking checks
 ################################################################################
 
 set -euo pipefail
+
+# Set PATH and KUBECONFIG for kubectl
+export PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 # Configuration
 LOG_FILE="/var/log/insightlearn-watchdog.log"
@@ -22,6 +28,13 @@ RESTORE_SCRIPT="/home/mpasqui/insightlearn_WASM/InsightLearn_WASM/k8s/restore-cl
 MIN_DEPLOYMENTS=5
 MIN_RUNNING_PODS=8
 NAMESPACE="insightlearn"
+
+# ZFS Configuration
+ZFS_POOL="k3spool"
+ZFS_POOL_IMAGE="/home/zfs-k3s-pool.img"
+ZFS_MOUNT="/k3s-zfs"
+ZPOOL_BIN="/usr/local/sbin/zpool"
+ZFS_BIN="/usr/local/sbin/zfs"
 
 # Colors for logging
 RED='\033[0;31m'
@@ -47,6 +60,101 @@ info() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO:${NC} $*" | tee -a "$LOG_FILE"
 }
 
+# NEW: Function to ensure ZFS pool is imported (CRITICAL - must run FIRST)
+ensure_zfs_pool() {
+    info "==========================================="
+    info "Step 0: Checking ZFS Pool Status"
+    info "==========================================="
+
+    # Check if ZFS binaries exist
+    if [[ ! -x "$ZPOOL_BIN" ]]; then
+        error "ZFS binaries not found at $ZPOOL_BIN"
+        return 1
+    fi
+
+    # Check if pool is already imported
+    if "$ZPOOL_BIN" status "$ZFS_POOL" &>/dev/null; then
+        log "✓ ZFS pool '$ZFS_POOL' is already imported and online"
+
+        # Verify mount
+        if mountpoint -q "$ZFS_MOUNT"; then
+            log "✓ ZFS mount '$ZFS_MOUNT' is active"
+            return 0
+        else
+            warn "ZFS pool imported but mount point not active, forcing mount..."
+            "$ZFS_BIN" mount -a 2>/dev/null || true
+            sleep 2
+            if mountpoint -q "$ZFS_MOUNT"; then
+                log "✓ ZFS mount restored successfully"
+                return 0
+            fi
+        fi
+    fi
+
+    # Pool not imported - try to import it
+    warn "ZFS pool '$ZFS_POOL' not imported, attempting import..."
+
+    # Check if pool image exists
+    if [[ ! -f "$ZFS_POOL_IMAGE" ]]; then
+        error "ZFS pool image not found: $ZFS_POOL_IMAGE"
+        error "This is a CRITICAL failure - K3s storage is unavailable!"
+        return 1
+    fi
+
+    # Try to import the pool
+    log "Importing ZFS pool from $ZFS_POOL_IMAGE..."
+    if "$ZPOOL_BIN" import -d /home "$ZFS_POOL" 2>&1 | tee -a "$LOG_FILE"; then
+        log "✓ ZFS pool '$ZFS_POOL' imported successfully"
+
+        # Wait for mount
+        sleep 3
+
+        # Verify mount
+        if mountpoint -q "$ZFS_MOUNT"; then
+            log "✓ ZFS mount '$ZFS_MOUNT' is active"
+        else
+            warn "Mount point not immediately available, mounting all ZFS datasets..."
+            "$ZFS_BIN" mount -a 2>/dev/null || true
+            sleep 2
+        fi
+
+        # Show pool status
+        "$ZPOOL_BIN" status "$ZFS_POOL" | head -10 | tee -a "$LOG_FILE"
+        return 0
+    else
+        error "Failed to import ZFS pool '$ZFS_POOL'"
+        return 1
+    fi
+}
+
+# NEW: Function to fix CoreDNS after restart
+fix_coredns() {
+    info "Checking CoreDNS status..."
+
+    local coredns_ready
+    coredns_ready=$(kubectl get pods -n kube-system -l k8s-app=kube-dns --no-headers 2>/dev/null | awk '{print $2}' | head -1)
+
+    if [[ "$coredns_ready" != "1/1" ]]; then
+        warn "CoreDNS not ready ($coredns_ready), attempting recovery..."
+
+        # Delete the CoreDNS pod to force recreation
+        kubectl delete pods -n kube-system -l k8s-app=kube-dns --wait=false 2>/dev/null || true
+
+        # Wait for new pod
+        sleep 20
+
+        # Check again
+        coredns_ready=$(kubectl get pods -n kube-system -l k8s-app=kube-dns --no-headers 2>/dev/null | awk '{print $2}' | head -1)
+        if [[ "$coredns_ready" == "1/1" ]]; then
+            log "✓ CoreDNS recovered successfully"
+        else
+            warn "CoreDNS still not ready: $coredns_ready"
+        fi
+    else
+        log "✓ CoreDNS is running and ready"
+    fi
+}
+
 # Function to check cluster health
 check_cluster_health() {
     local health_status=0
@@ -55,10 +163,24 @@ check_cluster_health() {
     info "HA Watchdog - Health Check Started"
     info "==========================================="
 
+    # 0. FIRST: Ensure ZFS pool is imported (CRITICAL)
+    if ! ensure_zfs_pool; then
+        error "ZFS pool check failed - this is CRITICAL!"
+        health_status=1
+    fi
+
     # 1. Check if K3s is running
     if ! systemctl is-active --quiet k3s; then
         error "K3s service is not running!"
-        health_status=1
+        warn "Attempting to start K3s..."
+        systemctl start k3s 2>/dev/null || true
+        sleep 15
+
+        if systemctl is-active --quiet k3s; then
+            log "✓ K3s service started successfully"
+        else
+            health_status=1
+        fi
     else
         log "✓ K3s service is running"
     fi
@@ -69,36 +191,58 @@ check_cluster_health() {
         health_status=1
     else
         log "✓ kubectl connectivity OK"
+
+        # 2.1 Check and fix CoreDNS if needed
+        fix_coredns
     fi
 
     # 3. Check number of deployments
-    DEPLOYMENT_COUNT=$(kubectl get deployments --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0")
-    if [[ $DEPLOYMENT_COUNT -lt $MIN_DEPLOYMENTS ]]; then
-        warn "Insufficient deployments: $DEPLOYMENT_COUNT (expected: >=$MIN_DEPLOYMENTS)"
+    local deployment_count
+    deployment_count=$(kubectl get deployments --all-namespaces --no-headers 2>/dev/null | wc -l)
+    if [[ ${deployment_count:-0} -lt $MIN_DEPLOYMENTS ]]; then
+        warn "Insufficient deployments: ${deployment_count:-0} (expected: >=$MIN_DEPLOYMENTS)"
         health_status=1
     else
-        log "✓ Deployment count OK: $DEPLOYMENT_COUNT"
+        log "✓ Deployment count OK: $deployment_count"
     fi
 
     # 4. Check running pods
-    RUNNING_PODS=$(kubectl get pods -n "$NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l || echo "0")
-    if [[ $RUNNING_PODS -lt $MIN_RUNNING_PODS ]]; then
-        warn "Insufficient running pods: $RUNNING_PODS (expected: >=$MIN_RUNNING_PODS)"
+    local running_pods
+    running_pods=$(kubectl get pods -n "$NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
+    if [[ ${running_pods:-0} -lt $MIN_RUNNING_PODS ]]; then
+        warn "Insufficient running pods: ${running_pods:-0} (expected: >=$MIN_RUNNING_PODS)"
         health_status=1
     else
-        log "✓ Running pods OK: $RUNNING_PODS"
+        log "✓ Running pods OK: $running_pods"
     fi
 
-    # 5. Check critical services
-    CRITICAL_SERVICES=("insightlearn-api" "mongodb" "redis" "sqlserver")
+    # 5. Check ALL critical services
+    CRITICAL_SERVICES=(
+        "elasticsearch"
+        "ollama"
+        "prometheus"
+        "insightlearn-api"
+        "sqlserver"
+        "insightlearn-wasm-blazor-webassembly"
+        "redis"
+        "mongodb"
+        "grafana"
+    )
+
+    local missing_services=0
     for service in "${CRITICAL_SERVICES[@]}"; do
-        if kubectl get pod -n "$NAMESPACE" -l app="$service" --field-selector=status.phase=Running --no-headers 2>/dev/null | grep -q .; then
+        if kubectl get pod --all-namespaces --no-headers 2>/dev/null | grep -q "$service.*Running"; then
             log "✓ Service '$service' is running"
         else
             warn "Service '$service' is NOT running"
             health_status=1
+            ((missing_services++)) || true
         fi
     done
+
+    if [[ $missing_services -gt 0 ]]; then
+        warn "$missing_services critical services are missing"
+    fi
 
     return $health_status
 }
@@ -108,6 +252,12 @@ perform_auto_restore() {
     info "==========================================="
     info "HA Watchdog - Auto-Restore Starting"
     info "==========================================="
+
+    # FIRST: Ensure ZFS is available before restore
+    if ! ensure_zfs_pool; then
+        error "Cannot proceed with restore - ZFS pool unavailable!"
+        return 1
+    fi
 
     # Check if backup exists
     if [[ ! -f "$BACKUP_DIR/$BACKUP_FILE" ]]; then
@@ -130,6 +280,9 @@ perform_auto_restore() {
         # Wait for pods to stabilize
         log "Waiting 60 seconds for pods to stabilize..."
         sleep 60
+
+        # Fix CoreDNS after restore
+        fix_coredns
 
         return 0
     else
@@ -165,7 +318,7 @@ verify_restore_success() {
 # Main watchdog loop
 main() {
     log "================================================"
-    log "InsightLearn HA Watchdog Starting - $(date)"
+    log "InsightLearn HA Watchdog v2.1.0 Starting - $(date)"
     log "================================================"
 
     # Check if running as root
