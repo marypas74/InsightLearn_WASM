@@ -14,7 +14,7 @@
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
 
     <!-- Security patches for transitive vulnerabilities (CVE-2024-43483) -->
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
   </ItemGroup>
 
