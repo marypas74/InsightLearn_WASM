@@ -1,0 +1,410 @@
+@page "/order-confirmation/{OrderId}"
+@using InsightLearn.WebAssembly.Services
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+
+<PageTitle>Order Confirmation - InsightLearn</PageTitle>
+
+<div class="order-confirmation-page">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Success Card -->
+                <div class="confirmation-card">
+                    <!-- Success Icon -->
+                    <div class="confirmation-icon">
+                        <div class="success-checkmark">
+                            <div class="check-icon">
+                                <span class="icon-line line-tip"></span>
+                                <span class="icon-line line-long"></span>
+                                <div class="icon-circle"></div>
+                                <div class="icon-fix"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Message -->
+                    <h1 class="confirmation-title">Payment Successful!</h1>
+                    <p class="confirmation-subtitle">
+                        Thank you for your purchase. Your order has been confirmed.
+                    </p>
+
+                    <!-- Order Details -->
+                    <div class="order-details">
+                        <div class="order-detail-row">
+                            <span class="detail-label">Order ID:</span>
+                            <span class="detail-value">@OrderId</span>
+                        </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">@DateTime.Now.ToString("MMMM dd, yyyy - HH:mm")</span>
+                        </div>
+                        <div class="order-detail-row">
+                            <span class="detail-label">Payment Method:</span>
+                            <span class="detail-value">
+                                <i class="fab fa-paypal me-2"></i>
+                                PayPal
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- What's Next -->
+                    <div class="next-steps">
+                        <h3 class="next-steps-title">What's next?</h3>
+                        <div class="steps-list">
+                            <div class="step-item">
+                                <div class="step-icon">
+                                    <i class="bi bi-envelope-check"></i>
+                                </div>
+                                <div class="step-content">
+                                    <h4>Check your email</h4>
+                                    <p>We've sent a confirmation email with your order details and receipt.</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-icon">
+                                    <i class="bi bi-mortarboard"></i>
+                                </div>
+                                <div class="step-content">
+                                    <h4>Start learning</h4>
+                                    <p>Access your courses immediately from your dashboard.</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-icon">
+                                    <i class="bi bi-trophy"></i>
+                                </div>
+                                <div class="step-content">
+                                    <h4>Earn your certificate</h4>
+                                    <p>Complete the courses to receive your certificates.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="confirmation-actions">
+                        <a href="/my-courses" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-circle me-2"></i>
+                            Start Learning
+                        </a>
+                        <a href="/courses" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-search me-2"></i>
+                            Browse More Courses
+                        </a>
+                    </div>
+
+                    <!-- Support Link -->
+                    <div class="confirmation-footer">
+                        <p class="text-muted mb-0">
+                            Need help? <a href="/support" class="text-decoration-none">Contact Support</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Order Confirmation Page Styles */
+    .order-confirmation-page {
+        min-height: calc(100vh - 200px);
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    }
+
+    .confirmation-card {
+        background: white;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    /* Success Checkmark Animation */
+    .confirmation-icon {
+        margin-bottom: 2rem;
+    }
+
+    .success-checkmark {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+    }
+
+    .success-checkmark .check-icon {
+        width: 120px;
+        height: 120px;
+        position: relative;
+        border-radius: 50%;
+        box-sizing: content-box;
+        border: 4px solid #16a34a;
+        animation: scaleCheckmark 0.3s ease-in-out 0.9s both;
+    }
+
+    .success-checkmark .check-icon::before {
+        top: 3px;
+        left: -2px;
+        width: 30px;
+        transform-origin: 100% 50%;
+        border-radius: 100px 0 0 100px;
+    }
+
+    .success-checkmark .check-icon::after {
+        top: 0;
+        left: 30px;
+        width: 60px;
+        transform-origin: 0 50%;
+        border-radius: 0 100px 100px 0;
+        animation: rotateCircle 4.25s ease-in;
+    }
+
+    .success-checkmark .icon-line {
+        height: 5px;
+        background-color: #16a34a;
+        display: block;
+        border-radius: 2px;
+        position: absolute;
+        z-index: 10;
+    }
+
+    .success-checkmark .icon-line.line-tip {
+        top: 58px;
+        left: 22px;
+        width: 32px;
+        transform: rotate(45deg);
+        animation: iconLineTip 0.75s;
+    }
+
+    .success-checkmark .icon-line.line-long {
+        top: 52px;
+        right: 14px;
+        width: 60px;
+        transform: rotate(-45deg);
+        animation: iconLineLong 0.75s;
+    }
+
+    .success-checkmark .icon-circle {
+        top: -4px;
+        left: -4px;
+        z-index: 10;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        position: absolute;
+        box-sizing: content-box;
+        border: 4px solid rgba(22, 163, 74, 0.2);
+    }
+
+    .success-checkmark .icon-fix {
+        top: 8px;
+        width: 5px;
+        left: 26px;
+        z-index: 1;
+        height: 85px;
+        position: absolute;
+        transform: rotate(-45deg);
+        background-color: white;
+    }
+
+    @@keyframes iconLineTip {
+        0% { width: 0; left: 1px; top: 19px; }
+        54% { width: 0; left: 1px; top: 19px; }
+        70% { width: 50px; left: -8px; top: 37px; }
+        84% { width: 17px; left: 21px; top: 48px; }
+        100% { width: 32px; left: 22px; top: 58px; }
+    }
+
+    @@keyframes iconLineLong {
+        0% { width: 0; right: 46px; top: 54px; }
+        65% { width: 0; right: 46px; top: 54px; }
+        84% { width: 55px; right: 0; top: 35px; }
+        100% { width: 60px; right: 14px; top: 52px; }
+    }
+
+    @@keyframes scaleCheckmark {
+        0% { transform: scale(0); }
+        100% { transform: scale(1); }
+    }
+
+    /* Typography */
+    .confirmation-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.75rem;
+    }
+
+    .confirmation-subtitle {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+
+    /* Order Details */
+    .order-details {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2.5rem;
+        text-align: left;
+    }
+
+    .order-detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .order-detail-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #6b7280;
+    }
+
+    .detail-value {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    /* Next Steps */
+    .next-steps {
+        margin-bottom: 2.5rem;
+        text-align: left;
+    }
+
+    .next-steps-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .steps-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .step-item {
+        display: flex;
+        gap: 1rem;
+        align-items: start;
+        padding: 1.25rem;
+        background: #f9fafb;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .step-item:hover {
+        background: #f3f4f6;
+        transform: translateX(4px);
+    }
+
+    .step-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .step-content h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .step-content p {
+        font-size: 0.9375rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* Action Buttons */
+    .confirmation-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .confirmation-actions .btn {
+        min-width: 200px;
+    }
+
+    /* Footer */
+    .confirmation-footer {
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    /* Responsive */
+    @@media (max-width: 767.98px) {
+        .confirmation-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .confirmation-title {
+            font-size: 1.75rem;
+        }
+
+        .confirmation-subtitle {
+            font-size: 1rem;
+        }
+
+        .success-checkmark,
+        .success-checkmark .check-icon,
+        .success-checkmark .icon-circle {
+            width: 80px;
+            height: 80px;
+        }
+
+        .success-checkmark .icon-line.line-tip {
+            top: 40px;
+            left: 15px;
+            width: 22px;
+        }
+
+        .success-checkmark .icon-line.line-long {
+            top: 35px;
+            right: 10px;
+            width: 40px;
+        }
+
+        .confirmation-actions {
+            flex-direction: column;
+        }
+
+        .confirmation-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? OrderId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(OrderId))
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+}

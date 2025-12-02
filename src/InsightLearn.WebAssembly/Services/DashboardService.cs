@@ -17,16 +17,16 @@ public class DashboardService : IDashboardService
 
     public async Task<ApiResponse<DashboardData>> GetStudentDashboardAsync()
     {
-        return await _apiClient.GetAsync<DashboardData>("dashboard/student");
+        return await _apiClient.GetAsync<DashboardData>("api/dashboard/student");
     }
 
     public async Task<ApiResponse<DashboardData>> GetInstructorDashboardAsync()
     {
-        return await _apiClient.GetAsync<DashboardData>("dashboard/instructor");
+        return await _apiClient.GetAsync<DashboardData>("api/dashboard/instructor");
     }
 
     public async Task<ApiResponse<DashboardData>> GetAdminDashboardAsync()
     {
-        return await _apiClient.GetAsync<DashboardData>("dashboard/admin");
+        return await _apiClient.GetAsync<DashboardData>("api/dashboard/admin");
     }
 }

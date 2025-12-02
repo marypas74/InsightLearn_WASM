@@ -1,0 +1,339 @@
+@page "/notifications"
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Notifications - InsightLearn</PageTitle>
+
+<div class="notifications-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-bell"></i> Notifications</h1>
+            <p class="subtitle">Stay updated with your learning activities</p>
+        </div>
+        <div class="header-actions">
+            @if (notifications.Any(n => !n.IsRead))
+            {
+                <button class="btn btn-outline btn-sm" @onclick="MarkAllAsRead">
+                    <i class="fas fa-check-double"></i> Mark All Read
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading notifications...</p>
+        </div>
+    }
+    else if (notifications.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-bell-slash"></i>
+            </div>
+            <h2>No Notifications</h2>
+            <p>You're all caught up! Check back later for updates.</p>
+            <a href="/courses" class="btn btn-primary">
+                <i class="fas fa-book-open"></i> Browse Courses
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="notifications-list">
+            @foreach (var notification in notifications)
+            {
+                <div class="notification-item @(notification.IsRead ? "" : "unread")" @onclick="() => HandleNotificationClick(notification)">
+                    <div class="notification-icon @notification.Type">
+                        <i class="@GetNotificationIcon(notification.Type)"></i>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-message">@notification.Message</p>
+                        <span class="notification-time">@GetTimeAgo(notification.CreatedAt)</span>
+                    </div>
+                    @if (!notification.IsRead)
+                    {
+                        <div class="unread-indicator"></div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .notifications-page {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--primary);
+    }
+
+    .subtitle {
+        color: var(--gray-600);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        gap: 1rem;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-icon i {
+        font-size: 2.5rem;
+        color: #6366f1;
+    }
+
+    .empty-state h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+    }
+
+    .notifications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .notification-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.2s;
+        position: relative;
+    }
+
+    .notification-item:hover {
+        background: var(--gray-50);
+    }
+
+    .notification-item.unread {
+        background: #f0f9ff;
+    }
+
+    .notification-item.unread:hover {
+        background: #e0f2fe;
+    }
+
+    .notification-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .notification-icon.course { background: #dbeafe; color: #2563eb; }
+    .notification-icon.enrollment { background: #d1fae5; color: #059669; }
+    .notification-icon.achievement { background: #fef3c7; color: #d97706; }
+    .notification-icon.system { background: #e0e7ff; color: #6366f1; }
+    .notification-icon.reminder { background: #fce7f3; color: #db2777; }
+
+    .notification-content {
+        flex: 1;
+    }
+
+    .notification-message {
+        font-size: 0.95rem;
+        color: var(--gray-800);
+        margin: 0 0 0.25rem 0;
+        line-height: 1.4;
+    }
+
+    .notification-time {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .unread-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--primary);
+        flex-shrink: 0;
+        margin-top: 6px;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    @@media (max-width: 768px) {
+        .notifications-page {
+            padding: 1rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private List<NotificationItem> notifications = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        isLoading = true;
+        try
+        {
+            // TODO: Replace with actual API call
+            await Task.Delay(500);
+
+            // Mock data for demonstration
+            notifications = new List<NotificationItem>
+            {
+                new() { Id = Guid.NewGuid(), Type = "course", Message = "New lesson added to 'Web Development Bootcamp'", CreatedAt = DateTime.Now.AddHours(-2), IsRead = false },
+                new() { Id = Guid.NewGuid(), Type = "achievement", Message = "Congratulations! You've completed 50% of your course", CreatedAt = DateTime.Now.AddDays(-1), IsRead = false },
+                new() { Id = Guid.NewGuid(), Type = "enrollment", Message = "Welcome to 'React Masterclass'! Start learning now.", CreatedAt = DateTime.Now.AddDays(-2), IsRead = true },
+                new() { Id = Guid.NewGuid(), Type = "reminder", Message = "Continue your learning streak - you're 3 days in!", CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
+            };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        foreach (var notification in notifications)
+        {
+            notification.IsRead = true;
+        }
+        // TODO: Call API to mark all as read
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private async Task HandleNotificationClick(NotificationItem notification)
+    {
+        if (!notification.IsRead)
+        {
+            notification.IsRead = true;
+            // TODO: Call API to mark as read
+            StateHasChanged();
+        }
+
+        // Navigate based on notification type/link
+        if (!string.IsNullOrEmpty(notification.Link))
+        {
+            Navigation.NavigateTo(notification.Link);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private string GetNotificationIcon(string type) => type switch
+    {
+        "course" => "fas fa-book-open",
+        "enrollment" => "fas fa-user-plus",
+        "achievement" => "fas fa-trophy",
+        "system" => "fas fa-info-circle",
+        "reminder" => "fas fa-clock",
+        _ => "fas fa-bell"
+    };
+
+    private string GetTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.Now - dateTime;
+
+        if (timeSpan.TotalMinutes < 1) return "Just now";
+        if (timeSpan.TotalMinutes < 60) return $"{(int)timeSpan.TotalMinutes} minutes ago";
+        if (timeSpan.TotalHours < 24) return $"{(int)timeSpan.TotalHours} hours ago";
+        if (timeSpan.TotalDays < 7) return $"{(int)timeSpan.TotalDays} days ago";
+
+        return dateTime.ToString("MMM dd, yyyy");
+    }
+
+    private class NotificationItem
+    {
+        public Guid Id { get; set; }
+        public string Type { get; set; } = "";
+        public string Message { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public bool IsRead { get; set; }
+        public string? Link { get; set; }
+    }
+}

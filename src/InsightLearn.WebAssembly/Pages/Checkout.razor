@@ -1,0 +1,495 @@
+@page "/checkout"
+@using InsightLearn.WebAssembly.Services
+@using InsightLearn.WebAssembly.Models
+@using Microsoft.JSInterop
+@inject ICartService CartService
+@inject IPaymentService PaymentService
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Secure Checkout - InsightLearn</PageTitle>
+
+<div class="checkout-page">
+    <div class="container py-5">
+        @if (isLoading)
+        {
+            <!-- Loading State -->
+            <div class="checkout-loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading checkout...</span>
+                </div>
+                <p class="mt-3 text-muted">Preparing your secure checkout...</p>
+            </div>
+        }
+        else if (cart == null || cart.ItemCount == 0)
+        {
+            <!-- Empty Cart State -->
+            <div class="empty-checkout-state">
+                <div class="empty-checkout-icon">
+                    <i class="bi bi-cart-x"></i>
+                </div>
+                <h2 class="empty-checkout-title">Your cart is empty</h2>
+                <p class="empty-checkout-text">Add courses to your cart to proceed to checkout.</p>
+                <a href="/courses" class="btn btn-primary btn-lg mt-3">
+                    <i class="bi bi-mortarboard me-2"></i>
+                    Browse Courses
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Checkout Header -->
+            <div class="checkout-header">
+                <h1 class="checkout-title">
+                    <i class="bi bi-lock-fill"></i>
+                    Secure Checkout
+                </h1>
+                <div class="security-badges">
+                    <span class="security-badge">
+                        <i class="bi bi-shield-check"></i>
+                        256-bit SSL Encrypted
+                    </span>
+                    <span class="security-badge">
+                        <i class="bi bi-credit-card-2-front"></i>
+                        PCI DSS Compliant
+                    </span>
+                </div>
+            </div>
+
+            <!-- Checkout Grid -->
+            <div class="row g-4 mt-3">
+                <!-- Left Column: Payment Options -->
+                <div class="col-lg-8">
+                    <!-- Payment Method Selection -->
+                    <div class="checkout-section payment-method-section">
+                        <h2 class="section-title">
+                            <i class="bi bi-credit-card me-2"></i>
+                            Payment Method
+                        </h2>
+
+                        <div class="payment-methods">
+                            <!-- PayPal Option -->
+                            <div class="payment-method-card @(selectedPaymentMethod == "paypal" ? "active" : "")"
+                                 @onclick='() => SelectPaymentMethod("paypal")'>
+                                <div class="payment-method-radio">
+                                    <input type="radio"
+                                           name="payment-method"
+                                           id="payment-paypal"
+                                           checked="@(selectedPaymentMethod == "paypal")"
+                                           @onchange='() => SelectPaymentMethod("paypal")' />
+                                    <label for="payment-paypal">
+                                        <div class="payment-method-content">
+                                            <div class="payment-method-icon paypal-icon">
+                                                <i class="fab fa-paypal"></i>
+                                            </div>
+                                            <div class="payment-method-info">
+                                                <strong>PayPal</strong>
+                                                <span class="payment-method-description">Fast and secure payment with PayPal</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Credit Card Option (Stripe - Placeholder) -->
+                            <div class="payment-method-card @(selectedPaymentMethod == "stripe" ? "active" : "")"
+                                 @onclick='() => SelectPaymentMethod("stripe")'>
+                                <div class="payment-method-radio">
+                                    <input type="radio"
+                                           name="payment-method"
+                                           id="payment-stripe"
+                                           checked="@(selectedPaymentMethod == "stripe")"
+                                           @onchange='() => SelectPaymentMethod("stripe")' />
+                                    <label for="payment-stripe">
+                                        <div class="payment-method-content">
+                                            <div class="payment-method-icon stripe-icon">
+                                                <i class="bi bi-credit-card"></i>
+                                            </div>
+                                            <div class="payment-method-info">
+                                                <strong>Credit/Debit Card</strong>
+                                                <span class="payment-method-description">
+                                                    Visa, Mastercard, American Express
+                                                    <span class="badge bg-secondary ms-2">Coming Soon</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PayPal Payment Container -->
+                    @if (selectedPaymentMethod == "paypal")
+                    {
+                        <div class="checkout-section paypal-section">
+                            <h2 class="section-title">
+                                <i class="fab fa-paypal me-2"></i>
+                                Complete Payment with PayPal
+                            </h2>
+
+                            @if (isProcessingPayment)
+                            {
+                                <div class="payment-processing">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Processing...</span>
+                                    </div>
+                                    <p class="mt-3">Processing your payment securely...</p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(paymentError))
+                            {
+                                <div class="alert alert-danger" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <strong>Payment Error:</strong> @paymentError
+                                </div>
+                                <button class="btn btn-outline-primary" @onclick="ResetPayment">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>
+                                    Try Again
+                                </button>
+                            }
+                            else
+                            {
+                                <!-- PayPal Button Container -->
+                                <div class="paypal-button-container">
+                                    <div id="paypal-button-container"></div>
+                                </div>
+
+                                <div class="payment-disclaimer mt-3">
+                                    <i class="bi bi-info-circle"></i>
+                                    <small class="text-muted">
+                                        By clicking the PayPal button, you will be redirected to PayPal to complete your purchase securely.
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Stripe Payment (Placeholder) -->
+                    @if (selectedPaymentMethod == "stripe")
+                    {
+                        <div class="checkout-section stripe-section">
+                            <div class="alert alert-info" role="alert">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                <strong>Coming Soon!</strong> Credit card payment integration is currently in development.
+                                Please use PayPal for now.
+                            </div>
+                            <button class="btn btn-outline-primary" @onclick='() => SelectPaymentMethod("paypal")'>
+                                <i class="fab fa-paypal me-2"></i>
+                                Switch to PayPal
+                            </button>
+                        </div>
+                    }
+
+                    <!-- Billing Address (Optional) -->
+                    <div class="checkout-section billing-section @(showBillingAddress ? "" : "collapsed")">
+                        <div class="section-header-toggle" @onclick="ToggleBillingAddress">
+                            <h2 class="section-title mb-0">
+                                <i class="bi bi-geo-alt me-2"></i>
+                                Billing Address
+                                <span class="badge bg-secondary ms-2">Optional</span>
+                            </h2>
+                            <button class="btn btn-link text-muted">
+                                <i class="bi @(showBillingAddress ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                            </button>
+                        </div>
+
+                        @if (showBillingAddress)
+                        {
+                            <div class="billing-form mt-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">First Name</label>
+                                        <input type="text" class="form-control" placeholder="John" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" placeholder="Doe" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Address Line 1</label>
+                                        <input type="text" class="form-control" placeholder="123 Main Street" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Address Line 2 <small class="text-muted">(Optional)</small></label>
+                                        <input type="text" class="form-control" placeholder="Apartment, suite, etc." />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">City</label>
+                                        <input type="text" class="form-control" placeholder="Rome" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Postal Code</label>
+                                        <input type="text" class="form-control" placeholder="00100" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Country</label>
+                                        <select class="form-select">
+                                            <option selected>Italy</option>
+                                            <option>Germany</option>
+                                            <option>France</option>
+                                            <option>Spain</option>
+                                            <option>United Kingdom</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="col-lg-4">
+                    <div class="order-summary sticky-summary">
+                        <h2 class="order-summary-title">Order Summary</h2>
+
+                        <!-- Order Items -->
+                        <div class="order-items">
+                            @foreach (var item in cart.Items)
+                            {
+                                <div class="order-item">
+                                    <div class="order-item-thumbnail">
+                                        @if (!string.IsNullOrEmpty(item.CourseThumbnailUrl))
+                                        {
+                                            <img src="@item.CourseThumbnailUrl" alt="@item.CourseTitle" />
+                                        }
+                                        else
+                                        {
+                                            <div class="thumbnail-placeholder">
+                                                <i class="bi bi-book"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="order-item-details">
+                                        <h4 class="order-item-title">@item.CourseTitle</h4>
+                                        <p class="order-item-instructor">@item.InstructorName</p>
+                                    </div>
+                                    <div class="order-item-price">
+                                        €@item.FinalPrice.ToString("0.00")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="price-breakdown">
+                            <div class="price-row">
+                                <span>Subtotal</span>
+                                <span class="price">€@cart.Subtotal.ToString("0.00")</span>
+                            </div>
+
+                            @if (cart.TotalDiscount > 0)
+                            {
+                                <div class="price-row discount">
+                                    <span>
+                                        <i class="bi bi-tag-fill"></i>
+                                        Discounts
+                                    </span>
+                                    <span class="price">-€@cart.TotalDiscount.ToString("0.00")</span>
+                                </div>
+                            }
+
+                            @if (cart.CouponDiscount > 0)
+                            {
+                                <div class="price-row coupon-discount">
+                                    <span>
+                                        <i class="bi bi-ticket-perforated-fill"></i>
+                                        Coupon (@cart.AppliedCouponCode)
+                                    </span>
+                                    <span class="price">-€@cart.CouponDiscount.ToString("0.00")</span>
+                                </div>
+                            }
+
+                            <hr class="my-3" />
+
+                            <div class="price-row total">
+                                <span>Total</span>
+                                <span class="price">€@cart.Total.ToString("0.00")</span>
+                            </div>
+                        </div>
+
+                        <!-- Trust Badges -->
+                        <div class="checkout-trust-badges">
+                            <div class="trust-badge">
+                                <i class="bi bi-shield-check"></i>
+                                Secure 256-bit encryption
+                            </div>
+                            <div class="trust-badge">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                30-day money-back guarantee
+                            </div>
+                            <div class="trust-badge">
+                                <i class="bi bi-infinity"></i>
+                                Lifetime course access
+                            </div>
+                            <div class="trust-badge">
+                                <i class="bi bi-phone"></i>
+                                24/7 customer support
+                            </div>
+                        </div>
+
+                        <!-- Back to Cart -->
+                        <div class="checkout-actions">
+                            <a href="/cart" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Back to Cart
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private CartModel? cart;
+    private bool isLoading = true;
+    private bool isProcessingPayment = false;
+    private bool showBillingAddress = false;
+    private string selectedPaymentMethod = "paypal";
+    private string? paymentError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCart();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && cart != null && cart.ItemCount > 0)
+        {
+            await InitializePayPalButton();
+        }
+    }
+
+    private async Task LoadCart()
+    {
+        isLoading = true;
+        try
+        {
+            var response = await CartService.GetCartAsync();
+            if (response.Success && response.Data != null)
+            {
+                cart = response.Data;
+
+                // Validate cart before checkout
+                if (cart.ItemCount > 0)
+                {
+                    var validationResponse = await CartService.ValidateCartForCheckoutAsync();
+                    if (validationResponse.Success && validationResponse.Data != null)
+                    {
+                        cart = validationResponse.Data;
+                    }
+                }
+            }
+            else
+            {
+                cart = new CartModel();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load cart: {ex.Message}");
+            cart = new CartModel();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectPaymentMethod(string method)
+    {
+        selectedPaymentMethod = method;
+        paymentError = null;
+
+        // Reinitialize PayPal button when switching back to PayPal
+        if (method == "paypal" && cart != null && cart.ItemCount > 0)
+        {
+            _ = InitializePayPalButton();
+        }
+    }
+
+    private void ToggleBillingAddress()
+    {
+        showBillingAddress = !showBillingAddress;
+    }
+
+    private void ResetPayment()
+    {
+        paymentError = null;
+        isProcessingPayment = false;
+        _ = InitializePayPalButton();
+    }
+
+    private async Task InitializePayPalButton()
+    {
+        if (cart == null || cart.Total <= 0) return;
+
+        try
+        {
+            // Initialize PayPal button via JavaScript interop
+            var amount = cart.Total.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            var currency = cart.Currency;
+
+            await JSRuntime.InvokeVoidAsync("initializePayPalButton", amount, currency,
+                DotNetObjectReference.Create(this));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing PayPal: {ex.Message}");
+            paymentError = "Failed to initialize PayPal. Please refresh the page.";
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPayPalApprove(string orderId)
+    {
+        isProcessingPayment = true;
+        paymentError = null;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Call backend API to complete payment
+            // For now, simulate success after 2 seconds
+            await Task.Delay(2000);
+
+            // Clear cart
+            await CartService.ClearCartAsync();
+
+            // Show success message
+            ToastService.ShowSuccess("Payment successful! Thank you for your purchase.");
+
+            // Redirect to order confirmation
+            Navigation.NavigateTo($"/order-confirmation/{orderId}");
+        }
+        catch (Exception ex)
+        {
+            paymentError = $"Payment processing failed: {ex.Message}";
+            isProcessingPayment = false;
+            ToastService.ShowError(paymentError);
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public void OnPayPalError(string errorMessage)
+    {
+        paymentError = errorMessage;
+        isProcessingPayment = false;
+        ToastService.ShowError($"PayPal error: {errorMessage}");
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnPayPalCancel()
+    {
+        paymentError = null;
+        isProcessingPayment = false;
+        ToastService.ShowInfo("Payment cancelled. Your cart is still saved.");
+        StateHasChanged();
+    }
+}

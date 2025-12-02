@@ -675,7 +675,47 @@ public class CourseService : ICourseService
             ViewCount = course.ViewCount,
             AverageRating = course.AverageRating,
             ReviewCount = course.ReviewCount,
-            EnrollmentCount = course.EnrollmentCount
+            EnrollmentCount = course.EnrollmentCount,
+            // Map Sections with Lessons (v2.1.0-dev fix)
+            Sections = course.Sections?.Select(MapToSectionDto).ToList()
+        };
+    }
+
+    private SectionDto MapToSectionDto(Section section)
+    {
+        return new SectionDto
+        {
+            Id = section.Id,
+            CourseId = section.CourseId,
+            Title = section.Title,
+            Description = section.Description,
+            OrderIndex = section.OrderIndex,
+            IsActive = section.IsActive,
+            Lessons = section.Lessons?.Select(MapToLessonDto).ToList() ?? new List<LessonDto>()
+        };
+    }
+
+    private LessonDto MapToLessonDto(Lesson lesson)
+    {
+        return new LessonDto
+        {
+            Id = lesson.Id,
+            SectionId = lesson.SectionId,
+            Title = lesson.Title,
+            Description = lesson.Description,
+            Type = lesson.Type.ToString(),
+            OrderIndex = lesson.OrderIndex,
+            DurationMinutes = lesson.DurationMinutes,
+            IsFree = lesson.IsFree,
+            IsActive = lesson.IsActive,
+            VideoUrl = lesson.VideoUrl,
+            VideoThumbnailUrl = lesson.VideoThumbnailUrl,
+            ContentText = lesson.ContentText,
+            AttachmentUrl = lesson.AttachmentUrl,
+            AttachmentName = lesson.AttachmentName,
+            VideoQuality = lesson.VideoQuality,
+            VideoFileSize = lesson.VideoFileSize,
+            VideoFormat = lesson.VideoFormat
         };
     }
 

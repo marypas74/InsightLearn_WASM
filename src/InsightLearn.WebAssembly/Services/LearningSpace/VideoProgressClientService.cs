@@ -6,7 +6,8 @@ namespace InsightLearn.WebAssembly.Services.LearningSpace;
 public class VideoProgressClientService : IVideoProgressClientService
 {
     private readonly IApiClient _apiClient;
-    private const string BaseEndpoint = "/api/video-progress";
+    // v2.1.0-dev: Fixed endpoint path to match backend (/api/engagement instead of /api/video-progress)
+    private const string BaseEndpoint = "/api/engagement";
 
     public VideoProgressClientService(IApiClient apiClient)
     {
@@ -15,7 +16,8 @@ public class VideoProgressClientService : IVideoProgressClientService
 
     public async Task<ApiResponse<VideoProgressResponseDto>> TrackProgressAsync(TrackVideoProgressDto dto)
     {
-        return await _apiClient.PostAsync<VideoProgressResponseDto>($"{BaseEndpoint}/track", dto);
+        // Backend uses /api/engagement/video-progress (not /track)
+        return await _apiClient.PostAsync<VideoProgressResponseDto>($"{BaseEndpoint}/video-progress", dto);
     }
 
     public async Task<ApiResponse<LastPositionDto>> GetLastPositionAsync(Guid lessonId)

@@ -1,0 +1,883 @@
+@page "/admin/podcast-seo"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Podcast SEO Optimizer - InsightLearn Admin</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="breadcrumb-nav">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/admin" class="breadcrumb-item">Admin</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Podcast SEO Optimizer</span>
+        </nav>
+    </div>
+
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-podcast" style="color: #9333ea;"></i>
+                Podcast SEO Optimizer
+            </h1>
+            <p class="page-description">Optimize your podcast for search engines and podcast directories</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="AnalyzeSEO" disabled="@isAnalyzing">
+                <i class="fas fa-search-plus @(isAnalyzing ? "fa-spin" : "")"></i>
+                Analyze SEO
+            </button>
+            <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner spinner-sm"></span>
+                }
+                else
+                {
+                    <i class="fas fa-save"></i>
+                }
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- SEO Score Overview -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-pie"></i> SEO Score Overview</h3>
+        </div>
+        <div class="card-body">
+            <div class="seo-score-grid">
+                <div class="score-card overall">
+                    <div class="score-circle @GetScoreClass(overallScore)">
+                        <span class="score-value">@overallScore</span>
+                        <span class="score-max">/100</span>
+                    </div>
+                    <span class="score-label">Overall SEO Score</span>
+                </div>
+                <div class="score-breakdown">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Metadata Quality</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar @GetScoreClass(metadataScore)" style="width: @metadataScore%"></div>
+                        </div>
+                        <span class="breakdown-value">@metadataScore%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Episode Optimization</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar @GetScoreClass(episodeScore)" style="width: @episodeScore%"></div>
+                        </div>
+                        <span class="breakdown-value">@episodeScore%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">RSS Feed Health</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar @GetScoreClass(rssScore)" style="width: @rssScore%"></div>
+                        </div>
+                        <span class="breakdown-value">@rssScore%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Directory Presence</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar @GetScoreClass(directoryScore)" style="width: @directoryScore%"></div>
+                        </div>
+                        <span class="breakdown-value">@directoryScore%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Podcast Metadata -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-tags"></i> Podcast Metadata</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group col-md-8">
+                    <label for="podcastTitle">Podcast Title</label>
+                    <input type="text" id="podcastTitle" class="form-control" @bind="podcastTitle" placeholder="Enter your podcast title" />
+                    <small class="form-text @(podcastTitle.Length > 60 ? "text-warning" : "text-muted")">
+                        @podcastTitle.Length/60 characters (recommended max 60)
+                    </small>
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="podcastLanguage">Language</label>
+                    <select id="podcastLanguage" class="form-control" @bind="podcastLanguage">
+                        <option value="en">English</option>
+                        <option value="it">Italian</option>
+                        <option value="es">Spanish</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="pt">Portuguese</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="podcastDescription">Description</label>
+                <textarea id="podcastDescription" class="form-control" rows="4" @bind="podcastDescription" placeholder="Describe your podcast (SEO optimized)"></textarea>
+                <small class="form-text @(podcastDescription.Length > 4000 ? "text-warning" : "text-muted")">
+                    @podcastDescription.Length/4000 characters
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="podcastKeywords">Target Keywords</label>
+                <input type="text" id="podcastKeywords" class="form-control" @bind="podcastKeywords" placeholder="keyword1, keyword2, keyword3" />
+                <small class="form-text text-muted">Separate keywords with commas (5-10 recommended)</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="podcastCategory">Primary Category</label>
+                    <select id="podcastCategory" class="form-control" @bind="podcastCategory">
+                        <option value="">Select a category</option>
+                        <option value="education">Education</option>
+                        <option value="technology">Technology</option>
+                        <option value="business">Business</option>
+                        <option value="science">Science</option>
+                        <option value="health">Health & Fitness</option>
+                        <option value="arts">Arts</option>
+                        <option value="news">News</option>
+                        <option value="society">Society & Culture</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="podcastSubcategory">Subcategory</label>
+                    <select id="podcastSubcategory" class="form-control" @bind="podcastSubcategory">
+                        <option value="">Select a subcategory</option>
+                        <option value="courses">Courses</option>
+                        <option value="how-to">How To</option>
+                        <option value="training">Training</option>
+                        <option value="self-improvement">Self-Improvement</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="podcastAuthor">Author / Host Name</label>
+                <input type="text" id="podcastAuthor" class="form-control" @bind="podcastAuthor" placeholder="Your name or company name" />
+            </div>
+        </div>
+    </div>
+
+    <!-- RSS Feed Configuration -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-rss"></i> RSS Feed Configuration</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="rssFeedUrl">RSS Feed URL</label>
+                <div class="input-group">
+                    <input type="text" id="rssFeedUrl" class="form-control" @bind="rssFeedUrl" placeholder="https://yourdomain.com/podcast/feed.xml" />
+                    <button class="btn btn-outline" @onclick="ValidateRssFeed" disabled="@isValidatingRss">
+                        @if (isValidatingRss)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                        }
+                        Validate
+                    </button>
+                </div>
+            </div>
+
+            @if (rssValidationResult != null)
+            {
+                <div class="rss-validation-result @(rssValidationResult.IsValid ? "valid" : "invalid")">
+                    <div class="validation-header">
+                        <i class="fas @(rssValidationResult.IsValid ? "fa-check-circle" : "fa-exclamation-circle")"></i>
+                        <span>@(rssValidationResult.IsValid ? "RSS Feed is Valid" : "RSS Feed has Issues")</span>
+                    </div>
+                    @if (rssValidationResult.Issues.Any())
+                    {
+                        <ul class="issues-list">
+                            @foreach (var issue in rssValidationResult.Issues)
+                            {
+                                <li>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    @issue
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            <div class="rss-elements-checklist mt-4">
+                <h4>Required RSS Elements</h4>
+                <div class="checklist-grid">
+                    @foreach (var element in rssElements)
+                    {
+                        <div class="checklist-item @(element.IsPresent ? "present" : "missing")">
+                            <i class="fas @(element.IsPresent ? "fa-check" : "fa-times")"></i>
+                            <span>@element.Name</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Submissions -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-broadcast-tower"></i> Podcast Directory Submissions</h3>
+        </div>
+        <div class="card-body">
+            <div class="directory-grid">
+                @foreach (var directory in podcastDirectories)
+                {
+                    <div class="directory-card @directory.Status.ToLower()">
+                        <div class="directory-icon">
+                            <i class="@directory.Icon" style="color: @directory.Color;"></i>
+                        </div>
+                        <div class="directory-info">
+                            <h4>@directory.Name</h4>
+                            <span class="directory-status">@directory.Status</span>
+                        </div>
+                        <div class="directory-actions">
+                            @if (directory.Status == "Not Submitted")
+                            {
+                                <button class="btn btn-sm btn-primary" @onclick="() => SubmitToDirectory(directory.Name)">
+                                    Submit
+                                </button>
+                            }
+                            else if (directory.Status == "Approved")
+                            {
+                                <a href="@directory.ListingUrl" target="_blank" class="btn btn-sm btn-outline">
+                                    View Listing
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline" disabled>
+                                    @directory.Status
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Structured Data (Schema.org) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-code"></i> Structured Data (Schema.org)</h3>
+        </div>
+        <div class="card-body">
+            <div class="schema-status">
+                <div class="status-indicator @(schemaDataEnabled ? "enabled" : "disabled")">
+                    <i class="fas @(schemaDataEnabled ? "fa-check-circle" : "fa-times-circle")"></i>
+                    <span>Schema.org PodcastSeries markup is @(schemaDataEnabled ? "enabled" : "disabled")</span>
+                </div>
+                <div class="form-check mt-3">
+                    <input type="checkbox" class="form-check-input" id="enableSchema" @bind="schemaDataEnabled" />
+                    <label class="form-check-label" for="enableSchema">
+                        Enable automatic Schema.org markup for episodes
+                    </label>
+                </div>
+            </div>
+
+            <div class="schema-preview mt-4">
+                <h4>Preview JSON-LD</h4>
+                <pre class="code-preview"><code>@GetSchemaPreview()</code></pre>
+                <button class="btn btn-sm btn-outline mt-2" @onclick="CopySchemaCode">
+                    <i class="fas fa-copy"></i> Copy Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Episode Optimization -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-list-alt"></i> Episode SEO Optimization</h3>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Episode</th>
+                        <th>Title Score</th>
+                        <th>Description Score</th>
+                        <th>Transcript</th>
+                        <th>Show Notes</th>
+                        <th>Overall</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var episode in episodes)
+                    {
+                        <tr>
+                            <td>
+                                <div class="episode-info">
+                                    <span class="episode-number">EP @episode.Number</span>
+                                    <span class="episode-title">@episode.Title</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="score-badge @GetScoreClass(episode.TitleScore)">@episode.TitleScore%</span>
+                            </td>
+                            <td>
+                                <span class="score-badge @GetScoreClass(episode.DescriptionScore)">@episode.DescriptionScore%</span>
+                            </td>
+                            <td>
+                                <i class="fas @(episode.HasTranscript ? "fa-check text-success" : "fa-times text-danger")"></i>
+                            </td>
+                            <td>
+                                <i class="fas @(episode.HasShowNotes ? "fa-check text-success" : "fa-times text-danger")"></i>
+                            </td>
+                            <td>
+                                <span class="score-badge @GetScoreClass(episode.OverallScore)">@episode.OverallScore%</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline" @onclick="() => OptimizeEpisode(episode.Id)" title="Optimize">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .seo-score-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .score-card.overall {
+        text-align: center;
+    }
+
+    .score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+    }
+
+    .score-circle.excellent {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border: 4px solid #10b981;
+    }
+
+    .score-circle.good {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border: 4px solid #3b82f6;
+    }
+
+    .score-circle.average {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 4px solid #f59e0b;
+    }
+
+    .score-circle.poor {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border: 4px solid #ef4444;
+    }
+
+    .score-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .score-max {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .score-label {
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .score-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .breakdown-item {
+        display: grid;
+        grid-template-columns: 180px 1fr 60px;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .breakdown-label {
+        font-weight: 500;
+        color: #475569;
+    }
+
+    .progress-bar-container {
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .progress-bar.excellent { background: linear-gradient(90deg, #10b981, #34d399); }
+    .progress-bar.good { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .progress-bar.average { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .progress-bar.poor { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+    .breakdown-value {
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-row .form-group {
+        margin-bottom: 0;
+    }
+
+    .col-md-4 { flex: 0 0 33.333%; }
+    .col-md-6 { flex: 0 0 50%; }
+    .col-md-8 { flex: 0 0 66.666%; }
+
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .input-group .form-control {
+        flex: 1;
+    }
+
+    .rss-validation-result {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .rss-validation-result.valid {
+        background: #d1fae5;
+        border: 1px solid #10b981;
+    }
+
+    .rss-validation-result.invalid {
+        background: #fee2e2;
+        border: 1px solid #ef4444;
+    }
+
+    .validation-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
+    .rss-validation-result.valid .validation-header { color: #059669; }
+    .rss-validation-result.invalid .validation-header { color: #dc2626; }
+
+    .issues-list {
+        margin: 0.75rem 0 0 0;
+        padding-left: 1.5rem;
+        list-style: none;
+    }
+
+    .issues-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #dc2626;
+        margin-bottom: 0.25rem;
+    }
+
+    .checklist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .checklist-item.present {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .checklist-item.missing {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .directory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .directory-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid #e5e7eb;
+    }
+
+    .directory-card.approved {
+        border-color: #10b981;
+        background: #f0fdf4;
+    }
+
+    .directory-card.pending {
+        border-color: #f59e0b;
+        background: #fffbeb;
+    }
+
+    .directory-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .directory-info {
+        flex: 1;
+    }
+
+    .directory-info h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .directory-status {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .schema-status {
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .status-indicator.enabled { color: #059669; }
+    .status-indicator.disabled { color: #dc2626; }
+
+    .code-preview {
+        background: #1e293b;
+        color: #a5f3fc;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.8125rem;
+    }
+
+    .episode-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .episode-number {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .episode-title {
+        font-weight: 500;
+    }
+
+    .score-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .score-badge.excellent { background: #d1fae5; color: #059669; }
+    .score-badge.good { background: #dbeafe; color: #2563eb; }
+    .score-badge.average { background: #fef3c7; color: #d97706; }
+    .score-badge.poor { background: #fee2e2; color: #dc2626; }
+
+    .text-success { color: #10b981; }
+    .text-danger { color: #ef4444; }
+    .text-warning { color: #f59e0b; }
+
+    @@media (max-width: 768px) {
+        .seo-score-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row {
+            flex-direction: column;
+        }
+
+        .col-md-4, .col-md-6, .col-md-8 {
+            flex: 0 0 100%;
+        }
+
+        .breakdown-item {
+            grid-template-columns: 1fr;
+            gap: 0.25rem;
+        }
+    }
+</style>
+
+@code {
+    private bool isAnalyzing = false;
+    private bool isSaving = false;
+    private bool isValidatingRss = false;
+
+    // SEO Scores
+    private int overallScore = 78;
+    private int metadataScore = 85;
+    private int episodeScore = 72;
+    private int rssScore = 90;
+    private int directoryScore = 65;
+
+    // Podcast Metadata
+    private string podcastTitle = "InsightLearn - E-Learning Insights";
+    private string podcastDescription = "Join us for weekly episodes covering the latest in online education, course creation tips, and learning strategies for the modern world.";
+    private string podcastKeywords = "e-learning, online courses, education, training, skill development";
+    private string podcastCategory = "education";
+    private string podcastSubcategory = "courses";
+    private string podcastLanguage = "en";
+    private string podcastAuthor = "InsightLearn Team";
+
+    // RSS Feed
+    private string rssFeedUrl = "https://insightlearn.cloud/podcast/feed.xml";
+    private RssValidationResult? rssValidationResult = null;
+    private List<RssElement> rssElements = new();
+
+    // Schema.org
+    private bool schemaDataEnabled = true;
+
+    // Directories
+    private List<PodcastDirectory> podcastDirectories = new();
+
+    // Episodes
+    private List<EpisodeInfo> episodes = new();
+
+    protected override void OnInitialized()
+    {
+        LoadSampleData();
+    }
+
+    private void LoadSampleData()
+    {
+        rssElements = new List<RssElement>
+        {
+            new() { Name = "title", IsPresent = true },
+            new() { Name = "description", IsPresent = true },
+            new() { Name = "link", IsPresent = true },
+            new() { Name = "language", IsPresent = true },
+            new() { Name = "itunes:author", IsPresent = true },
+            new() { Name = "itunes:category", IsPresent = true },
+            new() { Name = "itunes:image", IsPresent = true },
+            new() { Name = "itunes:explicit", IsPresent = false },
+            new() { Name = "itunes:owner", IsPresent = true },
+            new() { Name = "atom:link", IsPresent = false }
+        };
+
+        podcastDirectories = new List<PodcastDirectory>
+        {
+            new() { Name = "Apple Podcasts", Icon = "fab fa-apple", Color = "#000000", Status = "Approved", ListingUrl = "#" },
+            new() { Name = "Spotify", Icon = "fab fa-spotify", Color = "#1DB954", Status = "Approved", ListingUrl = "#" },
+            new() { Name = "Google Podcasts", Icon = "fab fa-google", Color = "#4285F4", Status = "Pending", ListingUrl = "" },
+            new() { Name = "Amazon Music", Icon = "fab fa-amazon", Color = "#FF9900", Status = "Not Submitted", ListingUrl = "" },
+            new() { Name = "Stitcher", Icon = "fas fa-podcast", Color = "#FFB800", Status = "Not Submitted", ListingUrl = "" },
+            new() { Name = "iHeartRadio", Icon = "fas fa-heart", Color = "#C6002B", Status = "Not Submitted", ListingUrl = "" }
+        };
+
+        episodes = new List<EpisodeInfo>
+        {
+            new() { Id = 1, Number = 25, Title = "The Future of Online Learning", TitleScore = 92, DescriptionScore = 88, HasTranscript = true, HasShowNotes = true, OverallScore = 90 },
+            new() { Id = 2, Number = 24, Title = "Creating Engaging Course Content", TitleScore = 85, DescriptionScore = 78, HasTranscript = true, HasShowNotes = true, OverallScore = 82 },
+            new() { Id = 3, Number = 23, Title = "Student Engagement Tips", TitleScore = 75, DescriptionScore = 70, HasTranscript = false, HasShowNotes = true, OverallScore = 68 },
+            new() { Id = 4, Number = 22, Title = "Marketing Your Course", TitleScore = 88, DescriptionScore = 82, HasTranscript = true, HasShowNotes = false, OverallScore = 75 },
+            new() { Id = 5, Number = 21, Title = "Episode 21", TitleScore = 45, DescriptionScore = 50, HasTranscript = false, HasShowNotes = false, OverallScore = 42 }
+        };
+    }
+
+    private async Task AnalyzeSEO()
+    {
+        isAnalyzing = true;
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        // Simulate score updates
+        overallScore = new Random().Next(70, 95);
+        metadataScore = new Random().Next(75, 100);
+        episodeScore = new Random().Next(65, 90);
+
+        isAnalyzing = false;
+        Toast.ShowSuccess("SEO analysis completed!");
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        await Task.Delay(1500);
+
+        isSaving = false;
+        Toast.ShowSuccess("Podcast SEO settings saved successfully!");
+        StateHasChanged();
+    }
+
+    private async Task ValidateRssFeed()
+    {
+        if (string.IsNullOrWhiteSpace(rssFeedUrl))
+        {
+            Toast.ShowWarning("Please enter an RSS feed URL");
+            return;
+        }
+
+        isValidatingRss = true;
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        rssValidationResult = new RssValidationResult
+        {
+            IsValid = true,
+            Issues = new List<string>
+            {
+                "Missing itunes:explicit tag",
+                "Missing atom:link for feed self-reference"
+            }
+        };
+
+        isValidatingRss = false;
+        StateHasChanged();
+    }
+
+    private void SubmitToDirectory(string directoryName)
+    {
+        var directory = podcastDirectories.FirstOrDefault(d => d.Name == directoryName);
+        if (directory != null)
+        {
+            directory.Status = "Pending";
+            Toast.ShowSuccess($"Submission to {directoryName} initiated!");
+            StateHasChanged();
+        }
+    }
+
+    private void OptimizeEpisode(int episodeId)
+    {
+        Toast.ShowInfo($"Opening optimization wizard for episode {episodeId}...");
+    }
+
+    private void CopySchemaCode()
+    {
+        Toast.ShowInfo("Schema.org code copied to clipboard!");
+    }
+
+    private string GetSchemaPreview()
+    {
+        return @"{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""PodcastSeries"",
+  ""name"": """ + podcastTitle + @""",
+  ""description"": """ + (podcastDescription.Length > 100 ? podcastDescription.Substring(0, 100) + "..." : podcastDescription) + @""",
+  ""url"": ""https://insightlearn.cloud/podcast"",
+  ""author"": {
+    ""@type"": ""Organization"",
+    ""name"": """ + podcastAuthor + @"""
+  },
+  ""inLanguage"": """ + podcastLanguage + @"""
+}";
+    }
+
+    private string GetScoreClass(int score)
+    {
+        return score switch
+        {
+            >= 80 => "excellent",
+            >= 60 => "good",
+            >= 40 => "average",
+            _ => "poor"
+        };
+    }
+
+    private class RssValidationResult
+    {
+        public bool IsValid { get; set; }
+        public List<string> Issues { get; set; } = new();
+    }
+
+    private class RssElement
+    {
+        public string Name { get; set; } = "";
+        public bool IsPresent { get; set; }
+    }
+
+    private class PodcastDirectory
+    {
+        public string Name { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string Color { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string ListingUrl { get; set; } = "";
+    }
+
+    private class EpisodeInfo
+    {
+        public int Id { get; set; }
+        public int Number { get; set; }
+        public string Title { get; set; } = "";
+        public int TitleScore { get; set; }
+        public int DescriptionScore { get; set; }
+        public bool HasTranscript { get; set; }
+        public bool HasShowNotes { get; set; }
+        public int OverallScore { get; set; }
+    }
+}

@@ -192,30 +192,30 @@
                                 @if (!showDetailedSettings)
                                 {
                                     <button class="btn-cookie-reject" @onclick="RejectAll">
-                                        <span class="btn-icon">✕</span>
+                                        <i class="fas fa-times btn-icon"></i>
                                         Reject All
                                     </button>
                                     <button class="btn-cookie-settings" @onclick="OpenDetailedSettings">
-                                        <span class="btn-icon">⚙️</span>
+                                        <i class="fas fa-cog btn-icon"></i>
                                         Cookie Settings
                                     </button>
                                     <button class="btn-cookie-accept" @onclick="AcceptAll">
-                                        <span class="btn-icon">✓</span>
+                                        <i class="fas fa-check btn-icon"></i>
                                         Accept All Cookies
                                     </button>
                                 }
                                 else
                                 {
                                     <button class="btn-cookie-back" @onclick="BackToSimple">
-                                        <span class="btn-icon">←</span>
+                                        <i class="fas fa-arrow-left btn-icon"></i>
                                         Back
                                     </button>
                                     <button class="btn-cookie-save" @onclick="SaveCustomPreferences">
-                                        <span class="btn-icon">✓</span>
+                                        <i class="fas fa-save btn-icon"></i>
                                         Save My Preferences
                                     </button>
                                     <button class="btn-cookie-accept-all-settings" @onclick="AcceptAllFromSettings">
-                                        <span class="btn-icon">✓</span>
+                                        <i class="fas fa-check-circle btn-icon"></i>
                                         Accept All
                                     </button>
                                 }

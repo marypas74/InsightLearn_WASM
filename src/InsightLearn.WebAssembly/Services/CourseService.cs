@@ -59,11 +59,10 @@ public class CourseService : ICourseService
         return await _apiClient.GetAsync<CourseSearchResultDto>(endpoint);
     }
 
-    public Task<ApiResponse<bool>> IsEnrolledAsync(Guid courseId)
+    public async Task<ApiResponse<bool>> IsEnrolledAsync(Guid courseId)
     {
-        // This would check if the current user is enrolled in the course
-        // For now, return false as placeholder
-        return Task.FromResult(new ApiResponse<bool> { Success = true, Data = false });
+        // v2.1.0-dev: Call actual enrollment check endpoint
+        return await _apiClient.GetAsync<bool>($"api/courses/{courseId}/enrolled");
     }
 
     private string BuildSearchQueryString(CourseSearchDto searchDto)

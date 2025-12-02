@@ -1,12 +1,510 @@
 @page "/cart"
+@using InsightLearn.WebAssembly.Services
+@using InsightLearn.WebAssembly.Models
+@inject ICartService CartService
+@inject NavigationManager Navigation
+@inject IToastService ToastService
 
 <PageTitle>Shopping Cart - InsightLearn</PageTitle>
 
-<div class="container py-5">
-    <h1>Shopping Cart</h1>
-    <div class="empty-state">
-        <i class="bi bi-cart-x"></i>
-        <p>Your cart is empty</p>
-        <a href="/courses" class="btn btn-primary">Browse Courses</a>
+<div class="cart-page">
+    <div class="container py-5">
+        <!-- Page Header -->
+        <div class="cart-header">
+            <h1 class="cart-title">
+                <i class="bi bi-cart3"></i>
+                Shopping Cart
+            </h1>
+            @if (cart != null && cart.ItemCount > 0)
+            {
+                <span class="cart-count-badge">@cart.ItemCount @(cart.ItemCount == 1 ? "item" : "items")</span>
+            }
+        </div>
+
+        @if (isLoading)
+        {
+            <!-- Loading State -->
+            <div class="cart-loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading cart...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading your cart...</p>
+            </div>
+        }
+        else if (cart == null || cart.ItemCount == 0)
+        {
+            <!-- Empty Cart State -->
+            <div class="empty-cart-state">
+                <div class="empty-cart-icon">
+                    <i class="bi bi-cart-x"></i>
+                </div>
+                <h2 class="empty-cart-title">Your cart is empty</h2>
+                <p class="empty-cart-text">Explore our courses and find something you'd love to learn!</p>
+                <a href="/courses" class="btn btn-primary btn-lg mt-3">
+                    <i class="bi bi-mortarboard me-2"></i>
+                    Browse Courses
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Cart Grid Layout -->
+            <div class="row g-4">
+                <!-- Left Column: Cart Items -->
+                <div class="col-lg-8">
+                    <!-- Price Changes Warning -->
+                    @if (cart.HasPriceChanges)
+                    {
+                        <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-3 fs-5"></i>
+                            <div>
+                                <strong>Price updates detected!</strong> Some course prices have changed since you added them to your cart.
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Warnings -->
+                    @if (cart.Warnings.Any())
+                    {
+                        <div class="alert alert-info mb-4" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            @foreach (var warning in cart.Warnings)
+                            {
+                                <div>@warning</div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Cart Items List -->
+                    <div class="cart-items-container">
+                        @foreach (var item in cart.Items)
+                        {
+                            <div class="cart-item @(item.HasPriceChanged ? "price-changed" : "")">
+                                <div class="cart-item-content">
+                                    <!-- Course Thumbnail -->
+                                    <div class="cart-item-thumbnail">
+                                        @if (!string.IsNullOrEmpty(item.CourseThumbnailUrl))
+                                        {
+                                            <img src="@item.CourseThumbnailUrl" alt="@item.CourseTitle" />
+                                        }
+                                        else
+                                        {
+                                            <div class="thumbnail-placeholder">
+                                                <i class="bi bi-book"></i>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Course Details -->
+                                    <div class="cart-item-details">
+                                        <h3 class="cart-item-title">@item.CourseTitle</h3>
+                                        <p class="cart-item-instructor">
+                                            <i class="bi bi-person"></i>
+                                            @item.InstructorName
+                                        </p>
+
+                                        <div class="cart-item-meta">
+                                            @if (item.AverageRating > 0)
+                                            {
+                                                <span class="meta-item">
+                                                    <i class="bi bi-star-fill text-warning"></i>
+                                                    <span class="fw-semibold">@item.AverageRating.ToString("0.0")</span>
+                                                    <span class="text-muted">(@item.ReviewCount)</span>
+                                                </span>
+                                            }
+                                            @if (item.EstimatedDurationMinutes > 0)
+                                            {
+                                                <span class="meta-item">
+                                                    <i class="bi bi-clock"></i>
+                                                    @FormatDuration(item.EstimatedDurationMinutes)
+                                                </span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Language))
+                                            {
+                                                <span class="meta-item">
+                                                    <i class="bi bi-translate"></i>
+                                                    @item.Language
+                                                </span>
+                                            }
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(item.CouponCode))
+                                        {
+                                            <div class="cart-item-coupon">
+                                                <i class="bi bi-tag-fill"></i>
+                                                Coupon: <strong>@item.CouponCode</strong>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Price & Actions -->
+                                    <div class="cart-item-actions">
+                                        <div class="cart-item-price">
+                                            @if (item.DiscountAmount > 0)
+                                            {
+                                                <div class="price-original">€@item.OriginalPrice.ToString("0.00")</div>
+                                                <div class="price-discount">-€@item.DiscountAmount.ToString("0.00")</div>
+                                                <div class="price-final">€@item.FinalPrice.ToString("0.00")</div>
+                                            }
+                                            else if (item.HasPriceChanged)
+                                            {
+                                                <div class="price-changed-label">
+                                                    <i class="bi bi-arrow-up-right"></i> Price updated
+                                                </div>
+                                                <div class="price-original">€@item.OriginalPrice.ToString("0.00")</div>
+                                                <div class="price-final">€@item.CurrentPrice.ToString("0.00")</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="price-final">€@item.CurrentPrice.ToString("0.00")</div>
+                                            }
+                                        </div>
+
+                                        <button
+                                            class="btn btn-link btn-remove"
+                                            @onclick="() => RemoveFromCart(item.CourseId)"
+                                            disabled="@isProcessing">
+                                            <i class="bi bi-trash"></i>
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Clear Cart Button -->
+                    <div class="cart-footer-actions mt-4">
+                        <button
+                            class="btn btn-outline-danger"
+                            @onclick="ClearCart"
+                            disabled="@isProcessing">
+                            <i class="bi bi-x-circle me-2"></i>
+                            Clear Cart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="col-lg-4">
+                    <div class="order-summary">
+                        <h2 class="order-summary-title">Order Summary</h2>
+
+                        <!-- Coupon Input -->
+                        <div class="coupon-section">
+                            <label class="form-label">Have a coupon code?</label>
+                            <div class="input-group">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="Enter code"
+                                    @bind="couponCode"
+                                    @bind:event="oninput"
+                                    disabled="@isProcessing" />
+                                <button
+                                    class="btn btn-outline-primary"
+                                    @onclick="ApplyCoupon"
+                                    disabled="@(isProcessing || string.IsNullOrWhiteSpace(couponCode))">
+                                    Apply
+                                </button>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(cart.AppliedCouponCode))
+                            {
+                                <div class="applied-coupon mt-2">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>Coupon <strong>@cart.AppliedCouponCode</strong> applied</span>
+                                    <button
+                                        class="btn btn-link btn-sm p-0 ms-2"
+                                        @onclick="RemoveCoupon"
+                                        disabled="@isProcessing">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="price-breakdown">
+                            <div class="price-row">
+                                <span>Subtotal</span>
+                                <span class="price">€@cart.Subtotal.ToString("0.00")</span>
+                            </div>
+
+                            @if (cart.TotalDiscount > 0)
+                            {
+                                <div class="price-row discount">
+                                    <span>
+                                        <i class="bi bi-tag-fill"></i>
+                                        Discounts
+                                    </span>
+                                    <span class="price">-€@cart.TotalDiscount.ToString("0.00")</span>
+                                </div>
+                            }
+
+                            @if (cart.CouponDiscount > 0)
+                            {
+                                <div class="price-row coupon-discount">
+                                    <span>
+                                        <i class="bi bi-ticket-perforated-fill"></i>
+                                        Coupon (@cart.AppliedCouponCode)
+                                    </span>
+                                    <span class="price">-€@cart.CouponDiscount.ToString("0.00")</span>
+                                </div>
+                            }
+
+                            <hr class="my-3" />
+
+                            <div class="price-row total">
+                                <span>Total</span>
+                                <span class="price">€@cart.Total.ToString("0.00")</span>
+                            </div>
+                        </div>
+
+                        <!-- Checkout Button -->
+                        <button
+                            class="btn btn-primary btn-lg w-100 checkout-btn"
+                            @onclick="ProceedToCheckout"
+                            disabled="@isProcessing">
+                            @if (isProcessing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-lock-fill me-2"></i>
+                            }
+                            Proceed to Checkout
+                        </button>
+
+                        <!-- Trust Badges -->
+                        <div class="trust-badges mt-3">
+                            <div class="trust-badge">
+                                <i class="bi bi-shield-check"></i>
+                                Secure checkout
+                            </div>
+                            <div class="trust-badge">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                30-day money-back guarantee
+                            </div>
+                            <div class="trust-badge">
+                                <i class="bi bi-infinity"></i>
+                                Lifetime access
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
+
+@code {
+    private CartModel? cart;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private string couponCode = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCart();
+    }
+
+    private async Task LoadCart()
+    {
+        isLoading = true;
+        try
+        {
+            var response = await CartService.GetCartAsync();
+            if (response.Success && response.Data != null)
+            {
+                cart = response.Data;
+            }
+            else
+            {
+                cart = new CartModel();
+                if (!string.IsNullOrEmpty(response.Message))
+                {
+                    ToastService.ShowError(response.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load cart: {ex.Message}");
+            cart = new CartModel();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RemoveFromCart(Guid courseId)
+    {
+        if (isProcessing) return;
+
+        isProcessing = true;
+        try
+        {
+            var response = await CartService.RemoveFromCartAsync(courseId);
+            if (response.Success && response.Data != null)
+            {
+                cart = response.Data;
+                ToastService.ShowSuccess("Course removed from cart");
+                CartService.NotifyCartUpdated();
+            }
+            else
+            {
+                ToastService.ShowError(response.Message ?? "Failed to remove course");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error removing course: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ClearCart()
+    {
+        if (isProcessing) return;
+
+        isProcessing = true;
+        try
+        {
+            var response = await CartService.ClearCartAsync();
+            if (response.Success)
+            {
+                cart = new CartModel();
+                ToastService.ShowSuccess("Cart cleared");
+                CartService.NotifyCartUpdated();
+            }
+            else
+            {
+                ToastService.ShowError(response.Message ?? "Failed to clear cart");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error clearing cart: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ApplyCoupon()
+    {
+        if (string.IsNullOrWhiteSpace(couponCode) || isProcessing) return;
+
+        isProcessing = true;
+        try
+        {
+            var response = await CartService.ApplyCouponAsync(couponCode.Trim());
+            if (response.Success && response.Data != null)
+            {
+                if (response.Data.IsValid)
+                {
+                    // Reload cart to get updated prices
+                    await LoadCart();
+                    ToastService.ShowSuccess($"Coupon applied! You saved €{response.Data.DiscountAmount:0.00}");
+                    couponCode = string.Empty;
+                }
+                else
+                {
+                    ToastService.ShowError(response.Data.ErrorMessage ?? "Invalid coupon code");
+                }
+            }
+            else
+            {
+                ToastService.ShowError(response.Message ?? "Failed to apply coupon");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error applying coupon: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task RemoveCoupon()
+    {
+        if (isProcessing) return;
+
+        isProcessing = true;
+        try
+        {
+            var response = await CartService.RemoveCouponAsync();
+            if (response.Success && response.Data != null)
+            {
+                cart = response.Data;
+                ToastService.ShowInfo("Coupon removed");
+            }
+            else
+            {
+                ToastService.ShowError(response.Message ?? "Failed to remove coupon");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error removing coupon: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ProceedToCheckout()
+    {
+        if (isProcessing || cart == null || cart.ItemCount == 0) return;
+
+        isProcessing = true;
+        try
+        {
+            // Validate cart before checkout
+            var response = await CartService.ValidateCartForCheckoutAsync();
+            if (response.Success && response.Data != null)
+            {
+                cart = response.Data;
+
+                // Navigate to checkout
+                Navigation.NavigateTo("/checkout");
+            }
+            else
+            {
+                ToastService.ShowError(response.Message ?? "Failed to validate cart");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error proceeding to checkout: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes}min";
+
+        var hours = minutes / 60;
+        var remainingMinutes = minutes % 60;
+
+        if (remainingMinutes == 0)
+            return $"{hours}h";
+
+        return $"{hours}h {remainingMinutes}min";
+    }
+}

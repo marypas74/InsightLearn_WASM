@@ -404,6 +404,17 @@
             {
                 showPreview = true;
                 StateHasChanged();
+
+                // Auto-hide preview after 10 seconds (v2.1.0-dev UX improvement)
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(10000);
+                    if (showPreview && !isOpen)
+                    {
+                        showPreview = false;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                });
             }
         }
 

@@ -1,0 +1,931 @@
+@page "/instructor/courses/{CourseId:guid}/edit"
+@attribute [Authorize(Roles = "Instructor,Admin")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Edit Course - InsightLearn</PageTitle>
+
+<div class="edit-course-page">
+    <div class="page-header">
+        <div class="header-left">
+            <a href="/instructor/courses" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to My Courses
+            </a>
+            <h1>Edit Course</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="PreviewCourse">
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <button class="btn btn-primary" @onclick="SaveCourse" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <i class="fas fa-save"></i>
+                    <span>Save Changes</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading course...</p>
+        </div>
+    }
+    else
+    {
+        <div class="edit-layout">
+            <!-- Sidebar Navigation -->
+            <div class="edit-sidebar">
+                <nav class="edit-nav">
+                    <a class="nav-item @(activeTab == "basic" ? "active" : "")" @onclick='() => activeTab = "basic"'>
+                        <i class="fas fa-info-circle"></i> Basic Info
+                    </a>
+                    <a class="nav-item @(activeTab == "pricing" ? "active" : "")" @onclick='() => activeTab = "pricing"'>
+                        <i class="fas fa-tag"></i> Pricing
+                    </a>
+                    <a class="nav-item @(activeTab == "curriculum" ? "active" : "")" @onclick='() => activeTab = "curriculum"'>
+                        <i class="fas fa-list"></i> Curriculum
+                    </a>
+                    <a class="nav-item @(activeTab == "media" ? "active" : "")" @onclick='() => activeTab = "media"'>
+                        <i class="fas fa-image"></i> Media
+                    </a>
+                    <a class="nav-item @(activeTab == "settings" ? "active" : "")" @onclick='() => activeTab = "settings"'>
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </nav>
+
+                <div class="course-status">
+                    <span class="status-label">Status</span>
+                    <span class="status-badge @(course.IsPublished ? "published" : "draft")">
+                        @(course.IsPublished ? "Published" : "Draft")
+                    </span>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="edit-content">
+                @if (activeTab == "basic")
+                {
+                    <div class="form-section">
+                        <h2>Basic Information</h2>
+
+                        <div class="form-group">
+                            <label for="title">Course Title *</label>
+                            <input type="text" id="title" @bind="course.Title" class="form-control" placeholder="Enter course title" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subtitle">Subtitle</label>
+                            <input type="text" id="subtitle" @bind="course.Subtitle" class="form-control" placeholder="A brief subtitle for your course" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Description *</label>
+                            <textarea id="description" @bind="course.Description" class="form-control" rows="6" placeholder="Describe what students will learn"></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="category">Category *</label>
+                                <select id="category" @bind="course.CategoryId" class="form-control">
+                                    <option value="">Select category</option>
+                                    @foreach (var cat in categories)
+                                    {
+                                        <option value="@cat.Id">@cat.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="level">Level *</label>
+                                <select id="level" @bind="course.Level" class="form-control">
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                    <option value="All Levels">All Levels</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language">Language</label>
+                            <select id="language" @bind="course.Language" class="form-control">
+                                <option value="English">English</option>
+                                <option value="Italian">Italian</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                            </select>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "pricing")
+                {
+                    <div class="form-section">
+                        <h2>Pricing</h2>
+
+                        <div class="pricing-toggle">
+                            <label class="toggle-option @(!course.IsFree ? "active" : "")">
+                                <input type="radio" name="pricing" @onchange="() => course.IsFree = false" checked="@(!course.IsFree)" />
+                                <span>Paid</span>
+                            </label>
+                            <label class="toggle-option @(course.IsFree ? "active" : "")">
+                                <input type="radio" name="pricing" @onchange="() => course.IsFree = true" checked="@course.IsFree" />
+                                <span>Free</span>
+                            </label>
+                        </div>
+
+                        @if (!course.IsFree)
+                        {
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="price">Price *</label>
+                                    <div class="input-group">
+                                        <span class="input-prefix">EUR</span>
+                                        <input type="number" id="price" @bind="course.Price" class="form-control" step="0.01" min="0" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="discount">Discount %</label>
+                                    <input type="number" id="discount" @bind="course.DiscountPercent" class="form-control" min="0" max="100" />
+                                </div>
+                            </div>
+
+                            @if (course.DiscountPercent > 0)
+                            {
+                                <div class="price-preview">
+                                    <span class="original-price">@course.Price.ToString("C2", new System.Globalization.CultureInfo("it-IT"))</span>
+                                    <span class="final-price">@((course.Price * (1 - course.DiscountPercent / 100)).ToString("C2", new System.Globalization.CultureInfo("it-IT")))</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+                else if (activeTab == "curriculum")
+                {
+                    <div class="form-section">
+                        <h2>Curriculum</h2>
+                        <p class="section-description">Organize your course content into sections and lessons</p>
+
+                        <div class="curriculum-builder">
+                            @foreach (var section in course.Sections)
+                            {
+                                <div class="section-item">
+                                    <div class="section-header">
+                                        <i class="fas fa-grip-vertical drag-handle"></i>
+                                        <input type="text" @bind="section.Title" class="section-title-input" placeholder="Section title" />
+                                        <button class="btn-icon" @onclick="() => RemoveSection(section)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="lessons-list">
+                                        @foreach (var lesson in section.Lessons)
+                                        {
+                                            <div class="lesson-item">
+                                                <i class="fas fa-play-circle"></i>
+                                                <input type="text" @bind="lesson.Title" class="lesson-title-input" placeholder="Lesson title" />
+                                                <span class="lesson-duration">@lesson.Duration</span>
+                                                <button class="btn-icon" @onclick="() => RemoveLesson(section, lesson)">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        <button class="btn btn-sm btn-outline add-lesson-btn" @onclick="() => AddLesson(section)">
+                                            <i class="fas fa-plus"></i> Add Lesson
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            <button class="btn btn-outline add-section-btn" @onclick="AddSection">
+                                <i class="fas fa-plus-circle"></i> Add Section
+                            </button>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "media")
+                {
+                    <div class="form-section">
+                        <h2>Course Media</h2>
+
+                        <div class="media-upload-section">
+                            <h3>Thumbnail Image</h3>
+                            <div class="upload-area">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drag and drop or click to upload</p>
+                                <span class="upload-hint">Recommended: 750x422 pixels, JPG or PNG</span>
+                            </div>
+                        </div>
+
+                        <div class="media-upload-section">
+                            <h3>Promotional Video</h3>
+                            <div class="upload-area">
+                                <i class="fas fa-video"></i>
+                                <p>Upload a preview video for your course</p>
+                                <span class="upload-hint">Max 5 minutes, MP4 format</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (activeTab == "settings")
+                {
+                    <div class="form-section">
+                        <h2>Course Settings</h2>
+
+                        <div class="settings-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="course.IsPublished" />
+                                <span>Publish Course</span>
+                                <small>Make this course visible to students</small>
+                            </label>
+                        </div>
+
+                        <div class="settings-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="course.AllowComments" />
+                                <span>Allow Comments</span>
+                                <small>Let students comment on lessons</small>
+                            </label>
+                        </div>
+
+                        <div class="settings-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="course.CertificateEnabled" />
+                                <span>Certificate of Completion</span>
+                                <small>Issue certificates to students who complete the course</small>
+                            </label>
+                        </div>
+
+                        <div class="danger-zone">
+                            <h3>Danger Zone</h3>
+                            <button class="btn btn-danger" @onclick="DeleteCourse">
+                                <i class="fas fa-trash"></i> Delete Course
+                            </button>
+                            <p class="warning-text">This action cannot be undone. All course data will be permanently deleted.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .edit-course-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .back-link {
+        color: var(--gray-600);
+        text-decoration: none;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .back-link:hover {
+        color: var(--primary);
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        gap: 1rem;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .spinner-sm {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Edit Layout */
+    .edit-layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 2rem;
+    }
+
+    .edit-sidebar {
+        position: sticky;
+        top: 2rem;
+        height: fit-content;
+    }
+
+    .edit-nav {
+        background: white;
+        border-radius: 12px;
+        padding: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        color: var(--gray-700);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .nav-item:hover {
+        background: var(--gray-100);
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .course-status {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .status-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge {
+        display: block;
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .status-badge.published {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.draft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    /* Form Styles */
+    .edit-content {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-section h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .input-group {
+        display: flex;
+    }
+
+    .input-prefix {
+        padding: 0.75rem 1rem;
+        background: var(--gray-100);
+        border: 1px solid var(--gray-300);
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        color: var(--gray-600);
+        font-size: 0.9rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Pricing */
+    .pricing-toggle {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .toggle-option {
+        flex: 1;
+        padding: 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .toggle-option.active {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+    }
+
+    .toggle-option input {
+        display: none;
+    }
+
+    .price-preview {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: 8px;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: var(--gray-500);
+    }
+
+    .final-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    /* Curriculum */
+    .section-description {
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+    }
+
+    .section-item {
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: 8px 8px 0 0;
+    }
+
+    .drag-handle {
+        color: var(--gray-400);
+        cursor: grab;
+    }
+
+    .section-title-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .section-title-input:focus {
+        outline: none;
+    }
+
+    .lessons-list {
+        padding: 1rem;
+    }
+
+    .lesson-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        background: white;
+        border: 1px solid var(--gray-100);
+    }
+
+    .lesson-item i {
+        color: var(--primary);
+    }
+
+    .lesson-title-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: 0.9rem;
+    }
+
+    .lesson-title-input:focus {
+        outline: none;
+    }
+
+    .lesson-duration {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+        padding: 0.25rem;
+    }
+
+    .btn-icon:hover {
+        color: var(--error);
+    }
+
+    .add-lesson-btn, .add-section-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    /* Media */
+    .media-upload-section {
+        margin-bottom: 2rem;
+    }
+
+    .media-upload-section h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .upload-area {
+        border: 2px dashed var(--gray-300);
+        border-radius: 12px;
+        padding: 3rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .upload-area:hover {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.02);
+    }
+
+    .upload-area i {
+        font-size: 2.5rem;
+        color: var(--gray-400);
+        margin-bottom: 1rem;
+    }
+
+    .upload-area p {
+        color: var(--gray-700);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .upload-hint {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    /* Settings */
+    .settings-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+    }
+
+    .checkbox-label input {
+        margin-right: 0.5rem;
+    }
+
+    .checkbox-label span {
+        font-weight: 500;
+    }
+
+    .checkbox-label small {
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+    }
+
+    .danger-zone {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .danger-zone h3 {
+        color: var(--error);
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn-danger {
+        background: var(--error);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    .warning-text {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        margin-top: 0.5rem;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .edit-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .edit-sidebar {
+            position: static;
+        }
+
+        .edit-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            flex: 1;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .edit-course-page {
+            padding: 1rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions .btn {
+            flex: 1;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid CourseId { get; set; }
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string activeTab = "basic";
+    private CourseEditModel course = new();
+    private List<CategoryItem> categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourse();
+    }
+
+    private async Task LoadCourse()
+    {
+        isLoading = true;
+        try
+        {
+            // Mock data - replace with actual API call
+            await Task.Delay(500);
+
+            categories = new List<CategoryItem>
+            {
+                new() { Id = Guid.NewGuid(), Name = "Programming" },
+                new() { Id = Guid.NewGuid(), Name = "Design" },
+                new() { Id = Guid.NewGuid(), Name = "Business" },
+                new() { Id = Guid.NewGuid(), Name = "Marketing" }
+            };
+
+            course = new CourseEditModel
+            {
+                Id = CourseId,
+                Title = "Complete Web Development Bootcamp",
+                Subtitle = "Learn HTML, CSS, JavaScript, React, Node.js and more",
+                Description = "This comprehensive course covers everything you need to become a full-stack web developer. From the basics of HTML and CSS to advanced topics like React and Node.js.",
+                CategoryId = categories[0].Id,
+                Level = "All Levels",
+                Language = "English",
+                Price = 49.99m,
+                DiscountPercent = 20,
+                IsFree = false,
+                IsPublished = true,
+                AllowComments = true,
+                CertificateEnabled = true,
+                Sections = new List<SectionItem>
+                {
+                    new() { Title = "Introduction", Lessons = new List<LessonItem>
+                    {
+                        new() { Title = "Welcome to the Course", Duration = "5:30" },
+                        new() { Title = "Setting Up Your Environment", Duration = "12:45" }
+                    }},
+                    new() { Title = "HTML Fundamentals", Lessons = new List<LessonItem>
+                    {
+                        new() { Title = "HTML Structure", Duration = "18:20" },
+                        new() { Title = "Working with Elements", Duration = "22:15" },
+                        new() { Title = "Forms and Inputs", Duration = "25:30" }
+                    }}
+                }
+            };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveCourse()
+    {
+        isSaving = true;
+        try
+        {
+            await Task.Delay(1000); // Simulate API call
+            Toast.ShowSuccess("Course saved successfully!");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error saving course: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void PreviewCourse()
+    {
+        Navigation.NavigateTo($"/courses/{CourseId}");
+    }
+
+    private void AddSection()
+    {
+        course.Sections.Add(new SectionItem { Title = "New Section", Lessons = new List<LessonItem>() });
+    }
+
+    private void RemoveSection(SectionItem section)
+    {
+        course.Sections.Remove(section);
+    }
+
+    private void AddLesson(SectionItem section)
+    {
+        section.Lessons.Add(new LessonItem { Title = "New Lesson", Duration = "0:00" });
+    }
+
+    private void RemoveLesson(SectionItem section, LessonItem lesson)
+    {
+        section.Lessons.Remove(lesson);
+    }
+
+    private async Task DeleteCourse()
+    {
+        // TODO: Show confirmation modal
+        Toast.ShowWarning("Delete functionality coming soon");
+    }
+
+    private class CourseEditModel
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Subtitle { get; set; } = "";
+        public string Description { get; set; } = "";
+        public Guid CategoryId { get; set; }
+        public string Level { get; set; } = "All Levels";
+        public string Language { get; set; } = "English";
+        public decimal Price { get; set; }
+        public int DiscountPercent { get; set; }
+        public bool IsFree { get; set; }
+        public bool IsPublished { get; set; }
+        public bool AllowComments { get; set; }
+        public bool CertificateEnabled { get; set; }
+        public List<SectionItem> Sections { get; set; } = new();
+    }
+
+    private class SectionItem
+    {
+        public string Title { get; set; } = "";
+        public List<LessonItem> Lessons { get; set; } = new();
+    }
+
+    private class LessonItem
+    {
+        public string Title { get; set; } = "";
+        public string Duration { get; set; } = "";
+    }
+
+    private class CategoryItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+}

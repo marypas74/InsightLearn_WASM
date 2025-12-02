@@ -7,7 +7,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IToastService ToastService
-@attribute [Authorize]
+@* v2.1.0-dev: Removed [Authorize] to allow anonymous preview of free lessons *@
 
 <PageTitle>@(lesson?.Title ?? "Learning") - InsightLearn</PageTitle>
 
@@ -106,8 +106,8 @@ else if (lesson != null && course != null)
                 <!-- Video Progress Indicator -->
                 <div class="progress-indicator-wrapper">
                     <VideoProgressIndicator LessonId="@LessonId"
-                                            CurrentTime="@currentVideoTime"
-                                            Duration="@videoDuration"
+                                            CurrentPosition="@currentVideoTime"
+                                            TotalDuration="@videoDuration"
                                             OnSeek="@HandleProgressSeek" />
                 </div>
 
@@ -277,26 +277,7 @@ else if (lesson != null && course != null)
             isLoading = true;
             errorMessage = null;
 
-            // Check authentication
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (!authState.User.Identity?.IsAuthenticated ?? true)
-            {
-                errorMessage = "You must be logged in to access lessons.";
-                Navigation.NavigateTo("/login");
-                return;
-            }
-
-            // Check enrollment
-            var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
-            isEnrolled = enrollmentResponse.Data;
-
-            if (!isEnrolled)
-            {
-                errorMessage = "You must be enrolled in this course to access lessons.";
-                return;
-            }
-
-            // Load course data
+            // Load course data FIRST (needed to check if lesson is free)
             var courseResponse = await CourseService.GetCourseByIdAsync(CourseId);
             if (!courseResponse.Success || courseResponse.Data == null)
             {
@@ -305,12 +286,48 @@ else if (lesson != null && course != null)
             }
             course = courseResponse.Data;
 
-            // Find current lesson
+            // Find current lesson FIRST (needed to check if it's free)
             lesson = FindLesson(course, LessonId);
             if (lesson == null)
             {
                 errorMessage = "Lesson not found in this course.";
                 return;
+            }
+
+            // v2.1.0-dev: FREE lessons can be viewed by ANYONE (anonymous or authenticated)
+            // PAID lessons require authentication AND enrollment
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+
+            if (lesson.IsFree)
+            {
+                // FREE lesson - allow anonymous preview
+                // If authenticated, check enrollment status for progress tracking
+                if (isAuthenticated)
+                {
+                    var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                    isEnrolled = enrollmentResponse.Data;
+                }
+                // Continue to show the lesson (anonymous or authenticated)
+            }
+            else
+            {
+                // PAID lesson - require authentication
+                if (!isAuthenticated)
+                {
+                    Navigation.NavigateTo($"/login?returnUrl=/learn/{CourseId}/{LessonId}");
+                    return;
+                }
+
+                // Check enrollment for paid lessons
+                var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                isEnrolled = enrollmentResponse.Data;
+
+                if (!isEnrolled)
+                {
+                    errorMessage = "You must be enrolled in this course to access this lesson.";
+                    return;
+                }
             }
 
             // Calculate lesson navigation

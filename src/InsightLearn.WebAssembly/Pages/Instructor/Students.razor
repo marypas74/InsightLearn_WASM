@@ -1,0 +1,564 @@
+@page "/instructor/students"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Instructor")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+
+<PageTitle>My Students - InsightLearn</PageTitle>
+
+<div class="instructor-students-page">
+    <div class="page-header">
+        <div class="header-content">
+            <nav class="breadcrumb-nav">
+                <a href="/dashboard">Dashboard</a>
+                <span class="separator">/</span>
+                <span class="current">My Students</span>
+            </nav>
+            <h1><i class="fas fa-user-graduate"></i> My Students</h1>
+            <p class="header-subtitle">View and manage students enrolled in your courses</p>
+        </div>
+    </div>
+
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@totalStudents.ToString("N0")</span>
+                <span class="stat-label">Total Students</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@newStudentsThisMonth</span>
+                <span class="stat-label">New This Month</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-trophy"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@completedCount</span>
+                <span class="stat-label">Completed Courses</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fas fa-percentage"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@avgProgress%</span>
+                <span class="stat-label">Avg. Progress</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header">
+            <h2>Enrolled Students</h2>
+            <div class="filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search students..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+                <select class="course-filter" @bind="selectedCourse">
+                    <option value="">All Courses</option>
+                    @foreach (var course in courses)
+                    {
+                        <option value="@course.Id">@course.Title</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading students...</p>
+            </div>
+        }
+        else if (filteredStudents.Any())
+        {
+            <div class="students-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Course</th>
+                            <th>Enrolled Date</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var student in filteredStudents)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="student-info">
+                                        <div class="avatar">@GetInitials(student.Name)</div>
+                                        <div class="details">
+                                            <span class="name">@student.Name</span>
+                                            <span class="email">@student.Email</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@student.CourseName</td>
+                                <td>@student.EnrolledDate.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <div class="progress-cell">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: @student.Progress%"></div>
+                                        </div>
+                                        <span>@student.Progress%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge @GetStatusClass(student.Progress)">
+                                        @GetStatusText(student.Progress)
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-users-slash"></i>
+                <h3>No students found</h3>
+                <p>@(string.IsNullOrEmpty(searchQuery) ? "You don't have any enrolled students yet." : "No students match your search criteria.")</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .instructor-students-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .breadcrumb-nav {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .breadcrumb-nav a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .breadcrumb-nav .separator {
+        margin: 0 0.5rem;
+        color: var(--gray-400);
+    }
+
+    .breadcrumb-nav .current {
+        color: var(--gray-500);
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--primary);
+    }
+
+    .header-subtitle {
+        color: var(--gray-500);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .stat-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .stat-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .filters {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-400);
+    }
+
+    .search-box input {
+        padding: 0.625rem 1rem 0.625rem 2.5rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        width: 250px;
+    }
+
+    .course-filter {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: white;
+    }
+
+    .students-table {
+        overflow-x: auto;
+    }
+
+    .students-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .students-table th,
+    .students-table td {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .students-table th {
+        font-weight: 600;
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .student-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .details .name {
+        font-weight: 500;
+        color: var(--gray-900);
+    }
+
+    .details .email {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .progress-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .progress-bar {
+        width: 100px;
+        height: 6px;
+        background: var(--gray-200);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), #8b5cf6);
+        border-radius: 3px;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.completed {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge.in-progress {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-badge.not-started {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    .loading-state,
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem;
+        text-align: center;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--gray-300);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--gray-700);
+    }
+
+    .empty-state p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 1024px) {
+        .stats-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .instructor-students-page {
+            padding: 1rem;
+        }
+
+        .stats-overview {
+            grid-template-columns: 1fr;
+        }
+
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .filters {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .search-box input {
+            width: 100%;
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private string searchQuery = "";
+    private string selectedCourse = "";
+
+    private int totalStudents = 0;
+    private int newStudentsThisMonth = 0;
+    private int completedCount = 0;
+    private int avgProgress = 0;
+
+    private List<StudentEnrollment> students = new();
+    private List<CourseOption> courses = new();
+
+    private IEnumerable<StudentEnrollment> filteredStudents => students
+        .Where(s => string.IsNullOrEmpty(searchQuery) ||
+                    s.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    s.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+        .Where(s => string.IsNullOrEmpty(selectedCourse) || s.CourseId.ToString() == selectedCourse);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStudents();
+    }
+
+    private async Task LoadStudents()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Try to load from API
+            // For now, load mock data since API may not be ready
+            await Task.Delay(500); // Simulate API call
+            LoadMockData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading students: {ex.Message}");
+            LoadMockData();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void LoadMockData()
+    {
+        courses = new List<CourseOption>
+        {
+            new() { Id = Guid.NewGuid(), Title = "React.js Complete Guide with Redux & Hooks" },
+            new() { Id = Guid.NewGuid(), Title = "JavaScript Modern Web Development" }
+        };
+
+        students = new List<StudentEnrollment>
+        {
+            new() { Name = "Marco Rossi", Email = "marco.rossi@email.com", CourseName = "React.js Complete Guide with Redux & Hooks", CourseId = courses[0].Id, EnrolledDate = DateTime.Now.AddDays(-30), Progress = 85 },
+            new() { Name = "Giulia Bianchi", Email = "giulia.b@email.com", CourseName = "React.js Complete Guide with Redux & Hooks", CourseId = courses[0].Id, EnrolledDate = DateTime.Now.AddDays(-25), Progress = 72 },
+            new() { Name = "Luca Ferrari", Email = "luca.ferrari@email.com", CourseName = "JavaScript Modern Web Development", CourseId = courses[1].Id, EnrolledDate = DateTime.Now.AddDays(-20), Progress = 45 },
+            new() { Name = "Sofia Conti", Email = "sofia.c@email.com", CourseName = "React.js Complete Guide with Redux & Hooks", CourseId = courses[0].Id, EnrolledDate = DateTime.Now.AddDays(-15), Progress = 100 },
+            new() { Name = "Alessandro Marino", Email = "a.marino@email.com", CourseName = "JavaScript Modern Web Development", CourseId = courses[1].Id, EnrolledDate = DateTime.Now.AddDays(-10), Progress = 28 },
+            new() { Name = "Chiara Romano", Email = "chiara.r@email.com", CourseName = "React.js Complete Guide with Redux & Hooks", CourseId = courses[0].Id, EnrolledDate = DateTime.Now.AddDays(-5), Progress = 15 },
+            new() { Name = "Francesco Greco", Email = "f.greco@email.com", CourseName = "JavaScript Modern Web Development", CourseId = courses[1].Id, EnrolledDate = DateTime.Now.AddDays(-3), Progress = 0 }
+        };
+
+        totalStudents = students.Count;
+        newStudentsThisMonth = students.Count(s => s.EnrolledDate >= DateTime.Now.AddDays(-30));
+        completedCount = students.Count(s => s.Progress >= 100);
+        avgProgress = students.Any() ? (int)students.Average(s => s.Progress) : 0;
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpper() : parts[0][0].ToString().ToUpper();
+    }
+
+    private string GetStatusClass(int progress) => progress switch
+    {
+        >= 100 => "completed",
+        > 0 => "in-progress",
+        _ => "not-started"
+    };
+
+    private string GetStatusText(int progress) => progress switch
+    {
+        >= 100 => "Completed",
+        > 0 => "In Progress",
+        _ => "Not Started"
+    };
+
+    private class StudentEnrollment
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public Guid CourseId { get; set; }
+        public DateTime EnrolledDate { get; set; }
+        public int Progress { get; set; }
+    }
+
+    private class CourseOption
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+    }
+}

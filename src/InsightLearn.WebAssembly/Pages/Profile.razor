@@ -1,4 +1,5 @@
 @page "/profile"
+@page "/profile/{Tab}"
 @using InsightLearn.WebAssembly.Models.Auth
 @using InsightLearn.WebAssembly.Services
 @using Microsoft.AspNetCore.Authorization
@@ -11,168 +12,507 @@
 
 <PageTitle>My Profile - InsightLearn</PageTitle>
 
-<div class="container py-5">
-    <div class="row">
-        <!-- Left Column: Profile Card (30%) -->
-        <div class="col-lg-4 mb-4">
-            <div class="card profile-card">
-                <!-- Avatar -->
-                <div class="profile-avatar-wrapper">
-                    @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
-                    {
-                        <img src="@user.ProfileImageUrl" alt="@user.FirstName" class="profile-avatar" />
-                    }
-                    else
-                    {
-                        <div class="profile-avatar-placeholder">
-                            <i class="bi bi-person"></i>
+<div class="profile-page">
+    <div class="container-fluid px-4 py-4">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                <li class="breadcrumb-item active">My Profile</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4">
+            <!-- Left Sidebar -->
+            <div class="col-lg-3 col-md-4">
+                <!-- Profile Card -->
+                <div class="profile-sidebar-card">
+                    <!-- Avatar Section -->
+                    <div class="profile-avatar-section">
+                        <div class="profile-avatar-wrapper">
+                            @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
+                            {
+                                <img src="@user.ProfileImageUrl" alt="@user.FirstName" class="profile-avatar" />
+                            }
+                            else
+                            {
+                                <div class="profile-avatar-placeholder">
+                                    <span class="avatar-initials">@GetInitials()</span>
+                                </div>
+                            }
+                            <label class="avatar-upload-btn" title="Change photo">
+                                <i class="fas fa-camera"></i>
+                                <InputFile OnChange="HandleAvatarUploadAsync" accept="image/*" class="d-none" />
+                            </label>
                         </div>
-                    }
-
-                    @if (isEditMode)
-                    {
-                        <label class="avatar-upload-btn" title="Upload profile picture">
-                            <i class="bi bi-camera"></i>
-                            <InputFile OnChange="HandleAvatarUploadAsync" accept="image/*" class="d-none" />
-                        </label>
-                    }
-                </div>
-
-                <div class="profile-info">
-                    <h2 class="profile-name">@user?.FullName</h2>
-                    <p class="profile-email">@user?.Email</p>
-                    <span class="badge badge-@(GetRoleBadgeColor(user?.Role))">
-                        @user?.Role
-                    </span>
-                </div>
-
-                <!-- Stats -->
-                <div class="profile-stats">
-                    <div class="stat-item">
-                        <span class="stat-value">@enrolledCourseCount</span>
-                        <span class="stat-label">Enrolled Courses</span>
+                        <h2 class="profile-name">@user?.FullName</h2>
+                        <p class="profile-email">@user?.Email</p>
+                        <span class="role-badge role-badge-@(GetRoleBadgeColor(user?.Role))">
+                            <i class="@GetRoleIcon(user?.Role)"></i> @user?.Role
+                        </span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-value">@completedCourseCount</span>
-                        <span class="stat-label">Completed</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">@averageProgress%</span>
-                        <span class="stat-label">Avg Progress</span>
-                    </div>
-                </div>
 
-                <!-- Actions -->
-                <div class="profile-actions">
-                    @if (!isEditMode)
-                    {
-                        <button @onclick="EnableEditMode" class="btn btn-primary w-100">
-                            <i class="bi bi-pencil"></i> Edit Profile
-                        </button>
-                    }
-                    else
-                    {
-                        <button @onclick="CancelEditMode" class="btn btn-outline w-100 mb-2">
-                            <i class="bi bi-x"></i> Cancel
-                        </button>
-                    }
+                    <!-- Stats Grid -->
+                    <div class="profile-stats-grid">
+                        <div class="stat-box" @onclick='() => Navigation.NavigateTo("/dashboard")'>
+                            <div class="stat-icon-wrapper stat-teal">
+                                <i class="fas fa-book-open"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number">@enrolledCourseCount</span>
+                                <span class="stat-text">Enrolled</span>
+                            </div>
+                        </div>
+                        <div class="stat-box" @onclick='() => Navigation.NavigateTo("/certificates")'>
+                            <div class="stat-icon-wrapper stat-green">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number">@completedCourseCount</span>
+                                <span class="stat-text">Completed</span>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon-wrapper stat-purple">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number">@averageProgress%</span>
+                                <span class="stat-text">Progress</span>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon-wrapper stat-yellow">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number">@totalHours</span>
+                                <span class="stat-text">Hours</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation -->
+                    <nav class="profile-quick-nav">
+                        <h4 class="nav-title">Quick Access</h4>
+                        <a href="/dashboard" class="quick-nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/my-courses" class="quick-nav-link">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>My Learning</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/certificates" class="quick-nav-link">
+                            <i class="fas fa-certificate"></i>
+                            <span>Certificates</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/wishlist" class="quick-nav-link">
+                            <i class="fas fa-heart"></i>
+                            <span>Wishlist</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        <a href="/notifications" class="quick-nav-link">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                            <span class="nav-badge">3</span>
+                        </a>
+                    </nav>
+
+                    <!-- Member Info -->
+                    <div class="member-info">
+                        <div class="info-row">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Member since @user?.DateJoined.ToString("MMM yyyy")</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Last login @GetLastLoginText()</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Right Column: Edit Form (70%) -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Personal Information</h3>
+            <!-- Main Content -->
+            <div class="col-lg-9 col-md-8">
+                <!-- Tab Navigation -->
+                <div class="profile-tabs-wrapper">
+                    <ul class="profile-tabs">
+                        <li class="@(activeTab == "profile" ? "active" : "")" @onclick='() => SetActiveTab("profile")'>
+                            <i class="fas fa-user"></i>
+                            <span>Personal Info</span>
+                        </li>
+                        <li class="@(activeTab == "security" ? "active" : "")" @onclick='() => SetActiveTab("security")'>
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security</span>
+                        </li>
+                        <li class="@(activeTab == "preferences" ? "active" : "")" @onclick='() => SetActiveTab("preferences")'>
+                            <i class="fas fa-cog"></i>
+                            <span>Preferences</span>
+                        </li>
+                        <li class="@(activeTab == "billing" ? "active" : "")" @onclick='() => SetActiveTab("billing")'>
+                            <i class="fas fa-credit-card"></i>
+                            <span>Billing</span>
+                        </li>
+                    </ul>
                 </div>
-                <div class="card-body">
+
+                <!-- Tab Content -->
+                <div class="profile-content-card">
                     @if (isLoading)
                     {
-                        <!-- Skeleton loaders for form -->
-                        <div class="skeleton skeleton-input mb-3"></div>
-                        <div class="skeleton skeleton-input mb-3"></div>
-                        <div class="skeleton skeleton-textarea"></div>
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Loading your profile...</p>
+                        </div>
                     }
                     else if (user != null)
                     {
-                        <EditForm Model="editModel" OnValidSubmit="HandleSaveAsync">
-                            <DataAnnotationsValidator />
-
-                            <div class="row">
-                                <!-- First Name -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">First Name</label>
-                                    <InputText @bind-Value="editModel.FirstName"
-                                               class="form-control"
-                                               disabled="@(!isEditMode)" />
-                                    <ValidationMessage For="@(() => editModel.FirstName)" />
-                                </div>
-
-                                <!-- Last Name -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Last Name</label>
-                                    <InputText @bind-Value="editModel.LastName"
-                                               class="form-control"
-                                               disabled="@(!isEditMode)" />
-                                    <ValidationMessage For="@(() => editModel.LastName)" />
-                                </div>
-                            </div>
-
-                            <!-- Email (readonly) -->
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email"
-                                       value="@user.Email"
-                                       class="form-control"
-                                       disabled
-                                       readonly />
-                                <small class="form-text text-muted">
-                                    Email cannot be changed. Contact support if needed.
-                                </small>
-                            </div>
-
-                            <!-- Bio -->
-                            <div class="mb-3">
-                                <label class="form-label">Bio</label>
-                                <InputTextArea @bind-Value="editModel.Bio"
-                                               class="form-control"
-                                               rows="4"
-                                               disabled="@(!isEditMode)"
-                                               placeholder="Tell us about yourself..." />
-                                <ValidationMessage For="@(() => editModel.Bio)" />
-                                <small class="form-text text-muted">
-                                    @(editModel.Bio?.Length ?? 0) / 500 characters
-                                </small>
-                            </div>
-
-                            <!-- Save Button (only in edit mode) -->
-                            @if (isEditMode)
-                            {
-                                <div class="d-flex justify-content-end gap-2">
-                                    <button type="button"
-                                            @onclick="CancelEditMode"
-                                            class="btn btn-outline"
-                                            disabled="@isSaving">
-                                        Cancel
-                                    </button>
-                                    <button type="submit"
-                                            class="btn btn-primary"
-                                            disabled="@isSaving">
-                                        @if (isSaving)
+                        @switch (activeTab)
+                        {
+                            case "profile":
+                                <div class="tab-content-section">
+                                    <div class="section-header">
+                                        <div>
+                                            <h3><i class="fas fa-user-circle"></i> Personal Information</h3>
+                                            <p>Update your personal details and public profile</p>
+                                        </div>
+                                        @if (!isEditMode)
                                         {
-                                            <span class="spinner-border spinner-border-sm me-2"></span>
-                                            <text>Saving...</text>
+                                            <button @onclick="EnableEditMode" class="btn btn-edit">
+                                                <i class="fas fa-edit"></i> Edit Profile
+                                            </button>
                                         }
-                                        else
+                                    </div>
+
+                                    <EditForm Model="editModel" OnValidSubmit="HandleSaveAsync" class="profile-form">
+                                        <DataAnnotationsValidator />
+
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label">
+                                                    <i class="fas fa-user"></i> First Name
+                                                </label>
+                                                <InputText @bind-Value="editModel.FirstName"
+                                                           class="@($"form-input{(isEditMode ? "" : " readonly")}")"
+                                                           placeholder="Enter your first name"
+                                                           disabled="@(!isEditMode)" />
+                                                <ValidationMessage For="@(() => editModel.FirstName)" class="validation-error" />
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">
+                                                    <i class="fas fa-user"></i> Last Name
+                                                </label>
+                                                <InputText @bind-Value="editModel.LastName"
+                                                           class="@($"form-input{(isEditMode ? "" : " readonly")}")"
+                                                           placeholder="Enter your last name"
+                                                           disabled="@(!isEditMode)" />
+                                                <ValidationMessage For="@(() => editModel.LastName)" class="validation-error" />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-envelope"></i> Email Address
+                                            </label>
+                                            <div class="input-with-badge">
+                                                <input type="email" value="@user.Email" class="form-input readonly" disabled readonly />
+                                                @if (user.IsVerified)
+                                                {
+                                                    <span class="verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
+                                                }
+                                            </div>
+                                            <span class="form-hint">Contact support to change your email address</span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="fas fa-pen"></i> Bio
+                                            </label>
+                                            <InputTextArea @bind-Value="editModel.Bio"
+                                                           class="@($"form-textarea{(isEditMode ? "" : " readonly")}")"
+                                                           rows="4"
+                                                           disabled="@(!isEditMode)"
+                                                           placeholder="Tell others about yourself..." />
+                                            <div class="form-hint-row">
+                                                <span class="form-hint">Brief description for your profile</span>
+                                                <span class="char-count">@(editModel.Bio?.Length ?? 0) / 500</span>
+                                            </div>
+                                            <ValidationMessage For="@(() => editModel.Bio)" class="validation-error" />
+                                        </div>
+
+                                        @if (isEditMode)
                                         {
-                                            <i class="bi bi-check"></i>
-                                            <text> Save Changes</text>
+                                            <div class="form-actions">
+                                                <button type="button" @onclick="CancelEditMode" class="btn btn-secondary" disabled="@isSaving">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
+                                                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                                    @if (isSaving)
+                                                    {
+                                                        <span class="spinner-sm"></span>
+                                                        <span>Saving...</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-check"></i>
+                                                        <span>Save Changes</span>
+                                                    }
+                                                </button>
+                                            </div>
                                         }
-                                    </button>
+                                    </EditForm>
                                 </div>
-                            }
-                        </EditForm>
+                                break;
+
+                            case "security":
+                                <div class="tab-content-section">
+                                    <div class="section-header">
+                                        <div>
+                                            <h3><i class="fas fa-shield-alt"></i> Security Settings</h3>
+                                            <p>Manage your password and account security</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Password Change -->
+                                    <div class="security-card">
+                                        <div class="security-icon">
+                                            <i class="fas fa-key"></i>
+                                        </div>
+                                        <div class="security-info">
+                                            <h4>Password</h4>
+                                            <p>Last changed 30 days ago</p>
+                                        </div>
+                                        <button class="btn btn-outline-primary" @onclick="ShowChangePassword">
+                                            Change Password
+                                        </button>
+                                    </div>
+
+                                    <!-- Two-Factor Auth -->
+                                    <div class="security-card">
+                                        <div class="security-icon warning">
+                                            <i class="fas fa-mobile-alt"></i>
+                                        </div>
+                                        <div class="security-info">
+                                            <h4>Two-Factor Authentication</h4>
+                                            <p>Add an extra layer of security to your account</p>
+                                        </div>
+                                        <button class="btn btn-outline-success">
+                                            Enable 2FA
+                                        </button>
+                                    </div>
+
+                                    <!-- Active Sessions -->
+                                    <div class="security-card">
+                                        <div class="security-icon info">
+                                            <i class="fas fa-laptop"></i>
+                                        </div>
+                                        <div class="security-info">
+                                            <h4>Active Sessions</h4>
+                                            <p>1 active session on this device</p>
+                                        </div>
+                                        <button class="btn btn-outline-danger">
+                                            Sign Out All
+                                        </button>
+                                    </div>
+
+                                    <!-- Login History -->
+                                    <div class="login-history">
+                                        <h4><i class="fas fa-history"></i> Recent Login Activity</h4>
+                                        <div class="history-list">
+                                            <div class="history-item">
+                                                <div class="device-icon"><i class="fas fa-desktop"></i></div>
+                                                <div class="device-info">
+                                                    <span class="device-name">Chrome on Windows</span>
+                                                    <span class="device-location">Rome, Italy • Current session</span>
+                                                </div>
+                                                <span class="status-badge active">Active</span>
+                                            </div>
+                                            <div class="history-item">
+                                                <div class="device-icon"><i class="fas fa-mobile-alt"></i></div>
+                                                <div class="device-info">
+                                                    <span class="device-name">Safari on iPhone</span>
+                                                    <span class="device-location">Rome, Italy • 2 days ago</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                break;
+
+                            case "preferences":
+                                <div class="tab-content-section">
+                                    <div class="section-header">
+                                        <div>
+                                            <h3><i class="fas fa-sliders-h"></i> Preferences</h3>
+                                            <p>Customize your learning experience</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notifications -->
+                                    <div class="preference-group">
+                                        <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Email Notifications</span>
+                                                <span class="pref-desc">Receive course updates and announcements</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" checked="@emailNotifications" @onchange="ToggleEmailNotifications" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Push Notifications</span>
+                                                <span class="pref-desc">Get notified about new courses and promotions</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" checked="@pushNotifications" @onchange="TogglePushNotifications" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Weekly Progress Report</span>
+                                                <span class="pref-desc">Receive a summary of your weekly learning</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" checked="@weeklyReport" @onchange="ToggleWeeklyReport" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Display -->
+                                    <div class="preference-group">
+                                        <h4><i class="fas fa-desktop"></i> Display</h4>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Dark Mode</span>
+                                                <span class="pref-desc">Use dark theme for better night viewing</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" checked="@darkMode" @onchange="ToggleDarkMode" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Language</span>
+                                                <span class="pref-desc">Choose your preferred language</span>
+                                            </div>
+                                            <select class="form-select-mini" @bind="selectedLanguage">
+                                                <option value="en">English</option>
+                                                <option value="it">Italiano</option>
+                                                <option value="es">Español</option>
+                                                <option value="fr">Français</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Video Playback -->
+                                    <div class="preference-group">
+                                        <h4><i class="fas fa-play-circle"></i> Video Playback</h4>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Autoplay Next Video</span>
+                                                <span class="pref-desc">Automatically play the next lesson</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" checked="@autoplayVideo" @onchange="ToggleAutoplay" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="preference-item">
+                                            <div class="pref-info">
+                                                <span class="pref-label">Default Video Quality</span>
+                                                <span class="pref-desc">Set your preferred video resolution</span>
+                                            </div>
+                                            <select class="form-select-mini" @bind="videoQuality">
+                                                <option value="auto">Auto</option>
+                                                <option value="1080p">1080p HD</option>
+                                                <option value="720p">720p</option>
+                                                <option value="480p">480p</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                break;
+
+                            case "billing":
+                                <div class="tab-content-section">
+                                    <div class="section-header">
+                                        <div>
+                                            <h3><i class="fas fa-credit-card"></i> Billing & Payments</h3>
+                                            <p>Manage your payment methods and view transactions</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Wallet Balance -->
+                                    <div class="wallet-card">
+                                        <div class="wallet-info">
+                                            <span class="wallet-label">Wallet Balance</span>
+                                            <span class="wallet-amount">€@user.WalletBalance.ToString("N2")</span>
+                                        </div>
+                                        <button class="btn btn-primary">
+                                            <i class="fas fa-plus"></i> Add Funds
+                                        </button>
+                                    </div>
+
+                                    <!-- Payment Methods -->
+                                    <div class="payment-methods">
+                                        <h4><i class="fas fa-wallet"></i> Payment Methods</h4>
+                                        <div class="payment-card">
+                                            <div class="card-brand">
+                                                <i class="fab fa-cc-visa"></i>
+                                            </div>
+                                            <div class="card-info">
+                                                <span class="card-number">•••• •••• •••• 4242</span>
+                                                <span class="card-expiry">Expires 12/25</span>
+                                            </div>
+                                            <span class="default-badge">Default</span>
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-add-card">
+                                            <i class="fas fa-plus"></i> Add Payment Method
+                                        </button>
+                                    </div>
+
+                                    <!-- Recent Transactions -->
+                                    <div class="transactions-section">
+                                        <h4><i class="fas fa-receipt"></i> Recent Transactions</h4>
+                                        <div class="transaction-list">
+                                            <div class="transaction-item">
+                                                <div class="trans-icon success">
+                                                    <i class="fas fa-shopping-cart"></i>
+                                                </div>
+                                                <div class="trans-info">
+                                                    <span class="trans-title">Course Purchase - Advanced C#</span>
+                                                    <span class="trans-date">Nov 15, 2025</span>
+                                                </div>
+                                                <span class="trans-amount negative">-€49.99</span>
+                                            </div>
+                                            <div class="transaction-item">
+                                                <div class="trans-icon info">
+                                                    <i class="fas fa-wallet"></i>
+                                                </div>
+                                                <div class="trans-info">
+                                                    <span class="trans-title">Wallet Top-up</span>
+                                                    <span class="trans-date">Nov 10, 2025</span>
+                                                </div>
+                                                <span class="trans-amount positive">+€100.00</span>
+                                            </div>
+                                        </div>
+                                        <a href="/billing/history" class="view-all-link">
+                                            View All Transactions <i class="fas fa-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                break;
+                        }
                     }
                 </div>
             </div>
@@ -181,19 +521,45 @@
 </div>
 
 @code {
+    [Parameter]
+    public string? Tab { get; set; }
+
     private UserInfo? user;
     private UpdateUserModel editModel = new();
     private bool isLoading = true;
     private bool isEditMode = false;
     private bool isSaving = false;
+    private string activeTab = "profile";
 
     private int enrolledCourseCount = 0;
     private int completedCourseCount = 0;
     private int averageProgress = 0;
+    private int totalHours = 0;
+
+    // Preferences
+    private bool emailNotifications = true;
+    private bool pushNotifications = false;
+    private bool weeklyReport = true;
+    private bool darkMode = false;
+    private bool autoplayVideo = true;
+    private string selectedLanguage = "en";
+    private string videoQuality = "auto";
 
     protected override async Task OnInitializedAsync()
     {
+        if (!string.IsNullOrEmpty(Tab))
+        {
+            activeTab = Tab.ToLower();
+        }
         await LoadUserDataAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Tab))
+        {
+            activeTab = Tab.ToLower();
+        }
     }
 
     private async Task LoadUserDataAsync()
@@ -212,6 +578,7 @@
                 enrolledCourseCount = 5;
                 completedCourseCount = 2;
                 averageProgress = 65;
+                totalHours = 24;
 
                 // Initialize edit model
                 editModel = new UpdateUserModel
@@ -236,6 +603,13 @@
         }
     }
 
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        isEditMode = false;
+        Navigation.NavigateTo($"/profile/{tab}", forceLoad: false);
+    }
+
     private void EnableEditMode()
     {
         isEditMode = true;
@@ -244,7 +618,6 @@
     private void CancelEditMode()
     {
         isEditMode = false;
-        // Reset form to original values
         if (user != null)
         {
             editModel = new UpdateUserModel
@@ -261,7 +634,6 @@
         isSaving = true;
         try
         {
-            // Create updated user info
             var updatedUser = new UserInfo
             {
                 Id = user!.Id,
@@ -285,7 +657,6 @@
 
             if (response.Success)
             {
-                // Update local user object
                 user = response.Data;
                 Console.WriteLine("Profile updated successfully!");
                 isEditMode = false;
@@ -308,7 +679,7 @@
     private async Task HandleAvatarUploadAsync(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        if (file.Size > 5 * 1024 * 1024) // 5MB limit
+        if (file.Size > 5 * 1024 * 1024)
         {
             Console.WriteLine("File size must be less than 5MB");
             return;
@@ -322,7 +693,7 @@
             if (response.Success)
             {
                 Console.WriteLine("Avatar uploaded successfully!");
-                await LoadUserDataAsync(); // Reload to get new avatar URL
+                await LoadUserDataAsync();
             }
             else
             {
@@ -335,6 +706,14 @@
         }
     }
 
+    private string GetInitials()
+    {
+        if (user == null) return "?";
+        var first = user.FirstName?.FirstOrDefault().ToString().ToUpper() ?? "";
+        var last = user.LastName?.FirstOrDefault().ToString().ToUpper() ?? "";
+        return $"{first}{last}";
+    }
+
     private string GetRoleBadgeColor(string? role) =>
         role?.ToLower() switch
         {
@@ -343,6 +722,38 @@
             "student" => "success",
             _ => "secondary"
         };
+
+    private string GetRoleIcon(string? role) =>
+        role?.ToLower() switch
+        {
+            "admin" => "fas fa-crown",
+            "instructor" => "fas fa-chalkboard-teacher",
+            "student" => "fas fa-user-graduate",
+            _ => "fas fa-user"
+        };
+
+    private string GetLastLoginText()
+    {
+        if (user?.LastLoginDate == null) return "Never";
+        var diff = DateTime.UtcNow - user.LastLoginDate.Value;
+        if (diff.TotalMinutes < 5) return "Just now";
+        if (diff.TotalHours < 1) return $"{(int)diff.TotalMinutes} min ago";
+        if (diff.TotalDays < 1) return $"{(int)diff.TotalHours} hours ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} days ago";
+        return user.LastLoginDate.Value.ToString("MMM dd, yyyy");
+    }
+
+    private void ShowChangePassword()
+    {
+        // TODO: Implement password change modal
+        Console.WriteLine("Show change password modal");
+    }
+
+    private void ToggleEmailNotifications(ChangeEventArgs e) => emailNotifications = (bool)(e.Value ?? false);
+    private void TogglePushNotifications(ChangeEventArgs e) => pushNotifications = (bool)(e.Value ?? false);
+    private void ToggleWeeklyReport(ChangeEventArgs e) => weeklyReport = (bool)(e.Value ?? false);
+    private void ToggleDarkMode(ChangeEventArgs e) => darkMode = (bool)(e.Value ?? false);
+    private void ToggleAutoplay(ChangeEventArgs e) => autoplayVideo = (bool)(e.Value ?? false);
 
     public class UpdateUserModel
     {

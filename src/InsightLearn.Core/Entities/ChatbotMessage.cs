@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace InsightLearn.Core.Entities;
 
@@ -12,10 +13,12 @@ public class ChatbotMessage
     /// <summary>
     /// Session ID linking to ChatbotContact
     /// </summary>
+    [StringLength(255)]
     public string SessionId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Message text
+    /// Message text (supports long AI responses)
+    /// v2.1.0-dev: Changed from NVARCHAR(255) to NVARCHAR(MAX) to support AI responses
     /// </summary>
     public string Message { get; set; } = string.Empty;
 

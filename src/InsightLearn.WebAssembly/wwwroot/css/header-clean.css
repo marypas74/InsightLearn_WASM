@@ -1234,41 +1234,34 @@ body {
     margin: 0;
 }
 
+/* FIXED: Allow inline style colors to display properly (v2.1.0-dev) */
 .user-dropdown-expanded .dropdown-item i {
     width: 20px;
     text-align: center;
     font-size: 14px;
-    color: var(--text-secondary);
-    transition: color var(--transition-fast);
+    /* Removed color: var(--text-secondary) to allow inline style colors */
+    transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+/* Keep icon colors on hover - subtle brightness instead of color change */
+.user-dropdown-expanded .dropdown-item:hover i {
+    filter: brightness(1.1);
+    transform: scale(1.1);
 }
 
 .user-dropdown-expanded .dropdown-item:hover {
     background-color: var(--bg-hover);
-    color: var(--primary);
+    /* Keep text readable but don't override icon colors */
 }
 
-.user-dropdown-expanded .dropdown-item:hover i {
-    color: var(--primary);
-}
-
-/* Admin item hover - indigo accent */
-.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover {
+/* Admin section hover - subtle indigo background, keep icon colors */
+.dropdown-section.admin-section .dropdown-item:hover {
     background-color: rgba(99, 102, 241, 0.08);
 }
 
-.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover,
-.dropdown-section:has(.fa-shield-alt) .dropdown-item:hover i {
-    color: #6366f1;
-}
-
-/* Instructor item hover - purple accent */
+/* Instructor section hover - subtle purple background, keep icon colors */
 .dropdown-section:has(.fa-chalkboard) .dropdown-item:hover {
     background-color: rgba(139, 92, 246, 0.08);
-}
-
-.dropdown-section:has(.fa-chalkboard) .dropdown-item:hover,
-.dropdown-section:has(.fa-chalkboard) .dropdown-item:hover i {
-    color: #8b5cf6;
 }
 
 /* Dropdown Divider */
@@ -1277,6 +1270,77 @@ body {
     border: none;
     border-top: 1px solid var(--border-light);
 }
+
+/* ===================================
+   ADMIN MENU GROUP STYLING (v2.1.0-dev)
+   Professional grouped menu items
+   =================================== */
+
+/* Menu Group Container */
+.admin-menu-group {
+    padding: var(--space-xs) 0;
+}
+
+/* Menu Group Header - Small subtle label */
+.admin-menu-group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-light);
+    margin-top: var(--space-xs);
+}
+
+.admin-menu-group-header i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Group Separator Line */
+.admin-menu-separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+    margin: var(--space-sm) var(--space-md);
+}
+
+/* Admin Item with Icon Badge */
+.admin-item-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    margin-right: var(--space-sm);
+    font-size: 13px;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dropdown-item:hover .admin-item-badge {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Badge color variants */
+.admin-item-badge.badge-indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
+.admin-item-badge.badge-green { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+.admin-item-badge.badge-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+.admin-item-badge.badge-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+.admin-item-badge.badge-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+.admin-item-badge.badge-red { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+.admin-item-badge.badge-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+.admin-item-badge.badge-orange { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+.admin-item-badge.badge-violet { background: linear-gradient(135deg, #a855f7, #9333ea); color: white; }
+.admin-item-badge.badge-gray { background: linear-gradient(135deg, #64748b, #475569); color: white; }
+.admin-item-badge.badge-lime { background: linear-gradient(135deg, #84cc16, #65a30d); color: white; }
+.admin-item-badge.badge-sky { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
+.admin-item-badge.badge-rose { background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; }
+.admin-item-badge.badge-teal { background: linear-gradient(135deg, #14b8a6, #0d9488); color: white; }
+.admin-item-badge.badge-stone { background: linear-gradient(135deg, #78716c, #57534e); color: white; }
 
 /* Responsive adjustments for expanded menu */
 @media (max-width: 768px) {
@@ -1302,20 +1366,29 @@ body {
     }
 }
 
-/* Auth Buttons */
+/* ===================================
+   AUTH BUTTONS - ENHANCED (v2.1.0-dev)
+   Modern styling for Login/SignUp
+   =================================== */
+
+/* Auth Buttons Container */
 .auth-buttons {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-subtle);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
 }
 
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-md) var(--space-lg);
+    padding: 10px 18px;
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-semibold);
     font-family: var(--font-family);
     line-height: 1;
     text-decoration: none;
@@ -1324,32 +1397,47 @@ body {
     transition: all var(--transition-fast);
     white-space: nowrap;
     border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
 }
 
+/* Login Button - Outline style with hover effect */
 .btn-outline {
     background-color: transparent;
     color: var(--text-primary);
-    border-color: var(--border-light);
+    border-color: transparent;
 }
 
 .btn-outline:hover {
     background-color: var(--bg-hover);
-    border-color: var(--text-secondary);
-    color: var(--text-primary);
+    color: var(--primary-color);
     text-decoration: none;
+    transform: translateY(-1px);
 }
 
+.btn-outline:active {
+    transform: translateY(0);
+}
+
+/* Sign Up Button - Primary gradient style */
 .btn-primary {
-    background-color: var(--text-primary);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
     color: white;
-    border-color: var(--text-primary);
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
 .btn-primary:hover {
-    background-color: #374151;
-    border-color: #374151;
+    background: linear-gradient(135deg, var(--primary-hover) 0%, #991b1b 100%);
     color: white;
     text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
 }
 
 /* Mobile Menu Toggle */

@@ -85,6 +85,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ICartService, CartService>();
 
 // SaaS Subscription Services
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.Subscription.ISubscriptionService, InsightLearn.WebAssembly.Services.Subscription.SubscriptionService>();

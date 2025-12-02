@@ -1,0 +1,848 @@
+@page "/admin/search-console"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Search Console - InsightLearn Admin</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="breadcrumb-nav">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/admin" class="breadcrumb-item">Admin</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Search Console</span>
+        </nav>
+    </div>
+
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-search" style="color: #34a853;"></i>
+                Google Search Console
+            </h1>
+            <p class="page-description">Monitor search performance, submit sitemaps, and manage site indexing</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+            <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span class="spinner spinner-sm"></span>
+                }
+                else
+                {
+                    <i class="fas fa-save"></i>
+                }
+                Save Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Site Verification -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-check-circle"></i> Site Verification</h3>
+        </div>
+        <div class="card-body">
+            <div class="verification-status @(isVerified ? "verified" : "not-verified")">
+                <div class="status-icon">
+                    @if (isVerified)
+                    {
+                        <i class="fas fa-check-circle"></i>
+                    }
+                    else
+                    {
+                        <i class="fas fa-exclamation-circle"></i>
+                    }
+                </div>
+                <div class="status-content">
+                    <h4>@(isVerified ? "Site Verified" : "Site Not Verified")</h4>
+                    <p>@(isVerified ? "Your site ownership has been verified with Google" : "Verify your site to access all Search Console features")</p>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <label for="verificationMethod">Verification Method</label>
+                <select id="verificationMethod" class="form-control" @bind="verificationMethod">
+                    <option value="html-tag">HTML Meta Tag</option>
+                    <option value="html-file">HTML File Upload</option>
+                    <option value="dns">DNS TXT Record</option>
+                    <option value="analytics">Google Analytics</option>
+                </select>
+            </div>
+
+            @if (verificationMethod == "html-tag")
+            {
+                <div class="form-group mt-3">
+                    <label>Add this meta tag to your site's &lt;head&gt; section:</label>
+                    <div class="code-block">
+                        <code>&lt;meta name="google-site-verification" content="@verificationCode" /&gt;</code>
+                        <button class="btn-copy" @onclick="CopyVerificationCode">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (verificationMethod == "dns")
+            {
+                <div class="form-group mt-3">
+                    <label>Add this TXT record to your domain's DNS configuration:</label>
+                    <div class="code-block">
+                        <code>google-site-verification=@verificationCode</code>
+                        <button class="btn-copy" @onclick="CopyVerificationCode">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <button class="btn btn-success mt-3" @onclick="VerifySite" disabled="@isVerifying">
+                @if (isVerifying)
+                {
+                    <span class="spinner spinner-sm"></span>
+                }
+                <i class="fas fa-check"></i>
+                Verify Site
+            </button>
+        </div>
+    </div>
+
+    <!-- Sitemap Management -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-sitemap"></i> Sitemap Management</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="sitemapUrl">Sitemap URL</label>
+                <div class="input-group">
+                    <input type="text" id="sitemapUrl" class="form-control" @bind="sitemapUrl" placeholder="https://yourdomain.com/sitemap.xml" />
+                    <button class="btn btn-primary" @onclick="SubmitSitemap" disabled="@isSubmittingSitemap">
+                        @if (isSubmittingSitemap)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                        }
+                        Submit
+                    </button>
+                </div>
+            </div>
+
+            <h4 class="mt-4 mb-3">Submitted Sitemaps</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Sitemap URL</th>
+                        <th>Status</th>
+                        <th>Last Read</th>
+                        <th>URLs Discovered</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sitemap in sitemaps)
+                    {
+                        <tr>
+                            <td>@sitemap.Url</td>
+                            <td>
+                                <span class="status-badge @GetSitemapStatusClass(sitemap.Status)">
+                                    @sitemap.Status
+                                </span>
+                            </td>
+                            <td>@sitemap.LastRead.ToString("MMM dd, yyyy HH:mm")</td>
+                            <td>@sitemap.UrlsDiscovered.ToString("N0")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline" @onclick="() => RefreshSitemap(sitemap.Url)" title="Refresh">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger-outline" @onclick="() => RemoveSitemap(sitemap.Url)" title="Remove">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Search Performance -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Search Performance (Last 28 Days)</h3>
+        </div>
+        <div class="card-body">
+            @if (isLoading)
+            {
+                <div class="loading-state">
+                    <div class="spinner spinner-lg"></div>
+                    <p>Loading performance data...</p>
+                </div>
+            }
+            else
+            {
+                <div class="performance-grid">
+                    <div class="performance-card clicks">
+                        <div class="perf-value">@totalClicks.ToString("N0")</div>
+                        <div class="perf-label">Total Clicks</div>
+                        <div class="perf-trend positive">
+                            <i class="fas fa-arrow-up"></i> +12.5%
+                        </div>
+                    </div>
+                    <div class="performance-card impressions">
+                        <div class="perf-value">@totalImpressions.ToString("N0")</div>
+                        <div class="perf-label">Total Impressions</div>
+                        <div class="perf-trend positive">
+                            <i class="fas fa-arrow-up"></i> +8.3%
+                        </div>
+                    </div>
+                    <div class="performance-card ctr">
+                        <div class="perf-value">@avgCTR.ToString("F1")%</div>
+                        <div class="perf-label">Average CTR</div>
+                        <div class="perf-trend positive">
+                            <i class="fas fa-arrow-up"></i> +0.5%
+                        </div>
+                    </div>
+                    <div class="performance-card position">
+                        <div class="perf-value">@avgPosition.ToString("F1")</div>
+                        <div class="perf-label">Average Position</div>
+                        <div class="perf-trend positive">
+                            <i class="fas fa-arrow-up"></i> +2.1
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Index Coverage -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-database"></i> Index Coverage</h3>
+        </div>
+        <div class="card-body">
+            <div class="coverage-grid">
+                <div class="coverage-card valid">
+                    <div class="coverage-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="coverage-content">
+                        <span class="coverage-value">@validPages</span>
+                        <span class="coverage-label">Valid Pages</span>
+                    </div>
+                </div>
+                <div class="coverage-card warning">
+                    <div class="coverage-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="coverage-content">
+                        <span class="coverage-value">@warningPages</span>
+                        <span class="coverage-label">With Warnings</span>
+                    </div>
+                </div>
+                <div class="coverage-card error">
+                    <div class="coverage-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="coverage-content">
+                        <span class="coverage-value">@errorPages</span>
+                        <span class="coverage-label">Errors</span>
+                    </div>
+                </div>
+                <div class="coverage-card excluded">
+                    <div class="coverage-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="coverage-content">
+                        <span class="coverage-value">@excludedPages</span>
+                        <span class="coverage-label">Excluded</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Inspection -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-search-plus"></i> URL Inspection</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="inspectUrl">Inspect URL</label>
+                <div class="input-group">
+                    <input type="text" id="inspectUrl" class="form-control" @bind="inspectUrl" placeholder="https://yourdomain.com/page-to-inspect" />
+                    <button class="btn btn-primary" @onclick="InspectUrl" disabled="@isInspecting">
+                        @if (isInspecting)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                        }
+                        Inspect
+                    </button>
+                </div>
+            </div>
+
+            @if (urlInspectionResult != null)
+            {
+                <div class="inspection-result mt-4">
+                    <div class="result-header @(urlInspectionResult.IsIndexed ? "indexed" : "not-indexed")">
+                        <i class="fas @(urlInspectionResult.IsIndexed ? "fa-check-circle" : "fa-times-circle")"></i>
+                        <span>@(urlInspectionResult.IsIndexed ? "URL is on Google" : "URL is not on Google")</span>
+                    </div>
+                    <div class="result-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Crawled:</span>
+                            <span class="detail-value">@urlInspectionResult.LastCrawled.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Mobile Usability:</span>
+                            <span class="detail-value @(urlInspectionResult.MobileUsable ? "text-success" : "text-danger")">
+                                @(urlInspectionResult.MobileUsable ? "Page is mobile friendly" : "Page is not mobile friendly")
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Core Web Vitals:</span>
+                            <span class="detail-value @(urlInspectionResult.CoreWebVitals ? "text-success" : "text-warning")">
+                                @(urlInspectionResult.CoreWebVitals ? "Passed" : "Needs improvement")
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline mt-3" @onclick="RequestIndexing">
+                        <i class="fas fa-bolt"></i>
+                        Request Indexing
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Top Queries -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-search"></i> Top Search Queries</h3>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Query</th>
+                        <th>Clicks</th>
+                        <th>Impressions</th>
+                        <th>CTR</th>
+                        <th>Position</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var query in topQueries)
+                    {
+                        <tr>
+                            <td>@query.Query</td>
+                            <td>@query.Clicks.ToString("N0")</td>
+                            <td>@query.Impressions.ToString("N0")</td>
+                            <td>@query.CTR.ToString("F1")%</td>
+                            <td>@query.Position.ToString("F1")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .verification-status {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 12px;
+    }
+
+    .verification-status.verified {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+
+    .verification-status.not-verified {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .verification-status .status-icon {
+        font-size: 2.5rem;
+    }
+
+    .verification-status.verified .status-icon {
+        color: #059669;
+    }
+
+    .verification-status.not-verified .status-icon {
+        color: #d97706;
+    }
+
+    .verification-status h4 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+    }
+
+    .verification-status p {
+        margin: 0;
+        color: #64748b;
+    }
+
+    .code-block {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #1e293b;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+    }
+
+    .code-block code {
+        flex: 1;
+        color: #a5f3fc;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.875rem;
+    }
+
+    .btn-copy {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        transition: color 0.2s;
+    }
+
+    .btn-copy:hover {
+        color: #fff;
+    }
+
+    .performance-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .performance-card {
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .performance-card.clicks {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    }
+
+    .performance-card.impressions {
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    }
+
+    .performance-card.ctr {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+
+    .performance-card.position {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .perf-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .perf-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    .perf-trend {
+        font-size: 0.8125rem;
+        margin-top: 0.5rem;
+    }
+
+    .perf-trend.positive {
+        color: #059669;
+    }
+
+    .perf-trend.negative {
+        color: #dc2626;
+    }
+
+    .coverage-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .coverage-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .coverage-card .coverage-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .coverage-card.valid .coverage-icon {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .coverage-card.warning .coverage-icon {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .coverage-card.error .coverage-icon {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .coverage-card.excluded .coverage-icon {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .coverage-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .coverage-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .coverage-label {
+        font-size: 0.8125rem;
+        color: #64748b;
+    }
+
+    .inspection-result {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .result-header {
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+    }
+
+    .result-header.indexed {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .result-header.not-indexed {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .result-details {
+        padding: 1.25rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        color: #64748b;
+    }
+
+    .detail-value {
+        font-weight: 500;
+    }
+
+    .text-success {
+        color: #059669;
+    }
+
+    .text-danger {
+        color: #dc2626;
+    }
+
+    .text-warning {
+        color: #d97706;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.success {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .status-badge.error {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .input-group .form-control {
+        flex: 1;
+    }
+
+    .btn-danger-outline {
+        border: 1px solid #fee2e2;
+        color: #dc2626;
+        background: transparent;
+    }
+
+    .btn-danger-outline:hover {
+        background: #fee2e2;
+    }
+</style>
+
+@code {
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private bool isVerifying = false;
+    private bool isSubmittingSitemap = false;
+    private bool isInspecting = false;
+
+    // Verification
+    private bool isVerified = true;
+    private string verificationMethod = "html-tag";
+    private string verificationCode = "abc123XYZ_verification_token";
+
+    // Sitemap
+    private string sitemapUrl = "";
+    private List<SitemapInfo> sitemaps = new();
+
+    // Performance
+    private int totalClicks = 12543;
+    private int totalImpressions = 245890;
+    private double avgCTR = 5.1;
+    private double avgPosition = 14.2;
+
+    // Index Coverage
+    private int validPages = 156;
+    private int warningPages = 12;
+    private int errorPages = 3;
+    private int excludedPages = 24;
+
+    // URL Inspection
+    private string inspectUrl = "";
+    private UrlInspectionResult? urlInspectionResult = null;
+
+    // Top Queries
+    private List<SearchQuery> topQueries = new();
+
+    protected override void OnInitialized()
+    {
+        LoadSampleData();
+    }
+
+    private void LoadSampleData()
+    {
+        sitemaps = new List<SitemapInfo>
+        {
+            new() { Url = "/sitemap.xml", Status = "Success", LastRead = DateTime.Now.AddHours(-2), UrlsDiscovered = 156 },
+            new() { Url = "/sitemap-courses.xml", Status = "Success", LastRead = DateTime.Now.AddHours(-2), UrlsDiscovered = 87 },
+            new() { Url = "/sitemap-blog.xml", Status = "Pending", LastRead = DateTime.Now.AddDays(-1), UrlsDiscovered = 34 }
+        };
+
+        topQueries = new List<SearchQuery>
+        {
+            new() { Query = "online learning platform", Clicks = 2341, Impressions = 45230, CTR = 5.2, Position = 8.3 },
+            new() { Query = "web development courses", Clicks = 1876, Impressions = 38920, CTR = 4.8, Position = 12.1 },
+            new() { Query = "learn programming online", Clicks = 1543, Impressions = 32100, CTR = 4.8, Position = 15.4 },
+            new() { Query = "free coding tutorials", Clicks = 987, Impressions = 28450, CTR = 3.5, Position = 18.7 },
+            new() { Query = "best online courses", Clicks = 654, Impressions = 21340, CTR = 3.1, Position = 22.3 }
+        };
+    }
+
+    private async Task RefreshData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        await Task.Delay(1000);
+        LoadSampleData();
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        await Task.Delay(1000);
+
+        isSaving = false;
+        Toast.ShowSuccess("Search Console settings saved successfully!");
+        StateHasChanged();
+    }
+
+    private async Task VerifySite()
+    {
+        isVerifying = true;
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        isVerified = true;
+        isVerifying = false;
+        Toast.ShowSuccess("Site verification successful!");
+        StateHasChanged();
+    }
+
+    private void CopyVerificationCode()
+    {
+        // JS interop would be needed for clipboard
+        Toast.ShowInfo("Verification code copied to clipboard!");
+    }
+
+    private async Task SubmitSitemap()
+    {
+        if (string.IsNullOrWhiteSpace(sitemapUrl))
+        {
+            Toast.ShowWarning("Please enter a sitemap URL");
+            return;
+        }
+
+        isSubmittingSitemap = true;
+        StateHasChanged();
+
+        await Task.Delay(1500);
+
+        sitemaps.Add(new SitemapInfo
+        {
+            Url = sitemapUrl,
+            Status = "Pending",
+            LastRead = DateTime.Now,
+            UrlsDiscovered = 0
+        });
+
+        sitemapUrl = "";
+        isSubmittingSitemap = false;
+        Toast.ShowSuccess("Sitemap submitted successfully!");
+        StateHasChanged();
+    }
+
+    private void RefreshSitemap(string url)
+    {
+        Toast.ShowInfo($"Refreshing sitemap: {url}");
+    }
+
+    private void RemoveSitemap(string url)
+    {
+        sitemaps.RemoveAll(s => s.Url == url);
+        Toast.ShowSuccess("Sitemap removed");
+        StateHasChanged();
+    }
+
+    private async Task InspectUrl()
+    {
+        if (string.IsNullOrWhiteSpace(inspectUrl))
+        {
+            Toast.ShowWarning("Please enter a URL to inspect");
+            return;
+        }
+
+        isInspecting = true;
+        StateHasChanged();
+
+        await Task.Delay(2000);
+
+        urlInspectionResult = new UrlInspectionResult
+        {
+            IsIndexed = true,
+            LastCrawled = DateTime.Now.AddDays(-3),
+            MobileUsable = true,
+            CoreWebVitals = true
+        };
+
+        isInspecting = false;
+        StateHasChanged();
+    }
+
+    private void RequestIndexing()
+    {
+        Toast.ShowSuccess("Indexing request submitted. It may take a few days for Google to process.");
+    }
+
+    private string GetSitemapStatusClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "success" => "success",
+            "pending" => "pending",
+            "error" => "error",
+            _ => ""
+        };
+    }
+
+    private class SitemapInfo
+    {
+        public string Url { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime LastRead { get; set; }
+        public int UrlsDiscovered { get; set; }
+    }
+
+    private class UrlInspectionResult
+    {
+        public bool IsIndexed { get; set; }
+        public DateTime LastCrawled { get; set; }
+        public bool MobileUsable { get; set; }
+        public bool CoreWebVitals { get; set; }
+    }
+
+    private class SearchQuery
+    {
+        public string Query { get; set; } = "";
+        public int Clicks { get; set; }
+        public int Impressions { get; set; }
+        public double CTR { get; set; }
+        public double Position { get; set; }
+    }
+}

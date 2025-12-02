@@ -1,0 +1,572 @@
+@page "/search"
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+
+<PageTitle>Search - InsightLearn</PageTitle>
+
+<div class="search-page">
+    <div class="search-header">
+        <div class="search-box">
+            <form @onsubmit="HandleSearch">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="search"
+                           class="search-input"
+                           placeholder="Search courses, topics, instructors..."
+                           @bind="searchQuery"
+                           @bind:event="oninput"
+                           autofocus />
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <button type="button" class="clear-btn" @onclick="ClearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Searching...</p>
+        </div>
+    }
+    else if (hasSearched && searchResults.Count == 0)
+    {
+        <div class="no-results">
+            <div class="no-results-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <h2>No results found</h2>
+            <p>We couldn't find any courses matching "<strong>@searchQuery</strong>"</p>
+            <div class="suggestions">
+                <p>Suggestions:</p>
+                <ul>
+                    <li>Check your spelling</li>
+                    <li>Try more general terms</li>
+                    <li>Try different keywords</li>
+                </ul>
+            </div>
+            <a href="/courses" class="btn btn-primary">
+                <i class="fas fa-book-open"></i> Browse All Courses
+            </a>
+        </div>
+    }
+    else if (searchResults.Count > 0)
+    {
+        <div class="search-results">
+            <div class="results-header">
+                <h2>@searchResults.Count result@(searchResults.Count != 1 ? "s" : "") for "@searchQuery"</h2>
+                <div class="sort-options">
+                    <select class="form-select" @bind="sortBy" @bind:after="SortResults">
+                        <option value="relevance">Most Relevant</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="newest">Newest</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                @foreach (var course in searchResults)
+                {
+                    <div class="course-card" @onclick="() => NavigateToCourse(course.Id)">
+                        <div class="course-image">
+                            <img src="@(string.IsNullOrEmpty(course.ThumbnailUrl) ? "images/course-placeholder.jpg" : course.ThumbnailUrl)" alt="@course.Title" />
+                            @if (course.IsBestseller)
+                            {
+                                <span class="badge bestseller">Bestseller</span>
+                            }
+                        </div>
+                        <div class="course-content">
+                            <h3 class="course-title">@course.Title</h3>
+                            <p class="course-instructor">@course.InstructorName</p>
+                            <div class="course-rating">
+                                <span class="rating-value">@course.Rating.ToString("F1")</span>
+                                <div class="stars">
+                                    @for (int i = 0; i < 5; i++)
+                                    {
+                                        <i class="@(i < Math.Floor(course.Rating) ? "fas" : "far") fa-star"></i>
+                                    }
+                                </div>
+                                <span class="rating-count">(@course.ReviewCount.ToString("N0"))</span>
+                            </div>
+                            <div class="course-price">
+                                @if (course.Price == 0)
+                                {
+                                    <span class="price free">Free</span>
+                                }
+                                else
+                                {
+                                    <span class="price">@course.Price.ToString("C0", new System.Globalization.CultureInfo("it-IT"))</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (!hasSearched)
+    {
+        <div class="search-suggestions">
+            <h2>Popular Searches</h2>
+            <div class="suggestion-tags">
+                <button class="tag" @onclick='() => QuickSearch("Web Development")'>Web Development</button>
+                <button class="tag" @onclick='() => QuickSearch("Python")'>Python</button>
+                <button class="tag" @onclick='() => QuickSearch("Machine Learning")'>Machine Learning</button>
+                <button class="tag" @onclick='() => QuickSearch("React")'>React</button>
+                <button class="tag" @onclick='() => QuickSearch("Data Science")'>Data Science</button>
+                <button class="tag" @onclick='() => QuickSearch("JavaScript")'>JavaScript</button>
+            </div>
+
+            <h2>Browse by Category</h2>
+            <div class="category-links">
+                <a href="/categories/development" class="category-link">
+                    <i class="fas fa-code"></i> Development
+                </a>
+                <a href="/categories/business" class="category-link">
+                    <i class="fas fa-briefcase"></i> Business
+                </a>
+                <a href="/categories/design" class="category-link">
+                    <i class="fas fa-palette"></i> Design
+                </a>
+                <a href="/categories/data-science" class="category-link">
+                    <i class="fas fa-database"></i> Data Science
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .search-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .search-header {
+        margin-bottom: 2rem;
+    }
+
+    .search-box {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 2px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input-wrapper:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .search-input-wrapper i {
+        color: var(--gray-400);
+        margin-right: 0.75rem;
+    }
+
+    .search-input {
+        flex: 1;
+        border: none;
+        background: none;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .clear-btn {
+        background: none;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+        padding: 0.25rem;
+    }
+
+    .clear-btn:hover {
+        color: var(--gray-600);
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        gap: 1rem;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .no-results-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .no-results-icon i {
+        font-size: 2rem;
+        color: var(--gray-400);
+    }
+
+    .no-results h2 {
+        font-size: 1.5rem;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .suggestions {
+        margin: 1.5rem 0;
+        text-align: left;
+        display: inline-block;
+    }
+
+    .suggestions ul {
+        margin-top: 0.5rem;
+        padding-left: 1.5rem;
+        color: var(--gray-600);
+    }
+
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .results-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .form-select {
+        padding: 0.5rem 2rem 0.5rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        background: white;
+        font-size: 0.9rem;
+    }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .course-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .course-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .course-image {
+        position: relative;
+        aspect-ratio: 16/9;
+        overflow: hidden;
+    }
+
+    .course-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .badge.bestseller {
+        position: absolute;
+        top: 0.75rem;
+        left: 0.75rem;
+        background: #f59e0b;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .course-content {
+        padding: 1rem;
+    }
+
+    .course-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .course-instructor {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .course-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .rating-value {
+        font-weight: 600;
+        color: #b45309;
+    }
+
+    .stars {
+        color: #f59e0b;
+        font-size: 0.75rem;
+    }
+
+    .rating-count {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .course-price .price {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .course-price .price.free {
+        color: #059669;
+    }
+
+    .search-suggestions {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .search-suggestions h2 {
+        font-size: 1.25rem;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+    }
+
+    .suggestion-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 3rem;
+    }
+
+    .tag {
+        background: var(--gray-100);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .tag:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .category-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .category-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        text-decoration: none;
+        color: var(--gray-700);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .category-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .category-link i {
+        font-size: 1.25rem;
+        color: var(--primary);
+    }
+
+    @@media (max-width: 768px) {
+        .search-page {
+            padding: 1rem;
+        }
+
+        .results-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .results-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? QueryParam { get; set; }
+
+    private string searchQuery = "";
+    private string sortBy = "relevance";
+    private bool isLoading = false;
+    private bool hasSearched = false;
+    private List<CourseSearchResult> searchResults = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(QueryParam))
+        {
+            searchQuery = QueryParam;
+            await PerformSearch();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(QueryParam) && QueryParam != searchQuery)
+        {
+            searchQuery = QueryParam;
+            await PerformSearch();
+        }
+    }
+
+    private async Task HandleSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(searchQuery)}");
+            await PerformSearch();
+        }
+    }
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+
+        isLoading = true;
+        hasSearched = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Replace with actual API call
+            await Task.Delay(500);
+
+            // Mock data
+            searchResults = new List<CourseSearchResult>
+            {
+                new() { Id = Guid.NewGuid(), Title = "Complete Web Development Bootcamp", InstructorName = "John Smith", Rating = 4.8, ReviewCount = 15234, Price = 49.99m, IsBestseller = true },
+                new() { Id = Guid.NewGuid(), Title = "React - The Complete Guide", InstructorName = "Jane Doe", Rating = 4.7, ReviewCount = 8567, Price = 39.99m, IsBestseller = false },
+                new() { Id = Guid.NewGuid(), Title = "Python for Data Science", InstructorName = "Mike Johnson", Rating = 4.6, ReviewCount = 6789, Price = 0, IsBestseller = true }
+            };
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = "";
+        hasSearched = false;
+        searchResults.Clear();
+        Navigation.NavigateTo("/search");
+    }
+
+    private async Task QuickSearch(string query)
+    {
+        searchQuery = query;
+        await HandleSearch();
+    }
+
+    private void SortResults()
+    {
+        searchResults = sortBy switch
+        {
+            "rating" => searchResults.OrderByDescending(c => c.Rating).ToList(),
+            "newest" => searchResults.OrderByDescending(c => c.Id).ToList(),
+            "price-low" => searchResults.OrderBy(c => c.Price).ToList(),
+            "price-high" => searchResults.OrderByDescending(c => c.Price).ToList(),
+            _ => searchResults
+        };
+        StateHasChanged();
+    }
+
+    private void NavigateToCourse(Guid courseId)
+    {
+        Navigation.NavigateTo($"/courses/{courseId}");
+    }
+
+    private class CourseSearchResult
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string InstructorName { get; set; } = "";
+        public string? ThumbnailUrl { get; set; }
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
+        public decimal Price { get; set; }
+        public bool IsBestseller { get; set; }
+    }
+}

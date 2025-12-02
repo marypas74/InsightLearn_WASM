@@ -115,3 +115,4 @@ educational-content/videos/**/*.mp4
 educational-content/videos/**/*.m4a
 educational-content/videos/**/*.webm
 educational-content/videos/**/*.mkv
+publish-wasm/

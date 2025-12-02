@@ -42,11 +42,38 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
             }
 
             var claims = jwtToken.Claims.ToList();
-            var identity = new ClaimsIdentity(claims, "jwt");
+
+            // Map JWT standard claims to .NET ClaimTypes for proper role detection
+            // JWT uses "role" but .NET expects ClaimTypes.Role for IsInRole() to work
+            var mappedClaims = new List<Claim>();
+            foreach (var claim in claims)
+            {
+                // Map role claim to ClaimTypes.Role
+                if (claim.Type == "role" || claim.Type == "roles")
+                {
+                    mappedClaims.Add(new Claim(ClaimTypes.Role, claim.Value));
+                    _logger.LogDebug("🔑 Mapped role claim: {Role}", claim.Value);
+                }
+                // Map name claim to ClaimTypes.Name
+                else if (claim.Type == "name" || claim.Type == "unique_name")
+                {
+                    mappedClaims.Add(new Claim(ClaimTypes.Name, claim.Value));
+                }
+                // Map email claim to ClaimTypes.Email
+                else if (claim.Type == "email")
+                {
+                    mappedClaims.Add(new Claim(ClaimTypes.Email, claim.Value));
+                }
+                // Keep original claim as well
+                mappedClaims.Add(claim);
+            }
+
+            var identity = new ClaimsIdentity(mappedClaims, "jwt");
             var user = new ClaimsPrincipal(identity);
 
-            var email = claims.FirstOrDefault(c => c.Type == "email" || c.Type == ClaimTypes.Email)?.Value ?? "unknown";
-            _logger.LogInformation("✅ User authenticated: {Email}", email);
+            var email = mappedClaims.FirstOrDefault(c => c.Type == ClaimTypes.Email || c.Type == "email")?.Value ?? "unknown";
+            var role = mappedClaims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "Student";
+            _logger.LogInformation("✅ User authenticated: {Email} with role: {Role}", email, role);
 
             return new AuthenticationState(user);
         }

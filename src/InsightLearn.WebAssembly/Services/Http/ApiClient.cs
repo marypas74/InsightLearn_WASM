@@ -27,7 +27,9 @@ public class ApiClient : IApiClient
         {
             PropertyNameCaseInsensitive = true,
             // CRITICAL: Keep PascalCase for serialization to match ASP.NET backend expectations
-            PropertyNamingPolicy = null  // null = PascalCase (default C#)
+            PropertyNamingPolicy = null,  // null = PascalCase (default C#)
+            // v2.1.0-dev: Support enum serialization as strings (e.g., LessonType "Video" instead of 0)
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

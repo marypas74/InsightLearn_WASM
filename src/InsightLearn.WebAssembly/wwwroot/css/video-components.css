@@ -259,6 +259,34 @@
     margin-bottom: var(--space-4);
 }
 
+/* Video Placeholder (Coming Soon) - v2.1.0-dev */
+.video-placeholder {
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, var(--color-gray-800) 0%, var(--color-gray-900) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--space-3);
+}
+
+.video-placeholder .placeholder-content {
+    text-align: center;
+    padding: var(--space-6);
+}
+
+.video-placeholder h5 {
+    color: white;
+    margin-bottom: var(--space-2);
+    font-size: 1.25rem;
+}
+
+.video-placeholder p {
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 300px;
+    margin: 0 auto;
+    font-size: 0.9rem;
+}
+
 /* Video Wrapper */
 .video-wrapper {
     position: relative;

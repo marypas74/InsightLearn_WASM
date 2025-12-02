@@ -1,0 +1,659 @@
+@page "/instructor/reviews"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Instructor")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+
+<PageTitle>My Reviews - InsightLearn</PageTitle>
+
+<div class="instructor-reviews-page">
+    <div class="page-header">
+        <div class="header-content">
+            <nav class="breadcrumb-nav">
+                <a href="/dashboard">Dashboard</a>
+                <span class="separator">/</span>
+                <span class="current">Reviews</span>
+            </nav>
+            <h1><i class="fas fa-star"></i> Course Reviews</h1>
+            <p class="header-subtitle">See what students are saying about your courses</p>
+        </div>
+    </div>
+
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon yellow"><i class="fas fa-star"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@averageRating.ToString("F1")</span>
+                <span class="stat-label">Average Rating</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-comments"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@totalReviews</span>
+                <span class="stat-label">Total Reviews</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-thumbs-up"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@positiveReviews</span>
+                <span class="stat-label">Positive (4-5 stars)</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">@newReviewsThisMonth</span>
+                <span class="stat-label">This Month</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="rating-distribution">
+        <h3>Rating Distribution</h3>
+        <div class="distribution-bars">
+            @foreach (var (stars, count, percentage) in GetRatingDistribution())
+            {
+                <div class="distribution-row">
+                    <span class="stars-label">@stars <i class="fas fa-star"></i></span>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: @percentage%"></div>
+                    </div>
+                    <span class="count-label">@count</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header">
+            <h2>All Reviews</h2>
+            <div class="filters">
+                <select class="rating-filter" @bind="selectedRating">
+                    <option value="0">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4 Stars</option>
+                    <option value="3">3 Stars</option>
+                    <option value="2">2 Stars</option>
+                    <option value="1">1 Star</option>
+                </select>
+                <select class="course-filter" @bind="selectedCourse">
+                    <option value="">All Courses</option>
+                    @foreach (var course in courses)
+                    {
+                        <option value="@course.Id">@course.Title</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading reviews...</p>
+            </div>
+        }
+        else if (filteredReviews.Any())
+        {
+            <div class="reviews-list">
+                @foreach (var review in filteredReviews)
+                {
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="avatar">@GetInitials(review.StudentName)</div>
+                                <div class="details">
+                                    <span class="name">@review.StudentName</span>
+                                    <span class="course">@review.CourseName</span>
+                                </div>
+                            </div>
+                            <div class="review-meta">
+                                <div class="rating">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="fas fa-star @(i <= review.Rating ? "filled" : "empty")"></i>
+                                    }
+                                </div>
+                                <span class="date">@review.CreatedAt.ToString("MMM dd, yyyy")</span>
+                            </div>
+                        </div>
+                        <div class="review-content">
+                            <p>@review.Comment</p>
+                        </div>
+                        @if (review.HasResponse)
+                        {
+                            <div class="instructor-response">
+                                <div class="response-header">
+                                    <i class="fas fa-reply"></i>
+                                    <span>Your Response</span>
+                                </div>
+                                <p>@review.Response</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="btn-respond" @onclick="() => OpenResponseModal(review)">
+                                <i class="fas fa-reply"></i> Respond
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-star-half-alt"></i>
+                <h3>No reviews yet</h3>
+                <p>Your courses haven't received any reviews yet. Keep creating great content!</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .instructor-reviews-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .breadcrumb-nav {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .breadcrumb-nav a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .breadcrumb-nav .separator {
+        margin: 0 0.5rem;
+        color: var(--gray-400);
+    }
+
+    .breadcrumb-nav .current {
+        color: var(--gray-500);
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: #eab308;
+    }
+
+    .header-subtitle {
+        color: var(--gray-500);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-icon.yellow { background: linear-gradient(135deg, #eab308, #ca8a04); }
+    .stat-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .stat-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    .rating-distribution {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .rating-distribution h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .distribution-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .distribution-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stars-label {
+        width: 60px;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stars-label i {
+        color: #eab308;
+        font-size: 0.75rem;
+    }
+
+    .bar-container {
+        flex: 1;
+        height: 8px;
+        background: var(--gray-200);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #eab308, #f59e0b);
+        border-radius: 4px;
+    }
+
+    .count-label {
+        width: 30px;
+        text-align: right;
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .filters {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .rating-filter,
+    .course-filter {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: white;
+    }
+
+    .reviews-list {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .review-card {
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .reviewer-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .reviewer-info .details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .reviewer-info .name {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .reviewer-info .course {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .review-meta {
+        text-align: right;
+    }
+
+    .rating {
+        margin-bottom: 0.25rem;
+    }
+
+    .rating i.filled {
+        color: #eab308;
+    }
+
+    .rating i.empty {
+        color: var(--gray-300);
+    }
+
+    .review-meta .date {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .review-content {
+        color: var(--gray-700);
+        line-height: 1.6;
+    }
+
+    .review-content p {
+        margin: 0;
+    }
+
+    .instructor-response {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+    }
+
+    .response-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--primary);
+        font-size: 0.875rem;
+    }
+
+    .instructor-response p {
+        margin: 0;
+        color: var(--gray-600);
+        font-size: 0.875rem;
+    }
+
+    .btn-respond {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-respond:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .loading-state,
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem;
+        text-align: center;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--gray-300);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--gray-700);
+    }
+
+    .empty-state p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 1024px) {
+        .stats-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .instructor-reviews-page {
+            padding: 1rem;
+        }
+
+        .stats-overview {
+            grid-template-columns: 1fr;
+        }
+
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .filters {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .review-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .review-meta {
+            text-align: left;
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private int selectedRating = 0;
+    private string selectedCourse = "";
+
+    private double averageRating = 0;
+    private int totalReviews = 0;
+    private int positiveReviews = 0;
+    private int newReviewsThisMonth = 0;
+
+    private List<ReviewItem> reviews = new();
+    private List<CourseOption> courses = new();
+
+    private IEnumerable<ReviewItem> filteredReviews => reviews
+        .Where(r => selectedRating == 0 || r.Rating == selectedRating)
+        .Where(r => string.IsNullOrEmpty(selectedCourse) || r.CourseId.ToString() == selectedCourse)
+        .OrderByDescending(r => r.CreatedAt);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReviews();
+    }
+
+    private async Task LoadReviews()
+    {
+        try
+        {
+            isLoading = true;
+            await Task.Delay(500); // Simulate API call
+            LoadMockData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading reviews: {ex.Message}");
+            LoadMockData();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void LoadMockData()
+    {
+        courses = new List<CourseOption>
+        {
+            new() { Id = Guid.NewGuid(), Title = "React.js Complete Guide with Redux & Hooks" },
+            new() { Id = Guid.NewGuid(), Title = "JavaScript Modern Web Development" }
+        };
+
+        reviews = new List<ReviewItem>
+        {
+            new() { StudentName = "Marco Rossi", CourseName = courses[0].Title, CourseId = courses[0].Id, Rating = 5, Comment = "Excellent course! Very comprehensive and well-structured. The instructor explains complex concepts in a simple way.", CreatedAt = DateTime.Now.AddDays(-2), HasResponse = true, Response = "Thank you Marco! I'm glad you found the course helpful." },
+            new() { StudentName = "Giulia Bianchi", CourseName = courses[0].Title, CourseId = courses[0].Id, Rating = 5, Comment = "Best React course I've taken. The Redux section was particularly helpful.", CreatedAt = DateTime.Now.AddDays(-5), HasResponse = false },
+            new() { StudentName = "Luca Ferrari", CourseName = courses[1].Title, CourseId = courses[1].Id, Rating = 4, Comment = "Good content but could use more practical examples. Overall satisfied with the course.", CreatedAt = DateTime.Now.AddDays(-7), HasResponse = false },
+            new() { StudentName = "Sofia Conti", CourseName = courses[0].Title, CourseId = courses[0].Id, Rating = 5, Comment = "Absolutely loved it! The projects were very practical and I feel confident using React now.", CreatedAt = DateTime.Now.AddDays(-10), HasResponse = true, Response = "So happy to hear that Sofia! Keep building amazing things!" },
+            new() { StudentName = "Alessandro Marino", CourseName = courses[1].Title, CourseId = courses[1].Id, Rating = 4, Comment = "Solid JavaScript fundamentals course. Recommended for beginners.", CreatedAt = DateTime.Now.AddDays(-15), HasResponse = false },
+            new() { StudentName = "Chiara Romano", CourseName = courses[0].Title, CourseId = courses[0].Id, Rating = 3, Comment = "Good course but some sections felt rushed. Would appreciate more in-depth explanations.", CreatedAt = DateTime.Now.AddDays(-20), HasResponse = false }
+        };
+
+        totalReviews = reviews.Count;
+        averageRating = reviews.Any() ? reviews.Average(r => r.Rating) : 0;
+        positiveReviews = reviews.Count(r => r.Rating >= 4);
+        newReviewsThisMonth = reviews.Count(r => r.CreatedAt >= DateTime.Now.AddDays(-30));
+    }
+
+    private IEnumerable<(int stars, int count, int percentage)> GetRatingDistribution()
+    {
+        var total = reviews.Count;
+        for (int i = 5; i >= 1; i--)
+        {
+            var count = reviews.Count(r => r.Rating == i);
+            var percentage = total > 0 ? (count * 100) / total : 0;
+            yield return (i, count, percentage);
+        }
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpper() : parts[0][0].ToString().ToUpper();
+    }
+
+    private void OpenResponseModal(ReviewItem review)
+    {
+        // TODO: Implement response modal
+        Console.WriteLine($"Opening response modal for review by {review.StudentName}");
+    }
+
+    private class ReviewItem
+    {
+        public string StudentName { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public Guid CourseId { get; set; }
+        public int Rating { get; set; }
+        public string Comment { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public bool HasResponse { get; set; }
+        public string Response { get; set; } = "";
+    }
+
+    private class CourseOption
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+    }
+}

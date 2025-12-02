@@ -146,8 +146,8 @@
 
                 <AuthorizeView>
                     <Authorized>
-                        <!-- User Menu -->
-                        <div class="user-menu-container">
+                        <!-- User Menu (v2.1.0-dev: auto-close on mouse leave) -->
+                        <div class="user-menu-container" @onmouseleave="CloseUserMenu">
                             <button class="user-menu-trigger"
                                     type="button"
                                     aria-expanded="false"
@@ -163,57 +163,179 @@
                             @if (isUserMenuOpen)
                             {
                                 <div class="user-dropdown show user-dropdown-expanded">
-                                    @* === ADMIN SECTION === *@
+                                    @* === ADMIN SECTION (v2.1.0-dev - Grouped Menu) === *@
                                     <AuthorizeView Roles="Admin">
                                         <Authorized Context="adminContext">
-                                            <div class="dropdown-section">
+                                            <div class="dropdown-section admin-section">
                                                 <span class="dropdown-section-title">
                                                     <i class="fas fa-shield-alt"></i> Administration
                                                 </span>
-                                                <a href="/admin/dashboard" class="dropdown-item">
-                                                    <i class="fas fa-tachometer-alt"></i>
-                                                    Admin Dashboard
-                                                </a>
-                                                <a href="/admin/courses" class="dropdown-item">
-                                                    <i class="fas fa-graduation-cap"></i>
-                                                    Course Management
-                                                </a>
-                                                <a href="/admin/users" class="dropdown-item">
-                                                    <i class="fas fa-users-cog"></i>
-                                                    User Management
-                                                </a>
-                                                <a href="/admin/instructors" class="dropdown-item">
-                                                    <i class="fas fa-chalkboard-teacher"></i>
-                                                    Instructors
-                                                </a>
-                                                <a href="/admin/categories" class="dropdown-item">
-                                                    <i class="fas fa-folder-tree"></i>
-                                                    Categories
-                                                </a>
-                                                <a href="/admin/payments" class="dropdown-item">
-                                                    <i class="fas fa-credit-card"></i>
-                                                    Payments
-                                                </a>
-                                                <a href="/admin/reports" class="dropdown-item">
-                                                    <i class="fas fa-chart-bar"></i>
-                                                    Reports
-                                                </a>
-                                                <a href="/admin/analytics" class="dropdown-item">
-                                                    <i class="fas fa-chart-line"></i>
-                                                    Analytics
-                                                </a>
-                                                <a href="/admin/access-logs" class="dropdown-item">
-                                                    <i class="fas fa-history"></i>
-                                                    Access Logs
-                                                </a>
-                                                <a href="/admin/system-health" class="dropdown-item">
-                                                    <i class="fas fa-heartbeat"></i>
-                                                    System Health
-                                                </a>
-                                                <a href="/admin/settings" class="dropdown-item">
-                                                    <i class="fas fa-cogs"></i>
-                                                    System Settings
-                                                </a>
+
+                                                @* --- Overview Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <a href="/admin/dashboard" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-indigo">
+                                                            <i class="fas fa-tachometer-alt"></i>
+                                                        </span>
+                                                        Dashboard
+                                                    </a>
+                                                    <a href="/admin/analytics" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-orange">
+                                                            <i class="fas fa-chart-line"></i>
+                                                        </span>
+                                                        Analytics
+                                                    </a>
+                                                    <a href="/admin/reports" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-cyan">
+                                                            <i class="fas fa-chart-bar"></i>
+                                                        </span>
+                                                        Reports
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- Content Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-layer-group"></i> Content
+                                                    </span>
+                                                    <a href="/admin/courses" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-green">
+                                                            <i class="fas fa-graduation-cap"></i>
+                                                        </span>
+                                                        Courses
+                                                    </a>
+                                                    <a href="/admin/categories" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-amber">
+                                                            <i class="fas fa-folder-tree"></i>
+                                                        </span>
+                                                        Categories
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- Users Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-users"></i> Users
+                                                    </span>
+                                                    <a href="/admin/users" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-blue">
+                                                            <i class="fas fa-users-cog"></i>
+                                                        </span>
+                                                        User Management
+                                                    </a>
+                                                    <a href="/admin/instructors" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-purple">
+                                                            <i class="fas fa-chalkboard-teacher"></i>
+                                                        </span>
+                                                        Instructors
+                                                    </a>
+                                                    <a href="/admin/user-lockouts" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-rose">
+                                                            <i class="fas fa-user-lock"></i>
+                                                        </span>
+                                                        User Lockouts
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- Payments Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-credit-card"></i> Finance
+                                                    </span>
+                                                    <a href="/admin/payments" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-red">
+                                                            <i class="fas fa-credit-card"></i>
+                                                        </span>
+                                                        Payments
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- Monitoring Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-eye"></i> Monitoring
+                                                    </span>
+                                                    <a href="/admin/chatbot-analytics" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-violet">
+                                                            <i class="fas fa-robot"></i>
+                                                        </span>
+                                                        Chatbot Analytics
+                                                    </a>
+                                                    <a href="/admin/access-logs" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-gray">
+                                                            <i class="fas fa-history"></i>
+                                                        </span>
+                                                        Access Logs
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- SEO Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-search"></i> SEO & Marketing
+                                                    </span>
+                                                    <a href="/admin/seo" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-sky">
+                                                            <i class="fas fa-search-dollar"></i>
+                                                        </span>
+                                                        SEO Management
+                                                    </a>
+                                                    <a href="/admin/google-analytics" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-blue">
+                                                            <i class="fab fa-google"></i>
+                                                        </span>
+                                                        Google Analytics
+                                                    </a>
+                                                    <a href="/admin/search-console" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-teal">
+                                                            <i class="fas fa-search"></i>
+                                                        </span>
+                                                        Search Console
+                                                    </a>
+                                                    <a href="/admin/podcast-seo" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-violet">
+                                                            <i class="fas fa-podcast"></i>
+                                                        </span>
+                                                        Podcast SEO
+                                                    </a>
+                                                </div>
+
+                                                <div class="admin-menu-separator"></div>
+
+                                                @* --- System Group --- *@
+                                                <div class="admin-menu-group">
+                                                    <span class="admin-menu-group-header">
+                                                        <i class="fas fa-cog"></i> System
+                                                    </span>
+                                                    <a href="/admin/system-health" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-lime">
+                                                            <i class="fas fa-heartbeat"></i>
+                                                        </span>
+                                                        System Health
+                                                    </a>
+                                                    <a href="/admin/auth-diagnostics" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-amber">
+                                                            <i class="fas fa-key"></i>
+                                                        </span>
+                                                        Auth Diagnostics
+                                                    </a>
+                                                    <a href="/admin/settings" class="dropdown-item">
+                                                        <span class="admin-item-badge badge-stone">
+                                                            <i class="fas fa-cogs"></i>
+                                                        </span>
+                                                        System Settings
+                                                    </a>
+                                                </div>
                                             </div>
                                             <hr class="dropdown-divider" />
                                         </Authorized>
@@ -288,8 +410,14 @@
                     </Authorized>
                     <NotAuthorized>
                         <div class="auth-buttons">
-                            <a href="/login" class="btn btn-outline">Login</a>
-                            <a href="/register" class="btn btn-primary">Sign Up</a>
+                            <a href="/login" class="btn btn-outline" aria-label="Login to your account">
+                                <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>
+                                Login
+                            </a>
+                            <a href="/register" class="btn btn-primary" aria-label="Create a new account">
+                                <i class="fas fa-user-plus" style="margin-right: 6px;"></i>
+                                Sign Up
+                            </a>
                         </div>
                     </NotAuthorized>
                 </AuthorizeView>
@@ -420,6 +548,12 @@
     private void ToggleUserMenu()
     {
         isUserMenuOpen = !isUserMenuOpen;
+    }
+
+    // Close user menu on mouse leave (v2.1.0-dev UX improvement)
+    private void CloseUserMenu()
+    {
+        isUserMenuOpen = false;
     }
 
     private void ToggleCategories()

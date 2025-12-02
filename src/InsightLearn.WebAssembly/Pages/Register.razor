@@ -3,109 +3,577 @@
 @inject IToastService ToastService
 @inject NavigationManager Navigation
 
-<PageTitle>Register - InsightLearn</PageTitle>
+<PageTitle>Sign Up - InsightLearn</PageTitle>
 
-<div class="auth-page">
-    <div class="auth-container">
-        <div class="auth-card">
-            <h2>Create Account</h2>
-            <p class="text-muted">Join InsightLearn and start learning today</p>
+<div class="auth-container">
+    @* Left Side - Form Content *@
+    <div class="auth-content">
+        <div class="auth-header">
+            <a href="/" class="auth-logo">
+                <i class="fas fa-graduation-cap" style="font-size: 28px; color: var(--primary); margin-right: 8px;"></i>
+                <span>InsightLearn</span>
+            </a>
+        </div>
 
-            <EditForm Model="@registerRequest" OnValidSubmit="HandleRegister">
-                <DataAnnotationsValidator />
+        <div class="auth-main">
+            <div class="auth-card">
+                <div class="auth-card-header">
+                    <h1>Create Your Account</h1>
+                    <p class="auth-subtitle">Join thousands of learners and start your journey today</p>
+                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="firstName">First Name *</label>
-                            <InputText id="firstName" class="form-control" @bind-Value="registerRequest.FirstName"
-                                       placeholder="John" />
-                            <ValidationMessage For="@(() => registerRequest.FirstName)" />
+                <div class="auth-card-body">
+                    @* Google Sign Up Button *@
+                    <button @onclick="RegisterWithGoogle" class="google-signin-btn" disabled="@isLoading" type="button" aria-label="Sign up with Google">
+                        @if (isGoogleLoading)
+                        {
+                            <div class="google-spinner"></div>
+                            <span>Signing up with Google...</span>
+                        }
+                        else
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="google-icon" role="img" aria-hidden="true" width="20" height="20">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            <span>Continue with Google</span>
+                        }
+                    </button>
+
+                    <div class="auth-divider">
+                        <span>or sign up with email</span>
+                    </div>
+
+                    <EditForm Model="@registerRequest" OnValidSubmit="HandleRegister" class="auth-form">
+                        <DataAnnotationsValidator />
+
+                        @* Name Row *@
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="firstName">
+                                    <i class="fas fa-user" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                    First Name
+                                </label>
+                                <InputText id="firstName" class="form-input" @bind-Value="registerRequest.FirstName"
+                                           placeholder="John" />
+                                <ValidationMessage For="@(() => registerRequest.FirstName)" class="field-validation-error" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="lastName">
+                                    <i class="fas fa-user" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                    Last Name
+                                </label>
+                                <InputText id="lastName" class="form-input" @bind-Value="registerRequest.LastName"
+                                           placeholder="Doe" />
+                                <ValidationMessage For="@(() => registerRequest.LastName)" class="field-validation-error" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
+
+                        @* Email *@
                         <div class="form-group">
-                            <label for="lastName">Last Name *</label>
-                            <InputText id="lastName" class="form-control" @bind-Value="registerRequest.LastName"
-                                       placeholder="Doe" />
-                            <ValidationMessage For="@(() => registerRequest.LastName)" />
+                            <label class="form-label" for="email">
+                                <i class="fas fa-envelope" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                Email Address
+                            </label>
+                            <InputText id="email" type="email" class="form-input" @bind-Value="registerRequest.Email"
+                                       placeholder="you@example.com" />
+                            <ValidationMessage For="@(() => registerRequest.Email)" class="field-validation-error" />
                         </div>
+
+                        @* Password with Strength Indicator *@
+                        <div class="form-group">
+                            <label class="form-label" for="password">
+                                <i class="fas fa-lock" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                Password
+                            </label>
+                            <div class="password-input-container">
+                                <InputText id="password" type="@(showPassword ? "text" : "password")"
+                                           class="form-input" @bind-Value="registerRequest.Password"
+                                           placeholder="Min. 8 characters"
+                                           @oninput="OnPasswordInput" />
+                                <button type="button" class="password-toggle-btn" @onclick="TogglePasswordVisibility"
+                                        aria-label="@(showPassword ? "Hide password" : "Show password")">
+                                    <i class="fas @(showPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => registerRequest.Password)" class="field-validation-error" />
+
+                            @* Password Strength Indicator *@
+                            @if (!string.IsNullOrEmpty(registerRequest.Password))
+                            {
+                                <div class="password-strength">
+                                    <div class="strength-bars">
+                                        <div class="strength-bar @(passwordStrength >= 1 ? "active" : "") @GetStrengthClass()"></div>
+                                        <div class="strength-bar @(passwordStrength >= 2 ? "active" : "") @GetStrengthClass()"></div>
+                                        <div class="strength-bar @(passwordStrength >= 3 ? "active" : "") @GetStrengthClass()"></div>
+                                        <div class="strength-bar @(passwordStrength >= 4 ? "active" : "") @GetStrengthClass()"></div>
+                                    </div>
+                                    <span class="strength-text @GetStrengthClass()">@GetStrengthText()</span>
+                                </div>
+                            }
+                        </div>
+
+                        @* Confirm Password *@
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">
+                                <i class="fas fa-lock" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                Confirm Password
+                            </label>
+                            <div class="password-input-container">
+                                <InputText id="confirmPassword" type="@(showConfirmPassword ? "text" : "password")"
+                                           class="form-input" @bind-Value="registerRequest.ConfirmPassword"
+                                           placeholder="Re-enter your password" />
+                                <button type="button" class="password-toggle-btn" @onclick="ToggleConfirmPasswordVisibility"
+                                        aria-label="@(showConfirmPassword ? "Hide password" : "Show password")">
+                                    <i class="fas @(showConfirmPassword ? "fa-eye-slash" : "fa-eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => registerRequest.ConfirmPassword)" class="field-validation-error" />
+                            @if (!string.IsNullOrEmpty(registerRequest.ConfirmPassword) && registerRequest.Password == registerRequest.ConfirmPassword)
+                            {
+                                <div class="password-match">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                    <span style="color: var(--success); font-size: 12px;">Passwords match</span>
+                                </div>
+                            }
+                        </div>
+
+                        @* Role Selection *@
+                        <div class="form-group">
+                            <label class="form-label" for="role">
+                                <i class="fas fa-user-tag" style="margin-right: 6px; color: var(--gray-500);"></i>
+                                I want to
+                            </label>
+                            <div class="role-selector">
+                                <label class="role-option @(registerRequest.Role == "Student" ? "selected" : "")" for="roleStudent">
+                                    <input type="radio" id="roleStudent" name="role" value="Student"
+                                           checked="@(registerRequest.Role == "Student")"
+                                           @onchange="@(() => registerRequest.Role = "Student")" />
+                                    <div class="role-content">
+                                        <i class="fas fa-book-reader"></i>
+                                        <span class="role-title">Learn</span>
+                                        <span class="role-desc">Access courses</span>
+                                    </div>
+                                </label>
+                                <label class="role-option @(registerRequest.Role == "Instructor" ? "selected" : "")" for="roleInstructor">
+                                    <input type="radio" id="roleInstructor" name="role" value="Instructor"
+                                           checked="@(registerRequest.Role == "Instructor")"
+                                           @onchange="@(() => registerRequest.Role = "Instructor")" />
+                                    <div class="role-content">
+                                        <i class="fas fa-chalkboard-teacher"></i>
+                                        <span class="role-title">Teach</span>
+                                        <span class="role-desc">Create courses</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        @* Terms & Conditions *@
+                        <div class="form-check-container">
+                            <label class="form-check-label" for="agreeTerms">
+                                <input type="checkbox" class="form-check-input" id="agreeTerms" @bind="agreeTerms" />
+                                <span class="checkmark"></span>
+                                <span class="terms-text">
+                                    I agree to the <a href="/terms" class="auth-link">Terms of Service</a>
+                                    and <a href="/privacy" class="auth-link">Privacy Policy</a>
+                                </span>
+                            </label>
+                        </div>
+
+                        @* Submit Button *@
+                        <button type="submit" class="auth-submit-btn @(isLoading ? "loading" : "")"
+                                disabled="@(isLoading || !agreeTerms)">
+                            @if (isLoading)
+                            {
+                                <div class="spinner"></div>
+                                <span>Creating your account...</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-rocket" style="margin-right: 8px;"></i>
+                                <span>Create Account</span>
+                            }
+                        </button>
+
+                        @* Error Message *@
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="error-message" role="alert">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span class="error-text">@errorMessage</span>
+                            </div>
+                        }
+                    </EditForm>
+
+                    <div class="auth-signup">
+                        <p>Already have an account? <a href="/login" class="auth-link-primary">Sign in</a></p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="form-group">
-                    <label for="email">Email Address *</label>
-                    <InputText id="email" class="form-control" @bind-Value="registerRequest.Email"
-                               placeholder="john.doe@example.com" />
-                    <ValidationMessage For="@(() => registerRequest.Email)" />
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password *</label>
-                    <InputText id="password" type="password" class="form-control" @bind-Value="registerRequest.Password"
-                               placeholder="Minimum 6 characters" />
-                    <ValidationMessage For="@(() => registerRequest.Password)" />
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password *</label>
-                    <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="registerRequest.ConfirmPassword"
-                               placeholder="Re-enter password" />
-                    <ValidationMessage For="@(() => registerRequest.ConfirmPassword)" />
-                </div>
-
-                <div class="form-group">
-                    <label for="role">I want to *</label>
-                    <InputSelect id="role" class="form-control" @bind-Value="registerRequest.Role">
-                        <option value="Student">Learn (Student)</option>
-                        <option value="Instructor">Teach (Instructor)</option>
-                    </InputSelect>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block" disabled="@isLoading">
-                    @if (isLoading)
-                    {
-                        <span class="spinner-border spinner-border-sm" role="status"></span>
-                        <span> Creating account...</span>
-                    }
-                    else
-                    {
-                        <span>Create Account</span>
-                    }
-                </button>
-
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="alert alert-danger mt-3" role="alert">
-                        @errorMessage
+    @* Right Side - Visual Content *@
+    <div class="auth-visual">
+        <div class="visual-content">
+            <div class="visual-illustration">
+                <div class="floating-elements">
+                    <div class="floating-element element-1">
+                        <i class="fas fa-graduation-cap"></i>
                     </div>
-                }
-            </EditForm>
-
-            <div class="auth-footer">
-                <p>Already have an account? <a href="/login">Sign in</a></p>
+                    <div class="floating-element element-2">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <div class="floating-element element-3">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                </div>
             </div>
 
-            <div class="oauth-section">
-                <div class="divider">
-                    <span>Or continue with</span>
+            <div class="visual-text">
+                <h2>Start Your Learning Journey</h2>
+                <p>Join our community of learners and unlock your potential with world-class courses and expert instructors.</p>
+            </div>
+
+            <div class="visual-stats">
+                <div class="stat">
+                    <span class="stat-number">10K+</span>
+                    <span class="stat-label">Students</span>
                 </div>
-                <button @onclick="RegisterWithGoogle" class="btn btn-outline-secondary btn-block" disabled="@isLoading">
-                    <img src="/images/google-icon.svg" alt="Google" style="width: 20px; height: 20px; margin-right: 8px;" />
-                    Sign up with Google
-                </button>
+                <div class="stat">
+                    <span class="stat-number">500+</span>
+                    <span class="stat-label">Courses</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">95%</span>
+                    <span class="stat-label">Satisfaction</span>
+                </div>
+            </div>
+
+            <div class="visual-features">
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Lifetime access to courses</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Certificate on completion</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Learn at your own pace</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    /* Register Page Specific Styles */
+    .auth-subtitle {
+        color: var(--gray-500);
+        font-size: 0.95rem;
+        margin-top: var(--space-2);
+    }
+
+    /* Form Row for Name Fields */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-4);
+    }
+
+    /* Password Strength Indicator */
+    .password-strength {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-top: var(--space-2);
+    }
+
+    .strength-bars {
+        display: flex;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .strength-bar {
+        height: 4px;
+        flex: 1;
+        background: var(--gray-200);
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+
+    .strength-bar.active.weak {
+        background: #ef4444;
+    }
+
+    .strength-bar.active.fair {
+        background: #f59e0b;
+    }
+
+    .strength-bar.active.good {
+        background: #3b82f6;
+    }
+
+    .strength-bar.active.strong {
+        background: #10b981;
+    }
+
+    .strength-text {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 50px;
+        text-align: right;
+    }
+
+    .strength-text.weak { color: #ef4444; }
+    .strength-text.fair { color: #f59e0b; }
+    .strength-text.good { color: #3b82f6; }
+    .strength-text.strong { color: #10b981; }
+
+    /* Password Match Indicator */
+    .password-match {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        margin-top: var(--space-1);
+    }
+
+    /* Role Selector */
+    .role-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+    }
+
+    .role-option {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .role-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .role-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        background: var(--gray-50);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--border-radius-lg);
+        transition: all 0.3s ease;
+    }
+
+    .role-option:hover .role-content {
+        border-color: var(--primary);
+        background: rgba(164, 53, 240, 0.05);
+    }
+
+    .role-option.selected .role-content {
+        border-color: var(--primary);
+        background: rgba(164, 53, 240, 0.1);
+        box-shadow: 0 0 0 3px rgba(164, 53, 240, 0.15);
+    }
+
+    .role-content i {
+        font-size: 1.5rem;
+        color: var(--gray-500);
+        transition: color 0.3s ease;
+    }
+
+    .role-option.selected .role-content i {
+        color: var(--primary);
+    }
+
+    .role-title {
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 0.95rem;
+    }
+
+    .role-desc {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    /* Terms Text */
+    .terms-text {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        line-height: 1.5;
+    }
+
+    .terms-text a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .terms-text a:hover {
+        text-decoration: underline;
+    }
+
+    /* Visual Features */
+    .visual-features {
+        margin-top: var(--space-8);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+
+    .feature-item i {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: var(--space-3);
+        }
+
+        .role-selector {
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2);
+        }
+
+        .role-content {
+            padding: var(--space-3);
+        }
+
+        .role-content i {
+            font-size: 1.25rem;
+        }
+
+        .role-title {
+            font-size: 0.85rem;
+        }
+
+        .role-desc {
+            display: none;
+        }
+
+        .visual-features {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .strength-text {
+            display: none;
+        }
+
+        .password-strength {
+            margin-top: var(--space-1);
+        }
+    }
+</style>
+
 @code {
     private RegisterRequest registerRequest = new() { Role = "Student" };
     private string? errorMessage;
     private bool isLoading = false;
+    private bool isGoogleLoading = false;
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
+    private bool agreeTerms = false;
+    private int passwordStrength = 0;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private void OnPasswordInput(ChangeEventArgs e)
+    {
+        var password = e.Value?.ToString() ?? "";
+        CalculatePasswordStrength(password);
+    }
+
+    private void CalculatePasswordStrength(string password)
+    {
+        passwordStrength = 0;
+
+        if (string.IsNullOrEmpty(password))
+        {
+            return;
+        }
+
+        // Length check
+        if (password.Length >= 8) passwordStrength++;
+        if (password.Length >= 12) passwordStrength++;
+
+        // Character variety
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, "[a-z]") &&
+            System.Text.RegularExpressions.Regex.IsMatch(password, "[A-Z]"))
+            passwordStrength++;
+
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, @"[\d]"))
+            passwordStrength++;
+
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>]"))
+            passwordStrength++;
+
+        // Cap at 4
+        passwordStrength = Math.Min(passwordStrength, 4);
+    }
+
+    private string GetStrengthClass()
+    {
+        return passwordStrength switch
+        {
+            1 => "weak",
+            2 => "fair",
+            3 => "good",
+            4 => "strong",
+            _ => ""
+        };
+    }
+
+    private string GetStrengthText()
+    {
+        return passwordStrength switch
+        {
+            1 => "Weak",
+            2 => "Fair",
+            3 => "Good",
+            4 => "Strong",
+            _ => ""
+        };
+    }
 
     private async Task HandleRegister()
     {
+        if (!agreeTerms)
+        {
+            errorMessage = "Please accept the Terms of Service and Privacy Policy";
+            return;
+        }
+
         isLoading = true;
         errorMessage = null;
 
@@ -115,8 +583,7 @@
 
             if (response.Success)
             {
-                ToastService.ShowSuccess("Registration successful! Welcome to InsightLearn!");
-                // Remove 'true' to avoid forced reload and auth state loss
+                ToastService.ShowSuccess("Account created successfully! Welcome to InsightLearn!");
                 Navigation.NavigateTo("/complete-registration");
             }
             else
@@ -142,6 +609,7 @@
 
     private void RegisterWithGoogle()
     {
+        isGoogleLoading = true;
         Navigation.NavigateTo("/api/auth/google-login?returnUrl=/complete-registration", true);
     }
 }

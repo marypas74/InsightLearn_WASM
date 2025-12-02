@@ -45,6 +45,8 @@
     <link rel="stylesheet" href="css/admin-instructors.css" />
     <link rel="stylesheet" href="css/admin-payments.css" />
     <link rel="stylesheet" href="css/courses.css" />
+    <link rel="stylesheet" href="css/cart.css" />
+    <link rel="stylesheet" href="css/checkout.css" />
     <link rel="stylesheet" href="css/video-components.css" />
     <link rel="stylesheet" href="css/learning-space.css" />
     <link rel="stylesheet" href="css/pricing.css" />
@@ -66,6 +68,9 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
+
+    <!-- PayPal SDK (Sandbox Mode - Replace client-id with production key for live) -->
+    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&disable-funding=credit,card"></script>
 </head>
 
 <body>
@@ -254,6 +259,9 @@
 
     <!-- Session Timeout - User Activity Tracking (v2.1.0-dev) -->
     <script src="js/sessionTimeout.js"></script>
+
+    <!-- PayPal Checkout Integration -->
+    <script src="js/paypal-checkout.js"></script>
 
     <!-- Hide static wall and show app after Blazor loads -->
     <script>

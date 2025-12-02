@@ -1,0 +1,285 @@
+@page "/certificates"
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>My Certificates - InsightLearn</PageTitle>
+
+<div class="certificates-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-certificate"></i> My Certificates</h1>
+            <p class="subtitle">View and download your earned certificates</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading certificates...</p>
+        </div>
+    }
+    else if (certificates.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-award"></i>
+            </div>
+            <h2>No Certificates Yet</h2>
+            <p>Complete your enrolled courses to earn certificates!</p>
+            <a href="/my-courses" class="btn btn-primary">
+                <i class="fas fa-book-open"></i> View My Courses
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="certificates-grid">
+            @foreach (var cert in certificates)
+            {
+                <div class="certificate-card">
+                    <div class="certificate-preview">
+                        <div class="certificate-badge">
+                            <i class="fas fa-award"></i>
+                        </div>
+                        <div class="certificate-details">
+                            <h3>@cert.CourseName</h3>
+                            <p class="instructor">Instructor: @cert.InstructorName</p>
+                            <p class="date">Completed: @cert.CompletedDate.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                    </div>
+                    <div class="certificate-actions">
+                        <button class="btn btn-outline btn-sm" @onclick="() => ViewCertificate(cert.Id)">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-primary btn-sm" @onclick="() => DownloadCertificate(cert.Id)">
+                            <i class="fas fa-download"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .certificates-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: #f59e0b;
+    }
+
+    .subtitle {
+        color: var(--gray-600);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        gap: 1rem;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-icon i {
+        font-size: 2.5rem;
+        color: #f59e0b;
+    }
+
+    .empty-state h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+    }
+
+    .certificates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .certificate-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .certificate-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .certificate-preview {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .certificate-badge {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .certificate-badge i {
+        font-size: 1.75rem;
+        color: white;
+    }
+
+    .certificate-details h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0 0 0.25rem 0;
+    }
+
+    .certificate-details .instructor {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        margin: 0;
+    }
+
+    .certificate-details .date {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        margin: 0.25rem 0 0 0;
+    }
+
+    .certificate-actions {
+        display: flex;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-100);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    @@media (max-width: 768px) {
+        .certificates-page {
+            padding: 1rem;
+        }
+
+        .certificates-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private List<CertificateItem> certificates = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCertificates();
+    }
+
+    private async Task LoadCertificates()
+    {
+        isLoading = true;
+        try
+        {
+            // TODO: Replace with actual API call
+            await Task.Delay(500);
+
+            // Mock data - replace with actual API call when endpoint is ready
+            certificates = new List<CertificateItem>
+            {
+                // Will be populated when API is available
+            };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewCertificate(Guid certificateId)
+    {
+        Navigation.NavigateTo($"/certificates/{certificateId}");
+    }
+
+    private async Task DownloadCertificate(Guid certificateId)
+    {
+        // TODO: Implement download when API is ready
+        await Task.CompletedTask;
+    }
+
+    private class CertificateItem
+    {
+        public Guid Id { get; set; }
+        public string CourseName { get; set; } = "";
+        public string InstructorName { get; set; } = "";
+        public DateTime CompletedDate { get; set; }
+    }
+}

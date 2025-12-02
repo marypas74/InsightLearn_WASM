@@ -289,8 +289,8 @@ else
 
     private void HandlePreviewClick(Guid lessonId)
     {
-        // Open lesson preview modal or navigate to preview page
-        Navigation.NavigateTo($"/courses/{CourseId}/preview/{lessonId}");
+        // v2.1.0-dev: Navigate to Learn page (which now allows free lessons without enrollment)
+        Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
     }
 
     private void ToggleDescription()

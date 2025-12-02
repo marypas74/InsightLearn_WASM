@@ -6,9 +6,9 @@ using System.Security.Claims;
 namespace InsightLearn.Application.Endpoints;
 
 /// <summary>
-/// Engagement Tracking API Endpoints (3 endpoints)
+/// Engagement Tracking API Endpoints (6 endpoints)
 /// Tasks: T10 - Engagement API Endpoints
-/// Version: v2.0.0
+/// Version: v2.1.0-dev - Added lesson/course progress endpoints
 /// </summary>
 public static class EngagementEndpoints
 {
@@ -220,6 +220,145 @@ public static class EngagementEndpoints
         .WithSummary("Get user engagement statistics")
         .WithDescription("Returns engagement analytics for authenticated user (total time, validation score, etc.)")
         .Produces<UserEngagementAnalytics>(200)
+        .Produces(401)
+        .Produces(500);
+
+        // ==========================================================================
+        // ENDPOINT 13: GET /api/engagement/lesson/{lessonId}/position
+        // Get last video position for a lesson (v2.1.0-dev)
+        // ==========================================================================
+        group.MapGet("/lesson/{lessonId:guid}/position", async (
+            Guid lessonId,
+            ClaimsPrincipal user,
+            [FromServices] ILogger<Program> logger) =>
+        {
+            try
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized position request");
+                    return Results.Unauthorized();
+                }
+
+                logger.LogInformation("[ENGAGEMENT] Getting position for user {UserId}, lesson {LessonId}", userId, lessonId);
+
+                // TODO: Implement actual last position retrieval from database
+                // For now, return placeholder to prevent 404 errors
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        lessonId,
+                        lastPositionSeconds = 0,
+                        totalDurationSeconds = 0,
+                        progressPercentage = 0,
+                        lastUpdated = DateTime.UtcNow
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[ENGAGEMENT] Error getting lesson position");
+                return Results.Problem(detail: ex.Message, statusCode: 500, title: "Error getting lesson position");
+            }
+        })
+        .RequireAuthorization()
+        .WithName("GetLessonPosition")
+        .WithSummary("Get last video position for a lesson")
+        .WithDescription("Returns the user's last watched position in a video lesson")
+        .Produces(200)
+        .Produces(401)
+        .Produces(500);
+
+        // ==========================================================================
+        // ENDPOINT 14: GET /api/engagement/lesson/{lessonId}
+        // Get progress for a specific lesson (v2.1.0-dev)
+        // ==========================================================================
+        group.MapGet("/lesson/{lessonId:guid}", async (
+            Guid lessonId,
+            ClaimsPrincipal user,
+            [FromServices] ILogger<Program> logger) =>
+        {
+            try
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized lesson progress request");
+                    return Results.Unauthorized();
+                }
+
+                logger.LogInformation("[ENGAGEMENT] Getting lesson progress for user {UserId}, lesson {LessonId}", userId, lessonId);
+
+                // TODO: Implement actual lesson progress retrieval from database
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        lessonId,
+                        userId,
+                        progressPercentage = 0,
+                        isCompleted = false,
+                        totalWatchTimeSeconds = 0,
+                        lastWatchedAt = (DateTime?)null
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[ENGAGEMENT] Error getting lesson progress");
+                return Results.Problem(detail: ex.Message, statusCode: 500, title: "Error getting lesson progress");
+            }
+        })
+        .RequireAuthorization()
+        .WithName("GetLessonProgress")
+        .WithSummary("Get progress for a specific lesson")
+        .WithDescription("Returns the user's progress for a specific lesson")
+        .Produces(200)
+        .Produces(401)
+        .Produces(500);
+
+        // ==========================================================================
+        // ENDPOINT 15: GET /api/engagement/course/{courseId}
+        // Get progress for all lessons in a course (v2.1.0-dev)
+        // ==========================================================================
+        group.MapGet("/course/{courseId:guid}", async (
+            Guid courseId,
+            ClaimsPrincipal user,
+            [FromServices] ILogger<Program> logger) =>
+        {
+            try
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                {
+                    logger.LogWarning("[ENGAGEMENT] Unauthorized course progress request");
+                    return Results.Unauthorized();
+                }
+
+                logger.LogInformation("[ENGAGEMENT] Getting course progress for user {UserId}, course {CourseId}", userId, courseId);
+
+                // TODO: Implement actual course progress retrieval from database
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = new List<object>() // Empty list for now - will be populated when lessons exist
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[ENGAGEMENT] Error getting course progress");
+                return Results.Problem(detail: ex.Message, statusCode: 500, title: "Error getting course progress");
+            }
+        })
+        .RequireAuthorization()
+        .WithName("GetCourseProgress")
+        .WithSummary("Get progress for all lessons in a course")
+        .WithDescription("Returns the user's progress for all lessons in a course")
+        .Produces(200)
         .Produces(401)
         .Produces(500);
     }

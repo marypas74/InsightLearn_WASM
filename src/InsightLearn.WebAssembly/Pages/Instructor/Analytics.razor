@@ -1,0 +1,514 @@
+@page "/instructor/analytics"
+@attribute [Authorize(Roles = "Instructor,Admin")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Instructor Analytics - InsightLearn</PageTitle>
+
+<div class="analytics-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-chart-line"></i> My Analytics</h1>
+            <p class="subtitle">Track your course performance and student engagement</p>
+        </div>
+        <div class="header-actions">
+            <select class="form-select" @bind="selectedPeriod">
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading analytics...</p>
+        </div>
+    }
+    else
+    {
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card revenue">
+                <div class="kpi-icon"><i class="fas fa-euro-sign"></i></div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@totalRevenue.ToString("C0", new System.Globalization.CultureInfo("it-IT"))</span>
+                    <span class="kpi-label">Total Revenue</span>
+                    <span class="kpi-change positive">+12% vs last period</span>
+                </div>
+            </div>
+            <div class="kpi-card enrollments">
+                <div class="kpi-icon"><i class="fas fa-user-graduate"></i></div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@totalEnrollments</span>
+                    <span class="kpi-label">Total Enrollments</span>
+                    <span class="kpi-change positive">+8% vs last period</span>
+                </div>
+            </div>
+            <div class="kpi-card views">
+                <div class="kpi-icon"><i class="fas fa-eye"></i></div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@totalViews.ToString("N0")</span>
+                    <span class="kpi-label">Course Views</span>
+                    <span class="kpi-change positive">+15% vs last period</span>
+                </div>
+            </div>
+            <div class="kpi-card rating">
+                <div class="kpi-icon"><i class="fas fa-star"></i></div>
+                <div class="kpi-content">
+                    <span class="kpi-value">@averageRating.ToString("F1")</span>
+                    <span class="kpi-label">Avg. Rating</span>
+                    <span class="kpi-change neutral">Same as last period</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Performance Table -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2><i class="fas fa-graduation-cap"></i> Course Performance</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Enrollments</th>
+                            <th>Completion Rate</th>
+                            <th>Revenue</th>
+                            <th>Rating</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var course in courseStats)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="course-info">
+                                        <span class="course-title">@course.Title</span>
+                                        <span class="course-category">@course.Category</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge badge-blue">@course.Enrollments</span></td>
+                                <td>
+                                    <div class="progress-mini">
+                                        <div class="progress-bar" style="width: @course.CompletionRate%"></div>
+                                        <span>@course.CompletionRate%</span>
+                                    </div>
+                                </td>
+                                <td><strong>@course.Revenue.ToString("C0", new System.Globalization.CultureInfo("it-IT"))</strong></td>
+                                <td>
+                                    <span class="rating">
+                                        <i class="fas fa-star"></i> @course.Rating.ToString("F1")
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="/instructor/courses/@course.Id/edit" class="btn btn-sm btn-outline">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2><i class="fas fa-bell"></i> Recent Activity</h2>
+            </div>
+            <div class="activity-list">
+                @foreach (var activity in recentActivities)
+                {
+                    <div class="activity-item">
+                        <div class="activity-icon @activity.Type">
+                            <i class="@activity.Icon"></i>
+                        </div>
+                        <div class="activity-content">
+                            <span class="activity-text">@activity.Message</span>
+                            <span class="activity-time">@activity.TimeAgo</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .analytics-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--primary);
+    }
+
+    .subtitle {
+        color: var(--gray-600);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .form-select {
+        padding: 0.5rem 2rem 0.5rem 1rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 8px;
+        background: white;
+        font-size: 0.9rem;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        gap: 1rem;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .kpi-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .kpi-card.revenue .kpi-icon { background: linear-gradient(135deg, #10b981, #059669); }
+    .kpi-card.enrollments .kpi-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .kpi-card.views .kpi-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .kpi-card.rating .kpi-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .kpi-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .kpi-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    .kpi-change {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .kpi-change.positive { color: #10b981; }
+    .kpi-change.negative { color: #ef4444; }
+    .kpi-change.neutral { color: var(--gray-500); }
+
+    /* Section Card */
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-header h2 i {
+        color: var(--primary);
+    }
+
+    /* Table */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gray-500);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .course-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .course-title {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+
+    .course-category {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .badge {
+        display: inline-flex;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .badge-blue {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .progress-mini {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .progress-mini .progress-bar {
+        width: 60px;
+        height: 6px;
+        background: var(--gray-200);
+        border-radius: 3px;
+        position: relative;
+    }
+
+    .progress-mini .progress-bar::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: var(--primary);
+        border-radius: 3px;
+        width: inherit;
+    }
+
+    .rating {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .rating i {
+        color: #f59e0b;
+    }
+
+    /* Activity List */
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .activity-icon.enrollment { background: #dbeafe; color: #2563eb; }
+    .activity-icon.review { background: #fef3c7; color: #d97706; }
+    .activity-icon.completion { background: #d1fae5; color: #059669; }
+    .activity-icon.question { background: #ede9fe; color: #7c3aed; }
+
+    .activity-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .activity-text {
+        font-size: 0.9rem;
+        color: var(--gray-800);
+    }
+
+    .activity-time {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .analytics-page {
+            padding: 1rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .data-table {
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private int selectedPeriod = 30;
+    private decimal totalRevenue = 8450;
+    private int totalEnrollments = 847;
+    private int totalViews = 12340;
+    private double averageRating = 4.7;
+
+    private List<CourseStats> courseStats = new();
+    private List<ActivityItem> recentActivities = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAnalytics();
+    }
+
+    private async Task LoadAnalytics()
+    {
+        isLoading = true;
+        try
+        {
+            // Mock data - replace with actual API calls
+            await Task.Delay(500);
+
+            courseStats = new List<CourseStats>
+            {
+                new() { Id = Guid.NewGuid(), Title = "Complete Web Development", Category = "Programming", Enrollments = 234, CompletionRate = 65, Revenue = 4680, Rating = 4.8 },
+                new() { Id = Guid.NewGuid(), Title = "React Masterclass", Category = "Frontend", Enrollments = 189, CompletionRate = 58, Revenue = 2835, Rating = 4.6 },
+                new() { Id = Guid.NewGuid(), Title = "Node.js Backend", Category = "Backend", Enrollments = 156, CompletionRate = 72, Revenue = 1560, Rating = 4.9 }
+            };
+
+            recentActivities = new List<ActivityItem>
+            {
+                new() { Type = "enrollment", Icon = "fas fa-user-plus", Message = "New enrollment in 'Complete Web Development'", TimeAgo = "2 hours ago" },
+                new() { Type = "review", Icon = "fas fa-star", Message = "5-star review received on 'React Masterclass'", TimeAgo = "5 hours ago" },
+                new() { Type = "completion", Icon = "fas fa-trophy", Message = "Student completed 'Node.js Backend'", TimeAgo = "1 day ago" },
+                new() { Type = "question", Icon = "fas fa-question-circle", Message = "New question in 'Complete Web Development'", TimeAgo = "2 days ago" }
+            };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class CourseStats
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Category { get; set; } = "";
+        public int Enrollments { get; set; }
+        public int CompletionRate { get; set; }
+        public decimal Revenue { get; set; }
+        public double Rating { get; set; }
+    }
+
+    private class ActivityItem
+    {
+        public string Type { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string TimeAgo { get; set; } = "";
+    }
+}

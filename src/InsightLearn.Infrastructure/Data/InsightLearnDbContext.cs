@@ -28,6 +28,7 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
     public DbSet<PaymentMethodAuditLog> PaymentMethodAuditLogs { get; set; }
     public DbSet<Coupon> Coupons { get; set; }
+    public DbSet<CartItem> CartItems { get; set; }
     public DbSet<Certificate> Certificates { get; set; }
     public DbSet<Note> Notes { get; set; }
     
@@ -441,6 +442,30 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
             entity.HasIndex(e => e.StripeAccountId).IsUnique();
             entity.HasIndex(e => e.InstructorId).IsUnique();
             entity.HasIndex(e => new { e.OnboardingStatus, e.PayoutsEnabled });
+        });
+
+        // CartItem configuration (Shopping Cart - v2.2.0)
+        builder.Entity<CartItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PriceAtAddition).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.CouponCode).HasMaxLength(50);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Course)
+                .WithMany()
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: user can only have one cart entry per course
+            entity.HasIndex(e => new { e.UserId, e.CourseId }).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.AddedAt);
         });
 
         // Update Enrollment to support subscriptions
