@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
 **Latest Release**: 🎛️ Admin Console v2.1.0-dev COMPLETE (2025-11-26) - 20+ admin pages with CreateCourse wizard & EditCourse editor
+**SEO Status**: ✅ **OPTIMIZED** - sitemap.xml + robots.txt deployed (2025-12-02)
 
 ✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.1.0-dev`.
 
@@ -156,6 +157,74 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 
 **Admin Console Models**:
 - [AnalyticsModels.cs](src/InsightLearn.WebAssembly/Models/Admin/AnalyticsModels.cs) - Analytics DTOs and view models
+
+### 🎨 UI/UX Updates (v2.1.0-dev - 2025-11-26)
+
+**Admin Menu Enhancement**:
+- [MainLayout.razor](src/InsightLearn.WebAssembly/Layout/MainLayout.razor) - Admin dropdown menu reorganized with logical groups
+- [header-clean.css](src/InsightLearn.WebAssembly/wwwroot/css/header-clean.css) - New admin menu styling
+
+**Menu Groups (7 categories)**:
+1. **Overview**: Dashboard, Analytics, Reports
+2. **Content**: Courses, Categories
+3. **Users**: User Management, Instructors, User Lockouts
+4. **Finance**: Payments
+5. **Monitoring**: Chatbot Analytics, Access Logs
+6. **SEO & Marketing**: SEO Management, Google Analytics, Search Console, Podcast SEO
+7. **System**: System Health, Auth Diagnostics, System Settings
+
+**Styling Features**:
+- `.admin-menu-group` - Group container with subtle padding
+- `.admin-menu-separator` - Gradient separator line between groups
+- `.admin-item-badge` - Colored icon badges with 9 variants:
+  - `badge-indigo` (Dashboard), `badge-orange` (Analytics), `badge-green` (Reports)
+  - `badge-blue` (Courses), `badge-purple` (Categories)
+  - `badge-cyan` (Users), `badge-teal` (Instructors), `badge-amber` (Lockouts)
+  - `badge-emerald` (Payments), `badge-rose` (Chatbot), `badge-gray` (System)
+- Icon hover: `filter: brightness(1.1)` + `transform: scale(1.1)`
+
+**Login/Sign Up Bar Enhancement**:
+- Enhanced `.auth-buttons` with background, padding, border-radius, and subtle border
+- `.btn-outline` with hover gradient animation
+- `.btn-primary` with gradient background and shadow
+- Icons added to Login (`fa-sign-in-alt`) and Sign Up (`fa-user-plus`) buttons
+
+**Sign Up Page Redesign** (Register.razor):
+- [Register.razor](src/InsightLearn.WebAssembly/Pages/Register.razor) - Complete redesign with modern UX
+- **2-column layout**: Form on left, animated visual on right
+- **Google Sign Up**: Prominent OAuth button with SVG icon
+- **Form Fields with Icons**: First/Last Name, Email, Password
+- **Password Features**:
+  - Toggle visibility (show/hide)
+  - Strength indicator (4 bars: Weak/Fair/Good/Strong)
+  - Color-coded feedback (red → orange → blue → green)
+  - Password match confirmation indicator
+- **Role Selector**: Card-based selection (Learn/Teach) with icons
+- **Terms & Conditions**: Custom styled checkbox with links
+- **Visual Side**: Animated gradient, floating elements, stats (10K+ Students, 500+ Courses, 95% Satisfaction)
+- **Responsive**: Adapts to mobile with single column layout
+
+**Chatbot Welcome Popup Auto-Hide** (v2.1.0-dev - 2025-12-01):
+- [ChatbotWidget.razor](src/InsightLearn.WebAssembly/Components/ChatbotWidget.razor) - Auto-hide welcome popup
+- **Behavior**: Welcome popup appears after 3 seconds, auto-hides after 10 seconds
+- **Implementation**: `Task.Run` with `Task.Delay(10000)` in `OnAfterRenderAsync`
+- **Conditions**: Only hides if popup is still visible and messenger is not open
+
+**User Menu Auto-Close on Mouse Leave** (v2.1.0-dev - 2025-12-01):
+- [MainLayout.razor](src/InsightLearn.WebAssembly/Layout/MainLayout.razor) - Auto-close dropdown
+- **Behavior**: User dropdown menu closes automatically when mouse leaves the menu area
+- **Implementation**: `@onmouseleave="CloseUserMenu"` on `.user-menu-container` div
+- **Benefit**: Improved UX - no need to click elsewhere to close the menu
+
+**Cookie Consent Button Icons** (v2.1.0-dev - 2025-12-01):
+- [CookieConsentWall.razor](src/InsightLearn.WebAssembly/Components/CookieConsentWall.razor) - FontAwesome icons
+- [cookie-consent-wall.css](src/InsightLearn.WebAssembly/wwwroot/css/cookie-consent-wall.css) - Vibrant styling
+- **Icons replaced**: Unicode characters → FontAwesome icons (fa-times, fa-cog, fa-check)
+- **Color scheme**:
+  - **Reject All**: Yellow X on dark circle with border
+  - **Cookie Settings**: Cyan gear on dark circle with border
+  - **Accept All**: Green checkmark with pulsing glow animation
+- **Animations**: Rotate on hover (Reject/Settings), scale + glow (Accept)
 
 ### Authentication & Authorization
 
@@ -779,8 +848,8 @@ Professional student learning environment with AI-powered features inspired by L
    - Password sudo: Configurata in ambiente production
    - **Non usare** [k8s/build-images.sh](/k8s/build-images.sh) (assume Docker standard)
 
-3bis. **🔥 ZFS File System per K3s Storage** (✅ Implementato 2025-11-09)
-   - **Pool**: `k3spool` (50GB file-based pool in `/home/zfs-k3s-pool.img`)
+3bis. **🔥 ZFS File System per K3s Storage** (✅ Implementato 2025-11-09, Espanso 2025-11-28)
+   - **Pool**: `k3spool` (**90GB** file-based pool in `/home/zfs-k3s-pool.img`) - Espanso da 50GB 2025-11-28
    - **Mountpoint**: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
    - **Compression**: **lz4** (compression ratio medio: **1.37x**, fino a **4.14x** su server data)
    - **Datasets**:
@@ -806,6 +875,56 @@ Professional student learning environment with AI-powered features inspired by L
      ```
    - **⚠️ IMPORTANTE**: ZFS binaries sono in `/usr/local/sbin/` (non nel PATH standard)
    - **Backup Original Data**: Rimosso `/var/lib/rancher/k3s.backup-old` (6.5GB liberati)
+
+3ter. **🐧 Kernel Migration & ZFS Compatibility** (✅ Documentato 2025-11-28)
+   - **Kernel Attuale Funzionante**: `6.12.0-55.41.1.el10_0.x86_64` (con ZFS 2.4.99-1)
+   - **Kernel Installati**:
+     - `6.12.0-55.12.1.el10_0.x86_64` - Vecchio
+     - `6.12.0-55.41.1.el10_0.x86_64` - **ATTIVO** (ZFS funzionante)
+     - `6.12.0-124.8.1.el10_1.x86_64` - Nuovo (⚠️ richiede ricompilazione ZFS)
+   - **⚠️ CRITICO - Aggiornamento Kernel**:
+     1. **NON riavviare** con kernel 6.12.0-124 senza prima ricompilare ZFS
+     2. ZFS kernel module è compilato per kernel specifico
+     3. Boot con kernel senza ZFS = **pool non disponibile** = **K3s non funzionante**
+   - **Procedura Upgrade Kernel con ZFS**:
+     ```bash
+     # 1. PRIMA di aggiornare kernel, verificare versione ZFS
+     /usr/local/sbin/zfs version
+
+     # 2. Scaricare sorgenti ZFS (se non presenti)
+     cd /usr/src
+     git clone https://github.com/openzfs/zfs.git
+     cd zfs
+     git checkout zfs-2.4.99  # o versione compatibile
+
+     # 3. Compilare ZFS per NUOVO kernel
+     ./autogen.sh
+     ./configure --with-linux=/usr/src/kernels/6.12.0-124.8.1.el10_1.x86_64
+     make -j$(nproc)
+     sudo make install
+
+     # 4. Caricare modulo ZFS
+     sudo modprobe zfs
+
+     # 5. Verificare funzionamento
+     /usr/local/sbin/zpool status k3spool
+
+     # 6. Solo ora è sicuro riavviare con nuovo kernel
+     sudo grubby --set-default /boot/vmlinuz-6.12.0-124.8.1.el10_1.x86_64
+     sudo reboot
+     ```
+   - **Rollback Kernel** (se ZFS non funziona):
+     ```bash
+     # Da GRUB menu, selezionare kernel precedente
+     # Oppure da sistema funzionante:
+     sudo grubby --set-default /boot/vmlinuz-6.12.0-55.41.1.el10_0.x86_64
+     sudo reboot
+     ```
+   - **Verifica Default Kernel**:
+     ```bash
+     grubby --default-kernel
+     uname -r  # kernel attualmente in esecuzione
+     ```
 
 4. **MongoDB CreateContainerConfigError** (✅ Risolto v1.6.0)
    - **Problema**: Pod falliva con "couldn't find key mongodb-password in Secret"
@@ -922,6 +1041,56 @@ Professional student learning environment with AI-powered features inspired by L
     - **File Systemd Service Aggiornato**: [/tmp/cloudflared-tunnel-http2.service](/tmp/cloudflared-tunnel-http2.service)
     - **Status**: ✅ Login funzionante 100% (10/10 test consecutivi)
     - **Deployment Date**: 2025-11-20
+
+12. **🗄️ Student Learning Space Database Migration** (✅ RISOLTO 2025-12-02)
+    - **Problema**: Tabelle Student Learning Space mancanti causavano HTTP 500/404
+    - **Sintomi**:
+      - AI Key Takeaways: "Request failed with status InternalServerError"
+      - Errore SQL: `Invalid object name 'AIKeyTakeawaysMetadata'`
+      - Migrazione `20251119000000_AddStudentLearningSpaceEntities` presente ma non applicata (mancava Designer.cs)
+    - **Root Cause**: Il file `.Designer.cs` della migrazione non esisteva, quindi EF Core non riconosceva la migrazione
+    - **Tabelle Create Manualmente**:
+      - `StudentNotes` - Note degli studenti con timestamp video
+      - `VideoBookmarks` - Bookmark video utente
+      - `VideoTranscriptMetadata` - Metadata trascrizioni (MongoDB link)
+      - `AIKeyTakeawaysMetadata` - Metadata takeaways AI (MongoDB link)
+      - `AIConversations` - Sessioni chat AI con contesto video
+    - **Script SQL**: `/tmp/missing_tables.sql`
+    - **Fix Applicati**:
+      1. ✅ Creazione 4 tabelle mancanti via SQL diretto
+      2. ✅ Registrazione migrazione in `__EFMigrationsHistory`
+      3. ✅ Aggiunto `Microsoft.Extensions.Caching.StackExchangeRedis` 8.0.11
+      4. ✅ Registrato `IDistributedCache` in Program.cs
+    - **File Modificati**:
+      - [Program.cs](src/InsightLearn.Application/Program.cs#L620-L626) - AddStackExchangeRedisCache
+    - **Verifica**:
+      ```bash
+      # Verificare tabelle esistono
+      kubectl exec sqlserver-0 -n insightlearn -- /opt/mssql-tools18/bin/sqlcmd \
+        -S localhost -U sa -P 'PASSWORD' -C -d InsightLearnDb \
+        -Q "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE 'AI%' OR TABLE_NAME LIKE 'Video%' OR TABLE_NAME = 'StudentNotes'"
+      ```
+    - **Status**: ✅ Tutte le tabelle create, AI Takeaways funzionante
+    - **Deployment Date**: 2025-12-02
+
+13. **🦊 Firefox Video Codec Error** (✅ UX Migliorata 2025-12-02)
+    - **Problema**: Video non riprodotto su Firefox Linux (H.264 codec non supportato)
+    - **Sintomi**:
+      - Errore: `NS_ERROR_DOM_MEDIA_FATAL_ERR (0x806e0005)`
+      - Console: `Couldn't open avcodec`
+      - Video mostra: "Non è stato trovato alcun video con formato o MIME type supportati"
+    - **Root Cause**: Firefox su Linux non include il codec H.264 di default (motivi di licenza)
+    - **Soluzione UX**: Messaggio d'errore chiaro con opzioni per l'utente
+    - **File Modificati**:
+      - [videoPlayer.js](src/InsightLearn.WebAssembly/wwwroot/js/videoPlayer.js#L61-L89) - Rilevamento `MEDIA_ERR_DECODE`
+      - [VideoPlayer.razor.cs](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor.cs#L268-L275) - `OnVideoErrorFromJS` callback
+      - [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor#L46-L58) - UI con soluzioni Firefox
+    - **Soluzioni Mostrate all'Utente**:
+      - Usare Chrome o Edge browser
+      - Installare plugin OpenH264 in Firefox (about:addons)
+      - Su Linux: installare pacchetto `ffmpeg`
+    - **Status**: ✅ UX migliorata (problema è limite browser, non risolvibile lato app)
+    - **Deployment Date**: 2025-12-02
 
 ### 🔥 Disaster Recovery Completo - HA System v2.0.2 (✅ Implementato 2025-11-16)
 
@@ -2587,13 +2756,20 @@ Quando lavori con questa repository:
     - MongoDB: ✅ Running (video storage operativo)
     - Redis: ✅ Running (tcpSocket probes)
     - Ollama: ✅ Running (qwen2:0.5b ~1.7s)
-20. **🔥 ZFS File System**: K3s storage ora su ZFS per compression e reliability (implementato 2025-11-09)
-    - Pool: `k3spool` (50GB in `/home/zfs-k3s-pool.img`)
+20. **🔥 ZFS File System**: K3s storage ora su ZFS per compression e reliability (implementato 2025-11-09, espanso 2025-11-28)
+    - Pool: `k3spool` (**90GB** in `/home/zfs-k3s-pool.img`) - Espanso da 50GB
     - K3s data: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
     - Compression: **lz4** (ratio 1.37x medio, fino a 6.07x su certs)
     - ZFS comandi: `/usr/local/sbin/zpool` e `/usr/local/sbin/zfs` (non nel PATH standard)
     - Autoload: `systemctl status zfs-import-k3spool.service`
     - ⚠️ **NON modificare /var/lib/rancher/k3s direttamente** - è un symlink a ZFS mountpoint
+    - ⚠️ **KERNEL-ZFS DIPENDENZA**: ZFS kernel module è compilato per kernel specifico (attuale: 6.12.0-55.41.1)
+23. **🐧 Kernel & ZFS Migration**: Procedure critiche per aggiornamento kernel (documentato 2025-11-28)
+    - Kernel attuale funzionante: `6.12.0-55.41.1.el10_0.x86_64`
+    - Kernel nuovo installato: `6.12.0-124.8.1.el10_1.x86_64` (⚠️ richiede ricompilazione ZFS)
+    - **⚠️ PRIMA di aggiornare kernel**: Ricompilare ZFS per il nuovo kernel
+    - **⚠️ Se boot fallisce**: Selezionare kernel 6.12.0-55.41.1 da GRUB menu
+    - Procedura completa: vedere sezione "3ter. Kernel Migration & ZFS Compatibility" sopra
 21. **🚀 HA System v2.0.2**: Sistema HA completo con auto-restore automatico (implementato 2025-11-16)
     - **Backup**: 3 copie rotanti ogni ora in `/var/backups/k3s-cluster/`
     - **Watchdog**: Timer systemd ogni 2 minuti (`/usr/local/bin/insightlearn-ha-watchdog.sh`)
@@ -3246,7 +3422,170 @@ Professional student learning interface matching LinkedIn Learning quality stand
 
 ---
 
-## 📊 Work Progress Status (v2.1.0-dev) - Updated 2025-11-26
+## 🛒 Shopping Cart & Checkout System (v2.2.0-dev) - ✅ COMPLETE
+
+**Status**: ✅ **COMPLETE** - Implemented 2025-12-02
+**Target Version**: v2.2.0-dev
+**Architect Review**: ✅ Completed 2025-12-01
+**Build Status**: ✅ 0 Errors, 0 Warnings
+
+### Overview
+
+Complete e-commerce cart and checkout system with PayPal integration, coupon support, and order confirmation flow.
+
+### Implementation Status
+
+| Component | Status | Lines | Note |
+|-----------|--------|-------|------|
+| **Backend - CartItem Entity** | ✅ Complete | 45 | SQL Server entity with EF Core |
+| **Backend - Cart DTOs** | ✅ Complete | 120 | 7 DTOs for full cart operations |
+| **Backend - ICartRepository** | ✅ Complete | 60 | Repository interface |
+| **Backend - CartRepository** | ✅ Complete | 180 | EF Core implementation |
+| **Backend - ICartService** | ✅ Complete | 50 | Service interface |
+| **Backend - CartService** | ✅ Complete | 250 | Business logic layer |
+| **Backend - Cart API endpoints** | ✅ Complete | 200 | 9 endpoints in Program.cs |
+| **Frontend - ICartService** | ✅ Complete | 128 | Service interface + models |
+| **Frontend - CartService** | ✅ Complete | 153 | API client implementation |
+| **Frontend - Cart.razor** | ✅ Complete | 510 | Full cart UI redesign |
+| **Frontend - Checkout.razor** | ✅ Complete | 496 | PayPal checkout flow |
+| **Frontend - OrderConfirmation.razor** | ✅ Complete | 400 | Success page with animation |
+| **CSS - checkout.css** | ✅ Complete | 800+ | Modern checkout styling |
+
+### Cart API Endpoints (9 total)
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/cart` | GET | Get current user's cart | ✅ Required |
+| `/api/cart/count` | GET | Get cart item count | ✅ Required |
+| `/api/cart/add` | POST | Add course to cart | ✅ Required |
+| `/api/cart/{courseId}` | DELETE | Remove course from cart | ✅ Required |
+| `/api/cart` | DELETE | Clear entire cart | ✅ Required |
+| `/api/cart/coupon` | POST | Apply coupon code | ✅ Required |
+| `/api/cart/coupon` | DELETE | Remove applied coupon | ✅ Required |
+| `/api/cart/validate` | POST | Validate cart for checkout | ✅ Required |
+| `/api/cart/check/{courseId}` | GET | Check if course in cart | ✅ Required |
+
+### Frontend Services
+
+**ICartService Interface** (`src/InsightLearn.WebAssembly/Services/ICartService.cs`):
+- `GetCartAsync()` - Get full cart with items
+- `GetCartCountAsync()` - Get item count for badge
+- `AddToCartAsync(courseId, couponCode?)` - Add course
+- `RemoveFromCartAsync(courseId)` - Remove course
+- `ClearCartAsync()` - Clear all items
+- `ApplyCouponAsync(code)` - Apply coupon
+- `RemoveCouponAsync()` - Remove coupon
+- `ValidateCartForCheckoutAsync()` - Pre-checkout validation
+- `IsCourseInCartAsync(courseId)` - Check course presence
+- `OnCartUpdated` event - Header badge updates
+
+**CartService Implementation** (`src/InsightLearn.WebAssembly/Services/CartService.cs`):
+- Uses IApiClient for HTTP calls
+- NotifyCartUpdated() triggers header badge refresh
+
+### Frontend Pages
+
+**Cart.razor** (`src/InsightLearn.WebAssembly/Pages/Cart.razor`) - 510 lines:
+- Two-column layout (items + order summary)
+- Course thumbnails with metadata (rating, duration, language)
+- Price breakdown (original, discount, coupon, total)
+- Coupon code input with apply/remove
+- Remove item and clear cart actions
+- Trust badges (secure, guarantee, lifetime access)
+- Responsive mobile design
+
+**Checkout.razor** (`src/InsightLearn.WebAssembly/Pages/Checkout.razor`) - 496 lines:
+- Payment method selection (PayPal active, Stripe coming soon)
+- PayPal JavaScript SDK integration via JSInterop
+- Order summary sidebar with all items
+- Optional billing address form
+- Security badges (256-bit SSL, PCI DSS)
+- Processing spinner during payment
+- Error handling with retry option
+- JSInvokable callbacks: OnPayPalApprove, OnPayPalError, OnPayPalCancel
+
+**OrderConfirmation.razor** (`src/InsightLearn.WebAssembly/Pages/OrderConfirmation.razor`) - 400 lines:
+- Success checkmark animation (CSS keyframes)
+- Order details display
+- Next steps guidance
+- "Start Learning" and "View My Courses" CTAs
+- Responsive design
+
+### CSS Styles
+
+**checkout.css** (`src/InsightLearn.WebAssembly/wwwroot/css/checkout.css`):
+- `.checkout-page` - Main container
+- `.payment-method-card` - Payment option cards with selection state
+- `.order-summary` - Sticky sidebar on desktop
+- `.trust-badges` - Security indicators
+- `.cart-item` - Individual item cards
+- `.price-breakdown` - Price line items
+- Responsive breakpoints for mobile/tablet
+
+### Frontend Models
+
+**CartItemModel**:
+- CourseId, CourseTitle, CourseThumbnailUrl
+- InstructorName, OriginalPrice, CurrentPrice
+- DiscountAmount, FinalPrice, CouponCode
+- HasPriceChanged, AddedAt
+- AverageRating, ReviewCount, EstimatedDurationMinutes, Language
+
+**CartModel**:
+- Items (List<CartItemModel>), ItemCount
+- Subtotal, TotalDiscount, Total, Currency
+- AppliedCouponCode, CouponDiscount
+- Warnings (List<string>), HasPriceChanges
+
+**CouponResultModel**:
+- IsValid, ErrorMessage, CouponCode
+- Description, DiscountAmount, NewTotal
+
+### PayPal Integration
+
+**JavaScript Interop** (in index.html or separate JS):
+```javascript
+function initializePayPalButton(amount, currency, dotNetRef) {
+    paypal.Buttons({
+        createOrder: (data, actions) => actions.order.create({
+            purchase_units: [{ amount: { value: amount, currency_code: currency } }]
+        }),
+        onApprove: (data) => dotNetRef.invokeMethodAsync('OnPayPalApprove', data.orderID),
+        onError: (err) => dotNetRef.invokeMethodAsync('OnPayPalError', err.message),
+        onCancel: () => dotNetRef.invokeMethodAsync('OnPayPalCancel')
+    }).render('#paypal-button-container');
+}
+```
+
+### User Flow
+
+```
+Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → PayPal → Order Confirmation
+      ↓              ↓            ↓            ↓            ↓          ↓            ↓
+  CourseCard    CartService   Cart.razor  ApplyCoupon  Checkout.razor  SDK    OrderConfirmation
+```
+
+### Files Created/Modified
+
+| File | Type | Description |
+|------|------|-------------|
+| `src/InsightLearn.Core/Entities/CartItem.cs` | Entity | Cart item with FK to User, Course |
+| `src/InsightLearn.Core/DTOs/Cart/CartDtos.cs` | DTOs | 7 DTO classes |
+| `src/InsightLearn.Core/Interfaces/ICartRepository.cs` | Interface | Repository contract |
+| `src/InsightLearn.Infrastructure/Repositories/CartRepository.cs` | Repository | EF Core implementation |
+| `src/InsightLearn.Application/Services/ICartService.cs` | Interface | Service contract |
+| `src/InsightLearn.Application/Services/CartService.cs` | Service | Business logic |
+| `src/InsightLearn.Application/Program.cs` | API | 9 cart endpoints added |
+| `src/InsightLearn.WebAssembly/Services/ICartService.cs` | Interface | Frontend service contract + models |
+| `src/InsightLearn.WebAssembly/Services/CartService.cs` | Service | API client |
+| `src/InsightLearn.WebAssembly/Pages/Cart.razor` | Page | Shopping cart UI |
+| `src/InsightLearn.WebAssembly/Pages/Checkout.razor` | Page | Checkout with PayPal |
+| `src/InsightLearn.WebAssembly/Pages/OrderConfirmation.razor` | Page | Success page |
+| `src/InsightLearn.WebAssembly/wwwroot/css/checkout.css` | CSS | Checkout styling |
+
+---
+
+## 📊 Work Progress Status (v2.1.0-dev) - Updated 2025-12-01
 
 ### Overall Completion: **95%** ✅ Production Ready
 
@@ -3387,6 +3726,68 @@ Professional student learning interface matching LinkedIn Learning quality stand
 
 ---
 
-**Last Updated**: 2025-11-26
-**Document Version**: 1.1
+## 🔍 SEO Optimization (v2.1.0-dev) - ✅ COMPLETE
+
+**Status**: ✅ **DEPLOYED** - 2025-12-02
+**Google Search Console**: Ready for sitemap submission
+
+### Files Created
+
+| File | Location | Purpose |
+|------|----------|---------|
+| **sitemap.xml** | `src/InsightLearn.WebAssembly/wwwroot/sitemap.xml` | XML sitemap for Google indexing |
+| **robots.txt** | `src/InsightLearn.WebAssembly/wwwroot/robots.txt` | Crawler directives |
+| **SEO_OPTIMIZATION_GUIDE.md** | `docs/SEO_OPTIMIZATION_GUIDE.md` | Complete SEO strategy guide |
+| **BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md** | `docs/BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md` | Blazor-specific SEO code |
+
+### Public URLs
+
+- **Sitemap**: https://wasm.insightlearn.cloud/sitemap.xml
+- **Robots.txt**: https://wasm.insightlearn.cloud/robots.txt
+
+### Google Search Console Setup
+
+1. Go to: https://search.google.com/search-console/sitemaps
+2. Add sitemap URL: `https://wasm.insightlearn.cloud/sitemap.xml`
+3. Click "Submit"
+
+### Pages Indexed (Priority)
+
+| Page | Priority | Change Freq |
+|------|----------|-------------|
+| Homepage `/` | 1.0 | daily |
+| Courses `/courses` | 0.9 | daily |
+| Categories `/categories` | 0.8 | weekly |
+| Search `/search` | 0.7 | weekly |
+
+### Pages Blocked (robots.txt)
+
+- `/admin/*` - Admin pages
+- `/dashboard` - User dashboard
+- `/cart`, `/checkout` - E-commerce pages
+- `/api/*` - API endpoints
+- `/learn/*` - Learning space (authenticated)
+
+### Nginx Configuration
+
+Added specific location blocks in `docker/wasm-nginx.conf`:
+- `/sitemap.xml` - XML content type, 24h cache
+- `/robots.txt` - Plain text content type, 24h cache
+
+### Known Limitations (Blazor WASM)
+
+⚠️ Blazor WebAssembly renders client-side, causing SEO challenges:
+- Search engines see empty HTML initially
+- **Solution**: Pre-rendering configuration (see docs)
+- **Alternative**: Dynamic sitemap via backend API
+
+### Documentation
+
+- [SEO_OPTIMIZATION_GUIDE.md](docs/SEO_OPTIMIZATION_GUIDE.md) - Full strategy (meta tags, keywords, structured data)
+- [BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md](docs/BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md) - Code samples for dynamic meta tags
+
+---
+
+**Last Updated**: 2025-12-02
+**Document Version**: 1.2
 **Status**: ✅ 95% Complete - Production Ready
