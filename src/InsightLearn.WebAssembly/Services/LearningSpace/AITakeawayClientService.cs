@@ -11,7 +11,8 @@ namespace InsightLearn.WebAssembly.Services.LearningSpace;
 public class AITakeawayClientService : IAITakeawayClientService
 {
     private readonly IApiClient _apiClient;
-    private const string BaseEndpoint = "/api/ai-takeaways";
+    // v2.1.0-dev: Fixed endpoint path to match backend (/api/takeaways instead of /api/ai-takeaways)
+    private const string BaseEndpoint = "/api/takeaways";
 
     public AITakeawayClientService(IApiClient apiClient)
     {
@@ -25,7 +26,8 @@ public class AITakeawayClientService : IAITakeawayClientService
 
     public async Task<ApiResponse<object>> QueueGenerationAsync(QueueTakeawayDto dto)
     {
-        return await _apiClient.PostAsync<object>($"{BaseEndpoint}/generate", dto);
+        // v2.1.0-dev: Fixed endpoint path to include lessonId in URL
+        return await _apiClient.PostAsync<object>($"{BaseEndpoint}/{dto.LessonId}/generate", dto);
     }
 
     public async Task<ApiResponse<TakeawayStatusDto>> GetStatusAsync(Guid lessonId)

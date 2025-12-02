@@ -56,32 +56,122 @@
             <div class="spinner"></div>
             <span>Loading AI takeaways...</span>
         </div>
+
+        <!-- Loading Skeleton -->
+        <div class="takeaways-list" style="padding: 16px;">
+            @for (int i = 0; i < 3; i++)
+            {
+                <div class="skeleton-takeaway-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-badge skeleton-loader"></div>
+                        <div class="skeleton-relevance skeleton-loader"></div>
+                    </div>
+                    <div class="skeleton-text skeleton-loader"></div>
+                    <div class="skeleton-text skeleton-loader"></div>
+                    <div class="skeleton-timestamp skeleton-loader"></div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Login Required State -->
+    @if (!isLoading && !isAuthenticated)
+    {
+        <div class="login-required-overlay">
+            <span class="icon">🔒</span>
+            <div class="login-required-content">
+                <h3 class="login-required-title">Login Required</h3>
+                <p class="login-required-message">
+                    Sign in to unlock AI-powered insights and personalized learning features.
+                </p>
+                <ul class="login-required-benefits">
+                    <li>AI-generated key takeaways</li>
+                    <li>Personalized learning recommendations</li>
+                    <li>Save notes and track progress</li>
+                    <li>Interactive AI assistant</li>
+                </ul>
+                <button class="btn-login-primary" @onclick="NavigateToLogin">
+                    <i class="fas fa-sign-in-alt"></i> Sign In to Continue
+                </button>
+            </div>
+        </div>
     }
 
     <!-- Error State -->
-    @if (!isLoading && errorMessage != null)
+    @if (!isLoading && isAuthenticated && errorMessage != null)
     {
-        <div class="takeaways-error">
-            <span class="icon">🤖</span>
-            <div class="error-content">
-                <p class="error-title">@errorMessage</p>
-                @if (processingStatus == "Processing" || processingStatus == "Queued")
-                {
+        <!-- Processing State -->
+        @if (processingStatus == "Processing" || processingStatus == "Queued")
+        {
+            <div class="takeaways-error">
+                <span class="icon">⏳</span>
+                <div class="error-content">
+                    <p class="error-title">AI Analysis in Progress</p>
                     <div class="processing-status">
                         <div class="progress-bar">
                             <div class="progress-bar-fill processing"></div>
                         </div>
-                        <small>AI is analyzing the video transcript</small>
+                        <small>Our AI is analyzing the video transcript. This usually takes 2-3 minutes.</small>
                     </div>
-                }
-                else if (processingStatus == "NotStarted" || processingStatus == "Failed")
-                {
-                    <button class="btn-request-generation" @onclick="RequestGenerationAsync">
-                        Request AI Analysis
-                    </button>
-                }
+                </div>
             </div>
-        </div>
+            <div class="help-text">
+                <span class="icon">💡</span>
+                <span>You can continue watching the video. The takeaways will appear automatically when ready.</span>
+            </div>
+        }
+        <!-- Not Generated Yet State -->
+        else if (processingStatus == "NotStarted")
+        {
+            <div class="generate-content-state">
+                <span class="icon empty-state-illustration">🤖</span>
+                <h3 class="generate-content-title">No AI Takeaways Yet</h3>
+                <p class="generate-content-message">
+                    AI analysis hasn't been generated for this lesson. Contact your instructor to enable AI insights.
+                </p>
+                <button class="btn-request-generation" @onclick="RequestGenerationAsync">
+                    <i class="fas fa-magic"></i> Request AI Analysis
+                </button>
+            </div>
+            <div class="help-text">
+                <span class="icon">ℹ️</span>
+                <span>AI takeaways are automatically generated for most lessons. If you don't see them, the instructor may need to enable this feature.</span>
+            </div>
+        }
+        <!-- Failed State -->
+        else if (processingStatus == "Failed")
+        {
+            <div class="takeaways-error" style="background: #ffebee; border-color: #f44336;">
+                <span class="icon">⚠️</span>
+                <div class="error-content">
+                    <p class="error-title" style="color: #c62828;">AI Analysis Failed</p>
+                    <p style="font-size: 13px; color: #666; margin: 8px 0;">
+                        The AI analysis encountered an error. This might be due to:
+                    </p>
+                    <ul style="text-align: left; font-size: 13px; color: #666; margin: 12px 0; padding-left: 20px;">
+                        <li>Missing video transcript</li>
+                        <li>Video content format issues</li>
+                        <li>Temporary service unavailability</li>
+                    </ul>
+                    <button class="btn-request-generation" @onclick="RequestGenerationAsync">
+                        <i class="fas fa-redo"></i> Retry Analysis
+                    </button>
+                </div>
+            </div>
+        }
+        <!-- Generic Error -->
+        else
+        {
+            <div class="takeaways-error">
+                <span class="icon">🤖</span>
+                <div class="error-content">
+                    <p class="error-title">@errorMessage</p>
+                    <button class="btn-request-generation" @onclick="LoadTakeawaysAsync">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        }
     }
 
     <!-- Takeaways List -->
@@ -156,11 +246,11 @@
     }
 
     <!-- Footer Info -->
-    @if (hasTakeaways && takeaways?.Metadata != null)
+    @if (hasTakeaways && takeaways?.Metadata?.ProcessedAt != null)
     {
         <div class="takeaways-footer">
             <small class="footer-info">
-                AI-generated on @takeaways.Metadata.ProcessedAt.ToString("MMM d, yyyy")
+                AI-generated on @takeaways.Metadata.ProcessedAt.Value.ToString("MMM d, yyyy")
             </small>
         </div>
     }

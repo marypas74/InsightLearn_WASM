@@ -58,9 +58,34 @@ window.videoPlayer = {
             console.log(`[VideoPlayer] Metadata loaded - Duration: ${video.duration}s`);
         });
 
-        // Error handling
+        // Error handling with Firefox codec detection
         video.addEventListener('error', function (e) {
             console.error(`[VideoPlayer] Error loading video:`, e);
+
+            // Detect specific error codes
+            let errorMessage = 'Video playback error';
+            let errorCode = video.error ? video.error.code : 0;
+
+            switch (errorCode) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                    errorMessage = 'Video playback was aborted';
+                    break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                    errorMessage = 'Network error while loading video';
+                    break;
+                case MediaError.MEDIA_ERR_DECODE:
+                    // Codec error - likely Firefox/Linux H.264 issue
+                    errorMessage = 'Video codec not supported. Firefox on Linux may require additional codecs for MP4/H.264 videos. Try using Chrome/Edge or install OpenH264 codec.';
+                    break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMessage = 'Video format not supported by your browser';
+                    break;
+            }
+
+            // Notify .NET component of the error
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnVideoErrorFromJS', errorMessage, errorCode);
+            }
         });
 
         console.log(`[VideoPlayer] ${videoId} initialized successfully`);

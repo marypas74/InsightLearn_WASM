@@ -21,6 +21,7 @@ using InsightLearn.Core.DTOs.AITakeaways;
 using InsightLearn.Core.DTOs.AIChat;
 using InsightLearn.Core.DTOs.VideoBookmarks;
 using InsightLearn.Core.DTOs.Engagement;
+using InsightLearn.Core.DTOs.Cart;
 using Hangfire;
 using Hangfire.SqlServer;
 using InsightLearn.Application.BackgroundJobs;
@@ -41,12 +42,12 @@ using Prometheus;
 var builder = WebApplication.CreateBuilder(args);
 
 // SECURITY FIX (CRIT-2): Configure request body size limits to prevent memory exhaustion attacks
-// Default: 10MB for all endpoints (down from 30MB default)
-// Video upload: 524MB (500MB + 24MB buffer) via endpoint-specific configuration
+// Default: 500MB for video uploads (required for video lesson content)
+// v2.1.0-dev: Increased from 10MB to 500MB to support video uploads
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB default
-    Console.WriteLine("[SECURITY] Global request body size limit: 10 MB (CRIT-2 fix)");
+    serverOptions.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500 MB for video uploads
+    Console.WriteLine("[CONFIG] Global request body size limit: 500 MB (video upload support)");
 });
 
 // Get version from assembly (defined in Directory.Build.props)
@@ -616,9 +617,29 @@ builder.Services.Configure<RateLimitOptions>(
 
 Console.WriteLine("[CONFIG] Redis configured for distributed rate limiting");
 
+// Register IDistributedCache using Redis (v2.1.0-dev fix for AIAnalysisService)
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "InsightLearn:";
+});
+Console.WriteLine("[CONFIG] Redis DistributedCache registered for AI services");
+
 // Register MongoDB Video Storage Services
 builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
 builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
+
+// Register IMongoDatabase for Student Learning Space repositories (v2.1.0-dev fix)
+builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>
+{
+    return new MongoDB.Driver.MongoClient(mongoConnectionString);
+});
+builder.Services.AddSingleton<MongoDB.Driver.IMongoDatabase>(sp =>
+{
+    var client = sp.GetRequiredService<MongoDB.Driver.IMongoClient>();
+    return client.GetDatabase("insightlearn_videos");
+});
+Console.WriteLine("[CONFIG] MongoDB IMongoDatabase registered for Learning Space repositories");
 
 // Register Enhanced Dashboard Service
 builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>();
@@ -626,6 +647,10 @@ builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>(
 // Register Analytics Service for Admin Analytics page
 builder.Services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();
 Console.WriteLine("[CONFIG] Admin Analytics Service registered");
+
+// Register Instructor Dashboard Service (v2.1.0-dev - fix for John Smith issue)
+builder.Services.AddScoped<InsightLearn.Application.Services.IInstructorDashboardService, InsightLearn.Application.Services.InstructorDashboardService>();
+Console.WriteLine("[CONFIG] Instructor Dashboard Service registered");
 
 // Register Report Service for Admin Reports page (v2.1.0-dev)
 builder.Services.AddScoped<IReportService, ReportService>();
@@ -645,6 +670,11 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<ICouponRepository, CouponRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+
+// Register Cart Service (Shopping Cart - v2.2.0)
+builder.Services.AddScoped<ICartService, CartService>();
+Console.WriteLine("[CONFIG] Shopping Cart Service registered (v2.2.0)");
 
 // Register SaaS Subscription Model Repositories
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
@@ -3197,6 +3227,98 @@ app.MapGet("/api/courses/{id:guid}", async (
 .Produces<InsightLearn.Core.DTOs.Course.CourseDto>(200)
 .Produces(404);
 
+// Get course curriculum (sections and lessons) - v2.1.0-dev
+app.MapGet("/api/courses/{id:guid}/curriculum", async (
+    Guid id,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[COURSES] Getting curriculum for course {CourseId}", id);
+        var course = await courseService.GetCourseByIdAsync(id);
+
+        if (course == null)
+        {
+            logger.LogWarning("[COURSES] Course {CourseId} not found for curriculum", id);
+            return Results.NotFound(new { message = $"Course {id} not found" });
+        }
+
+        // Return only the curriculum (sections with lessons)
+        var curriculum = new
+        {
+            courseId = course.Id,
+            courseTitle = course.Title,
+            totalSections = course.Sections?.Count ?? 0,
+            totalLessons = course.Sections?.Sum(s => s.Lessons.Count) ?? 0,
+            totalDurationMinutes = course.Sections?.Sum(s => s.TotalDurationMinutes) ?? 0,
+            sections = course.Sections ?? new List<InsightLearn.Core.DTOs.Course.SectionDto>()
+        };
+
+        return Results.Ok(curriculum);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error getting curriculum for course {CourseId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCourseCurriculum")
+.WithTags("Courses")
+.Produces(200)
+.Produces(404);
+
+// Check if current user is enrolled in a course (v2.1.0-dev)
+app.MapGet("/api/courses/{id:guid}/enrolled", async (
+    Guid id,
+    ClaimsPrincipal user,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        // Get user ID from claims
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst("sub")?.Value
+            ?? user.FindFirst("userId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            logger.LogWarning("[ENROLLMENT] User not authenticated or invalid user ID");
+            return Results.Ok(new { Success = true, Data = false, Message = "User not authenticated" });
+        }
+
+        // Check if course exists
+        var courseExists = await dbContext.Courses.AnyAsync(c => c.Id == id);
+        if (!courseExists)
+        {
+            logger.LogWarning("[ENROLLMENT] Course {CourseId} not found", id);
+            return Results.NotFound(new { Success = false, Message = "Course not found" });
+        }
+
+        // Check enrollment status (Active or Completed)
+        var isEnrolled = await dbContext.Enrollments
+            .AnyAsync(e => e.UserId == userId && e.CourseId == id &&
+                (e.Status == EnrollmentStatus.Active || e.Status == EnrollmentStatus.Completed));
+
+        logger.LogInformation("[ENROLLMENT] User {UserId} enrollment status for course {CourseId}: {IsEnrolled}",
+            userId, id, isEnrolled);
+
+        return Results.Ok(new { Success = true, Data = isEnrolled });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[ENROLLMENT] Error checking enrollment for course {CourseId}", id);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("CheckEnrollment")
+.WithTags("Courses")
+.RequireAuthorization()
+.Produces(200)
+.Produces(401)
+.Produces(404);
+
 // Get courses by category (public access)
 app.MapGet("/api/courses/category/{id:guid}", async (
     [FromRoute] Guid id,
@@ -3685,6 +3807,304 @@ app.MapGet("/api/enrollments/user/{userId:guid}", async (
 .WithName("GetUserEnrollments")
 .WithTags("Enrollments")
 .Produces<List<InsightLearn.Core.DTOs.Enrollment.EnrollmentDto>>(200)
+.ProducesProblem(500);
+
+// ===========================
+// SHOPPING CART API ENDPOINTS (v2.2.0)
+// ===========================
+
+// GET /api/cart - Get current user's cart
+app.MapGet("/api/cart", async (
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Getting cart for user {UserId}", userId);
+        var cart = await cartService.GetCartAsync(Guid.Parse(userId));
+        return Results.Ok(cart);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error getting cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetCart")
+.WithTags("Cart")
+.Produces<CartDto>(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// GET /api/cart/count - Get cart item count (for header badge)
+app.MapGet("/api/cart/count", async (
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var count = await cartService.GetCartCountAsync(Guid.Parse(userId));
+        return Results.Ok(count);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error getting cart count");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetCartCount")
+.WithTags("Cart")
+.Produces<CartCountDto>(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// POST /api/cart/add - Add course to cart
+app.MapPost("/api/cart/add", async (
+    [FromBody] AddToCartDto dto,
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Adding course {CourseId} to cart for user {UserId}", dto.CourseId, userId);
+        var cart = await cartService.AddToCartAsync(Guid.Parse(userId), dto);
+        return Results.Ok(cart);
+    }
+    catch (InvalidOperationException ex)
+    {
+        logger.LogWarning(ex, "[CART] Failed to add to cart: {Message}", ex.Message);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error adding to cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("AddToCart")
+.WithTags("Cart")
+.Produces<CartDto>(200)
+.Produces(400)
+.Produces(401)
+.ProducesProblem(500);
+
+// DELETE /api/cart/{courseId} - Remove course from cart
+app.MapDelete("/api/cart/{courseId:guid}", async (
+    Guid courseId,
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Removing course {CourseId} from cart for user {UserId}", courseId, userId);
+        var cart = await cartService.RemoveFromCartAsync(Guid.Parse(userId), courseId);
+        return Results.Ok(cart);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error removing from cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("RemoveFromCart")
+.WithTags("Cart")
+.Produces<CartDto>(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// DELETE /api/cart - Clear entire cart
+app.MapDelete("/api/cart", async (
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Clearing cart for user {UserId}", userId);
+        var count = await cartService.ClearCartAsync(Guid.Parse(userId));
+        return Results.Ok(new { clearedItems = count });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error clearing cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("ClearCart")
+.WithTags("Cart")
+.Produces(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// POST /api/cart/coupon - Apply coupon to cart
+app.MapPost("/api/cart/coupon", async (
+    [FromBody] ApplyCartCouponDto dto,
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Applying coupon {CouponCode} to cart for user {UserId}", dto.CouponCode, userId);
+        var result = await cartService.ApplyCouponAsync(Guid.Parse(userId), dto);
+
+        if (!result.IsValid)
+        {
+            return Results.BadRequest(new { error = result.ErrorMessage });
+        }
+
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error applying coupon");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("ApplyCartCoupon")
+.WithTags("Cart")
+.Produces<CartCouponResultDto>(200)
+.Produces(400)
+.Produces(401)
+.ProducesProblem(500);
+
+// DELETE /api/cart/coupon - Remove coupon from cart
+app.MapDelete("/api/cart/coupon", async (
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Removing coupon from cart for user {UserId}", userId);
+        var cart = await cartService.RemoveCouponAsync(Guid.Parse(userId));
+        return Results.Ok(cart);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error removing coupon");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("RemoveCartCoupon")
+.WithTags("Cart")
+.Produces<CartDto>(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// POST /api/cart/validate - Validate cart before checkout
+app.MapPost("/api/cart/validate", async (
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[CART] Validating cart for checkout for user {UserId}", userId);
+        var cart = await cartService.ValidateCartForCheckoutAsync(Guid.Parse(userId));
+        return Results.Ok(cart);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error validating cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("ValidateCart")
+.WithTags("Cart")
+.Produces<CartDto>(200)
+.Produces(401)
+.ProducesProblem(500);
+
+// GET /api/cart/check/{courseId} - Check if course is in cart
+app.MapGet("/api/cart/check/{courseId:guid}", async (
+    Guid courseId,
+    [FromServices] ICartService cartService,
+    ClaimsPrincipal user,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var isInCart = await cartService.IsCourseInCartAsync(Guid.Parse(userId), courseId);
+        return Results.Ok(new { isInCart });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[CART] Error checking cart");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("CheckCourseInCart")
+.WithTags("Cart")
+.Produces(200)
+.Produces(401)
 .ProducesProblem(500);
 
 // ===========================
@@ -4629,6 +5049,121 @@ app.MapGet("/api/dashboard/recent-activity", async (
 .Produces(403)
 .Produces(500);
 
+// GET /api/dashboard/instructor - Get instructor dashboard data (v2.1.0-dev - fix for John Smith)
+app.MapGet("/api/dashboard/instructor", async (
+    ClaimsPrincipal user,
+    [FromServices] InsightLearn.Application.Services.IInstructorDashboardService instructorDashboardService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        // Get user ID from claims
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var instructorId))
+        {
+            logger.LogWarning("[DASHBOARD] Invalid or missing user ID in claims");
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[DASHBOARD] Getting instructor dashboard for user {UserId}", instructorId);
+
+        var dashboardData = await instructorDashboardService.GetDashboardDataAsync(instructorId);
+
+        // Map to the format expected by the frontend (DashboardData)
+        var response = new
+        {
+            TotalCourses = dashboardData.TotalCourses,
+            EnrolledCourses = dashboardData.TotalEnrollments, // Total students enrolled in instructor's courses
+            CompletedCourses = dashboardData.TotalReviews, // Using reviews as a proxy for engagement
+            AverageProgress = (double)dashboardData.AverageRating, // Average rating as progress indicator
+            RecentCourses = dashboardData.Courses.Take(5).Select(c => new
+            {
+                CourseId = c.CourseId,
+                CourseTitle = c.CourseTitle,
+                Progress = c.Enrollments, // Number of enrollments
+                LastAccessed = DateTime.UtcNow
+            }).ToList()
+        };
+
+        logger.LogInformation("[DASHBOARD] Successfully retrieved instructor dashboard: {TotalCourses} courses, {Enrollments} enrollments",
+            dashboardData.TotalCourses, dashboardData.TotalEnrollments);
+        return Results.Ok(response);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[DASHBOARD] Error getting instructor dashboard");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Instructor", "Admin"))
+.WithName("GetInstructorDashboard")
+.WithTags("Dashboard")
+.Produces(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/dashboard/student - Get student dashboard data (v2.1.0-dev)
+app.MapGet("/api/dashboard/student", async (
+    ClaimsPrincipal user,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        // Get user ID from claims
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var studentId))
+        {
+            logger.LogWarning("[DASHBOARD] Invalid or missing user ID in claims");
+            return Results.Unauthorized();
+        }
+
+        logger.LogInformation("[DASHBOARD] Getting student dashboard for user {UserId}", studentId);
+
+        // Get student's enrollments
+        var enrollments = await dbContext.Enrollments
+            .Include(e => e.Course)
+            .Where(e => e.UserId == studentId)
+            .OrderByDescending(e => e.LastAccessedAt)
+            .ToListAsync();
+
+        var totalCourses = enrollments.Count;
+        var completedCourses = enrollments.Count(e => e.Status == InsightLearn.Core.Entities.EnrollmentStatus.Completed);
+        var avgProgress = enrollments.Any() ? enrollments.Average(e => e.CompletedLessons * 10) : 0; // Rough progress estimate
+
+        var response = new
+        {
+            TotalCourses = totalCourses,
+            EnrolledCourses = totalCourses,
+            CompletedCourses = completedCourses,
+            AverageProgress = avgProgress,
+            RecentCourses = enrollments.Take(5).Select(e => new
+            {
+                CourseId = e.CourseId,
+                CourseTitle = e.Course?.Title ?? "Unknown Course",
+                Progress = e.CompletedLessons * 10, // Rough progress percentage
+                LastAccessed = e.LastAccessedAt
+            }).ToList()
+        };
+
+        logger.LogInformation("[DASHBOARD] Successfully retrieved student dashboard: {TotalCourses} courses, {Completed} completed",
+            totalCourses, completedCourses);
+        return Results.Ok(response);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[DASHBOARD] Error getting student dashboard");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetStudentDashboard")
+.WithTags("Dashboard")
+.Produces(200)
+.Produces(401)
+.Produces(500);
+
 // ========================================
 // STUDENT LEARNING SPACE ENDPOINTS (v2.1.0)
 // ========================================
@@ -4803,6 +5338,7 @@ app.MapDelete("/api/transcripts/{lessonId:guid}", async (
 // ========================================
 
 // GET /api/takeaways/{lessonId} - Get AI-extracted key takeaways
+// v2.1.0-dev: Returns 200 with status "NotGenerated" instead of 404 for better UX
 app.MapGet("/api/takeaways/{lessonId:guid}", async (
     Guid lessonId,
     [FromServices] IAIAnalysisService aiService,
@@ -4815,8 +5351,21 @@ app.MapGet("/api/takeaways/{lessonId:guid}", async (
 
         if (takeaways == null)
         {
-            logger.LogWarning("[AI_TAKEAWAYS] Takeaways not found for lesson {LessonId}", lessonId);
-            return Results.NotFound(new { error = "Takeaways not found" });
+            // v2.1.0-dev: Return 200 with empty response and status instead of 404
+            // This prevents frontend toast notifications for "not found" which is expected state
+            logger.LogInformation("[AI_TAKEAWAYS] No takeaways generated yet for lesson {LessonId}", lessonId);
+            return Results.Ok(new VideoKeyTakeawaysDto
+            {
+                LessonId = lessonId,
+                Takeaways = new List<TakeawayDto>(),
+                Metadata = new TakeawayMetadataDto
+                {
+                    TotalTakeaways = 0,
+                    ProcessingModel = null,
+                    ProcessedAt = null,
+                    ProcessingStatus = "NotGenerated"
+                }
+            });
         }
 
         return Results.Ok(takeaways);
@@ -4831,34 +5380,62 @@ app.MapGet("/api/takeaways/{lessonId:guid}", async (
 .WithName("GetTakeaways")
 .WithTags("AI Takeaways")
 .Produces<VideoKeyTakeawaysDto>(200)
-.Produces(404)
 .Produces(500);
 
-// POST /api/takeaways/{lessonId}/generate - Queue AI takeaway generation (Admin/Instructor)
+// POST /api/takeaways/{lessonId}/generate - Generate AI takeaways using Ollama (Admin/Instructor)
 app.MapPost("/api/takeaways/{lessonId:guid}/generate", async (
     Guid lessonId,
     [FromBody] GenerateTakeawayRequestDto request,
     [FromServices] IAIAnalysisService aiService,
+    [FromServices] IVideoTranscriptService transcriptService,
     [FromServices] ILogger<Program> logger) =>
 {
     try
     {
-        logger.LogInformation("[AI_TAKEAWAYS] Queueing takeaway generation for lesson {LessonId}", lessonId);
-        // Note: Transcript text is fetched from database by the service
-        var jobId = await aiService.QueueTakeawayGenerationAsync(lessonId, null);
+        logger.LogInformation("[AI_TAKEAWAYS] Starting takeaway generation for lesson {LessonId}", lessonId);
 
-        return Results.Accepted($"/api/takeaways/{lessonId}/status", new { jobId, lessonId });
+        // Check if takeaways already exist (unless force regenerate)
+        if (!request.ForceRegenerate)
+        {
+            var existingTakeaways = await aiService.GetTakeawaysAsync(lessonId);
+            if (existingTakeaways != null && existingTakeaways.Takeaways?.Count > 0)
+            {
+                logger.LogInformation("[AI_TAKEAWAYS] Takeaways already exist for lesson {LessonId}, returning existing", lessonId);
+                return Results.Ok(existingTakeaways);
+            }
+        }
+
+        // Get transcript for the lesson
+        var transcript = await transcriptService.GetTranscriptAsync(lessonId);
+        if (transcript == null || string.IsNullOrEmpty(transcript.FullTranscript))
+        {
+            logger.LogWarning("[AI_TAKEAWAYS] No transcript found for lesson {LessonId}", lessonId);
+            return Results.BadRequest(new {
+                error = "No transcript available",
+                message = "Please generate a transcript before creating AI takeaways"
+            });
+        }
+
+        // Generate takeaways using Ollama
+        logger.LogInformation("[AI_TAKEAWAYS] Calling Ollama to generate takeaways for lesson {LessonId}", lessonId);
+        var takeaways = await aiService.GenerateTakeawaysAsync(lessonId, transcript.FullTranscript);
+
+        logger.LogInformation("[AI_TAKEAWAYS] Generated {Count} takeaways for lesson {LessonId}",
+            takeaways.Takeaways?.Count ?? 0, lessonId);
+
+        return Results.Ok(takeaways);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[AI_TAKEAWAYS] Error queueing takeaway generation for lesson {LessonId}", lessonId);
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error generating takeaways for lesson {LessonId}", lessonId);
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
 .RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
 .WithName("GenerateTakeaways")
 .WithTags("AI Takeaways")
-.Produces<object>(202)
+.Produces<VideoKeyTakeawaysDto>(200)
+.Produces(400)
 .Produces(401)
 .Produces(403)
 .Produces(500);
@@ -4896,6 +5473,86 @@ app.MapPost("/api/takeaways/{lessonId:guid}/feedback", async (
 .WithTags("AI Takeaways")
 .Produces(200)
 .Produces(401)
+.Produces(500);
+
+// GET /api/takeaways/{lessonId}/status - Get takeaway processing status
+// v2.1.0-dev: Added status endpoint for frontend polling
+app.MapGet("/api/takeaways/{lessonId:guid}/status", async (
+    Guid lessonId,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[AI_TAKEAWAYS] Getting processing status for lesson {LessonId}", lessonId);
+        var status = await aiService.GetProcessingStatusAsync(lessonId);
+        return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error getting status for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTakeawayStatus")
+.WithTags("AI Takeaways")
+.Produces<TakeawayProcessingStatusDto>(200)
+.Produces(401)
+.Produces(500);
+
+// DELETE /api/takeaways/{lessonId} - Delete takeaways (cache + database)
+// v2.1.0-dev: Added for frontend takeaway management
+app.MapDelete("/api/takeaways/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[AI_TAKEAWAYS] Deleting takeaways for lesson {LessonId}", lessonId);
+        await aiService.DeleteTakeawaysAsync(lessonId);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error deleting takeaways for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("DeleteTakeaways")
+.WithTags("AI Takeaways")
+.Produces(204)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// POST /api/takeaways/{lessonId}/invalidate-cache - Invalidate cache for lesson takeaways
+// v2.1.0-dev: Added for frontend cache management
+app.MapPost("/api/takeaways/{lessonId:guid}/invalidate-cache", async (
+    Guid lessonId,
+    [FromServices] IAIAnalysisService aiService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[AI_TAKEAWAYS] Invalidating cache for lesson {LessonId}", lessonId);
+        await aiService.InvalidateCacheAsync(lessonId);
+        return Results.Ok(new { message = "Cache invalidated successfully" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[AI_TAKEAWAYS] Error invalidating cache for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("InvalidateTakeawayCache")
+.WithTags("AI Takeaways")
+.Produces(200)
+.Produces(401)
+.Produces(403)
 .Produces(500);
 
 // ========================================

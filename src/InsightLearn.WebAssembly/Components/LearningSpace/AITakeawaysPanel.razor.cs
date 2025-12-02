@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using InsightLearn.WebAssembly.Services.LearningSpace;
 using Blazored.Toast.Services;
 using InsightLearn.Core.DTOs.AITakeaways;
@@ -13,6 +14,8 @@ public partial class AITakeawaysPanel : ComponentBase
 {
     [Inject] private IAITakeawayClientService TakeawayService { get; set; } = default!;
     [Inject] private IToastService ToastService { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     /// <summary>
     /// Lesson ID to display takeaways for.
@@ -28,6 +31,7 @@ public partial class AITakeawaysPanel : ComponentBase
     private List<TakeawayDto> filteredTakeaways = new();
     private bool isLoading = false;
     private bool hasTakeaways = false;
+    private bool isAuthenticated = false;
     private string processingStatus = "Unknown";
     private string? errorMessage = null;
     private string selectedCategory = "All";
@@ -63,7 +67,11 @@ public partial class AITakeawaysPanel : ComponentBase
 
     protected override async Task OnParametersSetAsync()
     {
-        if (LessonId != Guid.Empty && !hasTakeaways)
+        // Check authentication state first
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+
+        if (LessonId != Guid.Empty && !hasTakeaways && isAuthenticated)
         {
             await LoadTakeawaysAsync();
         }
@@ -73,41 +81,51 @@ public partial class AITakeawaysPanel : ComponentBase
     {
         isLoading = true;
         errorMessage = null;
+        hasTakeaways = false;
+
         try
         {
             var response = await TakeawayService.GetTakeawaysAsync(LessonId);
             if (response.Success && response.Data != null)
             {
                 takeaways = response.Data;
-                filteredTakeaways = takeaways.Takeaways ?? new();
-                hasTakeaways = true;
-                CalculateCategoryCounts();
-                FilterByCategory(selectedCategory);
-            }
-            else
-            {
-                // Check if takeaways are still processing
-                var statusResponse = await TakeawayService.GetStatusAsync(LessonId);
-                if (statusResponse.Success && statusResponse.Data != null)
+
+                // v2.1.0-dev: Check ProcessingStatus in Metadata for better UX
+                var status = takeaways.Metadata?.ProcessingStatus ?? "NotGenerated";
+
+                if (status == "NotGenerated" || (takeaways.Takeaways?.Count ?? 0) == 0)
                 {
-                    processingStatus = statusResponse.Data.Status;
-                    if (processingStatus == "Processing" || processingStatus == "Queued")
-                    {
-                        errorMessage = "AI is analyzing this video. This may take a few minutes.";
-                    }
-                    else if (processingStatus == "Failed")
-                    {
-                        errorMessage = statusResponse.Data.ErrorMessage ?? "AI analysis failed";
-                    }
-                    else
-                    {
-                        errorMessage = "No AI takeaways available for this lesson";
-                    }
+                    // No takeaways yet - show friendly message instead of error
+                    processingStatus = "NotGenerated";
+                    errorMessage = null; // No error - just not generated yet
+                    hasTakeaways = false;
+                }
+                else if (status == "Processing" || status == "Queued")
+                {
+                    processingStatus = status;
+                    errorMessage = "AI is analyzing this video. This may take a few minutes.";
+                    hasTakeaways = false;
+                }
+                else if (status == "Failed")
+                {
+                    processingStatus = "Failed";
+                    errorMessage = "AI analysis failed. Please try again later.";
+                    hasTakeaways = false;
                 }
                 else
                 {
-                    errorMessage = response.Message ?? "Failed to load takeaways";
+                    // Takeaways exist and are completed
+                    filteredTakeaways = takeaways.Takeaways ?? new();
+                    hasTakeaways = filteredTakeaways.Count > 0;
+                    processingStatus = "Completed";
+                    CalculateCategoryCounts();
+                    FilterByCategory(selectedCategory);
                 }
+            }
+            else
+            {
+                // API call failed - show error but don't toast (it's expected for new lessons)
+                errorMessage = response.Message ?? "Failed to load takeaways";
             }
         }
         catch (Exception ex)
@@ -202,6 +220,12 @@ public partial class AITakeawaysPanel : ComponentBase
         // This would typically require admin/instructor role
         ToastService.ShowInfo("Contact instructor to generate AI takeaways for this lesson");
         await Task.CompletedTask;
+    }
+
+    private void NavigateToLogin()
+    {
+        var returnUrl = Navigation.Uri;
+        Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
     }
 
     private string GetCategoryIcon(string category)

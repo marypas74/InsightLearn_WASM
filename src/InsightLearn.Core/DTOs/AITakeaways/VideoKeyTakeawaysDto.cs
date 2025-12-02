@@ -55,7 +55,13 @@ namespace InsightLearn.Core.DTOs.AITakeaways
     public class TakeawayMetadataDto
     {
         public int TotalTakeaways { get; set; }
-        public string ProcessingModel { get; set; } = string.Empty;
-        public DateTime ProcessedAt { get; set; }
+        public string? ProcessingModel { get; set; }
+        public DateTime? ProcessedAt { get; set; }
+
+        /// <summary>
+        /// Processing status: NotGenerated, Processing, Completed, Failed.
+        /// v2.1.0-dev: Added for better frontend UX (return 200 instead of 404).
+        /// </summary>
+        public string ProcessingStatus { get; set; } = "NotGenerated";
     }
 }

@@ -263,6 +263,18 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     }
 
     /// <summary>
+    /// Called from JavaScript when video error occurs (e.g., codec not supported).
+    /// </summary>
+    [JSInvokable]
+    public Task OnVideoErrorFromJS(string message, int errorCode)
+    {
+        Logger.LogError("Video playback error: {Message} (Code: {ErrorCode})", message, errorCode);
+        errorMessage = message;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Track progress automatically (called by timer every 5 seconds).
     /// </summary>
     private async Task TrackProgressAsync()

@@ -23,12 +23,41 @@
             <p>Loading video...</p>
         </div>
     }
+    else if (errorMessage == "No video source specified")
+    {
+        <!-- Video coming soon placeholder (v2.1.0-dev) -->
+        <div class="video-placeholder">
+            <div class="placeholder-content">
+                <i class="fas fa-film fa-3x text-muted mb-3"></i>
+                <h5>Video Coming Soon</h5>
+                <p class="text-muted">This lesson's video is being prepared and will be available shortly.</p>
+            </div>
+        </div>
+    }
     else if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="video-error alert alert-danger">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p>@errorMessage</p>
-            <button class="btn btn-sm btn-primary" @onclick="RetryLoad">
+        <div class="video-error alert alert-warning">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle fa-2x"></i>
+            </div>
+            <div class="error-content">
+                <h5>Video Playback Error</h5>
+                <p>@errorMessage</p>
+                @if (errorMessage.Contains("Firefox") || errorMessage.Contains("codec"))
+                {
+                    <div class="codec-help mt-2">
+                        <small class="text-muted">
+                            <strong>Solutions:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>Use <strong>Chrome</strong> or <strong>Edge</strong> browser</li>
+                                <li>Install <strong>OpenH264</strong> plugin in Firefox (about:addons)</li>
+                                <li>On Linux: install <code>ffmpeg</code> package</li>
+                            </ul>
+                        </small>
+                    </div>
+                }
+            </div>
+            <button class="btn btn-sm btn-primary mt-2" @onclick="RetryLoad">
                 <i class="fas fa-redo"></i> Retry
             </button>
         </div>
