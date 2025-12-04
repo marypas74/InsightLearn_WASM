@@ -10,8 +10,8 @@
     @if (!isOpen)
     {
         <!-- Launcher Button -->
-        <button class="intercom-launcher" @onclick="OpenMessenger" title="Open chat">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <button class="intercom-launcher" @onclick="OpenMessenger" title="Open chat" aria-label="Open chat assistant">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
                 <path d="M14 0C6.268 0 0 5.824 0 13s6.268 13 14 13c.933 0 1.843-.09 2.719-.259l6.553 2.255c.787.27 1.594-.394 1.439-1.186l-.999-5.104C25.72 19.591 28 16.529 28 13 28 5.824 21.732 0 14 0z" fill="currentColor"/>
             </svg>
             @if (unreadCount > 0)
@@ -80,22 +80,22 @@
                                  alt="Support team member"
                                  class="intercom-avatar intercom-avatar-3" />
                         </div>
-                        <button class="intercom-minimize" @onclick="ToggleMinimize" title="@(isMinimized ? "Maximize" : "Minimize")">
+                        <button class="intercom-minimize" @onclick="ToggleMinimize" title="@(isMinimized ? "Maximize" : "Minimize")" aria-label="@(isMinimized ? "Maximize chat window" : "Minimize chat window")">
                             @if (isMinimized)
                             {
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path d="M2 8h12M8 2v12"/>
                                 </svg>
                             }
                             else
                             {
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path d="M2 8h12"/>
                                 </svg>
                             }
                         </button>
-                        <button class="intercom-close" @onclick="CloseMessenger" title="Close">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                        <button class="intercom-close" @onclick="CloseMessenger" title="Close" aria-label="Close chat assistant">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M12 4L4 12M4 4l8 8"/>
                             </svg>
                         </button>

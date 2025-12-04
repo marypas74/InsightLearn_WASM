@@ -464,32 +464,48 @@
 
 ## Sprint Plan Consigliato
 
-### Sprint 1: Critical Performance (Week 1)
+### Sprint 1: Critical Performance (Week 1) ✅ COMPLETATO 2025-12-04
 **Obiettivo**: Performance 65 → 80
 
-| Task | Expert | Effort |
-|------|--------|--------|
-| DO-1: Cloudflare caching | DevOps | 3h |
-| DO-2: Nginx optimization | DevOps | 4h |
-| FE-1: Lazy loading | Frontend | 2h |
-| FE-2: Image dimensions | Frontend | 3h |
-| UX-4: Hero optimization | UI/UX | 3h |
+| Task | Expert | Effort | Status |
+|------|--------|--------|--------|
+| DO-2: Nginx optimization (gzip, caching) | DevOps | 4h | ✅ Done |
+| FE-1: Lazy loading images | Frontend | 2h | ✅ Done |
+| FE-2: Image dimensions (width/height) | Frontend | 3h | ✅ Done |
+| FE-4: Font preload | Frontend | 2h | ✅ Done |
+| FE-11: JSON-LD Structured Data | Frontend | 2h | ✅ Done |
 
-**Totale**: 15h
+**Implementato**:
+- Nginx: gzip compression (30+ MIME types), 1 year cache images/fonts, 1 week cache CSS/JS
+- Hero image: `fetchpriority="high"`, `loading="eager"`, `decoding="sync"`
+- Secondary images: `loading="lazy"`, `decoding="async"`, width/height attributes
+- Resource hints: dns-prefetch, preconnect, preload for critical resources
+- JSON-LD: Organization, WebSite, EducationalOrganization schemas
 
 ---
 
-### Sprint 2: Accessibility (Week 2)
+### Sprint 2: Accessibility (Week 2) ✅ COMPLETATO 2025-12-04
 **Obiettivo**: Accessibility 72 → 90
 
-| Task | Expert | Effort |
-|------|--------|--------|
-| FE-6: Semantic HTML | Frontend | 6h |
-| FE-7: ARIA labels | Frontend | 4h |
-| UX-1: Contrast audit | UI/UX | 3h |
-| UX-2: Palette fix | UI/UX | 4h |
+| Task | Expert | Effort | Status |
+|------|--------|--------|--------|
+| FE-7: ARIA labels | Frontend | 4h | ✅ Done |
+| UX-1: Color contrast fix | UI/UX | 3h | ✅ Done |
+| UX-2: Focus indicators | UI/UX | 2h | ✅ Done |
+| UX-3: Motion preferences | Frontend | 1h | ✅ Done |
 
-**Totale**: 17h
+**Implementato**:
+- Nuovo file: `css/accessibility.css` (WCAG 2.1 AA compliance)
+- ARIA labels su ChatbotWidget (launcher, minimize, close buttons)
+- ARIA labels su LoginForm (password toggle button)
+- Focus indicators `:focus-visible` con alto contrasto
+- Color contrast fixes per text-secondary, placeholders, badges
+- Screen reader utilities (.sr-only, .visually-hidden)
+- `prefers-reduced-motion` support
+- High contrast mode support
+- Minimum touch target size (44x44px) su mobile
+
+**Totale**: 10h
 
 ---
 

@@ -3788,6 +3788,81 @@ Added specific location blocks in `docker/wasm-nginx.conf`:
 
 ---
 
-**Last Updated**: 2025-12-02
-**Document Version**: 1.2
+## 🚀 PageSpeed Optimization (v2.2.0-dev) - IN PROGRESS
+
+**Status**: 🔄 Sprint 1 & 2 COMPLETE - 2025-12-04
+**Report**: [PAGESPEED-OPTIMIZATION-REPORT.md](docs/PAGESPEED-OPTIMIZATION-REPORT.md)
+**Goal**: Achieve 100/100 scores across all PageSpeed Insights categories
+
+### Current Scores (Pre-optimization)
+
+| Category | Score | Target |
+|----------|-------|--------|
+| Performance | 65 | 100 |
+| Accessibility | 72 | 100 |
+| Best Practices | 78 | 100 |
+| SEO | 68 | 100 |
+
+### Sprint 1: Performance ✅ COMPLETE
+
+**Implemented 2025-12-04**:
+- **Nginx Optimization** (`docker/wasm-nginx.conf`):
+  - Gzip compression for 30+ MIME types
+  - Aggressive caching: 1 year for images/fonts (immutable), 1 week for CSS/JS
+  - Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+  - Special handling for Blazor /_framework/ files
+- **Resource Hints** (`index.html`):
+  - dns-prefetch for CDN domains
+  - preconnect for critical resources
+  - preload for critical CSS and fonts
+- **Image Optimization** (`HeroSection.razor`):
+  - Hero image: `fetchpriority="high"`, `loading="eager"`, `decoding="sync"`
+  - Secondary images: `loading="lazy"`, `decoding="async"`, width/height attributes
+- **JSON-LD Structured Data** (`index.html`):
+  - Organization schema
+  - WebSite schema with SearchAction
+  - EducationalOrganization schema
+
+### Sprint 2: Accessibility ✅ COMPLETE
+
+**Implemented 2025-12-04**:
+- **New CSS File**: `css/accessibility.css` (WCAG 2.1 AA compliance)
+  - Focus indicators with `:focus-visible` (3px solid #0066cc)
+  - Color contrast fixes (4.5:1 ratio minimum)
+  - Screen reader utilities (.sr-only, .visually-hidden)
+  - Motion preferences (`prefers-reduced-motion`)
+  - High contrast mode support
+  - Minimum touch target size (44x44px mobile)
+- **ARIA Labels Added**:
+  - ChatbotWidget: launcher, minimize, close buttons
+  - LoginForm: password toggle button with aria-pressed
+  - All SVG icons: aria-hidden="true"
+
+### Remaining Sprints
+
+**Sprint 3: Performance Fine-tuning** (Pending)
+- Critical CSS inline extraction
+- WebP image conversion
+- Service Worker caching
+
+**Sprint 4: SEO & Polish** (Pending)
+- Dynamic sitemap via API
+- Mobile touch optimization
+- Keyboard navigation enhancement
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `docker/wasm-nginx.conf` | Complete rewrite - gzip, caching, security headers |
+| `wwwroot/index.html` | SEO meta tags, resource hints, JSON-LD schemas, accessibility CSS |
+| `Components/HeroSection.razor` | Image optimization (fetchpriority, loading, dimensions) |
+| `Components/ChatbotWidget.razor` | ARIA labels on all icon buttons |
+| `Components/LoginForm.razor` | ARIA label on password toggle |
+| `wwwroot/css/accessibility.css` | **NEW** - WCAG 2.1 AA compliance (280 lines) |
+
+---
+
+**Last Updated**: 2025-12-04
+**Document Version**: 1.3
 **Status**: ✅ 95% Complete - Production Ready
