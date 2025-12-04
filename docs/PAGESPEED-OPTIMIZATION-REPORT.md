@@ -509,18 +509,47 @@
 
 ---
 
-### Sprint 3: Performance Fine-tuning (Week 3)
+### Sprint 3: Performance Fine-tuning (Week 3) - ✅ COMPLETED (2025-12-04)
 **Obiettivo**: Performance 80 → 95
 
-| Task | Expert | Effort |
-|------|--------|--------|
-| FE-3: Critical CSS | Frontend | 4h |
-| FE-4: Font optimization | Frontend | 2h |
-| FE-5: WebP conversion | Frontend | 3h |
-| DO-3: Browser caching | DevOps | 2h |
-| BE-3: Compression | Backend | 2h |
+| Task | Expert | Effort | Status |
+|------|--------|--------|--------|
+| FE-3: Critical CSS inline extraction | Frontend | 4h | ✅ DONE |
+| FE-3b: Loading skeleton for LCP | Frontend | 2h | ✅ DONE |
+| FE-3c: Defer non-critical CSS (34 files) | Frontend | 2h | ✅ DONE |
+| FE-3d: Defer PayPal SDK + Chart.js | Frontend | 1h | ✅ DONE |
+| FE-4: Font optimization | Frontend | 2h | ⏳ Pending |
+| FE-5: WebP conversion | Frontend | 3h | ⏳ Pending |
+| DO-3: Browser caching (already configured) | DevOps | 2h | ✅ DONE (Sprint 1) |
+| BE-3: Compression (gzip/brotli) | Backend | 2h | ✅ DONE (Sprint 1) |
 
-**Totale**: 13h
+**Sprint 3 Implementation Details**:
+
+1. **Critical CSS Inline** (FE-3): Extracted ~185 lines of above-the-fold CSS including:
+   - CSS custom properties (design tokens)
+   - Base HTML/body styles
+   - Main layout critical styles
+   - Header sticky positioning
+   - Loading skeleton animation styles
+
+2. **Loading Skeleton** (FE-3b): Professional skeleton loader with:
+   - Header skeleton bar
+   - Hero section skeleton (title, text, button)
+   - 4 course card skeletons
+   - Shimmer animation effect
+   - `prefers-reduced-motion` support
+
+3. **Deferred CSS** (FE-3c): 34 CSS files now load asynchronously using:
+   ```html
+   <link rel="stylesheet" href="css/file.css" media="print" onload="this.media='all'" />
+   ```
+   With `<noscript>` fallback for JavaScript-disabled browsers.
+
+4. **Deferred External Scripts** (FE-3d):
+   - PayPal SDK: `defer` attribute added
+   - Chart.js: `async` attribute added
+
+**Totale Sprint 3**: 9h completate, 5h pending (Font/WebP optimization)
 
 ---
 

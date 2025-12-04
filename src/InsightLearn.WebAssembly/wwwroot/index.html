@@ -94,80 +94,276 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 
-    <!-- Preload critical CSS (above-the-fold) -->
-    <link rel="preload" href="css/bootstrap/bootstrap.min.css" as="style" />
-    <link rel="preload" href="css/layout.css" as="style" />
-    <link rel="preload" href="css/header-clean.css" as="style" />
-
-    <!-- Preload Font Awesome (critical for icons) -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" crossorigin="anonymous" />
+    <!-- Preload Font Awesome fonts (critical for icons) -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
 
-    <!-- Font Awesome Icons (with font-display hint) -->
+    <!-- ==========================================================================
+         CRITICAL CSS INLINE (Sprint 3 - FE-3 PageSpeed Optimization)
+         Above-the-fold styles for fast First Contentful Paint (FCP)
+         ========================================================================== -->
+    <style>
+        /* CSS Custom Properties - Design Tokens */
+        :root {
+            --primary-color: #a435f0;
+            --primary-hover: #8710d8;
+            --primary-light: #f7ecff;
+            --gray-50: #f7f9fa;
+            --gray-100: #f2f3f5;
+            --gray-200: #e4e8eb;
+            --gray-300: #d1d7db;
+            --gray-500: #6b7280;
+            --gray-700: #3c4043;
+            --gray-900: #1c1d1f;
+            --white: #ffffff;
+            --header-height: 72px;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --transition-fast: 150ms ease;
+        }
+
+        /* Critical Base Styles */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: var(--font-family);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--gray-900);
+            background-color: var(--gray-50);
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            overflow-y: auto !important;
+        }
+
+        /* Critical Layout - Main Container */
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--gray-50);
+        }
+
+        /* Critical Header - Sticky Positioning */
+        .main-header {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 10001;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .main-header-container {
+            height: var(--header-height);
+            display: grid;
+            grid-template-columns: minmax(200px, auto) 1fr minmax(300px, auto);
+            align-items: center;
+            padding: 0 24px;
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Loading Skeleton Styles */
+        .loading-skeleton {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            padding: 2rem;
+            opacity: 1;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .loading-skeleton.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .skeleton-header {
+            width: 100%;
+            max-width: 1200px;
+            height: 72px;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .skeleton-hero {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .skeleton-title {
+            width: 60%;
+            height: 48px;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        .skeleton-text {
+            width: 80%;
+            height: 24px;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        .skeleton-button {
+            width: 200px;
+            height: 48px;
+            background: linear-gradient(90deg, var(--primary-light) 25%, #e8d5f9 50%, var(--primary-light) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .skeleton-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 3rem;
+        }
+
+        .skeleton-card {
+            height: 280px;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: 12px;
+        }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Loading spinner fallback */
+        .blazor-loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin-top: 0.5rem;
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            .skeleton-header, .skeleton-title, .skeleton-text,
+            .skeleton-button, .skeleton-card, .blazor-loading-spinner {
+                animation: none;
+            }
+        }
+    </style>
+
+    <!-- ==========================================================================
+         CRITICAL CSS - Load synchronously (above-the-fold)
+         ========================================================================== -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <!-- Bootstrap Framework -->
+    <!-- Bootstrap Framework (critical) -->
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
 
-    <!-- NEW: Design System Foundation (Phase 1) -->
-    <link rel="stylesheet" href="css/design-system.css" />
-
-    <!-- Design System CSS -->
-    <link rel="stylesheet" href="css/design-system-base.css" />
-    <link rel="stylesheet" href="css/design-system-components.css" />
-    <link rel="stylesheet" href="css/design-system-dashboard.css" />
-    <link rel="stylesheet" href="css/design-system-utilities.css" />
-
-    <!-- Component CSS -->
+    <!-- Core Layout CSS (critical) -->
+    <link rel="stylesheet" href="css/site.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/header-clean.css" />
-    <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/chatbot.css" />
-    <link rel="stylesheet" href="css/cookie-consent-wall.css" />
 
-    <!-- Page-specific CSS -->
-    <link rel="stylesheet" href="css/auth-styles.css" />
-    <!-- REMOVED: login.css - conflicts with auth-styles.css gradient -->
-    <link rel="stylesheet" href="css/modern-registration.css" />
-    <link rel="stylesheet" href="css/homepage-modern.css" />
-    <link rel="stylesheet" href="css/homepage-enhancements.css" />
-    <link rel="stylesheet" href="css/new-home-2025.css" />
-    <link rel="stylesheet" href="css/admin.css" />
-    <link rel="stylesheet" href="css/admin-components.css" />
-    <link rel="stylesheet" href="css/admin-dashboard.css" />
-    <link rel="stylesheet" href="css/admin-instructors.css" />
-    <link rel="stylesheet" href="css/admin-payments.css" />
-    <link rel="stylesheet" href="css/courses.css" />
-    <link rel="stylesheet" href="css/cart.css" />
-    <link rel="stylesheet" href="css/checkout.css" />
-    <link rel="stylesheet" href="css/video-components.css" />
-    <link rel="stylesheet" href="css/learning-space.css" />
-    <link rel="stylesheet" href="css/pricing.css" />
-    <link rel="stylesheet" href="css/account-subscription.css" />
-    <link rel="stylesheet" href="css/instructor-earnings.css" />
-    <link rel="stylesheet" href="css/profile.css" />
-    <link rel="stylesheet" href="css/my-courses.css" />
+    <!-- ==========================================================================
+         DEFERRED CSS - Load asynchronously (below-the-fold)
+         Using media="print" onload pattern for non-blocking CSS
+         ========================================================================== -->
+    <!-- Design System CSS (deferred) -->
+    <link rel="stylesheet" href="css/design-system.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/design-system-base.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/design-system-components.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/design-system-dashboard.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/design-system-utilities.css" media="print" onload="this.media='all'" />
 
-    <!-- Site-wide CSS -->
-    <link rel="stylesheet" href="css/site.css" />
-    <link rel="stylesheet" href="css/connection-handler.css" />
-    <link rel="stylesheet" href="css/app.css" />
+    <!-- Component CSS (deferred) -->
+    <link rel="stylesheet" href="css/components.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/chatbot.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/cookie-consent-wall.css" media="print" onload="this.media='all'" />
+
+    <!-- Page-specific CSS (deferred) -->
+    <link rel="stylesheet" href="css/auth-styles.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/modern-registration.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/homepage-modern.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/homepage-enhancements.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/new-home-2025.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/admin.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/admin-components.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/admin-dashboard.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/admin-instructors.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/admin-payments.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/courses.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/cart.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/checkout.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/video-components.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/learning-space.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/pricing.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/account-subscription.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/instructor-earnings.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/profile.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/my-courses.css" media="print" onload="this.media='all'" />
+
+    <!-- Site-wide CSS (deferred) -->
+    <link rel="stylesheet" href="css/connection-handler.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/app.css" media="print" onload="this.media='all'" />
 
     <!-- Accessibility CSS - WCAG 2.1 AA Compliance (Sprint 2) -->
-    <link rel="stylesheet" href="css/accessibility.css" />
+    <link rel="stylesheet" href="css/accessibility.css" media="print" onload="this.media='all'" />
 
     <!-- Global Responsive CSS - MUST load LAST to override everything -->
-    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/responsive.css" media="print" onload="this.media='all'" />
 
     <!-- Scoped Styles -->
-    <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" />
+    <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" media="print" onload="this.media='all'" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <!-- NoScript fallback for CSS -->
+    <noscript>
+        <link rel="stylesheet" href="css/design-system.css" />
+        <link rel="stylesheet" href="css/components.css" />
+        <link rel="stylesheet" href="css/responsive.css" />
+        <link rel="stylesheet" href="css/accessibility.css" />
+        <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" />
+    </noscript>
 
-    <!-- PayPal SDK (Sandbox Mode - Replace client-id with production key for live) -->
-    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&disable-funding=credit,card"></script>
+    <!-- PayPal SDK (Sandbox Mode - Deferred for better performance) -->
+    <!-- Note: Replace client-id with production key for live -->
+    <script defer src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&disable-funding=credit,card"></script>
 </head>
 
 <body>
@@ -256,7 +452,24 @@
     </div>
 
     <div id="app" style="opacity: 0; transition: opacity 0.3s;">
-        <!-- Loading removed - GDPR wall shows instead -->
+        <!-- Loading Skeleton for better LCP (Sprint 3 - PageSpeed) -->
+        <div class="loading-skeleton" id="loading-skeleton">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-hero">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text" style="width: 60%;"></div>
+                <div class="skeleton-button"></div>
+            </div>
+            <div class="skeleton-cards">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+            <div class="blazor-loading-spinner"></div>
+            <p class="loading-text">Loading InsightLearn...</p>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
@@ -360,7 +573,7 @@
     <!-- PayPal Checkout Integration -->
     <script src="js/paypal-checkout.js"></script>
 
-    <!-- Hide static wall and show app after Blazor loads -->
+    <!-- Hide static wall, fade out skeleton, and show app after Blazor loads -->
     <script>
         window.addEventListener('load', function() {
             setTimeout(function() {
@@ -388,6 +601,17 @@
                     // Blazor component will take over
                 }
 
+                // Fade out loading skeleton (Sprint 3 - PageSpeed)
+                var skeleton = document.getElementById('loading-skeleton');
+                if (skeleton) {
+                    skeleton.classList.add('fade-out');
+                    // Remove from DOM after fade animation completes
+                    setTimeout(function() {
+                        skeleton.remove();
+                        console.log('[SKELETON] Loading skeleton removed');
+                    }, 300);
+                }
+
                 // Show app with fade-in
                 var app = document.getElementById('app');
                 if (app) {
@@ -398,8 +622,8 @@
         });
     </script>
 
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Library (async for non-blocking load) -->
+    <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- Chart Helper Functions -->
     <script src="js/chart-helpers.js"></script>
