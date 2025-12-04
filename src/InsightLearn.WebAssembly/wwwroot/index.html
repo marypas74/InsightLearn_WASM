@@ -33,11 +33,78 @@
     <!-- Additional SEO -->
     <meta name="theme-color" content="#0073b1" />
     <meta name="msapplication-TileColor" content="#0073b1" />
+
+    <!-- ==========================================================================
+         SEO: JSON-LD Structured Data (PageSpeed S2)
+         ========================================================================== -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "InsightLearn",
+        "url": "https://wasm.insightlearn.cloud",
+        "logo": "https://wasm.insightlearn.cloud/icon-192.png",
+        "description": "Online learning platform with 500+ expert-led courses in programming, business, and design.",
+        "sameAs": [],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "support@insightlearn.cloud"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "InsightLearn",
+        "url": "https://wasm.insightlearn.cloud",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://wasm.insightlearn.cloud/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "EducationalOrganization",
+        "name": "InsightLearn",
+        "url": "https://wasm.insightlearn.cloud",
+        "description": "AI-powered online learning platform",
+        "areaServed": "Worldwide",
+        "availableLanguage": ["English", "Italian"]
+    }
+    </script>
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="icon-192.png" />
 
-    <!-- Font Awesome Icons -->
+    <!-- ==========================================================================
+         PERFORMANCE: Resource Hints (PageSpeed P2, P7)
+         ========================================================================== -->
+    <!-- DNS Prefetch for external domains -->
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+    <link rel="dns-prefetch" href="https://www.paypal.com" />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+
+    <!-- Preconnect for critical external resources -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+
+    <!-- Preload critical CSS (above-the-fold) -->
+    <link rel="preload" href="css/bootstrap/bootstrap.min.css" as="style" />
+    <link rel="preload" href="css/layout.css" as="style" />
+    <link rel="preload" href="css/header-clean.css" as="style" />
+
+    <!-- Preload Font Awesome (critical for icons) -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" crossorigin="anonymous" />
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+
+    <!-- Font Awesome Icons (with font-display hint) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Bootstrap Framework -->

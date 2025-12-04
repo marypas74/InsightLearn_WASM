@@ -53,11 +53,16 @@
         <!-- Hero Visual -->
         <div class="hero-visual">
             <div class="hero-image-container">
-                <!-- Background Hero Image -->
+                <!-- Background Hero Image (LCP Critical - NO lazy loading) -->
                 <div class="hero-background-image">
                     <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop&q=80"
                          alt="Students learning together"
-                         class="hero-bg-img" />
+                         class="hero-bg-img"
+                         width="600"
+                         height="400"
+                         loading="eager"
+                         fetchpriority="high"
+                         decoding="sync" />
                     <div class="hero-image-overlay"></div>
                 </div>
 
@@ -66,7 +71,12 @@
                     <!-- Floating Card 1 - Web Development -->
                     <div class="floating-card">
                         <div class="floating-icon">
-                            <img src="https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=40&h=40&fit=crop&q=80" alt="Web Development" />
+                            <img src="https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=40&h=40&fit=crop&q=80"
+                                 alt="Web Development"
+                                 width="40"
+                                 height="40"
+                                 loading="lazy"
+                                 decoding="async" />
                         </div>
                         <div class="floating-content">
                             <div class="floating-title">Web Development</div>
@@ -77,7 +87,12 @@
                     <!-- Floating Card 2 - Data Science -->
                     <div class="floating-card">
                         <div class="floating-icon">
-                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=40&h=40&fit=crop&q=80" alt="Data Science" />
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=40&h=40&fit=crop&q=80"
+                                 alt="Data Science"
+                                 width="40"
+                                 height="40"
+                                 loading="lazy"
+                                 decoding="async" />
                         </div>
                         <div class="floating-content">
                             <div class="floating-title">Data Science</div>
@@ -88,7 +103,12 @@
                     <!-- Floating Card 3 - Design -->
                     <div class="floating-card">
                         <div class="floating-icon">
-                            <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=40&h=40&fit=crop&q=80" alt="UI/UX Design" />
+                            <img src="https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=40&h=40&fit=crop&q=80"
+                                 alt="UI/UX Design"
+                                 width="40"
+                                 height="40"
+                                 loading="lazy"
+                                 decoding="async" />
                         </div>
                         <div class="floating-content">
                             <div class="floating-title">UI/UX Design</div>
@@ -99,7 +119,12 @@
                     <!-- Success Story Card -->
                     <div class="floating-card success-story">
                         <div class="success-avatar">
-                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b1e2?w=32&h=32&fit=crop&q=80" alt="Student" />
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b1e2?w=32&h=32&fit=crop&q=80"
+                                 alt="Student"
+                                 width="32"
+                                 height="32"
+                                 loading="lazy"
+                                 decoding="async" />
                         </div>
                         <div class="success-content">
                             <div class="success-text">Just got promoted!</div>
