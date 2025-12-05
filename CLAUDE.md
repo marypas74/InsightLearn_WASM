@@ -848,15 +848,15 @@ Professional student learning environment with AI-powered features inspired by L
    - Password sudo: Configurata in ambiente production
    - **Non usare** [k8s/build-images.sh](/k8s/build-images.sh) (assume Docker standard)
 
-3bis. **🔥 ZFS File System per K3s Storage** (✅ Implementato 2025-11-09, Espanso 2025-11-28)
-   - **Pool**: `k3spool` (**90GB** file-based pool in `/home/zfs-k3s-pool.img`) - Espanso da 50GB 2025-11-28
+3bis. **🔥 ZFS File System per K3s Storage** (✅ Implementato 2025-11-09, Espanso 2025-12-05)
+   - **Pool**: `k3spool` (**250GB** file-based pool in `/home/zfs-k3s-pool.img`) - Espanso da 50GB→90GB (2025-11-28) → 250GB (2025-12-05)
    - **Mountpoint**: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
-   - **Compression**: **lz4** (compression ratio medio: **1.37x**, fino a **4.14x** su server data)
+   - **Compression**: **lz4** (compression ratio medio: **1.44x**, fino a **14.59x** su server config)
    - **Datasets**:
      - `k3spool/data` → K3s containerd data (compression 2.01x)
-     - `k3spool/server` → K3s server config/certs (compression 6.07x)
-     - `k3spool/storage` → Persistent volumes (compression 4.10x)
-   - **Storage Savings**: 7.44GB logical → 5.24GB physical (**risparmio ~30%**)
+     - `k3spool/server` → K3s server config/certs (compression 14.59x)
+     - `k3spool/storage` → Persistent volumes (compression 1.53x)
+   - **Storage Status**: 13.9GB used / **236GB available** (5% capacity, was 10% before expansion)
    - **Autoload**: Systemd service `zfs-import-k3spool.service` (enabled at boot)
    - **Version**: OpenZFS 2.4.99-1 (compilato da sorgente per kernel 6.12.0)
    - **Comandi ZFS**:
@@ -876,7 +876,37 @@ Professional student learning environment with AI-powered features inspired by L
    - **⚠️ IMPORTANTE**: ZFS binaries sono in `/usr/local/sbin/` (non nel PATH standard)
    - **Backup Original Data**: Rimosso `/var/lib/rancher/k3s.backup-old` (6.5GB liberati)
 
-3ter. **🐧 Kernel Migration & ZFS Compatibility** (✅ Documentato 2025-11-28)
+3ter. **💾 Swap & zswap Configuration** (✅ Implementato 2025-12-05)
+   - **Swap Totale**: **23GB** (6GB LVM + 8GB swapfile2 + 9GB swapfile3)
+   - **Swapfiles**:
+     - `/dev/dm-1` (LVM partition): 6GB
+     - `/swapfile2` (root filesystem): 8GB
+     - `/home/swapfile3` (home filesystem): 9GB (NEW)
+   - **zswap**: **Abilitato** (compressed swap cache in RAM)
+     - Compressor: **lzo** (lz4 non disponibile in kernel Rocky Linux 10)
+     - Pool size: **20%** RAM (~3.6GB max)
+     - Compression ratio: ~2.5:1 (lzo performance)
+     - Benefit: **10-50x più veloce** vs swap su disco
+   - **Swappiness**: 30 (bilanciato, default)
+   - **Kernel Parameters**: `zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20`
+   - **Auto-mount**: Configurato in `/etc/fstab`
+   - **Comandi Verifica**:
+     ```bash
+     # Verifica swap attivo
+     free -h
+     swapon --show
+
+     # Verifica zswap status
+     cat /sys/module/zswap/parameters/enabled
+     cat /sys/module/zswap/parameters/compressor
+     cat /sys/module/zswap/parameters/max_pool_percent
+
+     # Cambiare swappiness (se necessario)
+     sudo sysctl vm.swappiness=30
+     ```
+   - **⚠️ IMPORTANTE**: zswap comprime pagine RAM prima di swap su disco (molto più veloce)
+
+3quater. **🐧 Kernel Migration & ZFS Compatibility** (✅ Documentato 2025-11-28)
    - **Kernel Attuale Funzionante**: `6.12.0-55.41.1.el10_0.x86_64` (con ZFS 2.4.99-1)
    - **Kernel Installati**:
      - `6.12.0-55.12.1.el10_0.x86_64` - Vecchio
@@ -2756,10 +2786,11 @@ Quando lavori con questa repository:
     - MongoDB: ✅ Running (video storage operativo)
     - Redis: ✅ Running (tcpSocket probes)
     - Ollama: ✅ Running (qwen2:0.5b ~1.7s)
-20. **🔥 ZFS File System**: K3s storage ora su ZFS per compression e reliability (implementato 2025-11-09, espanso 2025-11-28)
-    - Pool: `k3spool` (**90GB** in `/home/zfs-k3s-pool.img`) - Espanso da 50GB
+20. **🔥 ZFS File System**: K3s storage ora su ZFS per compression e reliability (implementato 2025-11-09, espanso 2025-12-05)
+    - Pool: `k3spool` (**250GB** in `/home/zfs-k3s-pool.img`) - Espanso da 50GB→90GB→250GB
     - K3s data: `/k3s-zfs` (symlink da `/var/lib/rancher/k3s`)
-    - Compression: **lz4** (ratio 1.37x medio, fino a 6.07x su certs)
+    - Compression: **lz4** (ratio 1.44x medio, fino a 14.59x su certs)
+    - **Spazio**: 13.9GB used / 236GB available (5% capacity)
     - ZFS comandi: `/usr/local/sbin/zpool` e `/usr/local/sbin/zfs` (non nel PATH standard)
     - Autoload: `systemctl status zfs-import-k3spool.service`
     - ⚠️ **NON modificare /var/lib/rancher/k3s direttamente** - è un symlink a ZFS mountpoint
@@ -2769,7 +2800,17 @@ Quando lavori con questa repository:
     - Kernel nuovo installato: `6.12.0-124.8.1.el10_1.x86_64` (⚠️ richiede ricompilazione ZFS)
     - **⚠️ PRIMA di aggiornare kernel**: Ricompilare ZFS per il nuovo kernel
     - **⚠️ Se boot fallisce**: Selezionare kernel 6.12.0-55.41.1 da GRUB menu
-    - Procedura completa: vedere sezione "3ter. Kernel Migration & ZFS Compatibility" sopra
+    - Procedura completa: vedere sezione "3quater. Kernel Migration & ZFS Compatibility" sopra
+24. **💾 Swap & zswap**: Espansione swap e compressed swap cache (implementato 2025-12-05)
+    - **Swap Totale**: **23GB** (espanso da 14GB)
+    - **zswap**: Abilitato con compressor lzo, pool 20% RAM (~3.6GB)
+    - **Performance**: 10-50x più veloce vs swap su disco (cache compressa in RAM)
+    - **Compression ratio**: ~2.5:1 (lzo)
+    - **Files**: `/dev/dm-1` (6GB), `/swapfile2` (8GB), `/home/swapfile3` (9GB NEW)
+    - **Auto-mount**: Configurato in `/etc/fstab`
+    - **Kernel params**: `zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=20`
+    - **Swappiness**: 30 (bilanciato, default)
+    - Procedura completa: vedere sezione "3ter. Swap & zswap Configuration" sopra
 21. **🚀 HA System v2.0.2**: Sistema HA completo con auto-restore automatico (implementato 2025-11-16)
     - **Backup**: 3 copie rotanti ogni ora in `/var/backups/k3s-cluster/`
     - **Watchdog**: Timer systemd ogni 2 minuti (`/usr/local/bin/insightlearn-ha-watchdog.sh`)
