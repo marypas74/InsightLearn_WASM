@@ -2648,14 +2648,22 @@ tail -f /tmp/insightlearn-watchdog.log
 
 ## Jenkins CI/CD & Automated Testing
 
-**Status**: ✅ Deployato su Kubernetes (namespace: jenkins)
+**Status**: ✅ Operativo con test automatici configurati (2025-12-06)
+**Namespace**: jenkins
+
+### Jobs Attivi
+
+| Job | Schedule | Descrizione |
+|-----|----------|-------------|
+| `insightlearn-automated-tests` | `H * * * *` (ogni ora) | 9 stage di test automatici via [Jenkinsfile](Jenkinsfile) |
+| `weekly-heavy-load-test` | `0 2 * * 0` (Dom 2:00 AM) | Load test pesante via [jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile](jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile) |
 
 ### Configurazione
 
-- **Versione**: Jenkins 2.528.1 (Alpine LTS)
+- **Versione**: Jenkins LTS Alpine (`jenkins/jenkins:lts-alpine`)
 - **Deployment**: Lightweight (384Mi-768Mi RAM, 250m-500m CPU)
 - **Storage**: PVC 20Gi (local-path StorageClass)
-- **Autenticazione**: **Disabilitata** per ambiente sviluppo (`authorizationStrategy: Unsecured`)
+- **Autenticazione**: **Disabilitata** per ambiente sviluppo
 - **Porte**:
   - HTTP UI: **NodePort 32000** (⚠️ NON 8080!)
   - JNLP Agents: 50000
@@ -2666,11 +2674,9 @@ tail -f /tmp/insightlearn-watchdog.log
 # Via NodePort (raccomandato)
 http://localhost:32000
 
-# Via minikube IP
-http://$(minikube ip):32000
+# Trigger build manuale
+curl -X POST 'http://localhost:32000/job/insightlearn-automated-tests/build'
 ```
-
-**⚠️ IMPORTANTE**: Documentazione obsoleta indica porta 8080, ma la porta corretta è **32000** (NodePort).
 
 ### Pipeline & Testing Scripts
 
@@ -2688,29 +2694,76 @@ http://$(minikube ip):32000
 **Testing Scripts** ([jenkins/scripts/](jenkins/scripts/)):
 - `load-test.sh` - Load testing con 4 profili (light/medium/heavy/stress)
 - `site-monitor.sh` - Continuous monitoring con alerting
-- `test-email-notification.sh` - Email notification testing
+
+### Creare/Ripristinare Jobs
+
+```bash
+# Script automatico (crea tutti i jobs da jenkins/jobs/*.xml)
+./jenkins/create-jenkins-jobs.sh
+
+# Oppure manualmente via curl
+CRUMB=$(curl -s 'http://localhost:32000/crumbIssuer/api/json' | jq -r '.crumb')
+curl -X POST -H "Jenkins-Crumb: $CRUMB" -H "Content-Type: application/xml" \
+  --data-binary "@jenkins/jobs/insightlearn-automated-tests.xml" \
+  "http://localhost:32000/createItem?name=insightlearn-automated-tests"
+```
+
+### ⚠️ Fix Plugin Jenkins Alpine (CRITICO)
+
+Jenkins Alpine (`lts-alpine`) ha un problema noto: i plugin vengono installati in `/usr/share/jenkins/ref/plugins/` ma **NON vengono copiati** automaticamente in `/var/jenkins_home/plugins/` se la directory esiste già.
+
+**Sintomo**: HTTP 500 con errore `CannotResolveClassException: flow-definition`
+
+**Soluzione**:
+```bash
+# 1. Installare plugin (se mancanti)
+kubectl exec -n jenkins deployment/jenkins -- \
+  jenkins-plugin-cli --plugins workflow-job workflow-cps git
+
+# 2. Copiare plugin da ref a jenkins_home
+JENKINS_POD=$(kubectl get pod -n jenkins -l app=jenkins -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n jenkins $JENKINS_POD -- \
+  sh -c "cp -r /usr/share/jenkins/ref/plugins/* /var/jenkins_home/plugins/"
+
+# 3. Riavviare Jenkins
+kubectl rollout restart deployment/jenkins -n jenkins
+kubectl rollout status deployment/jenkins -n jenkins --timeout=180s
+
+# 4. Verificare plugin attivi
+curl -s 'http://localhost:32000/pluginManager/api/json?depth=1' | \
+  jq -r '.plugins[] | select(.shortName | test("workflow-job|workflow-cps|git")) | "\(.shortName): \(.active)"'
+```
+
+### Job XML Files
+
+| File | Descrizione |
+|------|-------------|
+| [jenkins/jobs/insightlearn-automated-tests.xml](jenkins/jobs/insightlearn-automated-tests.xml) | Job orario (Jenkinsfile) |
+| [jenkins/jobs/weekly-heavy-load-test.xml](jenkins/jobs/weekly-heavy-load-test.xml) | Job settimanale (load test) |
 
 ### Deployment
 
 ```bash
-# Deploy Jenkins (con fix PVC per local-path)
+# Deploy Jenkins
 kubectl apply -f k8s/12-jenkins-namespace.yaml
 kubectl apply -f k8s/13-jenkins-rbac.yaml
 kubectl apply -f k8s/14-jenkins-pvc.yaml
 kubectl apply -f k8s/15-jenkins-deployment-lightweight.yaml
 
-# Oppure usa lo script (richiede minikube)
-./k8s/deploy-jenkins.sh
+# Creare jobs
+./jenkins/create-jenkins-jobs.sh
 ```
 
 **Problemi Comuni**:
 - ❌ PVC Pending: Cambiare `storageClassName: standard` → `local-path` in 14-jenkins-pvc.yaml
 - ❌ Porta 8080 non risponde: Usare porta **32000** (NodePort)
+- ❌ HTTP 500 `flow-definition`: Eseguire fix plugin Alpine (vedi sopra)
 
 ### Documentazione
 
-- [jenkins/README.md](jenkins/README.md) - Setup completo e guida configurazione
+- [jenkins/README.md](jenkins/README.md) - Setup completo
 - [Jenkinsfile](Jenkinsfile) - Pipeline definition
+- [jenkins/pipelines/](jenkins/pipelines/) - Pipeline files
 
 ## Scripts Kubernetes
 
