@@ -3181,6 +3181,16 @@ InsightLearn is planning a major business model transition from **pay-per-course
 - **Issues**: https://github.com/marypas74/InsightLearn_WASM/issues
 - **Maintainer**: marcello.pasqui@gmail.com
 
+### ⚠️ GitHub Token
+
+- **Scadenza**: **2026-01-06** (30 giorni da 2025-12-07)
+- **File locale**: `~/.git-credentials`
+- **Rinnovo**: Generare nuovo token su https://github.com/settings/tokens e aggiornare:
+  ```bash
+  echo "https://NUOVO_TOKEN@github.com" > ~/.git-credentials
+  git remote set-url origin https://NUOVO_TOKEN@github.com/marypas74/InsightLearn_WASM.git
+  ```
+
 ---
 
 ## Student Learning Space (v2.1.0 - ✅ COMPLETE)
