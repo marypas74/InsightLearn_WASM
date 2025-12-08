@@ -37,6 +37,10 @@ RUN chmod 644 js/*.js 2>/dev/null || true
 # Fix SEO file permissions (sitemap.xml, robots.txt)
 RUN chmod 644 sitemap.xml robots.txt 2>/dev/null || true
 
+# Copy IndexNow verification file (for Bing/Yandex instant indexing)
+COPY --from=build /src/src/InsightLearn.WebAssembly/wwwroot/ebd57a262cfe8ff8de852eba65288c19.txt ./ebd57a262cfe8ff8de852eba65288c19.txt
+RUN chmod 644 ebd57a262cfe8ff8de852eba65288c19.txt
+
 # Copy custom JavaScript files (must be done AFTER wwwroot copy)
 COPY --from=build /src/src/InsightLearn.WebAssembly/wwwroot/js/httpClient.js ./js/httpClient.js
 

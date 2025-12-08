@@ -1,6 +1,7 @@
 @page "/courses/{CourseId:guid}"
 @using InsightLearn.Shared.DTOs
 @using InsightLearn.Core.Entities
+@using InsightLearn.WebAssembly.Components.SEO
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject NavigationManager Navigation
@@ -8,6 +9,37 @@
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>@(course?.Title ?? "Course") - InsightLearn</PageTitle>
+
+@* SEO Components - Dynamic Meta Tags & Structured Data *@
+@if (course != null)
+{
+    <SeoMetaTags
+        Title="@course.Title"
+        Description="@GetSeoDescription()"
+        Keywords="@GetSeoKeywords()"
+        ImageUrl="@course.ThumbnailUrl"
+        PageType="product"
+        Author="@course.InstructorName"
+        Language="@GetCourseLanguage()"
+        OgLocale="en_US"
+        ModifiedDate="@course.UpdatedAt" />
+
+    <CourseStructuredData
+        CourseName="@course.Title"
+        CourseDescription="@course.ShortDescription"
+        InstructorName="@course.InstructorName"
+        ThumbnailUrl="@course.ThumbnailUrl"
+        Price="@course.CurrentPrice.ToString("0.00")"
+        Currency="EUR"
+        Rating="@course.AverageRating.ToString("0.0")"
+        ReviewCount="@course.ReviewCount.ToString()"
+        Duration="@GetIsoDuration()"
+        Language="@GetCourseLanguage()"
+        Category="@course.CategoryName"
+        IsFree="@course.IsFree" />
+
+    <BreadcrumbSchema Items="@GetBreadcrumbs()" />
+}
 
 @if (isLoading)
 {
@@ -343,5 +375,73 @@ else
             var hours = minutes / 60.0;
             return $"{hours:0.#} hours";
         }
+    }
+
+    // SEO Helper Methods
+    private string GetSeoDescription()
+    {
+        if (course == null) return "";
+
+        var description = !string.IsNullOrEmpty(course.ShortDescription)
+            ? course.ShortDescription
+            : course.Description;
+
+        // Truncate to 155 characters for optimal SEO
+        if (description.Length > 155)
+            return description.Substring(0, 152) + "...";
+
+        return description;
+    }
+
+    private string GetSeoKeywords()
+    {
+        if (course == null) return "";
+
+        var keywords = new List<string>
+        {
+            "online course",
+            "e-learning",
+            course.CategoryName ?? "",
+            course.Title ?? "",
+            course.InstructorName ?? "",
+            "InsightLearn"
+        };
+
+        return string.Join(", ", keywords.Where(k => !string.IsNullOrEmpty(k)));
+    }
+
+    private string GetCourseLanguage()
+    {
+        // Default to English, could be extended to use course.Language property
+        return "en";
+    }
+
+    private string GetIsoDuration()
+    {
+        if (course == null || course.EstimatedDurationMinutes <= 0)
+            return "";
+
+        var hours = course.EstimatedDurationMinutes / 60;
+        var minutes = course.EstimatedDurationMinutes % 60;
+
+        if (hours > 0 && minutes > 0)
+            return $"PT{hours}H{minutes}M";
+        else if (hours > 0)
+            return $"PT{hours}H";
+        else
+            return $"PT{minutes}M";
+    }
+
+    private List<BreadcrumbSchema.BreadcrumbItem> GetBreadcrumbs()
+    {
+        if (course == null) return new List<BreadcrumbSchema.BreadcrumbItem>();
+
+        return new List<BreadcrumbSchema.BreadcrumbItem>
+        {
+            new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" },
+            new BreadcrumbSchema.BreadcrumbItem { Name = "Courses", Url = "/courses" },
+            new BreadcrumbSchema.BreadcrumbItem { Name = course.CategoryName ?? "Category", Url = $"/courses?category={course.CategoryId}" },
+            new BreadcrumbSchema.BreadcrumbItem { Name = course.Title, Url = $"/courses/{course.Id}" }
+        };
     }
 }

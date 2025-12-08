@@ -1,0 +1,134 @@
+@*
+    BreadcrumbSchema.razor - JSON-LD Breadcrumb Structured Data
+    Generates BreadcrumbList schema for Google SERP navigation.
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/breadcrumb
+    Schema: https://schema.org/BreadcrumbList
+
+    Usage:
+    <BreadcrumbSchema Items="@breadcrumbs" />
+
+    Where breadcrumbs is:
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Name = "Home", Url = "/" },
+        new BreadcrumbItem { Name = "Courses", Url = "/courses" },
+        new BreadcrumbItem { Name = "Web Development", Url = "/courses/web-development" }
+    };
+
+    Created: 2025-12-07
+    Version: 1.0
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+
+<HeadContent>
+    @if (Items != null && Items.Any())
+    {
+        <script type="application/ld+json">
+            @((MarkupString)GenerateJsonLd())
+        </script>
+    }
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// List of breadcrumb items in order (home -> category -> current page)
+    /// </summary>
+    [Parameter]
+    public List<BreadcrumbItem>? Items { get; set; }
+
+    /// <summary>
+    /// Base URL for the site (defaults to production URL)
+    /// </summary>
+    [Parameter]
+    public string BaseUrl { get; set; } = "https://wasm.insightlearn.cloud";
+
+    private string GenerateJsonLd()
+    {
+        if (Items == null || !Items.Any())
+            return "{}";
+
+        var itemListElements = new List<Dictionary<string, object>>();
+
+        for (int i = 0; i < Items.Count; i++)
+        {
+            var item = Items[i];
+            itemListElements.Add(new Dictionary<string, object>
+            {
+                ["@type"] = "ListItem",
+                ["position"] = i + 1,
+                ["name"] = item.Name,
+                ["item"] = GetAbsoluteUrl(item.Url)
+            });
+        }
+
+        var breadcrumbList = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = itemListElements
+        };
+
+        return JsonSerializer.Serialize(breadcrumbList, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return BaseUrl;
+
+        if (url.StartsWith("http"))
+            return url;
+
+        return BaseUrl.TrimEnd('/') + "/" + url.TrimStart('/');
+    }
+
+    /// <summary>
+    /// Represents a single breadcrumb item
+    /// </summary>
+    public class BreadcrumbItem
+    {
+        /// <summary>
+        /// Display name for the breadcrumb
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// URL for the breadcrumb (relative or absolute)
+        /// </summary>
+        public string Url { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Helper method to create a standard course breadcrumb list
+    /// </summary>
+    public static List<BreadcrumbItem> CreateCourseBreadcrumbs(string categoryName, string categorySlug, string courseName)
+    {
+        return new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem { Name = "Home", Url = "/" },
+            new BreadcrumbItem { Name = "Courses", Url = "/courses" },
+            new BreadcrumbItem { Name = categoryName, Url = $"/courses?category={categorySlug}" },
+            new BreadcrumbItem { Name = courseName, Url = "" } // Current page, URL will be current
+        };
+    }
+
+    /// <summary>
+    /// Helper method to create a category breadcrumb list
+    /// </summary>
+    public static List<BreadcrumbItem> CreateCategoryBreadcrumbs(string categoryName)
+    {
+        return new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem { Name = "Home", Url = "/" },
+            new BreadcrumbItem { Name = "Categories", Url = "/categories" },
+            new BreadcrumbItem { Name = categoryName, Url = "" } // Current page
+        };
+    }
+}

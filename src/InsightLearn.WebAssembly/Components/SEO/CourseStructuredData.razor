@@ -1,0 +1,263 @@
+@*
+    CourseStructuredData.razor - JSON-LD Schema.org Course Markup
+    Generates structured data for Google Course rich results.
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/course
+    Schema: https://schema.org/Course
+
+    Usage:
+    <CourseStructuredData
+        CourseName="Complete Web Development Bootcamp"
+        CourseDescription="Learn HTML, CSS, JavaScript, React..."
+        InstructorName="John Doe"
+        Price="49.99"
+        Currency="EUR"
+        ThumbnailUrl="/images/course.jpg"
+        Rating="4.8"
+        ReviewCount="1250"
+        Duration="PT40H" />
+
+    Created: 2025-12-07
+    Version: 1.0
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <script type="application/ld+json">
+        @((MarkupString)GenerateJsonLd())
+    </script>
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// Course title
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string CourseName { get; set; } = "";
+
+    /// <summary>
+    /// Course description (150-300 characters recommended)
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string CourseDescription { get; set; } = "";
+
+    /// <summary>
+    /// Instructor full name
+    /// </summary>
+    [Parameter]
+    public string InstructorName { get; set; } = "";
+
+    /// <summary>
+    /// Course thumbnail image URL
+    /// </summary>
+    [Parameter]
+    public string ThumbnailUrl { get; set; } = "";
+
+    /// <summary>
+    /// Course price (numeric string)
+    /// </summary>
+    [Parameter]
+    public string Price { get; set; } = "";
+
+    /// <summary>
+    /// Currency code (ISO 4217, e.g., EUR, USD)
+    /// </summary>
+    [Parameter]
+    public string Currency { get; set; } = "EUR";
+
+    /// <summary>
+    /// Average rating (1-5)
+    /// </summary>
+    [Parameter]
+    public string Rating { get; set; } = "";
+
+    /// <summary>
+    /// Number of reviews
+    /// </summary>
+    [Parameter]
+    public string ReviewCount { get; set; } = "";
+
+    /// <summary>
+    /// Course duration in ISO 8601 duration format (e.g., PT40H for 40 hours)
+    /// </summary>
+    [Parameter]
+    public string Duration { get; set; } = "";
+
+    /// <summary>
+    /// Course language (ISO 639-1, e.g., en, it)
+    /// </summary>
+    [Parameter]
+    public string Language { get; set; } = "en";
+
+    /// <summary>
+    /// Course URL (defaults to current page)
+    /// </summary>
+    [Parameter]
+    public string CourseUrl { get; set; } = "";
+
+    /// <summary>
+    /// Category/Subject of the course
+    /// </summary>
+    [Parameter]
+    public string Category { get; set; } = "";
+
+    /// <summary>
+    /// Skill level: Beginner, Intermediate, Advanced
+    /// </summary>
+    [Parameter]
+    public string SkillLevel { get; set; } = "";
+
+    /// <summary>
+    /// Is this course free?
+    /// </summary>
+    [Parameter]
+    public bool IsFree { get; set; } = false;
+
+    private string GenerateJsonLd()
+    {
+        var course = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Course",
+            ["name"] = CourseName,
+            ["description"] = CourseDescription,
+            ["url"] = GetCourseUrl(),
+            ["provider"] = new Dictionary<string, object>
+            {
+                ["@type"] = "EducationalOrganization",
+                ["name"] = "InsightLearn",
+                ["url"] = "https://wasm.insightlearn.cloud",
+                ["logo"] = "https://wasm.insightlearn.cloud/images/logo.png",
+                ["sameAs"] = new[]
+                {
+                    "https://www.insightlearn.cloud",
+                    "https://github.com/marypas74/InsightLearn_WASM"
+                }
+            }
+        };
+
+        // Course Instance (Online course)
+        var courseInstance = new Dictionary<string, object>
+        {
+            ["@type"] = "CourseInstance",
+            ["courseMode"] = "online",
+            ["courseSchedule"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Schedule",
+                ["repeatFrequency"] = "P1D",
+                ["repeatCount"] = 365
+            }
+        };
+
+        if (!string.IsNullOrWhiteSpace(Duration))
+        {
+            courseInstance["courseWorkload"] = Duration;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Language))
+        {
+            courseInstance["inLanguage"] = Language;
+        }
+
+        if (!string.IsNullOrWhiteSpace(InstructorName))
+        {
+            courseInstance["instructor"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Person",
+                ["name"] = InstructorName
+            };
+        }
+
+        course["hasCourseInstance"] = courseInstance;
+
+        // Image
+        if (!string.IsNullOrWhiteSpace(ThumbnailUrl))
+        {
+            course["image"] = GetAbsoluteUrl(ThumbnailUrl);
+        }
+
+        // Offers (Price)
+        if (!string.IsNullOrWhiteSpace(Price) || IsFree)
+        {
+            course["offers"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Offer",
+                ["price"] = IsFree ? "0" : Price,
+                ["priceCurrency"] = Currency,
+                ["availability"] = "https://schema.org/InStock",
+                ["url"] = GetCourseUrl(),
+                ["validFrom"] = DateTime.UtcNow.ToString("yyyy-MM-dd")
+            };
+        }
+
+        // Aggregate Rating
+        if (!string.IsNullOrWhiteSpace(Rating) && !string.IsNullOrWhiteSpace(ReviewCount))
+        {
+            course["aggregateRating"] = new Dictionary<string, object>
+            {
+                ["@type"] = "AggregateRating",
+                ["ratingValue"] = Rating,
+                ["bestRating"] = "5",
+                ["worstRating"] = "1",
+                ["ratingCount"] = ReviewCount
+            };
+        }
+
+        // Category
+        if (!string.IsNullOrWhiteSpace(Category))
+        {
+            course["about"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Thing",
+                ["name"] = Category
+            };
+        }
+
+        // Skill Level (Educational Level)
+        if (!string.IsNullOrWhiteSpace(SkillLevel))
+        {
+            course["educationalLevel"] = SkillLevel;
+        }
+
+        // Audience
+        course["audience"] = new Dictionary<string, object>
+        {
+            ["@type"] = "Audience",
+            ["audienceType"] = "Students, Professionals"
+        };
+
+        // Additional properties for e-learning
+        course["isAccessibleForFree"] = IsFree;
+        course["coursePrerequisites"] = "No prior experience required";
+        course["teaches"] = CourseName;
+
+        return JsonSerializer.Serialize(course, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetCourseUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(CourseUrl))
+        {
+            return GetAbsoluteUrl(CourseUrl);
+        }
+        return Navigation.Uri;
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return "";
+
+        if (url.StartsWith("http"))
+            return url;
+
+        return "https://wasm.insightlearn.cloud/" + url.TrimStart('/');
+    }
+}

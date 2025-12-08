@@ -1,11 +1,25 @@
 @page "/courses"
 @using InsightLearn.Shared.DTOs
 @using InsightLearn.Core.Entities
+@using InsightLearn.WebAssembly.Components.SEO
 @inject ICourseService CourseService
 @inject ICategoryService CategoryService
 @inject NavigationManager Navigation
 
 <PageTitle>Browse Courses - InsightLearn</PageTitle>
+
+@* SEO Meta Tags for Courses Catalog Page *@
+<SeoMetaTags
+    Title="Browse Online Courses"
+    Description="Explore 1,200+ expert-led online courses. Learn programming, design, business, and more with InsightLearn. Start learning today with free and premium courses."
+    Keywords="online courses, e-learning, learn online, programming courses, web development, design courses, business courses, InsightLearn"
+    ImageUrl="/images/courses-catalog.jpg"
+    PageType="website"
+    Language="en"
+    OgLocale="en_US" />
+
+@* Breadcrumb Schema *@
+<BreadcrumbSchema Items="@catalogBreadcrumbs" />
 
 <div class="courses-page-wrapper">
     @* Hero Section *@
@@ -161,6 +175,13 @@
     private Guid? selectedCategoryId = null;
     private bool isLoading = true;
     private System.Timers.Timer? searchDebounceTimer;
+
+    // SEO: Breadcrumbs for catalog page
+    private List<BreadcrumbSchema.BreadcrumbItem> catalogBreadcrumbs = new()
+    {
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" },
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Courses", Url = "/courses" }
+    };
 
     protected override async Task OnInitializedAsync()
     {

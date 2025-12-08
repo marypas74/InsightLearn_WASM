@@ -13,7 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
 **Latest Release**: 🎛️ Admin Console v2.1.0-dev COMPLETE (2025-11-26) - 20+ admin pages with CreateCourse wizard & EditCourse editor
-**SEO Status**: ✅ **OPTIMIZED** - sitemap.xml + robots.txt deployed (2025-12-02)
+**SEO Status**: ✅ **OPTIMIZED** - Score 7.9/10 (up from 4.5/10) - sitemap.xml + robots.txt + IndexNow deployed (2025-12-07)
+**IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
+**Schema.org**: ✅ **5 JSON-LD schemas** - Organization, WebSite, EducationalOrganization, FAQPage, Course
+**SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 
 ✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.1.0-dev`.
 
@@ -3832,22 +3835,41 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ## 🔍 SEO Optimization (v2.1.0-dev) - ✅ COMPLETE
 
-**Status**: ✅ **DEPLOYED** - 2025-12-02
+**Status**: ✅ **DEPLOYED** - 2025-12-07
+**IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing (2025-12-07)
 **Google Search Console**: Ready for sitemap submission
 
 ### Files Created
 
 | File | Location | Purpose |
 |------|----------|---------|
-| **sitemap.xml** | `src/InsightLearn.WebAssembly/wwwroot/sitemap.xml` | XML sitemap for Google indexing |
+| **sitemap.xml** | `src/InsightLearn.WebAssembly/wwwroot/sitemap.xml` | XML sitemap (7 public URLs) |
 | **robots.txt** | `src/InsightLearn.WebAssembly/wwwroot/robots.txt` | Crawler directives |
+| **IndexNow key** | `src/InsightLearn.WebAssembly/wwwroot/ebd57a262cfe8ff8de852eba65288c19.txt` | Bing/Yandex verification |
 | **SEO_OPTIMIZATION_GUIDE.md** | `docs/SEO_OPTIMIZATION_GUIDE.md` | Complete SEO strategy guide |
-| **BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md** | `docs/BLAZOR_SEO_IMPLEMENTATION_EXAMPLES.md` | Blazor-specific SEO code |
 
 ### Public URLs
 
 - **Sitemap**: https://wasm.insightlearn.cloud/sitemap.xml
 - **Robots.txt**: https://wasm.insightlearn.cloud/robots.txt
+- **IndexNow Key**: https://wasm.insightlearn.cloud/ebd57a262cfe8ff8de852eba65288c19.txt
+
+### IndexNow Instant Indexing (Bing/Yandex)
+
+**Status**: ✅ 7 URL inviate con successo (HTTP 202 Accepted)
+**Key**: `ebd57a262cfe8ff8de852eba65288c19`
+**Motori Supportati**: Bing, Yandex, Seznam, Naver
+
+```bash
+# Inviare nuove URL manualmente
+curl -X POST "https://api.indexnow.org/indexnow" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "wasm.insightlearn.cloud",
+    "key": "ebd57a262cfe8ff8de852eba65288c19",
+    "urlList": ["https://wasm.insightlearn.cloud/nuova-pagina"]
+  }'
+```
 
 ### Google Search Console Setup
 
