@@ -1,4 +1,5 @@
 @page "/learn/{CourseId:guid}/{LessonId:guid}"
+@layout InsightLearn.WebAssembly.Layout.LearningLayout
 @using InsightLearn.WebAssembly.Components
 @using InsightLearn.WebAssembly.Components.LearningSpace
 @using InsightLearn.Shared.DTOs
@@ -69,30 +70,56 @@ else if (lesson != null && course != null)
             </div>
         </nav>
 
-        <!-- Main Learning Space Layout (3 columns) -->
-        <div class="learning-space-layout">
-            <!-- Left Sidebar: Course Curriculum -->
-            <aside class="learning-sidebar left-sidebar">
-                <div class="sidebar-header">
-                    <h3><i class="fas fa-list"></i> Course Content</h3>
-                    <button class="btn-collapse" @onclick="ToggleCurriculumSidebar" title="Collapse">
-                        <i class="fas fa-@(curriculumSidebarCollapsed ? "chevron-right" : "chevron-left")"></i>
-                    </button>
-                </div>
-                @if (!curriculumSidebarCollapsed)
-                {
-                    <div class="sidebar-content">
-                        <CourseCurriculum Sections="@course.Sections"
-                                          CurrentLessonId="@LessonId"
-                                          OnLessonClick="NavigateToLesson" />
-                    </div>
-                }
-            </aside>
+        <!-- Sidebar Backdrop Overlay -->
+        @if (leftSidebarOpen || rightSidebarOpen)
+        {
+            <div class="sidebar-backdrop visible" @onclick="CloseAllSidebars"></div>
+        }
 
+        <!-- Left Sidebar: Course Curriculum (Overlay) -->
+        <aside class="learning-sidebar left-sidebar @(leftSidebarOpen ? "open" : "")">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-list"></i> Course Content</h3>
+                <button class="btn-collapse" @onclick="ToggleLeftSidebar" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <CourseCurriculum Sections="@course.Sections"
+                                  CurrentLessonId="@LessonId"
+                                  OnLessonClick="NavigateToLesson" />
+            </div>
+        </aside>
+
+        <!-- Right Sidebar: AI Assistant (Overlay) -->
+        <aside class="learning-sidebar right-sidebar @(rightSidebarOpen ? "open" : "")">
+            <button class="btn-close-sidebar" @onclick="ToggleRightSidebar" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="sidebar-content ai-chat-container">
+                <AIChatPanel LessonId="@LessonId"
+                             CurrentVideoTimestamp="@((int)currentVideoTime)"
+                             OnTimestampClick="@HandleAIChatTimestampClick" />
+            </div>
+        </aside>
+
+        <!-- Main Learning Space Layout -->
+        <div class="learning-space-layout">
             <!-- Center: Video Player + Tabs -->
             <main class="learning-main-content">
-                <!-- Video Player -->
+                <!-- Video Player with Toggle Buttons -->
                 <div class="video-player-wrapper">
+                    <!-- Toggle Buttons on Video -->
+                    <div class="sidebar-toggle-buttons">
+                        <button class="sidebar-toggle left" @onclick="ToggleLeftSidebar">
+                            <i class="fas fa-list"></i>
+                            <span>Contents</span>
+                        </button>
+                        <button class="sidebar-toggle right" @onclick="ToggleRightSidebar">
+                            <i class="fas fa-sparkles"></i>
+                            <span>AI Assistant</span>
+                        </button>
+                    </div>
                     <VideoPlayer @ref="videoPlayerRef"
                                  LessonId="@LessonId"
                                  VideoUrl="@lesson.VideoUrl"
@@ -204,25 +231,6 @@ else if (lesson != null && course != null)
                     </div>
                 </div>
             </main>
-
-            <!-- Right Sidebar: AI Features -->
-            <aside class="learning-sidebar right-sidebar">
-                <div class="sidebar-header">
-                    <h3><i class="fas fa-robot"></i> AI Assistant</h3>
-                    <button class="btn-collapse" @onclick="ToggleAISidebar" title="Collapse">
-                        <i class="fas fa-@(aiSidebarCollapsed ? "chevron-left" : "chevron-right")"></i>
-                    </button>
-                </div>
-                @if (!aiSidebarCollapsed)
-                {
-                    <div class="sidebar-content">
-                        <div class="ai-features">
-                            <AITakeawaysPanel LessonId="@LessonId"
-                                              OnTimestampClick="@HandleTakeawayTimestampClick" />
-                        </div>
-                    </div>
-                }
-            </aside>
         </div>
     </div>
 }
@@ -246,8 +254,8 @@ else if (lesson != null && course != null)
 
     // UI state
     private string activeTab = "notes";
-    private bool curriculumSidebarCollapsed = false;
-    private bool aiSidebarCollapsed = false;
+    private bool leftSidebarOpen = false;
+    private bool rightSidebarOpen = false;
 
     // Navigation state
     private int currentLessonIndex = 1;
@@ -428,6 +436,14 @@ else if (lesson != null && course != null)
         }
     }
 
+    private async Task HandleAIChatTimestampClick(int timestamp)
+    {
+        if (videoPlayerRef != null)
+        {
+            await videoPlayerRef.SeekToAsync(timestamp);
+        }
+    }
+
     private async Task HandleProgressSeek(double timestamp)
     {
         if (videoPlayerRef != null)
@@ -469,14 +485,22 @@ else if (lesson != null && course != null)
         activeTab = tab;
     }
 
-    private void ToggleCurriculumSidebar()
+    private void ToggleLeftSidebar()
     {
-        curriculumSidebarCollapsed = !curriculumSidebarCollapsed;
+        leftSidebarOpen = !leftSidebarOpen;
+        if (leftSidebarOpen) rightSidebarOpen = false; // Close other sidebar
     }
 
-    private void ToggleAISidebar()
+    private void ToggleRightSidebar()
     {
-        aiSidebarCollapsed = !aiSidebarCollapsed;
+        rightSidebarOpen = !rightSidebarOpen;
+        if (rightSidebarOpen) leftSidebarOpen = false; // Close other sidebar
+    }
+
+    private void CloseAllSidebars()
+    {
+        leftSidebarOpen = false;
+        rightSidebarOpen = false;
     }
 
     private List<string> ParseList(string input)

@@ -1,0 +1,16 @@
+@inherits LayoutComponentBase
+
+@*
+   LearningLayout - Minimal layout for video learning experience
+   Part of Student Learning Space v2.2.0
+
+   This layout removes the main site header to provide a
+   distraction-free, LinkedIn Learning-style experience.
+*@
+
+<div class="learning-layout">
+    @Body
+</div>
+
+@* Cookie consent is still needed for compliance *@
+<InsightLearn.WebAssembly.Components.CookieConsentWall />

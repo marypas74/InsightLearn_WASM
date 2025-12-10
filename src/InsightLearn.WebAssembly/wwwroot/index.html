@@ -365,7 +365,7 @@
     <!-- Core Layout CSS (critical) -->
     <link rel="stylesheet" href="css/site.css" />
     <link rel="stylesheet" href="css/layout.css" />
-    <link rel="stylesheet" href="css/header-clean.css" />
+    <link rel="stylesheet" href="css/header-v2.css" />
 
     <!-- ==========================================================================
          DEFERRED CSS - Load asynchronously (below-the-fold)
@@ -714,6 +714,13 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // Scroll to bottom helper for AI Chat Panel (v2.2.0)
+        function scrollToBottom(element) {
+            if (element) {
+                element.scrollTop = element.scrollHeight;
+            }
         }
     </script>
 </body>
