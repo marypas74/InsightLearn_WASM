@@ -2,7 +2,7 @@
   "dashboard": {
     "title": "InsightLearn Platform Monitoring",
     "uid": "insightlearn-main",
-    "version": 1,
+    "version": 5,
     "timezone": "browser",
     "schemaVersion": 27,
     "refresh": "30s",
@@ -15,11 +15,12 @@
         "id": 1,
         "type": "graph",
         "title": "API Request Rate",
+        "description": "Richieste HTTP per secondo per route",
         "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "rate(http_requests_total{job=\"insightlearn-api\"}[5m])",
-            "legendFormat": "{{method}} {{path}}"
+            "expr": "sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_count{job=\"insightlearn-api\"}[5m])) by (http_route)",
+            "legendFormat": "{{http_route}}"
           }
         ],
         "yaxes": [
@@ -31,19 +32,20 @@
         "id": 2,
         "type": "graph",
         "title": "API Response Time",
+        "description": "Latenza API (p95 e p50)",
         "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"insightlearn-api\"}[5m]))",
-            "legendFormat": "p95 {{path}}"
+            "expr": "histogram_quantile(0.95, sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_bucket{job=\"insightlearn-api\"}[5m])) by (le, http_route))",
+            "legendFormat": "p95 {{http_route}}"
           },
           {
-            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"insightlearn-api\"}[5m]))",
-            "legendFormat": "p50 {{path}}"
+            "expr": "histogram_quantile(0.50, sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_bucket{job=\"insightlearn-api\"}[5m])) by (le, http_route))",
+            "legendFormat": "p50 {{http_route}}"
           }
         ],
         "yaxes": [
-          {"format": "ms", "label": "Latency"},
+          {"format": "s", "label": "Latency (seconds)"},
           {"format": "short"}
         ]
       },
@@ -51,6 +53,7 @@
         "id": 3,
         "type": "stat",
         "title": "API Health Status",
+        "description": "Stato salute API (up/down)",
         "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
         "targets": [
           {
@@ -67,8 +70,8 @@
               ]
             },
             "mappings": [
-              {"type": "value", "value": "1", "text": "Healthy"},
-              {"type": "value", "value": "0", "text": "Down"}
+              {"type": "value", "options": {"1": {"text": "Healthy", "color": "green"}}},
+              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
             ]
           }
         }
@@ -77,10 +80,11 @@
         "id": 4,
         "type": "stat",
         "title": "MongoDB Status",
+        "description": "Container MongoDB CPU > 0 indica running",
         "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
         "targets": [
           {
-            "expr": "up{job=\"mongodb\"}",
+            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"mongodb.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
             "instant": true
           }
         ],
@@ -93,8 +97,8 @@
               ]
             },
             "mappings": [
-              {"type": "value", "value": "1", "text": "Connected"},
-              {"type": "value", "value": "0", "text": "Down"}
+              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
+              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
             ]
           }
         }
@@ -103,10 +107,11 @@
         "id": 5,
         "type": "stat",
         "title": "SQL Server Status",
+        "description": "Container SQL Server running",
         "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
         "targets": [
           {
-            "expr": "up{job=\"sqlserver\"}",
+            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"sqlserver.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
             "instant": true
           }
         ],
@@ -119,8 +124,8 @@
               ]
             },
             "mappings": [
-              {"type": "value", "value": "1", "text": "Connected"},
-              {"type": "value", "value": "0", "text": "Down"}
+              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
+              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
             ]
           }
         }
@@ -129,10 +134,11 @@
         "id": 6,
         "type": "stat",
         "title": "Redis Status",
+        "description": "Container Redis running",
         "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
         "targets": [
           {
-            "expr": "up{job=\"redis\"}",
+            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"redis.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
             "instant": true
           }
         ],
@@ -145,8 +151,8 @@
               ]
             },
             "mappings": [
-              {"type": "value", "value": "1", "text": "Connected"},
-              {"type": "value", "value": "0", "text": "Down"}
+              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
+              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
             ]
           }
         }
@@ -154,20 +160,21 @@
       {
         "id": 7,
         "type": "graph",
-        "title": "Ollama Inference Time",
+        "title": "Ollama Container Resources",
+        "description": "CPU e Memory usage del container Ollama",
         "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(ollama_inference_duration_seconds_bucket[5m]))",
-            "legendFormat": "p95 inference time"
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"ollama.*\"}[5m])) * 100",
+            "legendFormat": "CPU %"
           },
           {
-            "expr": "histogram_quantile(0.50, rate(ollama_inference_duration_seconds_bucket[5m]))",
-            "legendFormat": "p50 inference time"
+            "expr": "sum(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"ollama.*\"}) / 1024 / 1024 / 1024",
+            "legendFormat": "Memory GB"
           }
         ],
         "yaxes": [
-          {"format": "s", "label": "Time"},
+          {"format": "short", "label": "CPU % / Memory GB"},
           {"format": "short"}
         ]
       },
@@ -175,15 +182,16 @@
         "id": 8,
         "type": "graph",
         "title": "Pod CPU Usage",
+        "description": "Utilizzo CPU per pod nel namespace insightlearn",
         "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\"}[5m])) by (pod)",
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", container!=\"\", container!=\"POD\"}[5m])) by (pod) * 100",
             "legendFormat": "{{pod}}"
           }
         ],
         "yaxes": [
-          {"format": "percentunit", "label": "CPU"},
+          {"format": "percent", "label": "CPU %"},
           {"format": "short"}
         ]
       },
@@ -191,33 +199,288 @@
         "id": 9,
         "type": "graph",
         "title": "Pod Memory Usage",
+        "description": "Utilizzo memoria per pod nel namespace insightlearn",
         "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "sum(container_memory_working_set_bytes{namespace=\"insightlearn\"}) by (pod)",
+            "expr": "sum(container_memory_working_set_bytes{namespace=\"insightlearn\", container!=\"\", container!=\"POD\"}) by (pod) / 1024 / 1024",
             "legendFormat": "{{pod}}"
           }
         ],
         "yaxes": [
-          {"format": "bytes", "label": "Memory"},
+          {"format": "decmbytes", "label": "Memory (MB)"},
           {"format": "short"}
         ]
       },
       {
         "id": 10,
         "type": "graph",
-        "title": "MongoDB Video Storage Size",
+        "title": "MongoDB Disk I/O",
+        "description": "Disk read/write activity del container MongoDB (bytes/s)",
         "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "mongodb_database_size_bytes{database=\"insightlearn_videos\"}",
-            "legendFormat": "Storage Used"
+            "expr": "sum(rate(container_fs_writes_bytes_total{namespace=\"insightlearn\", pod=~\"mongodb.*\", container=\"mongodb\"}[5m]))",
+            "legendFormat": "Writes (bytes/s)"
+          },
+          {
+            "expr": "sum(rate(container_fs_reads_bytes_total{namespace=\"insightlearn\", pod=~\"mongodb.*\", container=\"mongodb\"}[5m]))",
+            "legendFormat": "Reads (bytes/s)"
           }
         ],
         "yaxes": [
-          {"format": "bytes", "label": "Size"},
+          {"format": "Bps", "label": "Bytes/s"},
           {"format": "short"}
         ]
+      },
+      {
+        "id": 11,
+        "type": "gauge",
+        "title": "Disk Usage - Root (/)",
+        "description": "Spazio disco usato sulla partizione root",
+        "gridPos": {"x": 0, "y": 28, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype=\"xfs\"}) * 100)",
+            "legendFormat": "Root Usage %",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 85, "color": "orange"},
+                {"value": 95, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 12,
+        "type": "gauge",
+        "title": "Disk Usage - Home (/home)",
+        "description": "Spazio disco usato sulla partizione /home",
+        "gridPos": {"x": 8, "y": 28, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/home\",fstype=\"xfs\"}) * 100)",
+            "legendFormat": "Home Usage %",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 85, "color": "orange"},
+                {"value": 95, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 13,
+        "type": "gauge",
+        "title": "Disk Usage - Boot (/boot)",
+        "description": "Spazio disco usato sulla partizione /boot",
+        "gridPos": {"x": 16, "y": 28, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}) * 100)",
+            "legendFormat": "Boot Usage %",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 85, "color": "orange"},
+                {"value": 95, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 14,
+        "type": "timeseries",
+        "title": "Disk Space Available Over Time",
+        "description": "Spazio disco disponibile nel tempo per le partizioni principali",
+        "gridPos": {"x": 0, "y": 34, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"}",
+            "legendFormat": "/ (root)"
+          },
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"}",
+            "legendFormat": "/home"
+          },
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}",
+            "legendFormat": "/boot"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "gradientMode": "opacity"
+            }
+          }
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "calcs": ["lastNotNull", "min", "max"]
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "stat",
+        "title": "Free Space Summary",
+        "description": "Riepilogo spazio libero",
+        "gridPos": {"x": 0, "y": 42, "w": 24, "h": 4},
+        "targets": [
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"}",
+            "legendFormat": "Root (/) Free",
+            "instant": true
+          },
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"}",
+            "legendFormat": "Home (/home) Free",
+            "instant": true
+          },
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}",
+            "legendFormat": "Boot (/boot) Free",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 5000000000, "color": "orange"},
+                {"value": 10000000000, "color": "yellow"},
+                {"value": 20000000000, "color": "green"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center"
+        }
+      },
+      {
+        "id": 16,
+        "type": "stat",
+        "title": "Active Connections",
+        "description": "Connessioni HTTP attive all'API",
+        "gridPos": {"x": 0, "y": 46, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(microsoft_aspnetcore_server_kestrel_kestrel_active_connections{job=\"insightlearn-api\"})",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "blue"},
+                {"value": 50, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 17,
+        "type": "stat",
+        "title": "Total Requests (Health)",
+        "description": "Totale richieste /health endpoint",
+        "gridPos": {"x": 8, "y": 46, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(microsoft_aspnetcore_hosting_http_server_request_duration_count{job=\"insightlearn-api\", http_route=\"/health\"})",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 18,
+        "type": "stat",
+        "title": "Prometheus Targets UP",
+        "description": "Numero di target Prometheus attivi",
+        "gridPos": {"x": 16, "y": 46, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "count(up == 1)",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 5, "color": "yellow"},
+                {"value": 8, "color": "green"}
+              ]
+            }
+          }
+        }
       }
     ]
   },
