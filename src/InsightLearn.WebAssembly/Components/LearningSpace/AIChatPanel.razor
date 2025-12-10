@@ -1,0 +1,136 @@
+@* AI Chat Panel - LinkedIn Learning Style AI Assistant
+   Part of Student Learning Space v2.2.0
+   Contextual AI chatbot for video lessons *@
+
+<div class="ai-chat-panel @(IsLoading ? "loading" : "")">
+    @* Chat Header *@
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <div class="ai-avatar">
+                <i class="fas fa-sparkles"></i>
+            </div>
+            <div class="chat-header-text">
+                <h4>AI Assistant</h4>
+                <span class="status @(IsAvailable ? "online" : "offline")">
+                    @(IsAvailable ? "Online" : "Connecting...")
+                </span>
+            </div>
+        </div>
+        @if (Messages.Count > 0)
+        {
+            <button class="btn-clear-chat" @onclick="ClearConversation" title="Start new conversation">
+                <i class="fas fa-redo"></i>
+            </button>
+        }
+    </div>
+
+    @* Suggested Questions *@
+    @if (Messages.Count == 0 && !IsLoading)
+    {
+        <div class="suggested-questions">
+            <p class="suggestions-label">Ask me about this video:</p>
+            <div class="suggestions-list">
+                @foreach (var question in SuggestedQuestions)
+                {
+                    <button class="suggestion-btn" @onclick="@(() => AskSuggestedQuestion(question))">
+                        <i class="fas fa-lightbulb"></i>
+                        @question
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    @* Chat Messages *@
+    <div class="chat-messages" @ref="messagesContainer">
+        @if (Messages.Count == 0 && !IsLoading)
+        {
+            <div class="empty-chat">
+                <div class="empty-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <p>Ask questions about this lesson and I'll help you understand the content better.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var message in Messages)
+            {
+                <div class="chat-message @(message.IsUser ? "user" : "assistant")">
+                    @if (!message.IsUser)
+                    {
+                        <div class="message-avatar">
+                            <i class="fas fa-sparkles"></i>
+                        </div>
+                    }
+                    <div class="message-content">
+                        <div class="message-text">@((MarkupString)FormatMessage(message.Content))</div>
+                        @if (message.VideoTimestamp.HasValue)
+                        {
+                            <button class="timestamp-link" @onclick="@(() => SeekToTimestamp(message.VideoTimestamp.Value))">
+                                <i class="fas fa-play-circle"></i>
+                                @FormatTimestamp(message.VideoTimestamp.Value)
+                            </button>
+                        }
+                        <span class="message-time">@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                    </div>
+                </div>
+            }
+
+            @if (IsTyping)
+            {
+                <div class="chat-message assistant typing">
+                    <div class="message-avatar">
+                        <i class="fas fa-sparkles"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @* Context Indicator *@
+    @if (CurrentVideoTimestamp > 0)
+    {
+        <div class="context-indicator">
+            <i class="fas fa-clock"></i>
+            <span>Context: Video at @FormatTimestamp(CurrentVideoTimestamp)</span>
+        </div>
+    }
+
+    @* Chat Input *@
+    <div class="chat-input-area">
+        <div class="input-wrapper">
+            <textarea @bind="CurrentMessage"
+                      @bind:event="oninput"
+                      @onkeydown="HandleKeyDown"
+                      placeholder="Ask a question about this video..."
+                      rows="1"
+                      maxlength="2000"
+                      disabled="@(!IsAvailable || IsTyping)"></textarea>
+            <button class="btn-send"
+                    @onclick="SendMessage"
+                    disabled="@(string.IsNullOrWhiteSpace(CurrentMessage) || !IsAvailable || IsTyping)"
+                    title="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+        <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+    </div>
+
+    @* Error Message *@
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="chat-error">
+            <i class="fas fa-exclamation-circle"></i>
+            @ErrorMessage
+            <button @onclick="DismissError"><i class="fas fa-times"></i></button>
+        </div>
+    }
+</div>

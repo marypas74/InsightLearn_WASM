@@ -222,18 +222,27 @@ public class ApiClient : IApiClient
                 return new ApiResponse<T> { Success = true };
             }
 
+            // CRITICAL FIX v11: Two-phase deserialization with proper fallback
+            // Phase 1: Try to deserialize as ApiResponse<T> (backend might return wrapped response)
             try
             {
-                // Try to deserialize as ApiResponse<T> first
                 var apiResponse = JsonSerializer.Deserialize<ApiResponse<T>>(content, _jsonOptions);
-                // CRITICAL FIX: Only return apiResponse if it actually has Success=true OR Data is not null
-                // This prevents returning empty ApiResponse when backend returns T directly
+                // Only return if it looks like a valid ApiResponse (has Success=true OR Data)
                 if (apiResponse != null && (apiResponse.Success || apiResponse.Data != null))
                 {
                     return apiResponse;
                 }
+            }
+            catch (JsonException)
+            {
+                // First attempt failed (backend returns raw T, not ApiResponse<T>)
+                // Continue to Phase 2
+                _logger.LogDebug("Response is not ApiResponse<T>, trying raw T deserialization");
+            }
 
-                // If that fails, try to deserialize directly as T
+            // Phase 2: Try to deserialize directly as T (backend returns raw array/object)
+            try
+            {
                 var data = JsonSerializer.Deserialize<T>(content, _jsonOptions);
                 return new ApiResponse<T>
                 {
@@ -243,7 +252,7 @@ public class ApiClient : IApiClient
             }
             catch (JsonException ex)
             {
-                _logger.LogWarning(ex, "Failed to deserialize response");
+                _logger.LogWarning(ex, "Failed to deserialize response as both ApiResponse<T> and T");
                 return new ApiResponse<T>
                 {
                     Success = false,
