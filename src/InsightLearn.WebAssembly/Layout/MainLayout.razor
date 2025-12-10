@@ -36,6 +36,12 @@
 
             <!-- Actions Section -->
             <div class="header-actions-section">
+                <!-- Categories Dropdown Backdrop (closes menu when clicked outside) -->
+                @if (isCategoriesOpen)
+                {
+                    <div class="categories-backdrop" @onclick="CloseCategories"></div>
+                }
+
                 <!-- Categories Dropdown -->
                 <div class="nav-dropdown categories-dropdown">
                     <button class="dropdown-trigger categories-trigger"
@@ -43,91 +49,124 @@
                             aria-expanded="@isCategoriesOpen"
                             aria-haspopup="true"
                             @onclick="ToggleCategories"
+                            @onclick:stopPropagation="true"
                             aria-label="Browse course categories">
                         <i class="fas fa-th-large" aria-hidden="true"></i>
                         <span class="desktop-only">Categories</span>
                         <i class="fas fa-chevron-down dropdown-arrow @(isCategoriesOpen ? "rotated" : "")" aria-hidden="true"></i>
                     </button>
-                    <div class="dropdown-menu categories-menu categories-menu-expanded @(isCategoriesOpen ? "show" : "")" role="menu">
-                        <div class="categories-grid categories-grid-expanded">
+                    <div class="dropdown-menu categories-menu @(isCategoriesOpen ? "show" : "")" role="menu">
+                        <div class="categories-grid">
                             @* Row 1: Tech & Development *@
-                            <a href="/categories/development" class="category-item">
-                                <i class="fas fa-code" style="color: #3b82f6;"></i>
-                                <span>Development</span>
+                            <a href="/categories/development" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                                    <i class="fas fa-code"></i>
+                                </span>
+                                <span class="category-label">Development</span>
                             </a>
-                            <a href="/categories/it-software" class="category-item">
-                                <i class="fas fa-laptop-code" style="color: #6366f1;"></i>
-                                <span>IT & Software</span>
+                            <a href="/categories/it-software" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                                    <i class="fas fa-laptop-code"></i>
+                                </span>
+                                <span class="category-label">IT & Software</span>
                             </a>
-                            <a href="/categories/data-science" class="category-item">
-                                <i class="fas fa-database" style="color: #8b5cf6;"></i>
-                                <span>Data Science</span>
+                            <a href="/categories/data-science" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                    <i class="fas fa-database"></i>
+                                </span>
+                                <span class="category-label">Data Science</span>
                             </a>
-                            <a href="/categories/cloud-devops" class="category-item">
-                                <i class="fas fa-cloud" style="color: #0ea5e9;"></i>
-                                <span>Cloud & DevOps</span>
+                            <a href="/categories/cloud-devops" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
+                                    <i class="fas fa-cloud"></i>
+                                </span>
+                                <span class="category-label">Cloud & DevOps</span>
                             </a>
 
                             @* Row 2: Business & Finance *@
-                            <a href="/categories/business" class="category-item">
-                                <i class="fas fa-briefcase" style="color: #f59e0b;"></i>
-                                <span>Business</span>
+                            <a href="/categories/business" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                    <i class="fas fa-briefcase"></i>
+                                </span>
+                                <span class="category-label">Business</span>
                             </a>
-                            <a href="/categories/finance" class="category-item">
-                                <i class="fas fa-calculator" style="color: #10b981;"></i>
-                                <span>Finance</span>
+                            <a href="/categories/finance" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                    <i class="fas fa-calculator"></i>
+                                </span>
+                                <span class="category-label">Finance</span>
                             </a>
-                            <a href="/categories/marketing" class="category-item">
-                                <i class="fas fa-bullhorn" style="color: #ef4444;"></i>
-                                <span>Marketing</span>
+                            <a href="/categories/marketing" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                                    <i class="fas fa-bullhorn"></i>
+                                </span>
+                                <span class="category-label">Marketing</span>
                             </a>
-                            <a href="/categories/entrepreneurship" class="category-item">
-                                <i class="fas fa-rocket" style="color: #f97316;"></i>
-                                <span>Entrepreneurship</span>
+                            <a href="/categories/entrepreneurship" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+                                    <i class="fas fa-rocket"></i>
+                                </span>
+                                <span class="category-label">Entrepreneurship</span>
                             </a>
 
                             @* Row 3: Creative *@
-                            <a href="/categories/design" class="category-item">
-                                <i class="fas fa-palette" style="color: #ec4899;"></i>
-                                <span>Design</span>
+                            <a href="/categories/design" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
+                                    <i class="fas fa-palette"></i>
+                                </span>
+                                <span class="category-label">Design</span>
                             </a>
-                            <a href="/categories/photography" class="category-item">
-                                <i class="fas fa-camera" style="color: #14b8a6;"></i>
-                                <span>Photography</span>
+                            <a href="/categories/photography" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                                    <i class="fas fa-camera"></i>
+                                </span>
+                                <span class="category-label">Photography</span>
                             </a>
-                            <a href="/categories/video" class="category-item">
-                                <i class="fas fa-video" style="color: #a855f7;"></i>
-                                <span>Video & Film</span>
+                            <a href="/categories/video" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);">
+                                    <i class="fas fa-video"></i>
+                                </span>
+                                <span class="category-label">Video & Film</span>
                             </a>
-                            <a href="/categories/music" class="category-item">
-                                <i class="fas fa-music" style="color: #06b6d4;"></i>
-                                <span>Music</span>
+                            <a href="/categories/music" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                                    <i class="fas fa-music"></i>
+                                </span>
+                                <span class="category-label">Music</span>
                             </a>
 
                             @* Row 4: Personal & Lifestyle *@
-                            <a href="/categories/personal-development" class="category-item">
-                                <i class="fas fa-brain" style="color: #8b5cf6;"></i>
-                                <span>Personal Growth</span>
+                            <a href="/categories/personal-development" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                    <i class="fas fa-brain"></i>
+                                </span>
+                                <span class="category-label">Personal Growth</span>
                             </a>
-                            <a href="/categories/health-fitness" class="category-item">
-                                <i class="fas fa-heartbeat" style="color: #ef4444;"></i>
-                                <span>Health & Fitness</span>
+                            <a href="/categories/health-fitness" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                                    <i class="fas fa-heartbeat"></i>
+                                </span>
+                                <span class="category-label">Health & Fitness</span>
                             </a>
-                            <a href="/categories/languages" class="category-item">
-                                <i class="fas fa-language" style="color: #3b82f6;"></i>
-                                <span>Languages</span>
+                            <a href="/categories/languages" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                                    <i class="fas fa-language"></i>
+                                </span>
+                                <span class="category-label">Languages</span>
                             </a>
-                            <a href="/categories/academics" class="category-item">
-                                <i class="fas fa-graduation-cap" style="color: #f59e0b;"></i>
-                                <span>Academics</span>
+                            <a href="/categories/academics" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </span>
+                                <span class="category-label">Academics</span>
                             </a>
                         </div>
                         <div class="categories-footer">
-                            <a href="/categories" class="view-all-link">
+                            <a href="/categories" class="view-all-link" @onclick="CloseCategories">
                                 <i class="fas fa-th"></i>
                                 <span>View All Categories</span>
                             </a>
-                            <a href="/courses" class="browse-courses-link">
+                            <a href="/courses" class="browse-courses-link" @onclick="CloseCategories">
                                 <i class="fas fa-book-open"></i>
                                 <span>Browse All Courses</span>
                             </a>
@@ -559,6 +598,12 @@
     private void ToggleCategories()
     {
         isCategoriesOpen = !isCategoriesOpen;
+    }
+
+    // Close categories menu (v2.1.0-dev UX improvement)
+    private void CloseCategories()
+    {
+        isCategoriesOpen = false;
     }
 
     private void HandleSearch()
