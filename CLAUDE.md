@@ -4012,8 +4012,78 @@ Added specific location blocks in `docker/wasm-nginx.conf`:
 
 ⚠️ Blazor WebAssembly renders client-side, causing SEO challenges:
 - Search engines see empty HTML initially
-- **Solution**: Pre-rendering configuration (see docs)
+- **Solution**: SEO Pre-rendering via nginx crawler detection (implemented 2025-12-13)
 - **Alternative**: Dynamic sitemap via backend API
+
+### SEO Pre-rendering System (Implemented 2025-12-13)
+
+**Status**: ✅ **ACTIVE** - Crawler detection serving static HTML snapshots
+**Purpose**: Serve pre-rendered HTML to search engine crawlers for proper indexing
+
+**How It Works**:
+1. Nginx detects crawler user-agents (Googlebot, Bingbot, etc.)
+2. For detected crawlers, serves static HTML from `/seo-snapshots/` directory
+3. Regular users get the normal Blazor WASM SPA experience
+
+**Nginx Crawler Detection** (`docker/wasm-nginx.conf`):
+```nginx
+# Crawler detection map (25+ user agents)
+map $http_user_agent $is_crawler {
+    default                                 0;
+    ~*googlebot                             1;
+    ~*bingbot                               1;
+    ~*yandexbot                             1;
+    ~*slurp                                 1;
+    ~*duckduckbot                           1;
+    ~*baiduspider                           1;
+    ~*facebookexternalhit                   1;
+    ~*twitterbot                            1;
+    ~*linkedinbot                           1;
+    # ... 25+ more agents
+}
+
+# Homepage - serve snapshot to crawlers
+location = / {
+    if ($is_crawler) {
+        rewrite ^ /seo-snapshots/index.html break;
+    }
+    try_files $uri /index.html;
+}
+```
+
+**SEO Snapshot Files**:
+
+| File | Purpose | JSON-LD Schemas |
+|------|---------|-----------------|
+| `wwwroot/seo-snapshots/index.html` | Homepage (11KB) | Organization, WebSite, ItemList, WebPage |
+| `wwwroot/seo-snapshots/courses.html` | Courses page (9KB) | CollectionPage, Course, BreadcrumbList |
+| `wwwroot/seo-snapshots/about.html` | About page (6KB) | AboutPage, Organization, BreadcrumbList |
+| `wwwroot/seo-snapshots/faq.html` | FAQ page (10KB) | FAQPage (9 Q&A items), BreadcrumbList |
+| `wwwroot/seo-snapshots/contact.html` | Contact page (6KB) | ContactPage, ContactPoint, BreadcrumbList |
+
+**Adding New Snapshots**:
+1. Create HTML file in `src/InsightLearn.WebAssembly/wwwroot/seo-snapshots/`
+2. Include proper `<title>`, `<meta>` tags, and JSON-LD schemas
+3. Add nginx location block in `docker/wasm-nginx.conf`:
+   ```nginx
+   location = /new-page {
+       if ($is_crawler) {
+           rewrite ^ /seo-snapshots/new-page.html break;
+       }
+       try_files $uri /index.html;
+   }
+   ```
+4. Rebuild and deploy WASM image
+5. Submit URL to IndexNow
+
+**Testing Crawler Detection**:
+```bash
+# Test as Googlebot
+curl -A "Googlebot/2.1" https://wasm.insightlearn.cloud/ | head -20
+
+# Test as regular user
+curl https://wasm.insightlearn.cloud/ | head -20
+```
 
 ### Documentation
 
