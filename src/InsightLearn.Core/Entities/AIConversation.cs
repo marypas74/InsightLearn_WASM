@@ -22,8 +22,11 @@ namespace InsightLearn.Core.Entities
         [Required]
         public Guid SessionId { get; set; }
 
-        [Required]
-        public Guid UserId { get; set; }
+        /// <summary>
+        /// User ID if authenticated, null for anonymous users (free lessons).
+        /// Anonymous users are tracked by SessionId instead.
+        /// </summary>
+        public Guid? UserId { get; set; }
 
         /// <summary>
         /// Optional lesson context for the conversation.

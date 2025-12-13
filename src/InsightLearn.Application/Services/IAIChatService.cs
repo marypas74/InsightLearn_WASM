@@ -18,8 +18,9 @@ namespace InsightLearn.Application.Services
         /// Send a message to the AI chatbot and receive a response.
         /// Creates a new session if SessionId is null.
         /// Enriches context with transcript data if LessonId is provided.
+        /// For anonymous users (free lessons), userId should be null.
         /// </summary>
-        Task<AIChatResponseDto> SendMessageAsync(Guid userId, AIChatMessageDto messageDto, CancellationToken ct = default);
+        Task<AIChatResponseDto> SendMessageAsync(Guid? userId, AIChatMessageDto messageDto, CancellationToken ct = default);
 
         /// <summary>
         /// Get chat history for a session.
@@ -28,13 +29,15 @@ namespace InsightLearn.Application.Services
 
         /// <summary>
         /// End a chat session (mark as inactive).
+        /// For anonymous sessions, userId should be null.
         /// </summary>
-        Task EndSessionAsync(Guid userId, Guid sessionId, CancellationToken ct = default);
+        Task EndSessionAsync(Guid? userId, Guid sessionId, CancellationToken ct = default);
 
         /// <summary>
         /// Get all sessions for a user, optionally filtered by lesson.
+        /// For anonymous users, returns empty list (no persistent session tracking).
         /// </summary>
-        Task<List<AISessionSummaryDto>> GetSessionsAsync(Guid userId, Guid? lessonId = null, int limit = 50, CancellationToken ct = default);
+        Task<List<AISessionSummaryDto>> GetSessionsAsync(Guid? userId, Guid? lessonId = null, int limit = 50, CancellationToken ct = default);
 
         /// <summary>
         /// Check if AI chat service is available (Ollama running).

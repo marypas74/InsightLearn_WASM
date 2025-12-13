@@ -34,10 +34,10 @@ namespace InsightLearn.Application.Services
             _transcriptService = transcriptService;
         }
 
-        public async Task<AIChatResponseDto> SendMessageAsync(Guid userId, AIChatMessageDto messageDto, CancellationToken ct = default)
+        public async Task<AIChatResponseDto> SendMessageAsync(Guid? userId, AIChatMessageDto messageDto, CancellationToken ct = default)
         {
             _logger.LogInformation("[AI_CHAT] Processing message from user {UserId}, SessionId: {SessionId}, LessonId: {LessonId}",
-                userId, messageDto.SessionId, messageDto.LessonId);
+                userId.HasValue ? userId.Value.ToString() : "anonymous", messageDto.SessionId, messageDto.LessonId);
 
             // 1. Get or create session
             Core.Entities.AIConversation conversation;
@@ -51,15 +51,19 @@ namespace InsightLearn.Application.Services
                     conversation = await _conversationRepository.CreateConversationAsync(
                         userId, messageDto.LessonId, messageDto.VideoTimestamp, ct);
                 }
-                else if (existing.UserId != userId)
+                // Allow access if:
+                // - Both are null (anonymous user accessing anonymous conversation)
+                // - Both have the same non-null value (authenticated user accessing own conversation)
+                // - Conversation has null UserId (anonymous session, anyone can continue it)
+                else if (!existing.UserId.HasValue || existing.UserId == userId)
+                {
+                    conversation = existing;
+                }
+                else
                 {
                     _logger.LogWarning("[AI_CHAT] User {UserId} tried to access session {SessionId} owned by {OwnerId}",
                         userId, messageDto.SessionId, existing.UserId);
                     throw new UnauthorizedAccessException("You do not have access to this conversation");
-                }
-                else
-                {
-                    conversation = existing;
                 }
             }
             else
@@ -118,9 +122,10 @@ namespace InsightLearn.Application.Services
             return await _conversationRepository.GetConversationHistoryAsync(sessionId, limit, ct);
         }
 
-        public async Task EndSessionAsync(Guid userId, Guid sessionId, CancellationToken ct = default)
+        public async Task EndSessionAsync(Guid? userId, Guid sessionId, CancellationToken ct = default)
         {
-            _logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId, userId);
+            _logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId,
+                userId.HasValue ? userId.Value.ToString() : "anonymous");
 
             // Verify ownership
             var conversation = await _conversationRepository.GetConversationMetadataAsync(sessionId, ct);
@@ -129,7 +134,10 @@ namespace InsightLearn.Application.Services
                 throw new KeyNotFoundException($"Session {sessionId} not found");
             }
 
-            if (conversation.UserId != userId)
+            // Allow access if:
+            // - Conversation has null UserId (anonymous session)
+            // - UserId matches the authenticated user
+            if (conversation.UserId.HasValue && conversation.UserId != userId)
             {
                 throw new UnauthorizedAccessException("You do not have access to this conversation");
             }
@@ -137,9 +145,16 @@ namespace InsightLearn.Application.Services
             await _conversationRepository.EndConversationAsync(sessionId, ct);
         }
 
-        public async Task<List<AISessionSummaryDto>> GetSessionsAsync(Guid userId, Guid? lessonId = null, int limit = 50, CancellationToken ct = default)
+        public async Task<List<AISessionSummaryDto>> GetSessionsAsync(Guid? userId, Guid? lessonId = null, int limit = 50, CancellationToken ct = default)
         {
-            _logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}", userId, lessonId);
+            _logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}",
+                userId.HasValue ? userId.Value.ToString() : "anonymous", lessonId);
+
+            // Anonymous users don't have persistent session tracking
+            if (!userId.HasValue)
+            {
+                return new List<AISessionSummaryDto>();
+            }
 
             List<Core.Entities.AIConversation> conversations;
 
@@ -147,11 +162,11 @@ namespace InsightLearn.Application.Services
             {
                 // Get user's conversations for specific lesson
                 var allLessonConversations = await _conversationRepository.GetLessonConversationsAsync(lessonId.Value, limit * 2, ct);
-                conversations = allLessonConversations.Where(c => c.UserId == userId).Take(limit).ToList();
+                conversations = allLessonConversations.Where(c => c.UserId == userId.Value).Take(limit).ToList();
             }
             else
             {
-                conversations = await _conversationRepository.GetUserConversationsAsync(userId, limit, ct);
+                conversations = await _conversationRepository.GetUserConversationsAsync(userId.Value, limit, ct);
             }
 
             return conversations.Select(c => new AISessionSummaryDto

@@ -84,9 +84,10 @@ namespace InsightLearn.Infrastructure.Repositories
 
         public async Task<AIConversation?> GetConversationMetadataAsync(Guid sessionId, CancellationToken ct = default)
         {
+            // Note: Don't include navigation properties - anonymous users may have UserId that doesn't exist in Users table
+            // This prevents EF Core issues with lazy loading and navigation properties
             return await _context.AIConversations
-                .Include(c => c.User)
-                .Include(c => c.Lesson)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.SessionId == sessionId, ct);
         }
 
@@ -108,14 +109,14 @@ namespace InsightLearn.Infrastructure.Repositories
                 .ToListAsync(ct);
         }
 
-        public async Task<AIConversation> CreateConversationAsync(Guid userId, Guid? lessonId = null, int? videoTimestamp = null, CancellationToken ct = default)
+        public async Task<AIConversation> CreateConversationAsync(Guid? userId, Guid? lessonId = null, int? videoTimestamp = null, CancellationToken ct = default)
         {
             // 1. Create MongoDB document for message history
             var sessionId = Guid.NewGuid();
             var mongoDoc = new BsonDocument
             {
                 { "sessionId", sessionId.ToString() },
-                { "userId", userId.ToString() },
+                { "userId", userId.HasValue ? userId.Value.ToString() : "anonymous" },
                 { "messages", new BsonArray() },
                 { "createdAt", DateTime.UtcNow }
             };
@@ -150,8 +151,11 @@ namespace InsightLearn.Infrastructure.Repositories
 
         public async Task AddMessageAsync(Guid sessionId, string role, string content, int? videoTimestamp = null, CancellationToken ct = default)
         {
-            // 1. Get conversation metadata
-            var conversation = await GetConversationMetadataAsync(sessionId, ct);
+            // 1. Get conversation metadata WITH tracking (needed for update)
+            // Don't use AsNoTracking() here because we need to modify the entity
+            var conversation = await _context.AIConversations
+                .FirstOrDefaultAsync(c => c.SessionId == sessionId, ct);
+
             if (conversation == null)
                 throw new KeyNotFoundException($"Conversation {sessionId} not found");
 
@@ -181,7 +185,7 @@ namespace InsightLearn.Infrastructure.Repositories
             if (result.ModifiedCount == 0)
                 throw new InvalidOperationException($"Failed to add message to conversation {sessionId}");
 
-            // 3. Update conversation metadata in SQL Server
+            // 3. Update conversation metadata in SQL Server (entity is tracked, changes will be saved)
             conversation.MessageCount++;
             conversation.LastMessageAt = DateTime.UtcNow;
 
@@ -193,7 +197,10 @@ namespace InsightLearn.Infrastructure.Repositories
 
         public async Task EndConversationAsync(Guid sessionId, CancellationToken ct = default)
         {
-            var conversation = await GetConversationMetadataAsync(sessionId, ct);
+            // Use tracked query (not AsNoTracking) because we need to modify the entity
+            var conversation = await _context.AIConversations
+                .FirstOrDefaultAsync(c => c.SessionId == sessionId, ct);
+
             if (conversation == null)
                 throw new KeyNotFoundException($"Conversation {sessionId} not found");
 

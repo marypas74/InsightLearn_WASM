@@ -5964,27 +5964,20 @@ app.MapPost("/api/ai-chat/message", async (
 {
     try
     {
-        // Try to get authenticated user ID, fallback to anonymous GUID based on sessionId
+        // Try to get authenticated user ID, null for anonymous users (free lessons)
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        Guid userId;
+        Guid? userId = null;
 
         if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
         {
             userId = parsedUserId;
             logger.LogInformation("[AI_CHAT] Processing message from authenticated user {UserId}", userId);
         }
-        else if (messageDto.SessionId.HasValue)
-        {
-            // Anonymous user - use sessionId as deterministic userId for tracking
-            // This ensures conversation history is maintained for the session
-            userId = messageDto.SessionId.Value;
-            logger.LogInformation("[AI_CHAT] Processing message from anonymous session {SessionId}", messageDto.SessionId);
-        }
         else
         {
-            // No auth and no sessionId - generate new session for anonymous user
-            userId = Guid.NewGuid();
-            logger.LogInformation("[AI_CHAT] Processing message from new anonymous user {UserId}", userId);
+            // Anonymous user - pass null as userId
+            // Conversation will be tracked by SessionId only
+            logger.LogInformation("[AI_CHAT] Processing message from anonymous user, SessionId: {SessionId}", messageDto.SessionId);
         }
 
         var response = await chatService.SendMessageAsync(userId, messageDto);
@@ -6055,13 +6048,16 @@ app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
 {
     try
     {
-        // Get userId from claim or use sessionId for anonymous users
+        // Get userId from claim, null for anonymous users
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        Guid userId = !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId)
-            ? parsedUserId
-            : sessionId; // Anonymous: sessionId serves as userId
+        Guid? userId = null;
+        if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+        }
 
-        logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId, userId);
+        logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId,
+            userId.HasValue ? userId.Value.ToString() : "anonymous");
         await chatService.EndSessionAsync(userId, sessionId);
 
         return Results.Ok(new { message = "Session ended successfully", sessionId });
@@ -6095,26 +6091,18 @@ app.MapGet("/api/ai-chat/sessions", async (
 {
     try
     {
-        // Get userId from claim or use sessionId for anonymous users
+        // Get userId from claim, null for anonymous users
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        Guid userId;
+        Guid? userId = null;
 
         if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
         {
             userId = parsedUserId;
         }
-        else if (sessionId.HasValue)
-        {
-            // Anonymous: use sessionId as userId
-            userId = sessionId.Value;
-        }
-        else
-        {
-            // No authentication and no sessionId provided
-            return Results.BadRequest("SessionId required for anonymous access");
-        }
+        // Anonymous users will get an empty list (no persistent session tracking)
 
-        logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}", userId, lessonId);
+        logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}",
+            userId.HasValue ? userId.Value.ToString() : "anonymous", lessonId);
         var sessions = await chatService.GetSessionsAsync(userId, lessonId, limit ?? 50);
 
         return Results.Ok(sessions);

@@ -1,41 +1,500 @@
 @page "/contact"
+@page "/contact-us"
+@page "/support-contact"
+@using InsightLearn.WebAssembly.Components.SEO
 
-<PageTitle>Contact Us - InsightLearn</PageTitle>
+<SeoMetaTags
+    Title="Contact Us - Get Support | InsightLearn"
+    Description="Contact InsightLearn support team. Get help with courses, payments, technical issues, or business inquiries. We typically respond within 24 hours."
+    Keywords="contact InsightLearn, support, help, customer service, e-learning support, course help, technical support"
+    PageType="ContactPage"
+    Author="InsightLearn Team" />
 
-<div class="container py-5">
-    <div class="row">
-        <div class="col-md-6">
-            <h1>Contact Us</h1>
-            <p class="lead">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+<BreadcrumbSchema Items="@breadcrumbs" />
 
-            <form>
-                <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
-                    <input type="text" class="form-control" id="name" required />
-                </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" required />
-                </div>
-                <div class="mb-3">
-                    <label for="message" class="form-label">Message</label>
-                    <textarea class="form-control" id="message" rows="5" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary">Send Message</button>
-            </form>
+<div class="contact-page">
+    <!-- Hero Section -->
+    <section class="contact-hero">
+        <div class="container">
+            <h1>Get in Touch</h1>
+            <p class="hero-subtitle">
+                We're here to help! Our support team typically responds within 24 hours.
+            </p>
         </div>
+    </section>
 
-        <div class="col-md-6">
-            <h3>Contact Information</h3>
-            <div class="mt-4">
-                <p><i class="bi bi-envelope"></i> <strong>Email:</strong> support@insightlearn.cloud</p>
-                <p><i class="bi bi-telephone"></i> <strong>Phone:</strong> +1 (555) 123-4567</p>
-                <p><i class="bi bi-geo-alt"></i> <strong>Address:</strong> 123 Learning Street, Education City, EC 12345</p>
+    <!-- Contact Methods -->
+    <section class="contact-methods">
+        <div class="container">
+            <div class="methods-grid">
+                <div class="method-card">
+                    <div class="method-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email Support</h3>
+                    <p>For general inquiries and support</p>
+                    <a href="mailto:support@insightlearn.cloud" class="method-link">
+                        support@insightlearn.cloud
+                    </a>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Live Chat</h3>
+                    <p>Chat with our AI assistant 24/7</p>
+                    <button class="btn btn-primary" onclick="openChatWidget()">
+                        Start Chat
+                    </button>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h3>Help Center</h3>
+                    <p>Browse our FAQ and guides</p>
+                    <a href="/faq" class="method-link">
+                        Visit FAQ
+                    </a>
+                </div>
             </div>
-
-            <h3 class="mt-4">Business Hours</h3>
-            <p>Monday - Friday: 9:00 AM - 6:00 PM EST</p>
-            <p>Saturday - Sunday: Closed</p>
         </div>
-    </div>
+    </section>
+
+    <!-- Contact Form -->
+    <section class="contact-form-section">
+        <div class="container">
+            <div class="form-grid">
+                <div class="form-content">
+                    <h2>Send Us a Message</h2>
+                    <p>Fill out the form below and we'll get back to you as soon as possible.</p>
+
+                    <EditForm Model="@contactModel" OnValidSubmit="HandleSubmit" class="contact-form">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <InputText id="firstName" @bind-Value="contactModel.FirstName" class="form-control" />
+                                <ValidationMessage For="@(() => contactModel.FirstName)" />
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <InputText id="lastName" @bind-Value="contactModel.LastName" class="form-control" />
+                                <ValidationMessage For="@(() => contactModel.LastName)" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <InputText id="email" @bind-Value="contactModel.Email" type="email" class="form-control" />
+                            <ValidationMessage For="@(() => contactModel.Email)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subject">Subject *</label>
+                            <InputSelect id="subject" @bind-Value="contactModel.Subject" class="form-control">
+                                <option value="">Select a topic...</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="billing">Billing & Payments</option>
+                                <option value="course">Course Related</option>
+                                <option value="instructor">Instructor Application</option>
+                                <option value="enterprise">Enterprise / Business</option>
+                                <option value="partnership">Partnership Opportunity</option>
+                                <option value="feedback">Feedback & Suggestions</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => contactModel.Subject)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="message">Message *</label>
+                            <InputTextArea id="message" @bind-Value="contactModel.Message" class="form-control" rows="5" />
+                            <ValidationMessage For="@(() => contactModel.Message)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner"></span>
+                                <span>Sending...</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Send Message</span>
+                            }
+                        </button>
+
+                        @if (showSuccess)
+                        {
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                Thank you for your message! We'll get back to you within 24 hours.
+                            </div>
+                        }
+                    </EditForm>
+                </div>
+
+                <div class="contact-info">
+                    <div class="info-card">
+                        <h3>Contact Information</h3>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email</strong>
+                                <p>support@insightlearn.cloud</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <strong>Response Time</strong>
+                                <p>Within 24 hours (business days)</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-globe"></i>
+                            <div>
+                                <strong>Support Languages</strong>
+                                <p>English, Italian</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Quick Links</h3>
+                        <ul class="quick-links">
+                            <li><a href="/faq"><i class="fas fa-question-circle"></i> FAQ & Help Center</a></li>
+                            <li><a href="/about"><i class="fas fa-info-circle"></i> About InsightLearn</a></li>
+                            <li><a href="/courses"><i class="fas fa-graduation-cap"></i> Browse Courses</a></li>
+                            <li><a href="/instructors"><i class="fas fa-chalkboard-teacher"></i> Become an Instructor</a></li>
+                            <li><a href="/enterprise"><i class="fas fa-building"></i> Enterprise Solutions</a></li>
+                            <li><a href="/privacy-policy"><i class="fas fa-shield-alt"></i> Privacy Policy</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+
+<!-- ContactPage Schema JSON-LD -->
+<HeadContent>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "ContactPage",
+        "name": "Contact InsightLearn",
+        "description": "Contact InsightLearn support team for help with courses, payments, or technical issues",
+        "url": "https://wasm.insightlearn.cloud/contact",
+        "mainEntity": {
+            "@@type": "Organization",
+            "name": "InsightLearn",
+            "email": "support@insightlearn.cloud",
+            "url": "https://wasm.insightlearn.cloud",
+            "contactPoint": {
+                "@@type": "ContactPoint",
+                "contactType": "customer support",
+                "email": "support@insightlearn.cloud",
+                "availableLanguage": ["English", "Italian"],
+                "areaServed": "Worldwide"
+            }
+        }
+    }
+    </script>
+</HeadContent>
+
+<style>
+    .contact-page {
+        min-height: 100vh;
+    }
+
+    .contact-hero {
+        background: linear-gradient(135deg, var(--primary-color, #a435f0) 0%, #6b21a8 100%);
+        color: white;
+        padding: 80px 0 60px;
+        text-align: center;
+    }
+
+    .contact-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .contact-methods {
+        padding: 60px 0;
+        background: var(--gray-50, #f7f9fa);
+    }
+
+    .methods-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+    }
+
+    .method-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .method-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .method-icon {
+        width: 70px;
+        height: 70px;
+        background: var(--primary-light, #f7ecff);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .method-icon i {
+        font-size: 1.75rem;
+        color: var(--primary-color, #a435f0);
+    }
+
+    .method-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--gray-900);
+    }
+
+    .method-card p {
+        color: var(--gray-600);
+        margin-bottom: 1rem;
+    }
+
+    .method-link {
+        color: var(--primary-color, #a435f0);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .method-link:hover {
+        text-decoration: underline;
+    }
+
+    .contact-form-section {
+        padding: 80px 0;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 4rem;
+        align-items: start;
+    }
+
+    .form-content h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--gray-900);
+    }
+
+    .form-content > p {
+        color: var(--gray-600);
+        margin-bottom: 2rem;
+    }
+
+    .contact-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color, #a435f0);
+    }
+
+    .btn-block {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
+    .alert-success {
+        margin-top: 1.5rem;
+        padding: 1rem 1.5rem;
+        background: #d4edda;
+        border-radius: 8px;
+        color: #155724;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .info-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--gray-900);
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--primary-color, #a435f0);
+    }
+
+    .info-item {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .info-item i {
+        font-size: 1.25rem;
+        color: var(--primary-color, #a435f0);
+        width: 24px;
+        flex-shrink: 0;
+    }
+
+    .info-item strong {
+        display: block;
+        color: var(--gray-900);
+        margin-bottom: 0.25rem;
+    }
+
+    .info-item p {
+        color: var(--gray-600);
+        margin: 0;
+    }
+
+    .quick-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .quick-links li {
+        margin-bottom: 0.75rem;
+    }
+
+    .quick-links a {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--gray-700);
+        text-decoration: none;
+        padding: 0.5rem 0;
+        transition: color 0.3s;
+    }
+
+    .quick-links a:hover {
+        color: var(--primary-color, #a435f0);
+    }
+
+    .quick-links i {
+        width: 20px;
+        color: var(--primary-color, #a435f0);
+    }
+
+    @@media (max-width: 992px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private ContactModel contactModel = new();
+    private bool isSubmitting = false;
+    private bool showSuccess = false;
+
+    private List<BreadcrumbSchema.BreadcrumbItem> breadcrumbs = new()
+    {
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" },
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Contact", Url = "/contact" }
+    };
+
+    private async Task HandleSubmit()
+    {
+        isSubmitting = true;
+        StateHasChanged();
+
+        // Simulate API call
+        await Task.Delay(1500);
+
+        isSubmitting = false;
+        showSuccess = true;
+        contactModel = new ContactModel();
+        StateHasChanged();
+    }
+
+    private class ContactModel
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Subject { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+}

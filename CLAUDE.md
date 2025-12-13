@@ -13,10 +13,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
 **Latest Release**: 🎛️ Admin Console v2.1.0-dev COMPLETE (2025-11-26) - 20+ admin pages with CreateCourse wizard & EditCourse editor
-**SEO Status**: ✅ **OPTIMIZED** - Score 7.9/10 (up from 4.5/10) - sitemap.xml + robots.txt + IndexNow deployed (2025-12-07)
+**SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
+**Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
 **Schema.org**: ✅ **5 JSON-LD schemas** - Organization, WebSite, EducationalOrganization, FAQPage, Course
 **SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
+**SEO Strategy**: [SEO-COMPETITIVE-ANALYSIS-2025-12-12.md](docs/SEO-COMPETITIVE-ANALYSIS-2025-12-12.md) - Piano 12 mesi per Top 10
 
 ✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.1.0-dev`.
 
@@ -1124,6 +1126,66 @@ Professional student learning environment with AI-powered features inspired by L
       - Su Linux: installare pacchetto `ffmpeg`
     - **Status**: ✅ UX migliorata (problema è limite browser, non risolvibile lato app)
     - **Deployment Date**: 2025-12-02
+
+14. **📹 Video Streaming 502 Gateway Timeout via WASM Frontend** (✅ RISOLTO 2025-12-11)
+    - **Problema**: Video non riproducibili attraverso WASM frontend (HTTP 502 dopo 30 secondi)
+    - **Sintomi**:
+      - Video funzionano via API diretta (porta 31081): ✅ HTTP 200
+      - Video falliscono via WASM nginx proxy (porta 31090): ❌ HTTP 502 dopo 30s
+      - Errore nginx: `could not be resolved (3: Host not found)`
+    - **Root Cause #1 - DNS Resolver errato**:
+      - IP sbagliato in `wasm-nginx.conf`: `10.96.0.10` (non esiste)
+      - IP corretto (kube-dns K3s): `10.43.0.10`
+    - **Root Cause #2 - Socat tunnel IP obsoleto**:
+      - IP sbagliato in `socat-wasm-tunnel.service`: `10.43.125.121`
+      - IP corretto (WASM ClusterIP): `10.43.197.58`
+    - **Fix Applicati**:
+      1. ✅ Aggiornato resolver DNS in [docker/wasm-nginx.conf](docker/wasm-nginx.conf#L102,L323): `10.96.0.10` → `10.43.0.10`
+      2. ✅ Aggiornato socat tunnel IP in `/etc/systemd/system/socat-wasm-tunnel.service`: `10.43.125.121` → `10.43.197.58`
+      3. ✅ Ricreato ConfigMap `wasm-nginx-config` con config corretta
+      4. ✅ Deployment WASM montato il ConfigMap come volume
+    - **Configurazione Nginx Video Streaming** (in wasm-nginx.conf):
+      ```nginx
+      # DNS Resolver per Kubernetes (K3s CoreDNS)
+      resolver 10.43.0.10 valid=10s;
+
+      # Video streaming con timeout estesi (5 minuti)
+      location /api/video/ {
+          set $api_backend "http://api-service.insightlearn.svc.cluster.local:80";
+          proxy_pass $api_backend$request_uri;
+
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 300s;
+          proxy_read_timeout 300s;
+
+          proxy_buffering off;
+          proxy_request_buffering off;
+          proxy_max_temp_file_size 0;
+      }
+      ```
+    - **Comandi per Aggiornare ConfigMap**:
+      ```bash
+      # Ricreare ConfigMap da file aggiornato
+      kubectl delete configmap wasm-nginx-config -n insightlearn
+      kubectl create configmap wasm-nginx-config \
+        --from-file=default.conf=docker/wasm-nginx.conf \
+        -n insightlearn
+
+      # Restart deployment
+      kubectl rollout restart deployment/insightlearn-wasm-blazor-webassembly -n insightlearn
+      ```
+    - **Verifica**:
+      ```bash
+      # Test video streaming via WASM proxy
+      curl -s -o /dev/null -w "HTTP: %{http_code}, Size: %{size_download} bytes\n" \
+        "http://localhost:31090/api/video/stream/<VIDEO_ID>"
+      # Expected: HTTP 200, Size: ~10MB
+
+      # Verificare IP servizio WASM
+      kubectl get svc wasm-service -n insightlearn -o jsonpath='{.spec.clusterIP}'
+      ```
+    - **Status**: ✅ Video streaming funzionante (10MB in 0.045s)
+    - **Deployment Date**: 2025-12-11
 
 ### 🔥 Disaster Recovery Completo - HA System v2.0.2 (✅ Implementato 2025-11-16)
 
@@ -3290,11 +3352,11 @@ Professional student learning interface matching LinkedIn Learning quality stand
 - `GET /api/notes/shared?lessonId={id}` - Get community shared notes
 - `POST /api/notes/{id}/toggle-bookmark` - Bookmark note
 
-##### AI Chat Endpoints (4) - ✅ IMPLEMENTED v2.1.0-dev (2025-11-26)
+##### AI Chat Endpoints (4) - ✅ IMPLEMENTED v2.1.0-dev (2025-12-13 - Anonymous User Support)
 
 | Endpoint | Metodo | Stato | Note |
 |----------|--------|-------|------|
-| `api/ai-chat/message` | POST | ✅ | Send message with context (Ollama integration) |
+| `api/ai-chat/message` | POST | ✅ | Send message with context - **Supports anonymous users** |
 | `api/ai-chat/history` | GET | ✅ | Get chat history with pagination |
 | `api/ai-chat/sessions/{sessionId}/end` | POST | ✅ | End chat session |
 | `api/ai-chat/sessions` | GET | ✅ | List sessions for lesson |
@@ -3304,6 +3366,13 @@ Professional student learning interface matching LinkedIn Learning quality stand
 - **Integration**: Ollama LLM (qwen2:0.5b) for AI responses
 - **Context Enrichment**: Video transcript data injected into prompt when available
 - **Persistence**: SQL Server (metadata) + MongoDB (conversation history)
+- **Anonymous Users**: ✅ Supported (2025-12-13) - UserId=null, tracked by SessionId only
+
+**Anonymous User Support (v2.1.0-dev - 2025-12-13)**:
+- `UserId` and `LessonId` columns are nullable in `AIConversations` table
+- Anonymous sessions tracked by `SessionId` only (no persistent user history)
+- FK constraints changed to `ON DELETE SET NULL` for both User and Lesson
+- Authorization allows: anonymous → anonymous sessions, authenticated → own sessions
 
 ##### Video Bookmarks Endpoints (4)
 - `GET /api/bookmarks?lessonId={id}` - Get bookmarks
@@ -3710,25 +3779,30 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ### 🔴 Pending Work Items - Task Decomposition
 
-#### ITEM #1: AI Chat Endpoints (SignalR Integration)
+#### ITEM #1: AI Chat Endpoints - ✅ COMPLETED (2025-12-13)
 | Attribute | Value |
 |-----------|-------|
 | **Assigned To** | 🔧 Backend Developer |
 | **Priority** | LOW (Phase 4) |
 | **Effort** | 8-10 hours |
 | **Complexity** | Complex |
-| **Status** | ⏳ Pending |
+| **Status** | ✅ **COMPLETED** |
 
-**Sub-tasks:**
-1. `POST /api/ai-chat/message` - Context-aware message with video timestamp
-2. `GET /api/ai-chat/history` - Pagination support
-3. `POST /api/ai-chat/sessions/{sessionId}/end` - Session cleanup
-4. `GET /api/ai-chat/sessions` - List sessions per lesson
+**Completed Sub-tasks:**
+1. ✅ `POST /api/ai-chat/message` - Context-aware message with video timestamp + **Anonymous user support**
+2. ✅ `GET /api/ai-chat/history` - Pagination support
+3. ✅ `POST /api/ai-chat/sessions/{sessionId}/end` - Session cleanup
+4. ✅ `GET /api/ai-chat/sessions` - List sessions per lesson
 
-**Files to modify:**
-- `src/InsightLearn.Application/Program.cs` (lines 4990-5061)
-- `src/InsightLearn.Application/Services/AIChatService.cs` (NEW)
-- `src/InsightLearn.Application/Hubs/ChatHub.cs` (NEW - SignalR)
+**Files modified:**
+- `src/InsightLearn.Application/Program.cs` - Endpoints updated for nullable userId
+- `src/InsightLearn.Application/Services/AIChatService.cs` - Authorization for anonymous users
+- `src/InsightLearn.Application/Services/IAIChatService.cs` - Interface with Guid? userId
+- `src/InsightLearn.Infrastructure/Data/InsightLearnDbContext.cs` - IsRequired(false) for UserId/LessonId
+- `src/InsightLearn.Infrastructure/Repositories/AIConversationRepository.cs` - Tracked entity queries
+- Database: `AIConversations.UserId` and `LessonId` columns now nullable
+
+**Note**: SignalR streaming is optional future enhancement (basic HTTP polling works)
 
 ---
 
@@ -3789,10 +3863,15 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ---
 
-### ✅ Recently Completed (2025-11-26)
+### ✅ Recently Completed (2025-12-13)
 
 | Feature | Expert | Status |
 |---------|--------|--------|
+| **AI Chat Anonymous User Support** | Backend Dev | ✅ Complete (2025-12-13) |
+| AI Chat UserId/LessonId Nullable | Backend Dev | ✅ Complete |
+| AI Chat Authorization Logic Fix | Backend Dev | ✅ Complete |
+| DbContext Configuration Fix | Backend Dev | ✅ Complete |
+| Database Schema Update | DevOps | ✅ Complete |
 | Session Timeout Service | Backend Dev | ✅ Complete |
 | Session Timeout JS Interop | Frontend Dev | ✅ Complete |
 | Session Timeout Warning UI | UI/UX | ✅ Complete |
@@ -3808,7 +3887,7 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 | Expert Role | Pending Tasks | Total Effort |
 |-------------|---------------|--------------|
-| 🔧 **Backend Developer** | AI Chat Endpoints, Report Service | 12-16 hours |
+| 🔧 **Backend Developer** | Report Service | 4-6 hours |
 | 🎨 **Frontend Developer** | VideoPlayer refactor, EnrollmentCard fix | 1.5 hours |
 | 🔧 **Fullstack Developer** | Reports Page complete | 4-6 hours |
 | 🚀 **DevOps** | Git commit, CI/CD | 1 hour |
@@ -3826,27 +3905,44 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 - [ ] #2 Reports Page Backend (4 hours) - Fullstack Dev
 - [ ] #2 Reports Page UI Connection (2 hours) - Fullstack Dev
 
-**Sprint 3 (AI Chat - 10 hours)** - Phase 4
-- [ ] #1 SignalR Hub Setup (2 hours) - Backend Dev
-- [ ] #1 AI Chat Service (4 hours) - Backend Dev
-- [ ] #1 AI Chat Endpoints (4 hours) - Backend Dev
+**~~Sprint 3 (AI Chat - 10 hours)~~ - ✅ COMPLETED 2025-12-13**
+- [x] #1 AI Chat Endpoints - Anonymous user support implemented
+- [x] #1 AI Chat Service - Context-aware with Ollama integration
+- [x] Database schema updated (nullable UserId/LessonId)
 
 ---
 
-## 🔍 SEO Optimization (v2.1.0-dev) - ✅ COMPLETE
+## 🔍 SEO Optimization (v2.1.0-dev) - ✅ MAJOR UPDATE 2025-12-13
 
-**Status**: ✅ **DEPLOYED** - 2025-12-07
-**IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing (2025-12-07)
+**Status**: ✅ **DEPLOYED** - 2025-12-13 (Major SEO Overhaul)
+**IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Search Console**: Ready for sitemap submission
+**Sitemap URLs**: **47+ URLs** (expanded from 7 - 2025-12-13)
+**SEO Components**: 3 Blazor components (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
+**JSON-LD Schemas**: 8 types (Organization, WebSite, EducationalOrganization, FAQPage, Course, ContactPage, WebPage, AboutPage)
 
-### Files Created
+### SEO-Optimized Pages (2025-12-13 Update)
+
+| Page | Routes | SEO Components | JSON-LD Schema |
+|------|--------|----------------|----------------|
+| **Homepage** | `/`, `/home` | SeoMetaTags, BreadcrumbSchema | WebPage + ItemList (Featured Courses) |
+| **FAQ** | `/faq`, `/help-center`, `/support` | SeoMetaTags, BreadcrumbSchema | FAQPage (22+ Q&A items) |
+| **Contact** | `/contact`, `/contact-us`, `/support-contact` | SeoMetaTags, BreadcrumbSchema | ContactPage + ContactPoint |
+| **Instructors** | `/instructors`, `/become-instructor`, `/teach` | SeoMetaTags, BreadcrumbSchema | WebPage + Offer |
+| **About** | `/about` | SeoMetaTags, BreadcrumbSchema | AboutPage + EducationalOrganization |
+| **Courses** | `/courses` | SeoMetaTags, BreadcrumbSchema | Course (dynamic) |
+
+### Files Created/Modified
 
 | File | Location | Purpose |
 |------|----------|---------|
-| **sitemap.xml** | `src/InsightLearn.WebAssembly/wwwroot/sitemap.xml` | XML sitemap (7 public URLs) |
+| **sitemap.xml** | `src/InsightLearn.WebAssembly/wwwroot/sitemap.xml` | XML sitemap (**47+ URLs**, updated 2025-12-13) |
 | **robots.txt** | `src/InsightLearn.WebAssembly/wwwroot/robots.txt` | Crawler directives |
 | **IndexNow key** | `src/InsightLearn.WebAssembly/wwwroot/ebd57a262cfe8ff8de852eba65288c19.txt` | Bing/Yandex verification |
-| **SEO_OPTIMIZATION_GUIDE.md** | `docs/SEO_OPTIMIZATION_GUIDE.md` | Complete SEO strategy guide |
+| **FAQ.razor** | `src/InsightLearn.WebAssembly/Pages/FAQ.razor` | Comprehensive FAQ with 22+ items, dynamic FAQPage schema |
+| **Contact.razor** | `src/InsightLearn.WebAssembly/Pages/Contact.razor` | Contact form with ContactPage schema |
+| **Instructors.razor** | `src/InsightLearn.WebAssembly/Pages/Instructors.razor` | Become instructor page with earnings calculator |
+| **Index.razor** | `src/InsightLearn.WebAssembly/Pages/Index.razor` | Homepage with SEO meta tags and WebPage schema |
 
 ### Public URLs
 
@@ -3856,18 +3952,25 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ### IndexNow Instant Indexing (Bing/Yandex)
 
-**Status**: ✅ 7 URL inviate con successo (HTTP 202 Accepted)
+**Status**: ✅ URLs submitted via IndexNow for fast indexing
 **Key**: `ebd57a262cfe8ff8de852eba65288c19`
-**Motori Supportati**: Bing, Yandex, Seznam, Naver
+**Supported Engines**: Bing, Yandex, Seznam, Naver
 
 ```bash
-# Inviare nuove URL manualmente
+# Submit new URLs manually
 curl -X POST "https://api.indexnow.org/indexnow" \
   -H "Content-Type: application/json" \
   -d '{
     "host": "wasm.insightlearn.cloud",
     "key": "ebd57a262cfe8ff8de852eba65288c19",
-    "urlList": ["https://wasm.insightlearn.cloud/nuova-pagina"]
+    "urlList": [
+      "https://wasm.insightlearn.cloud/",
+      "https://wasm.insightlearn.cloud/faq",
+      "https://wasm.insightlearn.cloud/help-center",
+      "https://wasm.insightlearn.cloud/contact",
+      "https://wasm.insightlearn.cloud/instructors",
+      "https://wasm.insightlearn.cloud/become-instructor"
+    ]
   }'
 ```
 
@@ -3877,14 +3980,19 @@ curl -X POST "https://api.indexnow.org/indexnow" \
 2. Add sitemap URL: `https://wasm.insightlearn.cloud/sitemap.xml`
 3. Click "Submit"
 
-### Pages Indexed (Priority)
+### Sitemap Structure (47+ URLs)
 
-| Page | Priority | Change Freq |
-|------|----------|-------------|
-| Homepage `/` | 1.0 | daily |
-| Courses `/courses` | 0.9 | daily |
-| Categories `/categories` | 0.8 | weekly |
-| Search `/search` | 0.7 | weekly |
+| Category | URLs | Priority | Change Freq |
+|----------|------|----------|-------------|
+| Homepage | `/`, `/home` | 1.0, 0.9 | daily |
+| Core Public | `/courses`, `/categories`, `/search` | 0.9, 0.8, 0.7 | daily/weekly |
+| Content Marketing | `/blog`, `/resources`, `/learn-hub` | 0.8 | daily |
+| Category Landing | `/courses?category=web-development`, etc. (8 categories) | 0.8-0.7 | weekly |
+| Skill Landing | `/courses?skill=python`, etc. (9 skills) | 0.7 | weekly |
+| Level Landing | `/courses?level=beginner`, etc. (3 levels) | 0.6 | weekly |
+| Informational | `/about`, `/faq`, `/contact`, `/pricing`, etc. | 0.7-0.5 | monthly |
+| Instructor | `/instructors`, `/become-instructor`, `/teach` | 0.6 | monthly |
+| Legal | `/privacy-policy`, `/terms-of-service`, etc. | 0.3 | yearly |
 
 ### Pages Blocked (robots.txt)
 

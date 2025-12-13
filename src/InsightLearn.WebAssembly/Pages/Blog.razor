@@ -1,0 +1,672 @@
+@page "/blog"
+@page "/resources"
+@page "/learn-hub"
+@using InsightLearn.WebAssembly.Components.SEO
+
+<SeoMetaTags
+    Title="Learning Resources & Blog - Tutorials, Guides & Career Tips"
+    Description="Free learning resources, programming tutorials, career guides, and expert tips. Master web development, Python, data science, and more with InsightLearn's educational blog."
+    Keywords="programming tutorials, coding guides, web development tips, learn python, career advice, tech blog, e-learning resources, free courses, coding for beginners"
+    PageType="website"
+    Author="InsightLearn Team" />
+
+<BreadcrumbSchema Items="@breadcrumbs" />
+
+<div class="blog-page">
+    <!-- Hero Section -->
+    <section class="blog-hero">
+        <div class="container">
+            <h1>Learning Hub</h1>
+            <p class="hero-subtitle">
+                Free resources, tutorials, and expert guides to accelerate your learning journey
+            </p>
+            <div class="search-box">
+                <input type="text" placeholder="Search tutorials, guides, tips..." @bind="searchQuery" @bind:event="oninput" />
+                <button class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Navigation -->
+    <section class="blog-categories">
+        <div class="container">
+            <div class="category-tabs">
+                <button class="@(selectedCategory == "all" ? "active" : "")" @onclick='() => SelectCategory("all")'>
+                    All Topics
+                </button>
+                <button class="@(selectedCategory == "programming" ? "active" : "")" @onclick='() => SelectCategory("programming")'>
+                    <i class="fas fa-code"></i> Programming
+                </button>
+                <button class="@(selectedCategory == "web-dev" ? "active" : "")" @onclick='() => SelectCategory("web-dev")'>
+                    <i class="fas fa-globe"></i> Web Development
+                </button>
+                <button class="@(selectedCategory == "career" ? "active" : "")" @onclick='() => SelectCategory("career")'>
+                    <i class="fas fa-briefcase"></i> Career
+                </button>
+                <button class="@(selectedCategory == "data-science" ? "active" : "")" @onclick='() => SelectCategory("data-science")'>
+                    <i class="fas fa-chart-line"></i> Data Science
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Articles -->
+    <section class="featured-section">
+        <div class="container">
+            <h2>Featured Guides</h2>
+            <div class="featured-grid">
+                @foreach (var article in GetFilteredArticles().Take(3))
+                {
+                    <article class="featured-card">
+                        <div class="card-image">
+                            <img src="@article.ImageUrl" alt="@article.Title" loading="lazy" />
+                            <span class="card-category">@article.Category</span>
+                        </div>
+                        <div class="card-content">
+                            <h3>@article.Title</h3>
+                            <p>@article.Excerpt</p>
+                            <div class="card-meta">
+                                <span><i class="fas fa-clock"></i> @article.ReadTime min read</span>
+                                <span><i class="fas fa-calendar"></i> @article.Date</span>
+                            </div>
+                            <a href="@article.Url" class="read-more">
+                                Read Guide <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- All Articles Grid -->
+    <section class="articles-section">
+        <div class="container">
+            <h2>All Resources</h2>
+            <div class="articles-grid">
+                @foreach (var article in GetFilteredArticles().Skip(3))
+                {
+                    <article class="article-card">
+                        <div class="card-image-sm">
+                            <img src="@article.ImageUrl" alt="@article.Title" loading="lazy" />
+                        </div>
+                        <div class="card-content">
+                            <span class="article-category">@article.Category</span>
+                            <h3>@article.Title</h3>
+                            <p>@article.Excerpt</p>
+                            <div class="card-footer">
+                                <span class="read-time">@article.ReadTime min read</span>
+                                <a href="@article.Url" class="read-link">Read <i class="fas fa-chevron-right"></i></a>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Topics -->
+    <section class="topics-section">
+        <div class="container">
+            <h2>Popular Learning Paths</h2>
+            <div class="topics-grid">
+                <a href="/courses?skill=python" class="topic-card python">
+                    <i class="fab fa-python"></i>
+                    <h3>Python</h3>
+                    <p>From basics to advanced - data science, automation, web development</p>
+                    <span class="course-count">45+ courses</span>
+                </a>
+                <a href="/courses?skill=javascript" class="topic-card javascript">
+                    <i class="fab fa-js-square"></i>
+                    <h3>JavaScript</h3>
+                    <p>Modern JS, React, Node.js, and full-stack development</p>
+                    <span class="course-count">60+ courses</span>
+                </a>
+                <a href="/courses?skill=react" class="topic-card react">
+                    <i class="fab fa-react"></i>
+                    <h3>React</h3>
+                    <p>Build modern web applications with React ecosystem</p>
+                    <span class="course-count">35+ courses</span>
+                </a>
+                <a href="/courses?category=data-science" class="topic-card data">
+                    <i class="fas fa-database"></i>
+                    <h3>Data Science</h3>
+                    <p>Machine learning, analytics, and data visualization</p>
+                    <span class="course-count">50+ courses</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter CTA -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Stay Updated</h2>
+                <p>Get the latest tutorials, career tips, and learning resources delivered to your inbox</p>
+                <div class="newsletter-form">
+                    <input type="email" placeholder="Enter your email" />
+                    <button class="btn btn-primary">Subscribe</button>
+                </div>
+                <p class="privacy-note">We respect your privacy. Unsubscribe at any time.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Blog Page Structured Data -->
+<HeadContent>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "Blog",
+        "name": "InsightLearn Learning Hub",
+        "description": "Free programming tutorials, career guides, and expert tips for learners at all levels.",
+        "url": "https://wasm.insightlearn.cloud/blog",
+        "publisher": {
+            "@@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://wasm.insightlearn.cloud",
+            "logo": "https://wasm.insightlearn.cloud/icon-192.png"
+        },
+        "blogPost": [
+            {
+                "@@type": "BlogPosting",
+                "headline": "Complete Guide to Learning Python in 2025",
+                "description": "Master Python programming from scratch with our comprehensive beginner-friendly guide.",
+                "url": "https://wasm.insightlearn.cloud/courses?skill=python",
+                "datePublished": "2025-01-15",
+                "author": {
+                    "@@type": "Person",
+                    "name": "InsightLearn Team"
+                }
+            },
+            {
+                "@@type": "BlogPosting",
+                "headline": "Web Developer Roadmap 2025",
+                "description": "The complete roadmap to becoming a professional web developer this year.",
+                "url": "https://wasm.insightlearn.cloud/courses?category=web-development",
+                "datePublished": "2025-01-10",
+                "author": {
+                    "@@type": "Person",
+                    "name": "InsightLearn Team"
+                }
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<style>
+    .blog-page {
+        min-height: 100vh;
+        background: var(--gray-50, #f7f9fa);
+    }
+
+    .blog-hero {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+        color: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .blog-hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .search-box {
+        display: flex;
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 50px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .search-box input {
+        flex: 1;
+        border: none;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .search-btn {
+        background: var(--primary-color, #a435f0);
+        border: none;
+        padding: 1rem 1.5rem;
+        color: white;
+        cursor: pointer;
+    }
+
+    .blog-categories {
+        background: white;
+        border-bottom: 1px solid var(--gray-200, #e4e8eb);
+        position: sticky;
+        top: 72px;
+        z-index: 100;
+    }
+
+    .category-tabs {
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem 0;
+        overflow-x: auto;
+    }
+
+    .category-tabs button {
+        background: transparent;
+        border: 1px solid var(--gray-300, #d1d7db);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .category-tabs button.active,
+    .category-tabs button:hover {
+        background: var(--primary-color, #a435f0);
+        color: white;
+        border-color: var(--primary-color, #a435f0);
+    }
+
+    .featured-section, .articles-section, .topics-section {
+        padding: 60px 0;
+    }
+
+    .featured-section h2, .articles-section h2, .topics-section h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        color: var(--gray-900, #1c1d1f);
+    }
+
+    .featured-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+
+    .featured-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .featured-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    }
+
+    .card-image {
+        position: relative;
+        height: 200px;
+        background: linear-gradient(135deg, var(--primary-color, #a435f0), #6b21a8);
+    }
+
+    .card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .card-category {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(255,255,255,0.9);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--primary-color, #a435f0);
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .card-content h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--gray-900, #1c1d1f);
+    }
+
+    .card-content p {
+        color: var(--gray-700, #3c4043);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .card-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: var(--gray-500, #6b7280);
+        margin-bottom: 1rem;
+    }
+
+    .read-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color, #a435f0);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .read-more:hover {
+        gap: 0.75rem;
+    }
+
+    .articles-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .article-card {
+        display: flex;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.3s;
+    }
+
+    .article-card:hover {
+        transform: translateX(4px);
+    }
+
+    .card-image-sm {
+        width: 120px;
+        min-height: 140px;
+        background: linear-gradient(135deg, var(--primary-color, #a435f0), #6b21a8);
+    }
+
+    .card-image-sm img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .article-category {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--primary-color, #a435f0);
+        text-transform: uppercase;
+    }
+
+    .article-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0.5rem 0;
+        color: var(--gray-900, #1c1d1f);
+    }
+
+    .article-card p {
+        font-size: 0.875rem;
+        color: var(--gray-700, #3c4043);
+        line-height: 1.5;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+    }
+
+    .read-time {
+        font-size: 0.75rem;
+        color: var(--gray-500, #6b7280);
+    }
+
+    .read-link {
+        font-size: 0.875rem;
+        color: var(--primary-color, #a435f0);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .topics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .topic-card {
+        padding: 2rem;
+        border-radius: 16px;
+        color: white;
+        text-decoration: none;
+        transition: transform 0.3s;
+    }
+
+    .topic-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .topic-card.python { background: linear-gradient(135deg, #306998, #FFD43B); }
+    .topic-card.javascript { background: linear-gradient(135deg, #F7DF1E, #323330); color: #323330; }
+    .topic-card.react { background: linear-gradient(135deg, #61DAFB, #282c34); }
+    .topic-card.data { background: linear-gradient(135deg, #4B8BBE, #306998); }
+
+    .topic-card i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .topic-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .topic-card p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    .course-count {
+        font-size: 0.875rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .newsletter-section {
+        background: linear-gradient(135deg, var(--primary-color, #a435f0) 0%, #6b21a8 100%);
+        color: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .newsletter-content h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .newsletter-content > p {
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .newsletter-form {
+        display: flex;
+        max-width: 450px;
+        margin: 0 auto;
+        gap: 0.5rem;
+    }
+
+    .newsletter-form input {
+        flex: 1;
+        padding: 1rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+
+    .privacy-note {
+        font-size: 0.875rem;
+        opacity: 0.7;
+        margin-top: 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .blog-hero h1 {
+            font-size: 2rem;
+        }
+
+        .articles-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .article-card {
+            flex-direction: column;
+        }
+
+        .card-image-sm {
+            width: 100%;
+            height: 150px;
+        }
+
+        .newsletter-form {
+            flex-direction: column;
+        }
+    }
+</style>
+
+@code {
+    private string searchQuery = "";
+    private string selectedCategory = "all";
+
+    private List<BreadcrumbSchema.BreadcrumbItem> breadcrumbs = new()
+    {
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" },
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Learning Hub", Url = "/blog" }
+    };
+
+    private List<BlogArticle> articles = new()
+    {
+        new BlogArticle
+        {
+            Title = "Complete Guide to Learning Python in 2025",
+            Excerpt = "Master Python programming from scratch. This comprehensive guide covers everything from basics to advanced concepts, including data science and web development.",
+            Category = "Programming",
+            CategorySlug = "programming",
+            ImageUrl = "/images/blog/python-guide.jpg",
+            Url = "/courses?skill=python",
+            ReadTime = 15,
+            Date = "Jan 15, 2025"
+        },
+        new BlogArticle
+        {
+            Title = "Web Developer Roadmap 2025",
+            Excerpt = "The complete roadmap to becoming a professional web developer. Learn HTML, CSS, JavaScript, and modern frameworks step by step.",
+            Category = "Web Development",
+            CategorySlug = "web-dev",
+            ImageUrl = "/images/blog/web-dev-roadmap.jpg",
+            Url = "/courses?category=web-development",
+            ReadTime = 20,
+            Date = "Jan 10, 2025"
+        },
+        new BlogArticle
+        {
+            Title = "How to Land Your First Tech Job",
+            Excerpt = "Expert tips on building your portfolio, acing technical interviews, and transitioning into a tech career. No CS degree required!",
+            Category = "Career",
+            CategorySlug = "career",
+            ImageUrl = "/images/blog/tech-career.jpg",
+            Url = "/courses?category=business",
+            ReadTime = 12,
+            Date = "Jan 8, 2025"
+        },
+        new BlogArticle
+        {
+            Title = "JavaScript vs Python: Which to Learn First?",
+            Excerpt = "A detailed comparison of two of the most popular programming languages. Find out which one is right for your goals.",
+            Category = "Programming",
+            CategorySlug = "programming",
+            ImageUrl = "/images/blog/js-vs-python.jpg",
+            Url = "/courses?skill=javascript",
+            ReadTime = 10,
+            Date = "Jan 5, 2025"
+        },
+        new BlogArticle
+        {
+            Title = "Getting Started with Data Science",
+            Excerpt = "Your beginner's guide to data science. Learn about Python, pandas, machine learning, and how to start your journey.",
+            Category = "Data Science",
+            CategorySlug = "data-science",
+            ImageUrl = "/images/blog/data-science.jpg",
+            Url = "/courses?category=data-science",
+            ReadTime = 18,
+            Date = "Jan 3, 2025"
+        },
+        new BlogArticle
+        {
+            Title = "React vs Vue vs Angular in 2025",
+            Excerpt = "Comparing the top JavaScript frameworks. Which one should you choose for your next project?",
+            Category = "Web Development",
+            CategorySlug = "web-dev",
+            ImageUrl = "/images/blog/frameworks.jpg",
+            Url = "/courses?skill=react",
+            ReadTime = 14,
+            Date = "Dec 28, 2024"
+        }
+    };
+
+    private void SelectCategory(string category)
+    {
+        selectedCategory = category;
+    }
+
+    private IEnumerable<BlogArticle> GetFilteredArticles()
+    {
+        var filtered = articles.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filtered = filtered.Where(a =>
+                a.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                a.Excerpt.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (selectedCategory != "all")
+        {
+            filtered = filtered.Where(a => a.CategorySlug == selectedCategory);
+        }
+
+        return filtered;
+    }
+
+    private class BlogArticle
+    {
+        public string Title { get; set; } = "";
+        public string Excerpt { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string CategorySlug { get; set; } = "";
+        public string ImageUrl { get; set; } = "";
+        public string Url { get; set; } = "";
+        public int ReadTime { get; set; }
+        public string Date { get; set; } = "";
+    }
+}

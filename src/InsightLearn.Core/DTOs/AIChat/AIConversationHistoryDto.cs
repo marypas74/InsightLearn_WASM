@@ -10,7 +10,11 @@ namespace InsightLearn.Core.DTOs.AIChat
     public class AIConversationHistoryDto
     {
         public Guid SessionId { get; set; }
-        public Guid UserId { get; set; }
+
+        /// <summary>
+        /// User ID if authenticated, null for anonymous users (free lessons).
+        /// </summary>
+        public Guid? UserId { get; set; }
         public Guid? LessonId { get; set; }
         public int MessageCount { get; set; }
         public DateTime CreatedAt { get; set; }

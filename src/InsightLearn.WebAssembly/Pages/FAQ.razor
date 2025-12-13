@@ -1,87 +1,636 @@
 @page "/faq"
+@page "/help-center"
+@page "/support"
+@using InsightLearn.WebAssembly.Components.SEO
 
-<PageTitle>FAQ - InsightLearn</PageTitle>
+<SeoMetaTags
+    Title="FAQ - Frequently Asked Questions | InsightLearn Help Center"
+    Description="Find answers to common questions about InsightLearn online courses. Learn about enrollment, payments, certificates, refunds, and how to get started with your learning journey."
+    Keywords="InsightLearn FAQ, online course help, e-learning questions, course enrollment, payment methods, certificates, refund policy, learning platform support"
+    PageType="FAQPage"
+    Author="InsightLearn Support Team" />
 
-<div class="container py-5">
-    <h1>Frequently Asked Questions</h1>
+<BreadcrumbSchema Items="@breadcrumbs" />
 
-    <div class="accordion mt-4" id="faqAccordion">
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                    How do I enroll in a course?
-                </button>
-            </h2>
-            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    Browse our course catalog, select a course, and click "Enroll Now". You'll be guided through the payment process.
+<div class="faq-page">
+    <!-- Hero Section -->
+    <section class="faq-hero">
+        <div class="container">
+            <h1 class="faq-title">Frequently Asked Questions</h1>
+            <p class="faq-subtitle">
+                Find answers to common questions about InsightLearn courses, enrollment, and features
+            </p>
+            <div class="faq-search">
+                <input type="text" placeholder="Search for answers..." @bind="searchQuery" @bind:event="oninput" class="search-input" />
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="faq-categories">
+        <div class="container">
+            <div class="category-grid">
+                <a href="#getting-started" class="category-card">
+                    <i class="fas fa-rocket"></i>
+                    <span>Getting Started</span>
+                </a>
+                <a href="#courses" class="category-card">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Courses & Learning</span>
+                </a>
+                <a href="#payments" class="category-card">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Payments & Pricing</span>
+                </a>
+                <a href="#certificates" class="category-card">
+                    <i class="fas fa-certificate"></i>
+                    <span>Certificates</span>
+                </a>
+                <a href="#instructors" class="category-card">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>For Instructors</span>
+                </a>
+                <a href="#technical" class="category-card">
+                    <i class="fas fa-cog"></i>
+                    <span>Technical Support</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Sections -->
+    <section class="faq-content">
+        <div class="container">
+            <!-- Getting Started -->
+            <div id="getting-started" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-rocket"></i>
+                    Getting Started
+                </h2>
+
+                @foreach (var faq in gettingStartedFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Courses & Learning -->
+            <div id="courses" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    Courses & Learning
+                </h2>
+
+                @foreach (var faq in coursesFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Payments & Pricing -->
+            <div id="payments" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-credit-card"></i>
+                    Payments & Pricing
+                </h2>
+
+                @foreach (var faq in paymentsFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Certificates -->
+            <div id="certificates" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-certificate"></i>
+                    Certificates & Credentials
+                </h2>
+
+                @foreach (var faq in certificatesFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- For Instructors -->
+            <div id="instructors" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    For Instructors
+                </h2>
+
+                @foreach (var faq in instructorsFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Technical Support -->
+            <div id="technical" class="faq-section">
+                <h2 class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Technical Support
+                </h2>
+
+                @foreach (var faq in technicalFaqs.Where(f => MatchesSearch(f)))
+                {
+                    <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
+                        <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
+                            <h3>@faq.Question</h3>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        @if (IsExpanded(faq.Id))
+                        {
+                            <div class="faq-answer">
+                                @((MarkupString)faq.Answer)
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact CTA -->
+    <section class="faq-cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Still Have Questions?</h2>
+                <p>Our support team is here to help you 24/7</p>
+                <div class="cta-buttons">
+                    <a href="/contact" class="btn btn-primary">
+                        <i class="fas fa-envelope"></i>
+                        Contact Support
+                    </a>
+                    <a href="/about" class="btn btn-outline">
+                        <i class="fas fa-info-circle"></i>
+                        Learn More About Us
+                    </a>
                 </div>
             </div>
         </div>
-
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                    Can I access courses after completion?
-                </button>
-            </h2>
-            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    Yes! You have lifetime access to all courses you purchase.
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                    What payment methods do you accept?
-                </button>
-            </h2>
-            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    We accept all major credit cards via Stripe and PayPal.
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                    Do you offer refunds?
-                </button>
-            </h2>
-            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    Yes, we offer a 30-day money-back guarantee on all courses.
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
-                    How do I become an instructor?
-                </button>
-            </h2>
-            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    Visit our <a href="/instructors">Instructors</a> page to learn more about sharing your knowledge and earning revenue.
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
-                    Do you offer certificates?
-                </button>
-            </h2>
-            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                    Yes! Upon completing a course, you'll receive a certificate of completion.
-                </div>
-            </div>
-        </div>
-    </div>
+    </section>
 </div>
+
+<!-- FAQPage Schema JSON-LD -->
+<HeadContent>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "FAQPage",
+        "name": "InsightLearn FAQ - Help Center",
+        "description": "Frequently asked questions about InsightLearn online learning platform",
+        "url": "https://wasm.insightlearn.cloud/faq",
+        "mainEntity": [
+            @for (int i = 0; i < allFaqs.Count; i++)
+            {
+                var faq = allFaqs[i];
+                <text>
+            {
+                "@@type": "Question",
+                "name": "@faq.Question.Replace("\"", "\\\"")",
+                "acceptedAnswer": {
+                    "@@type": "Answer",
+                    "text": "@System.Text.RegularExpressions.Regex.Replace(faq.Answer, "<[^>]*>", "").Replace("\"", "\\\"")"
+                }
+            }@(i < allFaqs.Count - 1 ? "," : "")
+                </text>
+            }
+        ]
+    }
+    </script>
+</HeadContent>
+
+<style>
+    .faq-page {
+        min-height: 100vh;
+        background: var(--gray-50, #f7f9fa);
+    }
+
+    .faq-hero {
+        background: linear-gradient(135deg, var(--primary-color, #a435f0) 0%, #6b21a8 100%);
+        color: white;
+        padding: 80px 0 60px;
+        text-align: center;
+    }
+
+    .faq-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .faq-subtitle {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+
+    .faq-search {
+        max-width: 500px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        border: none;
+        border-radius: 50px;
+        font-size: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-500);
+    }
+
+    .faq-categories {
+        padding: 40px 0;
+        background: white;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .category-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem 1rem;
+        background: var(--gray-50);
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--gray-700);
+        transition: all 0.3s;
+    }
+
+    .category-card:hover {
+        background: var(--primary-light, #f7ecff);
+        color: var(--primary-color, #a435f0);
+        transform: translateY(-2px);
+    }
+
+    .category-card i {
+        font-size: 1.5rem;
+        color: var(--primary-color, #a435f0);
+    }
+
+    .category-card span {
+        font-weight: 500;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    .faq-content {
+        padding: 60px 0;
+    }
+
+    .faq-section {
+        margin-bottom: 3rem;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-color, #a435f0);
+    }
+
+    .section-title i {
+        color: var(--primary-color, #a435f0);
+    }
+
+    .faq-item {
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .faq-question {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        transition: background 0.3s;
+    }
+
+    .faq-question:hover {
+        background: var(--gray-50);
+    }
+
+    .faq-question.expanded {
+        background: var(--primary-light, #f7ecff);
+    }
+
+    .faq-question h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+        flex: 1;
+        padding-right: 1rem;
+    }
+
+    .faq-question i {
+        color: var(--gray-500);
+        transition: transform 0.3s;
+    }
+
+    .faq-question.expanded i {
+        transform: rotate(180deg);
+        color: var(--primary-color, #a435f0);
+    }
+
+    .faq-answer {
+        padding: 0 1.5rem 1.5rem;
+        color: var(--gray-700);
+        line-height: 1.7;
+    }
+
+    .faq-answer a {
+        color: var(--primary-color, #a435f0);
+        text-decoration: underline;
+    }
+
+    .faq-answer ul {
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .faq-answer li {
+        margin-bottom: 0.5rem;
+    }
+
+    .faq-cta {
+        background: linear-gradient(135deg, var(--primary-color, #a435f0) 0%, #6b21a8 100%);
+        color: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .faq-cta h2 {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .faq-cta p {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: white;
+        color: var(--primary-color, #a435f0);
+    }
+
+    .btn-primary:hover {
+        background: var(--gray-100);
+        transform: translateY(-2px);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: white;
+        border: 2px solid white;
+    }
+
+    .btn-outline:hover {
+        background: white;
+        color: var(--primary-color, #a435f0);
+    }
+
+    @@media (max-width: 768px) {
+        .faq-title {
+            font-size: 1.75rem;
+        }
+
+        .category-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .faq-question h3 {
+            font-size: 0.9375rem;
+        }
+    }
+</style>
+
+@code {
+    private string searchQuery = "";
+    private HashSet<string> expandedFaqs = new();
+
+    private List<BreadcrumbSchema.BreadcrumbItem> breadcrumbs = new()
+    {
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" },
+        new BreadcrumbSchema.BreadcrumbItem { Name = "FAQ", Url = "/faq" }
+    };
+
+    private List<FaqItem> gettingStartedFaqs = new()
+    {
+        new FaqItem("gs1", "What is InsightLearn?",
+            "InsightLearn is a professional online learning platform offering <strong>500+ expert-led courses</strong> in programming, web development, data science, design, business, and more. Our platform features AI-powered learning tools, interactive video lessons, and progress tracking to help you master new skills at your own pace."),
+        new FaqItem("gs2", "How do I create an account?",
+            "Creating an account is free and easy:<ul><li>Click the <a href='/register'>Sign Up</a> button in the top right corner</li><li>Enter your email address and create a password</li><li>Verify your email address</li><li>Complete your profile and start learning!</li></ul>You can also sign up using Google for faster registration."),
+        new FaqItem("gs3", "Is InsightLearn free to use?",
+            "You can <a href='/register'>create a free account</a> to browse our course catalog and access free courses. Premium courses require a one-time purchase or subscription. We also offer a <strong>30-day money-back guarantee</strong> on all paid courses."),
+        new FaqItem("gs4", "What devices can I use to access courses?",
+            "InsightLearn works on any device with a modern web browser:<ul><li><strong>Desktop:</strong> Windows, Mac, Linux</li><li><strong>Mobile:</strong> iOS and Android (responsive web app)</li><li><strong>Tablet:</strong> iPad, Android tablets</li></ul>Your progress syncs automatically across all devices.")
+    };
+
+    private List<FaqItem> coursesFaqs = new()
+    {
+        new FaqItem("c1", "How do I enroll in a course?",
+            "To enroll in a course:<ol><li>Browse our <a href='/courses'>course catalog</a> or search for a topic</li><li>Click on a course to view details, curriculum, and reviews</li><li>Click 'Enroll Now' or 'Add to Cart'</li><li>Complete the checkout process</li><li>Start learning immediately!</li></ol>"),
+        new FaqItem("c2", "Do I get lifetime access to courses?",
+            "Yes! Once you purchase a course, you have <strong>lifetime access</strong> to all course materials, including:<ul><li>Video lessons</li><li>Downloadable resources</li><li>Future course updates</li><li>Q&A section</li></ul>Learn at your own pace, revisit lessons anytime."),
+        new FaqItem("c3", "Can I download course videos for offline viewing?",
+            "Currently, courses are available for streaming online. Downloadable resources like PDFs, code files, and exercises can be downloaded for offline use. We're working on offline video support for mobile devices."),
+        new FaqItem("c4", "How long do courses take to complete?",
+            "Course duration varies based on the topic and depth. Each course page shows the <strong>estimated completion time</strong>. Most courses range from 5-40 hours of content. Since you have lifetime access, you can learn at your own pace."),
+        new FaqItem("c5", "What if I get stuck on a concept?",
+            "We offer multiple ways to get help:<ul><li><strong>AI Assistant:</strong> Ask questions and get instant explanations</li><li><strong>Q&A Section:</strong> Post questions and get answers from instructors and students</li><li><strong>Community Forums:</strong> Connect with other learners</li><li><strong>Support Team:</strong> <a href='/contact'>Contact us</a> for additional help</li></ul>")
+    };
+
+    private List<FaqItem> paymentsFaqs = new()
+    {
+        new FaqItem("p1", "What payment methods do you accept?",
+            "We accept a variety of secure payment methods:<ul><li><strong>Credit/Debit Cards:</strong> Visa, MasterCard, American Express, Discover</li><li><strong>PayPal:</strong> Pay with your PayPal balance or linked accounts</li><li><strong>Apple Pay & Google Pay:</strong> Quick mobile payments</li></ul>All transactions are secured with 256-bit SSL encryption."),
+        new FaqItem("p2", "Do you offer refunds?",
+            "Yes! We offer a <strong>30-day money-back guarantee</strong> on all course purchases. If you're not satisfied with a course, <a href='/contact'>contact our support team</a> within 30 days for a full refund. See our <a href='/refund-policy'>Refund Policy</a> for details."),
+        new FaqItem("p3", "Are there any hidden fees?",
+            "No hidden fees! The price you see is the price you pay. Course prices are one-time purchases with lifetime access. We don't charge subscription fees unless you choose a subscription plan."),
+        new FaqItem("p4", "Do you offer discounts for students or teams?",
+            "Yes! We offer:<ul><li><strong>Student Discount:</strong> 20% off with a valid student email</li><li><strong>Team Plans:</strong> Volume discounts for businesses - see <a href='/enterprise'>Enterprise</a></li><li><strong>Seasonal Sales:</strong> Special promotions throughout the year</li></ul>Subscribe to our newsletter for exclusive offers."),
+        new FaqItem("p5", "How do I apply a coupon code?",
+            "To apply a coupon:<ol><li>Add courses to your cart</li><li>Go to the <a href='/cart'>checkout page</a></li><li>Enter your coupon code in the 'Apply Coupon' field</li><li>Click 'Apply' to see the discount</li><li>Complete your purchase</li></ol>")
+    };
+
+    private List<FaqItem> certificatesFaqs = new()
+    {
+        new FaqItem("cert1", "Do I get a certificate after completing a course?",
+            "Yes! Upon completing a course (watching all videos and completing any required assessments), you'll receive a <strong>Certificate of Completion</strong>. You can download it as a PDF or share it directly to LinkedIn."),
+        new FaqItem("cert2", "Are InsightLearn certificates recognized by employers?",
+            "InsightLearn certificates demonstrate your commitment to learning and skill development. While they are not accredited degrees, many employers value online learning certifications as proof of practical skills and continuous learning."),
+        new FaqItem("cert3", "How do I share my certificate on LinkedIn?",
+            "After earning a certificate:<ol><li>Go to your <a href='/certificates'>Certificates</a> page</li><li>Click 'Share to LinkedIn'</li><li>A new tab will open with LinkedIn's certification form pre-filled</li><li>Click 'Save' to add it to your profile</li></ol>"),
+        new FaqItem("cert4", "Can I get a physical certificate?",
+            "Currently, we offer digital certificates only. Digital certificates are environmentally friendly, instantly available, and easy to share on professional networks.")
+    };
+
+    private List<FaqItem> instructorsFaqs = new()
+    {
+        new FaqItem("i1", "How do I become an instructor on InsightLearn?",
+            "We welcome expert instructors! To apply:<ol><li>Visit our <a href='/instructors'>Become an Instructor</a> page</li><li>Fill out the application form with your expertise and course idea</li><li>Our team will review your application within 5 business days</li><li>If approved, you'll get access to our course creation tools</li></ol>"),
+        new FaqItem("i2", "How much can I earn as an instructor?",
+            "Instructors earn <strong>up to 80% revenue share</strong> on course sales. Earnings depend on course pricing, enrollment numbers, and promotional activities. Top instructors earn six figures annually. Visit our <a href='/instructors'>Instructor page</a> for details."),
+        new FaqItem("i3", "What tools do you provide for course creation?",
+            "We provide comprehensive tools:<ul><li><strong>Course Builder:</strong> Easy-to-use curriculum editor</li><li><strong>Video Hosting:</strong> Unlimited video storage and streaming</li><li><strong>Quiz Builder:</strong> Create assessments and exercises</li><li><strong>Analytics:</strong> Track student progress and engagement</li><li><strong>Support:</strong> Dedicated instructor success team</li></ul>"),
+        new FaqItem("i4", "Can I teach courses in languages other than English?",
+            "Yes! We support courses in multiple languages including English, Italian, Spanish, French, German, and more. Reach learners worldwide in their preferred language.")
+    };
+
+    private List<FaqItem> technicalFaqs = new()
+    {
+        new FaqItem("t1", "What browsers are supported?",
+            "InsightLearn works best on modern browsers:<ul><li>Google Chrome (recommended)</li><li>Mozilla Firefox</li><li>Safari (macOS/iOS)</li><li>Microsoft Edge</li></ul>Please ensure your browser is updated to the latest version for the best experience."),
+        new FaqItem("t2", "Video playback issues - what should I do?",
+            "If you're experiencing video issues:<ol><li>Check your internet connection (minimum 5 Mbps recommended)</li><li>Try lowering the video quality settings</li><li>Clear your browser cache</li><li>Try a different browser</li><li>Disable browser extensions temporarily</li></ol>Still having issues? <a href='/contact'>Contact support</a> for help."),
+        new FaqItem("t3", "How do I reset my password?",
+            "To reset your password:<ol><li>Go to the <a href='/login'>Login page</a></li><li>Click 'Forgot Password'</li><li>Enter your email address</li><li>Check your email for reset instructions</li><li>Click the link and create a new password</li></ol>"),
+        new FaqItem("t4", "Is my personal information secure?",
+            "Absolutely. We take security seriously:<ul><li><strong>SSL Encryption:</strong> All data is encrypted in transit</li><li><strong>Secure Payments:</strong> PCI DSS compliant payment processing</li><li><strong>Privacy:</strong> We never sell your personal data</li><li><strong>GDPR Compliant:</strong> Full compliance with data protection regulations</li></ul>See our <a href='/privacy-policy'>Privacy Policy</a> for details.")
+    };
+
+    private List<FaqItem> allFaqs => gettingStartedFaqs
+        .Concat(coursesFaqs)
+        .Concat(paymentsFaqs)
+        .Concat(certificatesFaqs)
+        .Concat(instructorsFaqs)
+        .Concat(technicalFaqs)
+        .ToList();
+
+    private bool MatchesSearch(FaqItem faq)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return true;
+        return faq.Question.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+               faq.Answer.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ToggleFaq(string id)
+    {
+        if (expandedFaqs.Contains(id))
+            expandedFaqs.Remove(id);
+        else
+            expandedFaqs.Add(id);
+    }
+
+    private bool IsExpanded(string id) => expandedFaqs.Contains(id);
+
+    private class FaqItem
+    {
+        public string Id { get; }
+        public string Question { get; }
+        public string Answer { get; }
+
+        public FaqItem(string id, string question, string answer)
+        {
+            Id = id;
+            Question = question;
+            Answer = answer;
+        }
+    }
+}

@@ -1,7 +1,75 @@
 @page "/"
+@page "/home"
 @inject IJSRuntime JS
+@using InsightLearn.WebAssembly.Components.SEO
 
-<PageTitle>InsightLearn - Transform Your Future with Expert Learning</PageTitle>
+<SeoMetaTags
+    Title="InsightLearn - Online Courses for Professional Skills | Learn Programming, Business, Design"
+    Description="Transform your career with InsightLearn. Access 1200+ expert-led online courses in programming, data science, business, and design. Join 50,000+ students worldwide. Start your free trial today!"
+    Keywords="online courses, e-learning platform, learn programming, web development courses, data science training, business courses, design courses, career development, professional skills, coding bootcamp, online certification, video courses"
+    PageType="WebSite"
+    Author="InsightLearn"
+    CanonicalUrl="https://wasm.insightlearn.cloud/" />
+
+<BreadcrumbSchema Items="@breadcrumbs" />
+
+<!-- Homepage Schema JSON-LD -->
+<HeadContent>
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "WebPage",
+        "name": "InsightLearn - Professional Online Learning Platform",
+        "description": "Transform your career with expert-led online courses in programming, data science, business, and design. Join 50,000+ students worldwide.",
+        "url": "https://wasm.insightlearn.cloud/",
+        "mainEntity": {
+            "@@type": "ItemList",
+            "name": "Featured Courses",
+            "description": "Our most popular professional development courses",
+            "numberOfItems": 6,
+            "itemListElement": [
+                {
+                    "@@type": "ListItem",
+                    "position": 1,
+                    "item": {
+                        "@@type": "Course",
+                        "name": "Complete Web Development Bootcamp 2025",
+                        "description": "Master HTML, CSS, JavaScript, React, Node.js",
+                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
+                        "educationalLevel": "Beginner"
+                    }
+                },
+                {
+                    "@@type": "ListItem",
+                    "position": 2,
+                    "item": {
+                        "@@type": "Course",
+                        "name": "Data Science & Machine Learning Masterclass",
+                        "description": "Learn Python, statistics, ML algorithms, and AI",
+                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
+                        "educationalLevel": "Intermediate"
+                    }
+                },
+                {
+                    "@@type": "ListItem",
+                    "position": 3,
+                    "item": {
+                        "@@type": "Course",
+                        "name": "UI/UX Design: From Concept to Prototype",
+                        "description": "Master Figma, user research, wireframing",
+                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
+                        "educationalLevel": "AllLevels"
+                    }
+                }
+            ]
+        },
+        "speakable": {
+            "@@type": "SpeakableSpecification",
+            "cssSelector": [".hero-title", ".hero-subtitle", ".section-title"]
+        }
+    }
+    </script>
+</HeadContent>
 
 <div class="new-home-page">
     <!-- Hero Section -->
@@ -222,6 +290,11 @@
 @code {
     private List<FeaturedCourseModel> featuredCourses = new();
     private List<SuccessStoryModel> successStories = new();
+
+    private List<BreadcrumbSchema.BreadcrumbItem> breadcrumbs = new()
+    {
+        new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" }
+    };
 
     protected override void OnInitialized()
     {

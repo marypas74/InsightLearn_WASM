@@ -641,22 +641,26 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.SessionId).IsRequired();
-            entity.Property(e => e.UserId).IsRequired();
+            // UserId is nullable - anonymous users (free lessons) use SessionId for tracking
+            entity.Property(e => e.UserId).IsRequired(false);
             entity.Property(e => e.MongoDocumentId).HasMaxLength(100);
             entity.Property(e => e.MessageCount).IsRequired().HasDefaultValue(0);
             entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
-            // Foreign keys
+            // Foreign keys - User is optional (null for anonymous users on free lessons)
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
+            // Lesson is optional - null for general conversations without video context
             entity.HasOne(e => e.Lesson)
                 .WithMany()
                 .HasForeignKey(e => e.LessonId)
-                .OnDelete(DeleteBehavior.SetNull);  // SetNull because lesson context is optional
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Unique constraint: SessionId must be unique
             entity.HasIndex(e => e.SessionId)

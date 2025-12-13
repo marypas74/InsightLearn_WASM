@@ -35,8 +35,9 @@ namespace InsightLearn.Core.Interfaces
 
         /// <summary>
         /// Create new conversation (SQL metadata + MongoDB collection).
+        /// UserId can be null for anonymous users (free lessons).
         /// </summary>
-        Task<AIConversation> CreateConversationAsync(Guid userId, Guid? lessonId = null, int? videoTimestamp = null, CancellationToken ct = default);
+        Task<AIConversation> CreateConversationAsync(Guid? userId, Guid? lessonId = null, int? videoTimestamp = null, CancellationToken ct = default);
 
         /// <summary>
         /// Add message to conversation (MongoDB + update SQL metadata).
