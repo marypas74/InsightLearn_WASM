@@ -7,6 +7,53 @@
     <title>InsightLearn - Online Learning Platform | 500+ Courses</title>
     <base href="/" />
 
+    <!-- ==========================================================================
+         GOOGLE ANALYTICS 4 (GA4) - SEO Tracking
+         Replace G-XXXXXXXXXX with your actual GA4 Measurement ID
+         Setup: https://analytics.google.com/ > Admin > Data Streams > Web
+         ========================================================================== -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX', {
+            'page_title': document.title,
+            'page_location': window.location.href,
+            'send_page_view': true
+        });
+
+        // Track course views, enrollments, and conversions
+        function trackCourseView(courseId, courseName, category) {
+            gtag('event', 'view_item', {
+                'currency': 'EUR',
+                'items': [{
+                    'item_id': courseId,
+                    'item_name': courseName,
+                    'item_category': category
+                }]
+            });
+        }
+
+        function trackEnrollment(courseId, courseName, price) {
+            gtag('event', 'purchase', {
+                'currency': 'EUR',
+                'value': price,
+                'items': [{
+                    'item_id': courseId,
+                    'item_name': courseName
+                }]
+            });
+        }
+    </script>
+
+    <!-- ==========================================================================
+         GOOGLE SEARCH CONSOLE VERIFICATION
+         Replace VERIFICATION_CODE with your GSC verification code
+         Setup: https://search.google.com/search-console > Add property
+         ========================================================================== -->
+    <meta name="google-site-verification" content="VERIFICATION_CODE" />
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="Learn coding, business, design and creative skills with InsightLearn. Access 500+ expert-led courses, interactive lessons, and AI-powered learning tools. Start your learning journey today!" />
     <meta name="keywords" content="online courses, e-learning, programming, web development, business skills, design courses, AI learning, video tutorials, InsightLearn" />
@@ -398,7 +445,7 @@
     <link rel="stylesheet" href="css/cart.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/checkout.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/video-components.css" media="print" onload="this.media='all'" />
-    <link rel="stylesheet" href="css/learning-space.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/learning-space-v3.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/pricing.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/account-subscription.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/instructor-earnings.css" media="print" onload="this.media='all'" />

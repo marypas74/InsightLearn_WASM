@@ -15,10 +15,15 @@
         ThumbnailUrl="/images/course.jpg"
         Rating="4.8"
         ReviewCount="1250"
-        Duration="PT40H" />
+        Duration="PT40H"
+        VideoPreviewUrl="/api/video/stream/preview-123"
+        VideoDuration="PT2M30S"
+        TotalLessons="120"
+        TotalStudents="5000" />
 
     Created: 2025-12-07
-    Version: 1.0
+    Updated: 2025-12-12 - Added VideoObject, enhanced for competitor parity
+    Version: 2.0
 *@
 
 @using Microsoft.AspNetCore.Components.Web
@@ -115,6 +120,36 @@
     /// </summary>
     [Parameter]
     public bool IsFree { get; set; } = false;
+
+    /// <summary>
+    /// Video preview URL for course trailer (enables VideoObject rich snippet)
+    /// </summary>
+    [Parameter]
+    public string VideoPreviewUrl { get; set; } = "";
+
+    /// <summary>
+    /// Video preview duration in ISO 8601 format (e.g., PT2M30S for 2 min 30 sec)
+    /// </summary>
+    [Parameter]
+    public string VideoDuration { get; set; } = "";
+
+    /// <summary>
+    /// Total number of lessons in the course
+    /// </summary>
+    [Parameter]
+    public string TotalLessons { get; set; } = "";
+
+    /// <summary>
+    /// Total number of enrolled students
+    /// </summary>
+    [Parameter]
+    public string TotalStudents { get; set; } = "";
+
+    /// <summary>
+    /// Course upload/publish date (ISO 8601 format)
+    /// </summary>
+    [Parameter]
+    public string PublishDate { get; set; } = "";
 
     private string GenerateJsonLd()
     {
@@ -233,6 +268,70 @@
         course["isAccessibleForFree"] = IsFree;
         course["coursePrerequisites"] = "No prior experience required";
         course["teaches"] = CourseName;
+
+        // Total Lessons (numberOfLessons)
+        if (!string.IsNullOrWhiteSpace(TotalLessons) && int.TryParse(TotalLessons, out var lessonCount))
+        {
+            course["numberOfLessons"] = lessonCount;
+        }
+
+        // Total Students (interactionStatistic - Udemy/Coursera pattern)
+        if (!string.IsNullOrWhiteSpace(TotalStudents) && int.TryParse(TotalStudents, out var studentCount))
+        {
+            course["interactionStatistic"] = new Dictionary<string, object>
+            {
+                ["@type"] = "InteractionCounter",
+                ["interactionType"] = "https://schema.org/EnrollAction",
+                ["userInteractionCount"] = studentCount
+            };
+        }
+
+        // Publish Date
+        if (!string.IsNullOrWhiteSpace(PublishDate))
+        {
+            course["datePublished"] = PublishDate;
+            course["dateModified"] = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        }
+
+        // VideoObject for course preview/trailer (enables Video rich snippets in SERP)
+        if (!string.IsNullOrWhiteSpace(VideoPreviewUrl))
+        {
+            var video = new Dictionary<string, object>
+            {
+                ["@type"] = "VideoObject",
+                ["name"] = $"{CourseName} - Course Preview",
+                ["description"] = $"Preview video for {CourseName}. {CourseDescription}".Substring(0, Math.Min(200, ($"Preview video for {CourseName}. {CourseDescription}").Length)),
+                ["contentUrl"] = GetAbsoluteUrl(VideoPreviewUrl),
+                ["embedUrl"] = GetAbsoluteUrl(VideoPreviewUrl),
+                ["uploadDate"] = !string.IsNullOrWhiteSpace(PublishDate) ? PublishDate : DateTime.UtcNow.ToString("yyyy-MM-dd")
+            };
+
+            // Video thumbnail
+            if (!string.IsNullOrWhiteSpace(ThumbnailUrl))
+            {
+                video["thumbnailUrl"] = GetAbsoluteUrl(ThumbnailUrl);
+            }
+
+            // Video duration
+            if (!string.IsNullOrWhiteSpace(VideoDuration))
+            {
+                video["duration"] = VideoDuration;
+            }
+
+            // Video interaction count (same as students for preview)
+            if (!string.IsNullOrWhiteSpace(TotalStudents) && int.TryParse(TotalStudents, out var viewCount))
+            {
+                video["interactionStatistic"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "InteractionCounter",
+                    ["interactionType"] = "https://schema.org/WatchAction",
+                    ["userInteractionCount"] = viewCount
+                };
+            }
+
+            // Add video to course
+            course["video"] = video;
+        }
 
         return JsonSerializer.Serialize(course, new JsonSerializerOptions
         {

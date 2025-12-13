@@ -12,7 +12,8 @@ namespace InsightLearn.WebAssembly.Services.LearningSpace;
 public class VideoTranscriptClientService : IVideoTranscriptClientService
 {
     private readonly IApiClient _apiClient;
-    private const string BaseEndpoint = "/api/video-transcripts";
+    // v2.1.0-dev: Fixed endpoint to match backend (/api/transcripts instead of /api/video-transcripts)
+    private const string BaseEndpoint = "/api/transcripts";
 
     public VideoTranscriptClientService(IApiClient apiClient)
     {
@@ -26,7 +27,8 @@ public class VideoTranscriptClientService : IVideoTranscriptClientService
 
     public async Task<ApiResponse<object>> QueueGenerationAsync(QueueTranscriptDto dto)
     {
-        return await _apiClient.PostAsync<object>($"{BaseEndpoint}/generate", dto);
+        // Backend uses /api/transcripts/{lessonId}/generate
+        return await _apiClient.PostAsync<object>($"{BaseEndpoint}/{dto.LessonId}/generate", dto);
     }
 
     public async Task<ApiResponse<TranscriptStatusDto>> GetStatusAsync(Guid lessonId)

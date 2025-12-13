@@ -37,35 +37,33 @@ else if (errorMessage != null)
 else if (lesson != null && course != null)
 {
     <div class="learning-space-container">
-        <!-- Top Navigation Bar -->
+        <!-- Top Navigation Bar - LinkedIn Learning Style -->
         <nav class="learning-navbar">
-            <div class="navbar-content">
+            <div class="navbar-left">
                 <button class="btn-back" @onclick="BackToCourse" title="Back to course">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <div class="course-info">
                     <h1 class="course-title">@course.Title</h1>
-                    <span class="lesson-progress">Lesson @currentLessonIndex of @totalLessons</span>
                 </div>
-                <div class="navbar-actions">
-                    @if (hasPreviousLesson)
-                    {
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="NavigateToPreviousLesson">
-                            <i class="fas fa-chevron-left"></i> Previous
-                        </button>
-                    }
-                    @if (hasNextLesson)
-                    {
-                        <button class="btn btn-sm btn-primary" @onclick="NavigateToNextLesson">
-                            Next <i class="fas fa-chevron-right"></i>
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-success" @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
-                            <i class="fas fa-check-circle"></i> Complete Course
-                        </button>
-                    }
+            </div>
+            <div class="navbar-center">
+                <span class="lesson-counter">@currentLessonIndex / @totalLessons</span>
+            </div>
+            <div class="navbar-right">
+                <div class="nav-buttons">
+                    <button class="nav-btn prev @(!hasPreviousLesson ? "disabled" : "")"
+                            @onclick="NavigateToPreviousLesson"
+                            disabled="@(!hasPreviousLesson)"
+                            title="Previous lesson">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="nav-btn next @(!hasNextLesson ? "disabled" : "")"
+                            @onclick="NavigateToNextLesson"
+                            disabled="@(!hasNextLesson)"
+                            title="@(hasNextLesson ? "Next lesson" : "Course completed")">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         </nav>
@@ -254,8 +252,8 @@ else if (lesson != null && course != null)
 
     // UI state
     private string activeTab = "notes";
-    private bool leftSidebarOpen = false;
-    private bool rightSidebarOpen = false;
+    private bool leftSidebarOpen = false; // MUST start closed for LinkedIn Learning style
+    private bool rightSidebarOpen = false; // MUST start closed for LinkedIn Learning style
 
     // Navigation state
     private int currentLessonIndex = 1;

@@ -1955,6 +1955,19 @@
    Removes main site header for distraction-free learning
    ======================================== */
 
+/* Learning Layout Root - replaces MainLayout completely */
+.learning-layout-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    background: #f8f9fa;
+    z-index: 99999; /* Above everything else */
+}
+
+/* Legacy support for old class name */
 .learning-layout {
     position: fixed;
     top: 0;
@@ -1963,6 +1976,21 @@
     bottom: 0;
     overflow: hidden;
     background: #f8f9fa;
+}
+
+/* CRITICAL: Hide ALL MainLayout elements when in learning layout */
+body:has(.learning-layout-root) .main-header,
+body:has(.learning-layout-root) .main-footer,
+body:has(.learning-layout-root) .main-layout,
+body:has(.learning-layout) .main-header,
+body:has(.learning-layout) .main-footer,
+body:has(.learning-layout) .main-layout {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -99999px !important;
 }
 
 /* Main Container */
@@ -1974,61 +2002,145 @@
     background: #f8f9fa;
 }
 
-/* Top Navigation Bar */
+/* Top Navigation Bar - LinkedIn Learning Style */
 .learning-navbar {
-    background: #ffffff;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    z-index: 1000;
-    flex-shrink: 0;
-}
-
-.navbar-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1.5rem;
-    max-width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    flex-shrink: 0;
+    height: 56px;
+    padding: 0 16px;
 }
 
-.btn-back {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: #666;
-    cursor: pointer;
-    padding: 0.5rem;
-    margin-right: 1rem;
-    transition: color 0.2s;
-}
-
-.btn-back:hover {
-    color: #0073b1;
-}
-
-.course-info {
+/* Left Section: Back + Course Title */
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex: 1;
     min-width: 0;
 }
 
+.btn-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-back:hover {
+    background: #f0f0f0;
+    color: #0073b1;
+}
+
+.course-info {
+    min-width: 0;
+    flex: 1;
+}
+
 .course-title {
-    font-size: 1.1rem;
+    font-size: 16px;
     font-weight: 600;
     color: #1a1a1a;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+/* Center Section: Lesson Counter */
+.navbar-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+}
+
+.lesson-counter {
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    background: #f5f5f5;
+    padding: 6px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* Right Section: Navigation Buttons */
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover:not(.disabled) {
+    background: #e0e0e0;
+    color: #0073b1;
+}
+
+.nav-btn.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.nav-btn.next:not(.disabled) {
+    background: #0073b1;
+    color: white;
+}
+
+.nav-btn.next:hover:not(.disabled) {
+    background: #005582;
+}
+
+/* Legacy classes for backward compatibility */
+.navbar-content {
+    display: contents;
 }
 
 .lesson-progress {
-    font-size: 0.85rem;
-    color: #666;
+    display: none;
 }
 
 .navbar-actions {
-    display: flex;
-    gap: 0.5rem;
+    display: none;
 }
 
 /* ========================================
@@ -2066,7 +2178,7 @@
 /* Sidebars - Fixed Overlay Style */
 .learning-sidebar {
     position: fixed !important;
-    top: 72px !important; /* Below navbar */
+    top: 56px !important; /* Below navbar (matches .learning-navbar height) */
     bottom: 0 !important;
     width: 320px;
     background: #ffffff;

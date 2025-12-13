@@ -1256,6 +1256,166 @@ app.MapGet("/api/info", () => Results.Ok(new
 }));
 
 // ============================================
+// SEO & SITEMAP ENDPOINTS
+// ============================================
+
+/// <summary>
+/// Dynamic sitemap for courses - generates XML sitemap with all published courses
+/// Implements Google Sitemap Protocol: https://www.sitemaps.org/protocol.html
+/// </summary>
+/// <returns>XML sitemap with course URLs, images, and metadata</returns>
+app.MapGet("/sitemap-courses.xml", async (
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        // Get all courses (API already filters by published status)
+        var courseList = await courseService.GetCoursesAsync(1, 1000); // Max 1000 courses per sitemap
+        var courses = courseList.Courses.ToList();
+
+        var baseUrl = "https://wasm.insightlearn.cloud";
+        var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"");
+        sb.AppendLine("        xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\">");
+
+        foreach (var course in courses)
+        {
+            sb.AppendLine("  <url>");
+            sb.AppendLine($"    <loc>{baseUrl}/courses/{course.Id}</loc>");
+            sb.AppendLine($"    <lastmod>{today}</lastmod>");
+            sb.AppendLine("    <changefreq>weekly</changefreq>");
+            sb.AppendLine("    <priority>0.8</priority>");
+
+            // Add course thumbnail as image
+            if (!string.IsNullOrWhiteSpace(course.ThumbnailUrl))
+            {
+                var imageUrl = course.ThumbnailUrl.StartsWith("http")
+                    ? course.ThumbnailUrl
+                    : $"{baseUrl}/{course.ThumbnailUrl.TrimStart('/')}";
+                sb.AppendLine("    <image:image>");
+                sb.AppendLine($"      <image:loc>{System.Security.SecurityElement.Escape(imageUrl)}</image:loc>");
+                sb.AppendLine($"      <image:title>{System.Security.SecurityElement.Escape(course.Title)}</image:title>");
+                if (!string.IsNullOrWhiteSpace(course.ShortDescription))
+                {
+                    sb.AppendLine($"      <image:caption>{System.Security.SecurityElement.Escape(course.ShortDescription.Substring(0, Math.Min(200, course.ShortDescription.Length)))}</image:caption>");
+                }
+                sb.AppendLine("    </image:image>");
+            }
+
+            sb.AppendLine("  </url>");
+        }
+
+        sb.AppendLine("</urlset>");
+
+        var courseCount = courses.Count;
+        logger.LogInformation("[SEO] Generated dynamic sitemap with {CourseCount} courses", courseCount);
+
+        return Results.Content(sb.ToString(), "application/xml; charset=utf-8");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SEO] Error generating courses sitemap");
+        return Results.Problem("Error generating sitemap", statusCode: 500);
+    }
+})
+.WithName("GetCoursesSitemap")
+.WithTags("SEO")
+.AllowAnonymous()
+.Produces(200)
+.Produces(500);
+
+/// <summary>
+/// Dynamic sitemap index - references all available sitemaps
+/// Useful when course count exceeds 50,000 (Google limit per sitemap)
+/// </summary>
+app.MapGet("/sitemap-index.xml", async (
+    [FromServices] ILogger<Program> logger) =>
+{
+    var baseUrl = "https://wasm.insightlearn.cloud";
+
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    sb.AppendLine("<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+
+    // Main static sitemap
+    sb.AppendLine("  <sitemap>");
+    sb.AppendLine($"    <loc>{baseUrl}/sitemap.xml</loc>");
+    sb.AppendLine($"    <lastmod>{DateTime.UtcNow:yyyy-MM-dd}</lastmod>");
+    sb.AppendLine("  </sitemap>");
+
+    // Dynamic courses sitemap
+    sb.AppendLine("  <sitemap>");
+    sb.AppendLine($"    <loc>{baseUrl}/sitemap-courses.xml</loc>");
+    sb.AppendLine($"    <lastmod>{DateTime.UtcNow:yyyy-MM-dd}</lastmod>");
+    sb.AppendLine("  </sitemap>");
+
+    sb.AppendLine("</sitemapindex>");
+
+    logger.LogInformation("[SEO] Generated sitemap index");
+
+    return Results.Content(sb.ToString(), "application/xml; charset=utf-8");
+})
+.WithName("GetSitemapIndex")
+.WithTags("SEO")
+.AllowAnonymous()
+.Produces(200);
+
+/// <summary>
+/// IndexNow API - Notify search engines of new/updated URLs (Bing, Yandex, Seznam, Naver)
+/// </summary>
+app.MapPost("/api/seo/indexnow", async (
+    [FromBody] IndexNowRequest request,
+    [FromServices] ILogger<Program> logger,
+    HttpClient httpClient) =>
+{
+    try
+    {
+        var indexNowKey = "ebd57a262cfe8ff8de852eba65288c19";
+        var host = "wasm.insightlearn.cloud";
+
+        var payload = new
+        {
+            host = host,
+            key = indexNowKey,
+            urlList = request.Urls ?? new[] { request.Url ?? "" }
+        };
+
+        var jsonContent = System.Text.Json.JsonSerializer.Serialize(payload);
+        var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+        // Send to IndexNow API (all major search engines use same endpoint)
+        var response = await httpClient.PostAsync("https://api.indexnow.org/indexnow", httpContent);
+
+        logger.LogInformation("[SEO] IndexNow notification sent for {Count} URLs, Status: {Status}",
+            request.Urls?.Length ?? 1, response.StatusCode);
+
+        return Results.Ok(new
+        {
+            success = response.IsSuccessStatusCode,
+            statusCode = (int)response.StatusCode,
+            urlsSubmitted = request.Urls?.Length ?? 1,
+            message = response.IsSuccessStatusCode
+                ? "URLs submitted for indexing"
+                : "IndexNow submission failed"
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SEO] Error sending IndexNow notification");
+        return Results.Problem("Error submitting to IndexNow", statusCode: 500);
+    }
+})
+.WithName("SubmitIndexNow")
+.WithTags("SEO")
+.RequireAuthorization("AdminOnly")
+.Produces(200)
+.Produces(500);
+
+// ============================================
 // AUTHENTICATION API ENDPOINTS
 // ============================================
 
@@ -1779,9 +1939,12 @@ app.MapPost("/api/video/upload", async (
 // Note: Request size limit (500MB for videos) configured globally in Kestrel options (CRIT-2)
 
 // Stream video (Students + Instructors)
+// VIDEO STREAMING FIX (2025-12-11): Use DownloadVideoWithLengthAsync for proper Range request support
+// Returns seekable stream with known Content-Length for HTTP 206 Partial Content
 app.MapGet("/api/video/stream/{fileId}", async (
     [FromRoute] string fileId,
     [FromQuery] string? quality,
+    HttpContext httpContext,
     [FromServices] IMongoVideoStorageService mongoStorage,
     [FromServices] ILogger<Program> logger) =>
 {
@@ -1789,9 +1952,18 @@ app.MapGet("/api/video/stream/{fileId}", async (
     {
         logger.LogInformation("[VIDEO] Streaming video: {FileId} (quality: {Quality})", fileId, quality ?? "original");
 
-        var videoStream = await mongoStorage.DownloadVideoAsync(fileId);
+        // Get seekable stream with content length for Range request support
+        var (videoStream, contentLength) = await mongoStorage.DownloadVideoWithLengthAsync(fileId);
         var metadata = await mongoStorage.GetVideoMetadataAsync(fileId);
 
+        logger.LogInformation("[VIDEO] Stream ready: {FileId}, Size: {Size}MB, Seekable: {Seekable}, ContentType: {ContentType}",
+            fileId, contentLength / 1024.0 / 1024.0, videoStream.CanSeek, metadata.ContentType);
+
+        // Explicitly set Accept-Ranges header for browser compatibility
+        httpContext.Response.Headers["Accept-Ranges"] = "bytes";
+
+        // Use Results.Stream with enableRangeProcessing for HTTP 206 Partial Content support
+        // This enables video seeking/scrubbing in all browsers including Safari
         return Results.Stream(videoStream, metadata.ContentType, enableRangeProcessing: true);
     }
     catch (FileNotFoundException ex)
@@ -5783,6 +5955,7 @@ app.MapPost("/api/notes/{id:guid}/toggle-bookmark", async (
 // Uses IAIChatService with conversation persistence and transcript enrichment
 
 // POST /api/ai-chat/message - Send message with context
+// v2.1.0-dev: Allows anonymous access for free lessons using sessionId for tracking
 app.MapPost("/api/ai-chat/message", async (
     [FromBody] AIChatMessageDto messageDto,
     [FromServices] IAIChatService chatService,
@@ -5791,16 +5964,32 @@ app.MapPost("/api/ai-chat/message", async (
 {
     try
     {
-        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+        // Try to get authenticated user ID, fallback to anonymous GUID based on sessionId
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid userId;
 
-        logger.LogInformation("[AI_CHAT] Processing message from user {UserId}", userId);
+        if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+            logger.LogInformation("[AI_CHAT] Processing message from authenticated user {UserId}", userId);
+        }
+        else if (messageDto.SessionId.HasValue)
+        {
+            // Anonymous user - use sessionId as deterministic userId for tracking
+            // This ensures conversation history is maintained for the session
+            userId = messageDto.SessionId.Value;
+            logger.LogInformation("[AI_CHAT] Processing message from anonymous session {SessionId}", messageDto.SessionId);
+        }
+        else
+        {
+            // No auth and no sessionId - generate new session for anonymous user
+            userId = Guid.NewGuid();
+            logger.LogInformation("[AI_CHAT] Processing message from new anonymous user {UserId}", userId);
+        }
+
         var response = await chatService.SendMessageAsync(userId, messageDto);
 
         return Results.Ok(response);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
     }
     catch (Exception ex)
     {
@@ -5808,7 +5997,6 @@ app.MapPost("/api/ai-chat/message", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("SendAIChatMessage")
 .WithTags("AI Chat")
 .Produces<AIChatResponseDto>(200)
@@ -5816,6 +6004,7 @@ app.MapPost("/api/ai-chat/message", async (
 .Produces(500);
 
 // GET /api/ai-chat/history?sessionId={id}&limit={n} - Get chat history
+// v2.1.0-dev: Allows anonymous access - sessionId is used for ownership verification
 app.MapGet("/api/ai-chat/history", async (
     [FromQuery] Guid sessionId,
     [FromQuery] int? limit,
@@ -5825,7 +6014,11 @@ app.MapGet("/api/ai-chat/history", async (
 {
     try
     {
-        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+        // Get userId from claim or use sessionId for anonymous users
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid userId = !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId)
+            ? parsedUserId
+            : sessionId; // Anonymous: sessionId serves as userId
 
         logger.LogInformation("[AI_CHAT] Getting history for session {SessionId}", sessionId);
         var history = await chatService.GetHistoryAsync(sessionId, limit ?? 50);
@@ -5833,15 +6026,11 @@ app.MapGet("/api/ai-chat/history", async (
         if (history == null)
             return Results.NotFound($"Session {sessionId} not found");
 
-        // Verify ownership
-        if (history.UserId != userId)
+        // Verify ownership (for anonymous, sessionId == userId so this always passes)
+        if (history.UserId != userId && history.UserId != sessionId)
             return Results.Unauthorized();
 
         return Results.Ok(history);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
     }
     catch (Exception ex)
     {
@@ -5849,7 +6038,6 @@ app.MapGet("/api/ai-chat/history", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("GetAIChatHistory")
 .WithTags("AI Chat")
 .Produces<AIConversationHistoryDto>(200)
@@ -5858,6 +6046,7 @@ app.MapGet("/api/ai-chat/history", async (
 .Produces(500);
 
 // POST /api/ai-chat/sessions/{sessionId}/end - End chat session
+// v2.1.0-dev: Allows anonymous access using sessionId as userId
 app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
     Guid sessionId,
     [FromServices] IAIChatService chatService,
@@ -5866,16 +6055,16 @@ app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
 {
     try
     {
-        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+        // Get userId from claim or use sessionId for anonymous users
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid userId = !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId)
+            ? parsedUserId
+            : sessionId; // Anonymous: sessionId serves as userId
 
         logger.LogInformation("[AI_CHAT] Ending session {SessionId} for user {UserId}", sessionId, userId);
         await chatService.EndSessionAsync(userId, sessionId);
 
         return Results.Ok(new { message = "Session ended successfully", sessionId });
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
     }
     catch (KeyNotFoundException ex)
     {
@@ -5887,7 +6076,6 @@ app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("EndChatSession")
 .WithTags("AI Chat")
 .Produces(200)
@@ -5895,9 +6083,11 @@ app.MapPost("/api/ai-chat/sessions/{sessionId:guid}/end", async (
 .Produces(404)
 .Produces(500);
 
-// GET /api/ai-chat/sessions?lessonId={id} - List sessions for lesson
+// GET /api/ai-chat/sessions?lessonId={id}&sessionId={id} - List sessions for lesson
+// v2.1.0-dev: Allows anonymous access - requires sessionId for anonymous users
 app.MapGet("/api/ai-chat/sessions", async (
     [FromQuery] Guid? lessonId,
+    [FromQuery] Guid? sessionId,
     [FromQuery] int? limit,
     [FromServices] IAIChatService chatService,
     [FromServices] ILogger<Program> logger,
@@ -5905,16 +6095,29 @@ app.MapGet("/api/ai-chat/sessions", async (
 {
     try
     {
-        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException());
+        // Get userId from claim or use sessionId for anonymous users
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid userId;
+
+        if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+        }
+        else if (sessionId.HasValue)
+        {
+            // Anonymous: use sessionId as userId
+            userId = sessionId.Value;
+        }
+        else
+        {
+            // No authentication and no sessionId provided
+            return Results.BadRequest("SessionId required for anonymous access");
+        }
 
         logger.LogInformation("[AI_CHAT] Getting sessions for user {UserId}, lessonId: {LessonId}", userId, lessonId);
         var sessions = await chatService.GetSessionsAsync(userId, lessonId, limit ?? 50);
 
         return Results.Ok(sessions);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
     }
     catch (Exception ex)
     {
@@ -5922,7 +6125,6 @@ app.MapGet("/api/ai-chat/sessions", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("GetChatSessions")
 .WithTags("AI Chat")
 .Produces<IEnumerable<AISessionSummaryDto>>(200)
@@ -6366,3 +6568,14 @@ Console.WriteLine($"Chatbot enabled with model: {ollamaModel}");
 Console.WriteLine($"Ollama URL: {ollamaUrl}");
 
 app.Run();
+
+// ============================================
+// SEO REQUEST DTOs
+// ============================================
+
+/// <summary>
+/// Request body for IndexNow API submission
+/// </summary>
+/// <param name="Url">Single URL to submit (optional if Urls provided)</param>
+/// <param name="Urls">Array of URLs to submit (optional if Url provided)</param>
+public record IndexNowRequest(string? Url, string[]? Urls);

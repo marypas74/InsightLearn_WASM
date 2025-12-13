@@ -6,11 +6,18 @@
 
    This layout removes the main site header to provide a
    distraction-free, LinkedIn Learning-style experience.
+
+   CRITICAL: This is a ROOT layout that replaces MainLayout completely.
+   No header, no footer - just the learning content.
 *@
 
-<div class="learning-layout">
+<div class="learning-layout-root">
     @Body
 </div>
 
 @* Cookie consent is still needed for compliance *@
 <InsightLearn.WebAssembly.Components.CookieConsentWall />
+
+@code {
+    // This is a minimal root layout - no shared components
+}

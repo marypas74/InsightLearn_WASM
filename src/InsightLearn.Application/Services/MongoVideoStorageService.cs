@@ -11,6 +11,7 @@ public interface IMongoVideoStorageService
 {
     Task<VideoUploadResult> UploadVideoAsync(Stream videoStream, string fileName, string contentType, Guid lessonId);
     Task<Stream> DownloadVideoAsync(string fileId);
+    Task<(Stream Stream, long ContentLength)> DownloadVideoWithLengthAsync(string fileId);
     Task<bool> DeleteVideoAsync(string fileId);
     Task<VideoMetadata> GetVideoMetadataAsync(string fileId);
 }
@@ -82,35 +83,29 @@ public class MongoVideoStorageService : IMongoVideoStorageService
         {
             _logger.LogInformation("Starting video upload: {FileName} for lesson {LessonId}", fileName, lessonId);
 
-            var originalSize = videoStream.Length;
+            var fileSize = videoStream.Length;
 
-            // Create compressed stream
-            using var compressedStream = new MemoryStream();
-            using (var gzipStream = new GZipStream(compressedStream, _compressionLevel, leaveOpen: true))
-            {
-                await videoStream.CopyToAsync(gzipStream);
-            }
+            // VIDEO STREAMING FIX (2025-12-11): Upload without GZip compression
+            // Video codecs (H.264, H.265, VP9) are already heavily compressed
+            // GZip adds minimal benefit (~2-5%) while breaking seekability
+            // Uncompressed uploads enable:
+            // - HTTP Range requests (206 Partial Content) for seeking
+            // - Safari video playback compatibility
+            // - Faster streaming (no decompression overhead)
 
-            compressedStream.Position = 0;
-            var compressedSize = compressedStream.Length;
-
-            // Calculate compression ratio
-            var compressionRatio = originalSize > 0
-                ? (double)(originalSize - compressedSize) / originalSize * 100
-                : 0;
-
-            // Store metadata
+            // Store metadata (no compression)
             var metadata = new BsonDocument
             {
                 { "lessonId", lessonId.ToString() },
-                { "originalSize", originalSize },
-                { "compressedSize", compressedSize },
+                { "originalSize", fileSize },
+                { "compressedSize", fileSize },  // Same size - no compression
                 { "contentType", contentType },
                 { "format", Path.GetExtension(fileName).TrimStart('.').ToLower() },
-                { "compressed", true },
-                { "compressionType", "gzip" },
-                { "compressionRatio", compressionRatio },
-                { "uploadDate", DateTime.UtcNow }
+                { "compressed", false },  // Mark as uncompressed for streaming
+                { "compressionType", "none" },
+                { "compressionRatio", 0.0 },
+                { "uploadDate", DateTime.UtcNow },
+                { "seekable", true }  // Explicitly mark as seekable for Range requests
             };
 
             var uploadOptions = new GridFSUploadOptions
@@ -118,27 +113,27 @@ public class MongoVideoStorageService : IMongoVideoStorageService
                 Metadata = metadata
             };
 
-            // Upload compressed video to GridFS
+            // Upload video directly to GridFS (no compression)
             var fileId = await _gridFsBucket.UploadFromStreamAsync(
                 fileName,
-                compressedStream,
+                videoStream,
                 uploadOptions
             );
 
             _logger.LogInformation(
-                "Video uploaded successfully: {FileName} (FileId: {FileId}) - Original: {OriginalSize}MB, Compressed: {CompressedSize}MB, Ratio: {Ratio:F2}%",
-                fileName, fileId.ToString(), originalSize / 1024.0 / 1024.0, compressedSize / 1024.0 / 1024.0, compressionRatio
+                "Video uploaded successfully (uncompressed): {FileName} (FileId: {FileId}) - Size: {Size}MB",
+                fileName, fileId.ToString(), fileSize / 1024.0 / 1024.0
             );
 
             return new VideoUploadResult
             {
                 FileId = fileId.ToString(),
                 FileName = fileName,
-                FileSize = originalSize,
-                CompressedSize = compressedSize,
+                FileSize = fileSize,
+                CompressedSize = fileSize,  // Same size - no compression
                 Format = Path.GetExtension(fileName).TrimStart('.').ToLower(),
                 UploadDate = DateTime.UtcNow,
-                CompressionRatio = compressionRatio
+                CompressionRatio = 0  // No compression
             };
         }
         catch (Exception ex)
@@ -154,10 +149,7 @@ public class MongoVideoStorageService : IMongoVideoStorageService
         {
             var objectId = ObjectId.Parse(fileId);
 
-            // Download compressed stream from GridFS
-            var compressedStream = await _gridFsBucket.OpenDownloadStreamAsync(objectId);
-
-            // Get metadata to check if file is compressed
+            // Get metadata first to check compression status
             var fileInfo = await _gridFsBucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq("_id", objectId));
             var file = await fileInfo.FirstOrDefaultAsync();
 
@@ -166,24 +158,94 @@ public class MongoVideoStorageService : IMongoVideoStorageService
                 throw new FileNotFoundException($"Video file not found: {fileId}");
             }
 
-            // PERFORMANCE FIX (PERF-5): Return GZipStream directly for on-the-fly decompression
-            // Previous implementation loaded entire video into memory (500MB video = 500MB RAM)
-            // New implementation streams decompression as data is read (constant memory ~4-8MB)
+            // VIDEO STREAMING FIX (2025-12-11): Use seekable stream for Range request support
+            // GZipStream is NOT seekable, breaking Safari and browser seeking functionality
+            // Solution: Use GridFSDownloadOptions { Seekable = true } for uncompressed videos
+            // For legacy compressed videos: decompress to MemoryStream first (seekable)
+
             if (file.Metadata.Contains("compressed") && file.Metadata["compressed"].AsBoolean)
             {
-                _logger.LogDebug("Streaming compressed video with on-the-fly decompression: {FileId}", fileId);
+                _logger.LogDebug("Decompressing legacy compressed video to seekable stream: {FileId}", fileId);
 
-                // Return GZipStream directly - decompresses as data is read (chunked streaming)
-                // leaveOpen: false ensures underlying compressedStream is disposed when GZipStream is disposed
-                return new GZipStream(compressedStream, CompressionMode.Decompress, leaveOpen: false);
+                // Legacy compressed video - decompress to MemoryStream for seekability
+                var compressedStream = await _gridFsBucket.OpenDownloadStreamAsync(objectId);
+                var decompressedStream = new MemoryStream();
+
+                using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+                {
+                    await gzipStream.CopyToAsync(decompressedStream);
+                }
+
+                decompressedStream.Position = 0;
+                _logger.LogDebug("Video decompressed: {FileId}, Size: {Size}MB", fileId, decompressedStream.Length / 1024.0 / 1024.0);
+                return decompressedStream;
             }
 
-            _logger.LogDebug("Streaming uncompressed video: {FileId}", fileId);
-            return compressedStream;
+            // Uncompressed video - use seekable GridFS stream
+            _logger.LogDebug("Streaming uncompressed video with seekable stream: {FileId}", fileId);
+            var options = new GridFSDownloadOptions { Seekable = true };
+            return await _gridFsBucket.OpenDownloadStreamAsync(objectId, options);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download video: {FileId}", fileId);
+            throw;
+        }
+    }
+
+    public async Task<(Stream Stream, long ContentLength)> DownloadVideoWithLengthAsync(string fileId)
+    {
+        try
+        {
+            var objectId = ObjectId.Parse(fileId);
+
+            // Get metadata to determine content length and compression status
+            var fileInfo = await _gridFsBucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq("_id", objectId));
+            var file = await fileInfo.FirstOrDefaultAsync();
+
+            if (file == null)
+            {
+                throw new FileNotFoundException($"Video file not found: {fileId}");
+            }
+
+            // VIDEO STREAMING FIX (2025-12-11): Return seekable stream with accurate content length
+            // This enables HTTP Range requests (206 Partial Content) required for:
+            // - Safari video playback (mandatory)
+            // - Video seeking/scrubbing in all browsers
+            // - Resume interrupted downloads
+
+            if (file.Metadata.Contains("compressed") && file.Metadata["compressed"].AsBoolean)
+            {
+                _logger.LogDebug("Decompressing legacy compressed video: {FileId}", fileId);
+
+                // Legacy compressed video - decompress to MemoryStream
+                var compressedStream = await _gridFsBucket.OpenDownloadStreamAsync(objectId);
+                var decompressedStream = new MemoryStream();
+
+                using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+                {
+                    await gzipStream.CopyToAsync(decompressedStream);
+                }
+
+                decompressedStream.Position = 0;
+                var originalSize = file.Metadata.Contains("originalSize")
+                    ? file.Metadata["originalSize"].AsInt64
+                    : decompressedStream.Length;
+
+                _logger.LogDebug("Video decompressed: {FileId}, Size: {Size}MB", fileId, decompressedStream.Length / 1024.0 / 1024.0);
+                return (decompressedStream, decompressedStream.Length);
+            }
+
+            // Uncompressed video - use seekable GridFS stream with known length
+            _logger.LogDebug("Streaming uncompressed video: {FileId}, Size: {Size}MB", fileId, file.Length / 1024.0 / 1024.0);
+            var options = new GridFSDownloadOptions { Seekable = true };
+            var stream = await _gridFsBucket.OpenDownloadStreamAsync(objectId, options);
+
+            return (stream, file.Length);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download video with length: {FileId}", fileId);
             throw;
         }
     }

@@ -7,11 +7,13 @@ namespace InsightLearn.WebAssembly.Services.LearningSpace;
 /// <summary>
 /// Implementation of IVideoBookmarkClientService.
 /// Part of Student Learning Space v2.1.0.
+/// v2.1.0-dev: Fixed endpoint URLs to match backend (/api/bookmarks instead of /api/video-bookmarks)
 /// </summary>
 public class VideoBookmarkClientService : IVideoBookmarkClientService
 {
     private readonly IApiClient _apiClient;
-    private const string BaseEndpoint = "/api/video-bookmarks";
+    // v2.1.0-dev: Fixed endpoint to match backend (/api/bookmarks instead of /api/video-bookmarks)
+    private const string BaseEndpoint = "/api/bookmarks";
 
     public VideoBookmarkClientService(IApiClient apiClient)
     {
@@ -20,12 +22,19 @@ public class VideoBookmarkClientService : IVideoBookmarkClientService
 
     public async Task<ApiResponse<List<VideoBookmarkDto>>> GetBookmarksByLessonAsync(Guid lessonId)
     {
-        return await _apiClient.GetAsync<List<VideoBookmarkDto>>($"{BaseEndpoint}/lesson/{lessonId}");
+        // Backend uses query parameter: /api/bookmarks?lessonId={id}
+        return await _apiClient.GetAsync<List<VideoBookmarkDto>>($"{BaseEndpoint}?lessonId={lessonId}");
     }
 
     public async Task<ApiResponse<List<VideoBookmarkDto>>> GetAutoBookmarksAsync(Guid lessonId)
     {
-        return await _apiClient.GetAsync<List<VideoBookmarkDto>>($"{BaseEndpoint}/auto/{lessonId}");
+        // Note: Auto bookmarks endpoint not implemented in backend yet
+        // Return empty list as fallback
+        return new ApiResponse<List<VideoBookmarkDto>>
+        {
+            Success = true,
+            Data = new List<VideoBookmarkDto>()
+        };
     }
 
     public async Task<ApiResponse<VideoBookmarkDto>> CreateBookmarkAsync(CreateVideoBookmarkDto dto)
@@ -45,7 +54,12 @@ public class VideoBookmarkClientService : IVideoBookmarkClientService
 
     public async Task<ApiResponse<BookmarkExistsDto>> CheckExistsAsync(Guid lessonId, int videoTimestamp)
     {
-        return await _apiClient.GetAsync<BookmarkExistsDto>(
-            $"{BaseEndpoint}/check?lessonId={lessonId}&videoTimestamp={videoTimestamp}");
+        // Note: Check exists endpoint not implemented in backend yet
+        // Return false as fallback
+        return new ApiResponse<BookmarkExistsDto>
+        {
+            Success = true,
+            Data = new BookmarkExistsDto { Exists = false }
+        };
     }
 }

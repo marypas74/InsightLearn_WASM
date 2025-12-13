@@ -10,7 +10,8 @@ namespace InsightLearn.WebAssembly.Services.LearningSpace;
 public class StudentNoteClientService : IStudentNoteClientService
 {
     private readonly IApiClient _apiClient;
-    private const string BaseEndpoint = "/api/student-notes";
+    // v2.1.0-dev: Fixed endpoint to match backend (/api/notes instead of /api/student-notes)
+    private const string BaseEndpoint = "/api/notes";
 
     public StudentNoteClientService(IApiClient apiClient)
     {
@@ -19,7 +20,8 @@ public class StudentNoteClientService : IStudentNoteClientService
 
     public async Task<ApiResponse<List<StudentNoteDto>>> GetNotesByLessonAsync(Guid lessonId)
     {
-        return await _apiClient.GetAsync<List<StudentNoteDto>>($"{BaseEndpoint}/lesson/{lessonId}");
+        // Backend uses query parameter: /api/notes?lessonId={id}
+        return await _apiClient.GetAsync<List<StudentNoteDto>>($"{BaseEndpoint}?lessonId={lessonId}");
     }
 
     public async Task<ApiResponse<List<StudentNoteDto>>> GetBookmarkedNotesAsync()

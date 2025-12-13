@@ -1,55 +1,265 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
-    <!-- Homepage - Highest Priority -->
+    <!-- ============================================ -->
+    <!-- HOMEPAGE - Highest Priority -->
+    <!-- ============================================ -->
     <url>
         <loc>https://wasm.insightlearn.cloud/</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
+        <image:image>
+            <image:loc>https://wasm.insightlearn.cloud/images/hero-banner.webp</image:loc>
+            <image:title>InsightLearn - Professional Online Learning Platform</image:title>
+            <image:caption>Access 500+ expert-led courses in programming, business, design, and more</image:caption>
+        </image:image>
     </url>
 
-    <!-- Core Public Pages - High Priority -->
+    <!-- ============================================ -->
+    <!-- CORE PUBLIC PAGES - High Priority -->
+    <!-- ============================================ -->
     <url>
         <loc>https://wasm.insightlearn.cloud/courses</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
 
     <url>
         <loc>https://wasm.insightlearn.cloud/categories</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
         <loc>https://wasm.insightlearn.cloud/search</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
-    <!-- Legal/Policy Pages - Important for Trust -->
+    <!-- ============================================ -->
+    <!-- CATEGORY LANDING PAGES - Medium-High Priority -->
+    <!-- These help target long-tail keywords -->
+    <!-- ============================================ -->
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=web-development</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=data-science</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=business</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=design</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=programming</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=marketing</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=it-software</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?category=personal-development</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- ============================================ -->
+    <!-- INFORMATIONAL PAGES - Medium Priority -->
+    <!-- ============================================ -->
+    <url>
+        <loc>https://wasm.insightlearn.cloud/about</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/contact</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/faq</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/pricing</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/instructors</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/become-instructor</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <!-- ============================================ -->
+    <!-- SKILL-BASED LANDING PAGES - For Long-tail Keywords -->
+    <!-- ============================================ -->
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=python</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=javascript</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=react</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=machine-learning</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=sql</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?skill=ui-ux-design</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- ============================================ -->
+    <!-- LEVEL-BASED LANDING PAGES -->
+    <!-- ============================================ -->
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?level=beginner</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?level=intermediate</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?level=advanced</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- ============================================ -->
+    <!-- FREE COURSES PAGE - High conversion potential -->
+    <!-- ============================================ -->
+    <url>
+        <loc>https://wasm.insightlearn.cloud/courses?price=free</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- ============================================ -->
+    <!-- LEGAL/POLICY PAGES - Important for Trust Signals -->
+    <!-- ============================================ -->
     <url>
         <loc>https://wasm.insightlearn.cloud/privacy-policy</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
         <loc>https://wasm.insightlearn.cloud/cookie-policy</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
         <loc>https://wasm.insightlearn.cloud/terms-of-service</loc>
-        <lastmod>2025-12-06</lastmod>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/refund-policy</loc>
+        <lastmod>2025-12-12</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+
+    <url>
+        <loc>https://wasm.insightlearn.cloud/accessibility</loc>
+        <lastmod>2025-12-12</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
