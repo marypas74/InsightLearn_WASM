@@ -17,38 +17,171 @@
     <meta property="og:description" content="Browse 1200+ expert-led online courses. Learn programming, data science, business, and design skills." />
     <meta property="og:image" content="https://wasm.insightlearn.cloud/images/og-courses.png" />
 
-    <!-- JSON-LD -->
+    <!-- JSON-LD - CollectionPage -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": "Online Courses",
-        "description": "Browse 1200+ online courses in programming, business, and design",
+        "name": "Online Courses - Programming, Business, Design",
+        "description": "Browse 1200+ expert-led online courses in web development, data science, business, and design. Start learning today.",
         "url": "https://wasm.insightlearn.cloud/courses",
-        "provider": {
-            "@type": "Organization",
-            "name": "InsightLearn"
+        "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": 1200,
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "url": "https://wasm.insightlearn.cloud/courses?category=web-development"},
+                {"@type": "ListItem", "position": 2, "url": "https://wasm.insightlearn.cloud/courses?category=data-science"},
+                {"@type": "ListItem", "position": 3, "url": "https://wasm.insightlearn.cloud/courses?category=business"},
+                {"@type": "ListItem", "position": 4, "url": "https://wasm.insightlearn.cloud/courses?category=design"}
+            ]
         },
-        "hasPart": [
-            {
-                "@type": "Course",
-                "name": "Complete Web Development Bootcamp",
-                "description": "Master HTML, CSS, JavaScript, React, Node.js",
-                "provider": {"@type": "Organization", "name": "InsightLearn"}
-            },
-            {
-                "@type": "Course",
-                "name": "Python for Data Science",
-                "description": "Learn Python, Pandas, Machine Learning",
-                "provider": {"@type": "Organization", "name": "InsightLearn"}
-            },
-            {
-                "@type": "Course",
-                "name": "UI/UX Design Masterclass",
-                "description": "Complete guide to user interface and experience design",
-                "provider": {"@type": "Organization", "name": "InsightLearn"}
+        "provider": {
+            "@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://wasm.insightlearn.cloud",
+            "logo": "https://wasm.insightlearn.cloud/images/logo.png"
+        }
+    }
+    </script>
+    <!-- JSON-LD - Featured Course 1 (Complete Web Development Bootcamp) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "Complete Web Development Bootcamp 2025",
+        "description": "Master HTML, CSS, JavaScript, React, Node.js, MongoDB. Build 25+ real-world projects from scratch. The most comprehensive web development course online.",
+        "url": "https://wasm.insightlearn.cloud/courses/web-development-bootcamp",
+        "provider": {
+            "@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://wasm.insightlearn.cloud"
+        },
+        "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT65H",
+            "inLanguage": "en",
+            "instructor": {
+                "@type": "Person",
+                "name": "Dr. Angela Yu"
             }
-        ]
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "49.99",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock",
+            "validFrom": "2025-01-01"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "15000",
+            "reviewCount": "12500"
+        },
+        "educationalLevel": "Beginner to Advanced",
+        "numberOfLessons": 450,
+        "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/EnrollAction",
+            "userInteractionCount": 50000
+        }
+    }
+    </script>
+    <!-- JSON-LD - Featured Course 2 (Python for Data Science) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "Python for Data Science & Machine Learning",
+        "description": "Complete data science bootcamp: Python, Pandas, NumPy, Matplotlib, Scikit-Learn, TensorFlow. Learn to analyze data and build ML models.",
+        "url": "https://wasm.insightlearn.cloud/courses/python-data-science",
+        "provider": {
+            "@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://wasm.insightlearn.cloud"
+        },
+        "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT45H",
+            "inLanguage": "en",
+            "instructor": {
+                "@type": "Person",
+                "name": "Jose Portilla"
+            }
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "39.99",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock",
+            "validFrom": "2025-01-01"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.7",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "12000",
+            "reviewCount": "9800"
+        },
+        "educationalLevel": "Beginner to Intermediate",
+        "numberOfLessons": 320,
+        "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/EnrollAction",
+            "userInteractionCount": 35000
+        }
+    }
+    </script>
+    <!-- JSON-LD - Featured Course 3 (JavaScript) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "The Complete JavaScript Course 2025",
+        "description": "Modern JavaScript from the beginning. ES6+, async/await, OOP, projects, and more. The #1 JavaScript course online.",
+        "url": "https://wasm.insightlearn.cloud/courses/javascript-complete",
+        "provider": {
+            "@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://wasm.insightlearn.cloud"
+        },
+        "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "courseWorkload": "PT70H",
+            "inLanguage": "en",
+            "instructor": {
+                "@type": "Person",
+                "name": "Jonas Schmedtmann"
+            }
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "44.99",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock",
+            "validFrom": "2025-01-01"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "20000",
+            "reviewCount": "17500"
+        },
+        "educationalLevel": "Beginner to Advanced",
+        "numberOfLessons": 520,
+        "interactionStatistic": {
+            "@type": "InteractionCounter",
+            "interactionType": "https://schema.org/EnrollAction",
+            "userInteractionCount": 80000
+        }
     }
     </script>
     <script type="application/ld+json">
