@@ -235,6 +235,73 @@ window.videoPlayer = {
     },
 
     /**
+     * Set subtitle track by language code
+     * @param {string} videoId - Video element ID
+     * @param {string|null} language - Language code (e.g., "en", "it") or null to turn off subtitles
+     */
+    setSubtitle: function (videoId, language) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return;
+        }
+
+        const tracks = video.textTracks;
+        if (!tracks || tracks.length === 0) {
+            console.warn(`[VideoPlayer] No subtitle tracks available for ${videoId}`);
+            return;
+        }
+
+        // Disable all tracks first
+        for (let i = 0; i < tracks.length; i++) {
+            tracks[i].mode = 'disabled';
+        }
+
+        // If language is provided, enable the matching track
+        if (language) {
+            for (let i = 0; i < tracks.length; i++) {
+                if (tracks[i].language === language) {
+                    tracks[i].mode = 'showing';
+                    console.log(`[VideoPlayer] Subtitle track enabled: ${tracks[i].label} (${language})`);
+                    return;
+                }
+            }
+            console.warn(`[VideoPlayer] Subtitle track for language '${language}' not found`);
+        } else {
+            console.log(`[VideoPlayer] Subtitles turned off`);
+        }
+    },
+
+    /**
+     * Get available subtitle tracks
+     * @param {string} videoId - Video element ID
+     * @returns {Array} Array of available subtitle tracks with language and label
+     */
+    getSubtitleTracks: function (videoId) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return [];
+        }
+
+        const tracks = video.textTracks;
+        const result = [];
+
+        if (tracks) {
+            for (let i = 0; i < tracks.length; i++) {
+                result.push({
+                    language: tracks[i].language,
+                    label: tracks[i].label,
+                    kind: tracks[i].kind,
+                    mode: tracks[i].mode
+                });
+            }
+        }
+
+        return result;
+    },
+
+    /**
      * Dispose video player (cleanup event listeners)
      * @param {string} videoId - Video element ID
      */

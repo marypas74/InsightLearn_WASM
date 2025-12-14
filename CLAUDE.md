@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 🎛️ Admin Console v2.1.0-dev COMPLETE (2025-11-26) - 20+ admin pages with CreateCourse wizard & EditCourse editor
+**Latest Release**: 📹 VideoPlayer v2.1.0-dev ENHANCED (2025-12-14) - Subtitle/CC support, auto-resize, progress visibility
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -96,7 +96,7 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [GoogleSignInButton.razor](src/InsightLearn.WebAssembly/Components/GoogleSignInButton.razor) - OAuth Google login
 - [CookieConsent.razor](src/InsightLearn.WebAssembly/Components/CookieConsent.razor) - GDPR compliance
 - [AuthenticationStateHandler.razor](src/InsightLearn.WebAssembly/Components/AuthenticationStateHandler.razor) - Auth state management
-- [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming
+- [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming, **subtitle support** (WebVTT), auto-resize (`max-height: 60vh`)
 - [VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - Video upload placeholder (backend completo)
 
 **Student Learning Space Components** (v2.1.0 - ✅ COMPLETE):
@@ -3863,10 +3863,13 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ---
 
-### ✅ Recently Completed (2025-12-13)
+### ✅ Recently Completed (2025-12-14)
 
 | Feature | Expert | Status |
 |---------|--------|--------|
+| **VideoPlayer Subtitle Support** | Frontend Dev | ✅ Complete (2025-12-14) |
+| VideoPlayer Auto-resize (max-height: 60vh) | Frontend Dev | ✅ Complete (2025-12-14) |
+| VideoPlayer Progress Visibility Fix | Frontend Dev | ✅ Complete (2025-12-14) |
 | **AI Chat Anonymous User Support** | Backend Dev | ✅ Complete (2025-12-13) |
 | AI Chat UserId/LessonId Nullable | Backend Dev | ✅ Complete |
 | AI Chat Authorization Logic Fix | Backend Dev | ✅ Complete |

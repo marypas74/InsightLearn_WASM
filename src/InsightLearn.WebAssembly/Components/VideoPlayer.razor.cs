@@ -62,7 +62,19 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     /// </summary>
     [Parameter] public EventCallback OnVideoEnded { get; set; }
 
+    /// <summary>
+    /// List of subtitle tracks for the video.
+    /// </summary>
+    [Parameter] public List<SubtitleTrack>? SubtitleTracks { get; set; }
+
+    /// <summary>
+    /// Default subtitle language code (e.g., "en", "it", "es").
+    /// </summary>
+    [Parameter] public string? DefaultSubtitleLanguage { get; set; }
+
     private string videoId = $"video_{Guid.NewGuid():N}";
+    private string? selectedSubtitleLanguage;
+    private bool showSubtitleMenu = false;
     private string videoUrl = "";
     private string contentType = "video/mp4";
     private bool isLoading = true;
@@ -162,6 +174,34 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     private async Task RetryLoad()
     {
         await LoadVideo();
+    }
+
+    /// <summary>
+    /// Toggle subtitle menu visibility.
+    /// </summary>
+    private void ToggleSubtitleMenu()
+    {
+        showSubtitleMenu = !showSubtitleMenu;
+    }
+
+    /// <summary>
+    /// Select a subtitle track by language code, or null to turn off subtitles.
+    /// </summary>
+    private async Task SelectSubtitle(string? language)
+    {
+        selectedSubtitleLanguage = language;
+        showSubtitleMenu = false;
+
+        try
+        {
+            // Use JavaScript to enable/disable subtitle tracks
+            await JSRuntime.InvokeVoidAsync("videoPlayer.setSubtitle", videoId, language);
+            Logger.LogDebug("Subtitle changed to: {Language}", language ?? "Off");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting subtitle: {Language}", language);
+        }
     }
 
     /// <summary>
@@ -368,5 +408,37 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
         public double CurrentTime { get; set; }
         public double Duration { get; set; }
         public double Progress { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a subtitle/caption track for the video.
+    /// </summary>
+    public class SubtitleTrack
+    {
+        /// <summary>
+        /// URL to the subtitle file (WebVTT format recommended).
+        /// </summary>
+        public string Url { get; set; } = "";
+
+        /// <summary>
+        /// ISO 639-1 language code (e.g., "en", "it", "es", "fr").
+        /// </summary>
+        public string Language { get; set; } = "";
+
+        /// <summary>
+        /// Human-readable label (e.g., "English", "Italiano", "Español").
+        /// </summary>
+        public string Label { get; set; } = "";
+
+        /// <summary>
+        /// Kind of track: "subtitles", "captions", or "descriptions".
+        /// Default is "subtitles".
+        /// </summary>
+        public string Kind { get; set; } = "subtitles";
+
+        /// <summary>
+        /// Whether this track should be the default.
+        /// </summary>
+        public bool IsDefault { get; set; } = false;
     }
 }

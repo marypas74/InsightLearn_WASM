@@ -548,3 +548,165 @@
         transition: none;
     }
 }
+
+/* ========================================
+   SUBTITLE CONTROLS STYLES
+   ======================================== */
+
+.subtitle-controls {
+    position: absolute;
+    bottom: 60px;
+    right: 12px;
+    z-index: 10;
+}
+
+.btn-subtitle-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.btn-subtitle-toggle:hover {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: var(--color-red-500, #dc2626);
+    color: var(--color-red-500, #dc2626);
+    transform: scale(1.05);
+}
+
+.btn-subtitle-toggle:focus {
+    outline: 2px solid var(--color-red-500, #dc2626);
+    outline-offset: 2px;
+}
+
+/* Subtitle Menu Dropdown */
+.subtitle-menu {
+    position: absolute;
+    bottom: 50px;
+    right: 0;
+    min-width: 180px;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.subtitle-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subtitle-menu-header i {
+    font-size: 0.9rem;
+    color: var(--color-red-500, #dc2626);
+}
+
+/* Subtitle Options */
+.subtitle-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.subtitle-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.subtitle-option i {
+    font-size: 0.8rem;
+    opacity: 0;
+    color: var(--color-red-500, #dc2626);
+    transition: opacity 0.15s ease;
+}
+
+.subtitle-option.active {
+    background: rgba(220, 38, 38, 0.15);
+    color: white;
+}
+
+.subtitle-option.active i {
+    opacity: 1;
+}
+
+/* Off option special styling */
+.subtitle-option:first-of-type i {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.subtitle-option:first-of-type.active i {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .subtitle-controls {
+        bottom: 50px;
+        right: 8px;
+    }
+
+    .btn-subtitle-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .subtitle-menu {
+        min-width: 160px;
+        bottom: 45px;
+    }
+
+    .subtitle-menu-header {
+        padding: 10px 14px;
+        font-size: 0.7rem;
+    }
+
+    .subtitle-option {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    }
+}

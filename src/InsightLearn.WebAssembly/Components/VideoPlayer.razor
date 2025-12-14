@@ -70,10 +70,52 @@
                 class="video-element"
                 controls="@ShowControls"
                 autoplay="@AutoPlay"
-                preload="metadata">
+                preload="metadata"
+                crossorigin="anonymous">
                 <source src="@videoUrl" type="@contentType" />
+                @if (SubtitleTracks != null && SubtitleTracks.Any())
+                {
+                    @foreach (var track in SubtitleTracks)
+                    {
+                        <track kind="@track.Kind"
+                               src="@track.Url"
+                               srclang="@track.Language"
+                               label="@track.Label"
+                               default="@(track.IsDefault || track.Language == DefaultSubtitleLanguage)" />
+                    }
+                }
                 Your browser does not support the video tag.
             </video>
+
+            @* Subtitle selector control - shown when subtitles are available *@
+            @if (SubtitleTracks != null && SubtitleTracks.Any())
+            {
+                <div class="subtitle-controls">
+                    <button class="btn-subtitle-toggle" @onclick="ToggleSubtitleMenu" title="Subtitles/CC">
+                        <i class="fas fa-closed-captioning"></i>
+                    </button>
+                    @if (showSubtitleMenu)
+                    {
+                        <div class="subtitle-menu">
+                            <div class="subtitle-menu-header">
+                                <i class="fas fa-language"></i>
+                                <span>Subtitles</span>
+                            </div>
+                            <button class="subtitle-option @(selectedSubtitleLanguage == null ? "active" : "")"
+                                    @onclick="() => SelectSubtitle(null)">
+                                <i class="fas fa-times-circle"></i> Off
+                            </button>
+                            @foreach (var track in SubtitleTracks)
+                            {
+                                <button class="subtitle-option @(selectedSubtitleLanguage == track.Language ? "active" : "")"
+                                        @onclick="() => SelectSubtitle(track.Language)">
+                                    <i class="fas fa-check-circle"></i> @track.Label
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
 
             @if (ShowMetadata && metadata != null)
             {
