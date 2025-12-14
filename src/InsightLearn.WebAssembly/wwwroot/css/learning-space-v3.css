@@ -2385,42 +2385,64 @@ body:has(.learning-layout) .main-layout {
     /* Inherit click behavior */
 }
 
-/* Main Content Area */
+/* ========================================
+   LinkedIn Learning Style Layout
+   Video takes ~50% viewport, tabs visible below
+   ======================================== */
+
+/* Main Content Area - Scrollable container */
 .learning-main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     background: #f8f9fa;
+    height: 100%;
 }
 
+/* Video Player Wrapper - Constrained height like LinkedIn Learning */
 .video-player-wrapper {
     background: #000000;
     position: relative;
-    /* Constrain video height to ensure progress info is visible */
-    max-height: 60vh;
+    /* LinkedIn Learning style: compact video at top */
+    height: 50vh;
+    min-height: 280px;
+    max-height: 55vh;
+    flex-shrink: 0; /* Prevent shrinking */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
+}
+
+/* Override video-components.css styles for learning space context */
+.video-player-wrapper .video-player-container {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Ensure video element respects container bounds */
-.video-player-wrapper .video-player-container {
+/* Override aspect-ratio from video-components.css */
+.video-player-wrapper .video-wrapper {
     width: 100%;
     height: 100%;
-    max-height: 60vh;
+    max-height: 100%;
+    aspect-ratio: unset !important; /* Override 16/9 from video-components.css */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.video-player-wrapper .video-wrapper {
-    max-height: 60vh;
-}
-
+/* Video element - fit within container while maintaining aspect ratio */
 .video-player-wrapper .video-element {
-    max-height: 60vh;
-    width: auto;
+    width: 100%;
+    height: 100%;
     max-width: 100%;
-    object-fit: contain;
+    max-height: 100%;
+    object-fit: contain; /* Maintain aspect ratio, fit within container */
 }
 
 /* LinkedIn Learning style - compact layout below video */
@@ -2585,6 +2607,13 @@ body:has(.learning-layout) .main-layout {
     .navbar-actions {
         flex-wrap: wrap;
     }
+
+    /* Tablet: Slightly smaller video player */
+    .video-player-wrapper {
+        height: 45vh;
+        min-height: 260px;
+        max-height: 50vh;
+    }
 }
 
 /* Mobile (< 768px) */
@@ -2628,6 +2657,13 @@ body:has(.learning-layout) .main-layout {
 
     .learning-sidebar {
         max-height: 200px;
+    }
+
+    /* Mobile: Compact video player */
+    .video-player-wrapper {
+        height: 35vh;
+        min-height: 200px;
+        max-height: 40vh;
     }
 
     .sidebar-header h3 {
