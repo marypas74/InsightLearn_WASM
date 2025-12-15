@@ -145,11 +145,11 @@ pipeline {
                             echo "Visiting: ${url}"
 
                             # Fetch with organic user-agent + measure time
-                            RESPONSE=$(curl -s -o /dev/null -w "HTTP:%{http_code} Time:%{time_total}s" $
-                                -A "${USER_AGENT_ORGANIC}" $
-                                -H "Accept: text/html,application/xhtml+xml" $
-                                -H "Accept-Language: en-US,en;q=0.9,it;q=0.8" $
-                                -H "DNT: 1" $
+                            RESPONSE=$(curl -s -o /dev/null -w "HTTP:%{http_code} Time:%{time_total}s" \
+                                -A "${USER_AGENT_ORGANIC}" \
+                                -H "Accept: text/html,application/xhtml+xml" \
+                                -H "Accept-Language: en-US,en;q=0.9,it;q=0.8" \
+                                -H "DNT: 1" \
                                 "${url}")
 
                             HTTP_CODE=$(echo "${RESPONSE}" | grep -oP 'HTTP:\K[0-9]+')
