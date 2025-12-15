@@ -3449,25 +3449,35 @@ body:has(.learning-layout) .main-layout {
    LinkedIn Learning Style Tab Navigation
    ======================================== */
 
+/* =============================================================================
+   TABS - LinkedIn Learning Style Enhanced Design
+   Modern, clean, professional look with smooth animations
+   ============================================================================= */
+
 .ll-learning-tabs {
-    margin-top: 24px;
-    background: var(--ll-bg-primary, #ffffff);
-    border-radius: 8px;
+    margin-top: 16px;
+    background: linear-gradient(to bottom, #ffffff, #fafbfc);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .ll-tabs-container {
-    border-bottom: 1px solid var(--ll-border-color, #e0e0e0);
-    background: var(--ll-bg-secondary, #f3f6f8);
+    border-bottom: 1px solid #e8eaed;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 0 8px;
 }
 
 .ll-tabs-nav {
     display: flex;
-    gap: 0;
+    gap: 4px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 8px 0 0 0;
 }
 
 .ll-tabs-nav::-webkit-scrollbar {
@@ -3477,38 +3487,54 @@ body:has(.learning-layout) .main-layout {
 .ll-tab-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 20px;
+    gap: 10px;
+    padding: 14px 22px;
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
-    color: var(--ll-text-secondary, #666666);
+    border-radius: 8px 8px 0 0;
+    color: #5f6368;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.2px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     position: relative;
 }
 
+/* Hover effect with subtle lift */
 .ll-tab-btn:hover {
-    color: var(--ll-text-primary, #333333);
-    background: rgba(0, 0, 0, 0.03);
+    color: #1a73e8;
+    background: rgba(26, 115, 232, 0.04);
+    transform: translateY(-1px);
 }
 
+/* Active tab - LinkedIn blue accent */
 .ll-tab-btn.active {
-    color: var(--ll-primary, #0073b1);
-    border-bottom-color: var(--ll-primary, #0073b1);
-    background: var(--ll-bg-primary, #ffffff);
+    color: #0a66c2;
+    border-bottom-color: #0a66c2;
+    background: #ffffff;
+    box-shadow:
+        0 -2px 8px rgba(10, 102, 194, 0.08),
+        inset 0 -3px 0 #0a66c2;
 }
 
+/* Icon styling */
 .ll-tab-btn i {
-    font-size: 16px;
-    opacity: 0.8;
+    font-size: 17px;
+    opacity: 0.75;
+    transition: all 0.25s ease;
+}
+
+.ll-tab-btn:hover i {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .ll-tab-btn.active i {
     opacity: 1;
+    color: #0a66c2;
 }
 
 .ll-tab-badge {
@@ -3701,15 +3727,86 @@ body:has(.learning-layout) .main-layout {
     min-height: 300px;
 }
 
-/* Responsive - Tablet */
-@media (max-width: 1024px) {
+/* =============================================================================
+   RESPONSIVE TABS - Fluid adaptation for all browser sizes
+   Adapts to user's browser window resizing dynamically
+   ============================================================================= */
+
+/* Base tabs container - always scrollable horizontally if needed */
+.ll-tabs-nav {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+    scrollbar-width: thin; /* Firefox */
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers */
+.ll-tabs-nav::-webkit-scrollbar {
+    height: 4px;
+}
+
+.ll-tabs-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ll-tabs-nav::-webkit-scrollbar-thumb {
+    background: var(--ll-border-color, #e0e0e0);
+    border-radius: 2px;
+}
+
+.ll-tabs-nav::-webkit-scrollbar-thumb:hover {
+    background: var(--ll-text-secondary, #666666);
+}
+
+/* Responsive - Large Desktop (1280px+) */
+@media (min-width: 1280px) {
     .ll-tab-btn {
-        padding: 12px 16px;
+        padding: 14px 24px;
+        font-size: 14px;
+    }
+
+    .ll-tab-btn span {
+        display: inline;
+    }
+
+    .ll-tab-btn i {
+        font-size: 16px;
+    }
+}
+
+/* Responsive - Desktop (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .ll-tab-btn {
+        padding: 12px 18px;
         font-size: 13px;
     }
 
     .ll-tab-btn span {
-        display: none;
+        display: inline;
+    }
+
+    .ll-tab-btn i {
+        font-size: 15px;
+    }
+}
+
+/* Responsive - Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .ll-tabs-container {
+        padding: 0 8px;
+    }
+
+    .ll-tab-btn {
+        padding: 12px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .ll-tab-btn span {
+        display: none; /* Hide text, show only icons */
     }
 
     .ll-tab-btn i {
@@ -3724,48 +3821,174 @@ body:has(.learning-layout) .main-layout {
         height: 16px;
         font-size: 9px;
     }
+
+    .ll-tab-pane {
+        padding: 20px;
+    }
 }
 
-/* Responsive - Mobile */
-@media (max-width: 768px) {
+/* Responsive - Small Tablet (600px - 767px) */
+@media (min-width: 600px) and (max-width: 767px) {
     .ll-learning-tabs {
         margin-top: 16px;
         border-radius: 0;
+    }
+
+    .ll-tabs-nav {
+        justify-content: flex-start;
+        padding: 0 4px;
+    }
+
+    .ll-tab-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+        flex: 0 0 auto;
+    }
+
+    .ll-tab-btn span {
+        display: none;
+    }
+
+    .ll-tab-btn i {
+        font-size: 18px;
+    }
+
+    .ll-tab-pane {
+        padding: 16px;
+    }
+}
+
+/* Responsive - Mobile (480px - 599px) */
+@media (min-width: 480px) and (max-width: 599px) {
+    .ll-learning-tabs {
+        margin-top: 12px;
+        border-radius: 0;
+    }
+
+    .ll-tabs-nav {
+        justify-content: space-between;
     }
 
     .ll-tab-btn {
         padding: 10px 12px;
         flex: 1;
         justify-content: center;
+        min-width: 0;
+    }
+
+    .ll-tab-btn span {
+        display: none;
+    }
+
+    .ll-tab-btn i {
+        font-size: 18px;
     }
 
     .ll-tab-pane {
-        padding: 16px;
+        padding: 14px;
     }
 
     .ll-overview-pane {
-        padding: 16px;
+        padding: 14px;
+    }
+}
+
+/* Responsive - Small Mobile (<480px) */
+@media (max-width: 479px) {
+    .ll-learning-tabs {
+        margin-top: 8px;
+        border-radius: 0;
+    }
+
+    .ll-tabs-container {
+        padding: 0;
+    }
+
+    .ll-tabs-nav {
+        justify-content: stretch;
+        gap: 0;
+    }
+
+    .ll-tab-btn {
+        padding: 8px 6px;
+        flex: 1;
+        justify-content: center;
+        font-size: 11px;
+        min-width: 0;
+    }
+
+    .ll-tab-btn span {
+        display: none;
+    }
+
+    .ll-tab-btn i {
+        font-size: 16px;
+    }
+
+    .ll-tab-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        min-width: 14px;
+        height: 14px;
+        font-size: 8px;
+        padding: 0 3px;
+    }
+
+    .ll-tab-pane {
+        padding: 12px;
+    }
+
+    .ll-overview-pane {
+        padding: 12px;
     }
 
     .ll-lesson-meta {
-        gap: 12px;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
     }
 
     .ll-meta-item {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .ll-course-card {
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
 
     .ll-course-thumb {
         width: 100%;
         height: auto;
         aspect-ratio: 16/9;
+    }
+}
+
+/* Extra: Support for very wide screens (1920px+) */
+@media (min-width: 1920px) {
+    .ll-tabs-container {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .ll-tab-btn {
+        padding: 16px 28px;
+        font-size: 15px;
+    }
+
+    .ll-tab-pane {
+        padding: 32px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+}
+
+/* Cross-browser support for flex gap (older Safari) */
+@supports not (gap: 8px) {
+    .ll-tabs-nav > * + * {
+        margin-left: 0;
     }
 }
 
@@ -5534,6 +5757,188 @@ body:has(.learning-layout) .main-layout {
     position: relative;
     background: #000;
     width: 100%;
+    /* LinkedIn Learning style: video takes prominent space */
+    aspect-ratio: 16 / 9;
+    max-height: 65vh;
+}
+
+/* =============================================================================
+   CRITICAL OVERRIDE - Fix linkedin-learning-components.css conflict
+   The .learning-space-container uses OVERLAY sidebars, NOT fixed sidebars.
+   These rules MUST override the margin-left/margin-right from
+   linkedin-learning-components.css which assumes fixed sidebars.
+
+   IMPORTANT: This file MUST load AFTER linkedin-learning-components.css
+   in index.html for these overrides to work correctly.
+   ============================================================================= */
+
+/* ========== MAIN CONTENT - FULL WIDTH (No sidebar margins) ========== */
+.learning-space-container .ll-main-content,
+.learning-space-container .ll-learning-layout .ll-main-content,
+.learning-space-container main.ll-main-content,
+.learning-space-container .ll-learning-layout main.ll-main-content,
+div.learning-space-container .ll-main-content,
+div.learning-space-container div.ll-learning-layout main.ll-main-content {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    flex: 1 !important;
+}
+
+/* Override any sidebar-collapsed state classes that might add margins */
+.learning-space-container .ll-main-content.sidebar-left-collapsed,
+.learning-space-container .ll-main-content.sidebar-right-collapsed {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* ========== SIDEBARS - TRUE OVERLAY (Hidden by default) ========== */
+/* CRITICAL: Position as fixed overlay, NOT static/relative */
+.learning-space-container .ll-learning-sidebar,
+.learning-space-container aside.ll-learning-sidebar,
+div.learning-space-container aside.ll-learning-sidebar {
+    position: fixed !important;
+    top: 56px !important; /* Height of navbar */
+    height: calc(100vh - 56px) !important;
+    width: 320px !important;
+    z-index: 1000 !important;
+    background: var(--ll-sidebar-bg, #1b1b1b) !important;
+    overflow-y: auto !important;
+    transition: transform 0.3s ease-in-out !important;
+}
+
+/* LEFT SIDEBAR - Slide in from left */
+.learning-space-container .ll-sidebar-left,
+.learning-space-container aside.ll-sidebar-left,
+div.learning-space-container aside.ll-learning-sidebar.ll-sidebar-left {
+    left: 0 !important;
+    right: auto !important;
+    transform: translateX(-100%) !important;
+}
+
+/* LEFT SIDEBAR - Open state */
+.learning-space-container .ll-sidebar-left.open,
+.learning-space-container aside.ll-sidebar-left.open,
+div.learning-space-container aside.ll-learning-sidebar.ll-sidebar-left.open {
+    transform: translateX(0) !important;
+}
+
+/* RIGHT SIDEBAR - Slide in from right */
+.learning-space-container .ll-sidebar-right,
+.learning-space-container aside.ll-sidebar-right,
+div.learning-space-container aside.ll-learning-sidebar.ll-sidebar-right {
+    right: 0 !important;
+    left: auto !important;
+    transform: translateX(100%) !important;
+}
+
+/* RIGHT SIDEBAR - Open state */
+.learning-space-container .ll-sidebar-right.open,
+.learning-space-container aside.ll-sidebar-right.open,
+div.learning-space-container aside.ll-learning-sidebar.ll-sidebar-right.open {
+    transform: translateX(0) !important;
+}
+
+/* ========== SIDEBAR BACKDROP - Dark overlay when sidebar is open ========== */
+.learning-space-container .ll-sidebar-backdrop {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+.learning-space-container .ll-sidebar-backdrop.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure video player wrapper displays correctly */
+.learning-space-container .ll-video-player-wrapper {
+    aspect-ratio: 16 / 9;
+    max-height: 65vh;
+    width: 100%;
+    background: #000;
+}
+
+/* Ensure video container inside fills the wrapper */
+.learning-space-container .ll-video-player-wrapper .video-player-container,
+.learning-space-container .ll-video-player-wrapper .ll-video-container {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+/* =============================================================================
+   CRITICAL FIX: Layout and Tabs Visibility (Expert Recommendations)
+   Problem: Grid layout from linkedin-learning-components.css squeezes content
+   Solution: Force flex layout and ensure tabs are visible
+   ============================================================================= */
+
+/* Force flex layout on learning-layout (override any grid settings) */
+div.learning-space-container div.ll-learning-layout,
+.learning-space-container .ll-learning-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: none !important; /* Kill any grid columns */
+}
+
+/* TABS VISIBILITY FIX - Ensure tabs are always visible below video */
+.learning-space-container .ll-learning-tabs,
+div.learning-space-container .ll-learning-tabs,
+.learning-space-container .ll-main-content .ll-learning-tabs {
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    margin-top: 16px !important;
+    z-index: 10 !important;
+}
+
+/* Ensure tabs navigation is visible */
+.learning-space-container .ll-tabs-nav,
+div.learning-space-container .ll-tabs-nav {
+    display: flex !important;
+    visibility: visible !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+}
+
+/* Ensure tab buttons are visible */
+.learning-space-container .ll-tab-btn,
+div.learning-space-container .ll-tab-btn {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure tab content panels are visible when active */
+.learning-space-container .ll-tab-content,
+div.learning-space-container .ll-tab-content {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.learning-space-container .ll-tab-pane,
+div.learning-space-container .ll-tab-pane {
+    display: none;
+}
+
+.learning-space-container .ll-tab-pane.active,
+div.learning-space-container .ll-tab-pane.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Sidebar Toggle Buttons on Video */

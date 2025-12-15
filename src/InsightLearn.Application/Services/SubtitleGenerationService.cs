@@ -99,7 +99,7 @@ public class SubtitleGenerationService : ISubtitleGenerationService
         // Videos bucket (for reading video URLs)
         var videoBucketOptions = new GridFSBucketOptions
         {
-            BucketName = "fs", // Default GridFS bucket for videos
+            BucketName = "videos", // Custom GridFS bucket for videos (same as MongoVideoStorageService)
             WriteConcern = WriteConcern.WMajority
         };
         _videoBucket = new GridFSBucket(database, videoBucketOptions);
