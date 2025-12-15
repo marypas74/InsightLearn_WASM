@@ -150,6 +150,9 @@ create_job "insightlearn-automated-tests" "jenkins/jobs/insightlearn-automated-t
 # Job 2: weekly-heavy-load-test (Sundays 2 AM)
 create_job "weekly-heavy-load-test" "jenkins/jobs/weekly-heavy-load-test.xml"
 
+# Job 3: seo-traffic-simulation (every 6 hours)
+create_job "seo-traffic-simulation" "jenkins/jobs/seo-traffic-simulation.xml"
+
 # Cleanup
 rm -f "$COOKIE_JAR" /tmp/crumb.json /tmp/jenkins-response.txt
 
@@ -168,6 +171,9 @@ echo -e "  1. ${BLUE}insightlearn-automated-tests${NC} - Runs every hour (H * * 
 echo -e "     Uses: Jenkinsfile (9 testing stages)"
 echo -e "  2. ${BLUE}weekly-heavy-load-test${NC} - Runs every Sunday at 2:00 AM"
 echo -e "     Uses: jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile"
+echo -e "  3. ${BLUE}seo-traffic-simulation${NC} - Runs every 6 hours (0 */6 * * *)"
+echo -e "     Uses: jenkins/pipelines/seo-traffic-simulation.Jenkinsfile"
+echo -e "     ${YELLOW}Purpose: SEO optimization via traffic simulation & monitoring${NC}"
 
 echo -e "\n${YELLOW}Access Jenkins:${NC} ${BLUE}$JENKINS_URL${NC}"
 echo -e "\n${GREEN}To trigger a build manually:${NC}"

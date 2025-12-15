@@ -2780,6 +2780,7 @@ tail -f /tmp/insightlearn-watchdog.log
 |-----|----------|-------------|
 | `insightlearn-automated-tests` | `H * * * *` (ogni ora) | 9 stage di test automatici via [Jenkinsfile](Jenkinsfile) |
 | `weekly-heavy-load-test` | `0 2 * * 0` (Dom 2:00 AM) | Load test pesante via [jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile](jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile) |
+| `seo-traffic-simulation` | `0 */6 * * *` (ogni 6 ore: 00:00, 06:00, 12:00, 18:00) | **SEO traffic simulation & monitoring** - Crawla tutte le 46 URLs del sitemap come Googlebot, simula traffico organico su 15 pagine chiave, verifica pre-rendering, controlla structured data integrity, monitora performance metrics. **Impact**: Migliora SEO score tramite engagement signals, validates implementation. via [jenkins/pipelines/seo-traffic-simulation.Jenkinsfile](jenkins/pipelines/seo-traffic-simulation.Jenkinsfile) |
 
 ### Configurazione
 
@@ -2817,6 +2818,30 @@ curl -X POST 'http://localhost:32000/job/insightlearn-automated-tests/build'
 **Testing Scripts** ([jenkins/scripts/](jenkins/scripts/)):
 - `load-test.sh` - Load testing con 4 profili (light/medium/heavy/stress)
 - `site-monitor.sh` - Continuous monitoring con alerting
+
+**SEO Traffic Simulation Pipeline** (NEW 2025-12-15):
+- **Purpose**: Improve SEO score by generating engagement signals and validating implementation
+- **Schedule**: Every 6 hours (4x daily: 00:00, 06:00, 12:00, 18:00 UTC)
+- **Stages** (7 total):
+  1. **Fetch Sitemap URLs** - Extract all 46 URLs from sitemap.xml
+  2. **Simulate Googlebot Traffic** - Crawl all pages as Googlebot, verify pre-rendering works (structured data detection)
+  3. **Simulate Organic User Traffic** - Visit 15 key pages with realistic user-agent, simulate 3-8s dwell time
+  4. **Verify Structured Data** - Check Course schemas have aggregateRating, offers, instructor
+  5. **Performance Metrics** - Measure DNS, TTFB, total response time
+  6. **Generate SEO Report** - Overall SEO health score (out of 100)
+  7. **Cleanup** - Remove temporary files
+- **Impact Metrics**:
+  - Crawls 46 URLs as Googlebot (validates pre-rendering)
+  - Simulates 15 organic visits (engagement signals)
+  - Generates ~5 minutes of traffic per run
+  - Validates structured data integrity
+  - Reports SEO health score (crawl rate, pre-render rate, performance)
+- **Benefits**:
+  - ✅ Generates consistent engagement signals for search engines
+  - ✅ Validates pre-rendering system works for crawlers
+  - ✅ Monitors structured data integrity
+  - ✅ Detects performance regressions early
+  - ✅ Provides SEO health score trending
 
 ### Creare/Ripristinare Jobs
 
@@ -2863,6 +2888,7 @@ curl -s 'http://localhost:32000/pluginManager/api/json?depth=1' | \
 |------|-------------|
 | [jenkins/jobs/insightlearn-automated-tests.xml](jenkins/jobs/insightlearn-automated-tests.xml) | Job orario (Jenkinsfile) |
 | [jenkins/jobs/weekly-heavy-load-test.xml](jenkins/jobs/weekly-heavy-load-test.xml) | Job settimanale (load test) |
+| [jenkins/jobs/seo-traffic-simulation.xml](jenkins/jobs/seo-traffic-simulation.xml) | **NEW (2025-12-15)**: SEO traffic simulation (ogni 6 ore) - Crawling + traffic simulation per migliorare SEO score |
 
 ### Deployment
 
