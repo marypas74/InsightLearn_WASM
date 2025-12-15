@@ -370,21 +370,15 @@ EOF
 
     post {
         success {
-            script {
-                echo '✅ SEO traffic simulation completed successfully!'
-            }
+            echo '✅ SEO traffic simulation completed successfully!'
         }
 
         failure {
-            script {
-                echo '❌ SEO traffic simulation failed. Check logs for details.'
-            }
+            echo '❌ SEO traffic simulation failed. Check logs for details.'
         }
 
         always {
-            script {
-                echo "Build finished at: ${new Date()}"
-            }
+            echo "Build finished at: ${new Date()}"
         }
     }
 }
