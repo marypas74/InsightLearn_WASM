@@ -108,7 +108,7 @@ pipeline {
                         # Store metrics for reporting
                         echo "${SUCCESS}" > /tmp/googlebot-success-${BUILD_NUMBER}.txt
                         echo "${PRERENDER_OK}" > /tmp/prerender-ok-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
@@ -182,7 +182,7 @@ pipeline {
 
                         echo "${SUCCESS}" > /tmp/organic-success-${BUILD_NUMBER}.txt
                         echo "${AVG_TIME}" > /tmp/avg-response-time-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
@@ -231,7 +231,7 @@ pipeline {
                         # Store for reporting
                         echo "${COURSE_SCHEMAS}" > /tmp/course-schemas-${BUILD_NUMBER}.txt
                         echo "${AGGREGATE_RATING}" > /tmp/aggregate-rating-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
@@ -276,7 +276,7 @@ pipeline {
                         echo "========================================="
 
                         echo "${AVG_TTFB}" > /tmp/avg-ttfb-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
@@ -368,7 +368,7 @@ Next Run: In 6 hours
 EOF
 
                         cat /tmp/seo-report-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }

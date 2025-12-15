@@ -2856,6 +2856,96 @@ curl -X POST -H "Jenkins-Crumb: $CRUMB" -H "Content-Type: application/xml" \
   "http://localhost:32000/createItem?name=insightlearn-automated-tests"
 ```
 
+### 📚 Jenkinsfile Groovy Pipeline Syntax - Best Practices
+
+**IMPORTANTE**: Quando scrivi script shell in Jenkins Groovy pipeline, usa la sintassi corretta per evitare errori di compilazione.
+
+#### Single Quotes vs Double Quotes in `sh` blocks
+
+| Tipo | Sintassi | Groovy Interpola? | Uso Shell Variables | Sicurezza |
+|------|----------|-------------------|---------------------|-----------|
+| **Single quotes** | `sh '''...'''` | ❌ NO | `${VAR}` direttamente | ✅ SICURO (previene code injection) |
+| **Double quotes** | `sh """..."""` | ✅ SÌ | `\${VAR}` con backslash | ⚠️ RISCHIO injection |
+
+**Esempio Corretto (Single Quotes)**:
+```groovy
+sh '''
+    TOTAL=0
+    for file in *.txt; do
+        TOTAL=$((TOTAL + 1))
+        echo "File #${TOTAL}: ${file}"
+    done
+'''
+```
+
+**Esempio ERRATO (Double Quotes con backslash)**:
+```groovy
+sh """
+    TOTAL=0
+    for file in *.txt; do
+        TOTAL=\$((TOTAL + 1))    # ❌ ERRORE: unexpected char '\'
+        echo "File #\${TOTAL}: \${file}"
+    done
+"""
+```
+
+#### Regole Fondamentali
+
+1. **✅ USA sempre single quotes (`'''`)** per script shell multi-linea
+2. **❌ NON usare `#!/bin/bash`** nei blocchi `sh` (Jenkins usa già bash)
+3. **❌ NON usare backslash `\$`** con single quotes (non serve!)
+4. **✅ Variabili Groovy** (es. `${BUILD_NUMBER}`) funzionano anche in single quotes se definite in `environment`
+
+#### Esempio Completo Corretto
+
+```groovy
+pipeline {
+    agent any
+
+    environment {
+        SITE_URL = 'https://example.com'
+        MAX_RETRIES = '3'
+    }
+
+    stages {
+        stage('Test') {
+            steps {
+                sh '''
+                    # ✅ Variabili shell: usa $ direttamente
+                    COUNTER=0
+                    SUCCESS=0
+
+                    # ✅ Variabili Groovy environment: interpolate automaticamente
+                    echo "Testing ${SITE_URL}"
+                    echo "Max retries: ${MAX_RETRIES}"
+
+                    # ✅ Array bash
+                    URLS=("${SITE_URL}/" "${SITE_URL}/about")
+
+                    for url in "${URLS[@]}"; do
+                        COUNTER=$((COUNTER + 1))
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${url}")
+
+                        if [ "${HTTP_CODE}" = "200" ]; then
+                            SUCCESS=$((SUCCESS + 1))
+                        fi
+                    done
+
+                    echo "Success: ${SUCCESS}/${COUNTER}"
+                '''
+            }
+        }
+    }
+}
+```
+
+**Riferimenti**:
+- [Jenkins Pipeline Syntax](https://www.jenkins.io/doc/book/pipeline/jenkinsfile/)
+- [Groovy String Interpolation](https://docs.cloudbees.com/docs/cloudbees-ci/latest/automating-with-jenkinsfile/string-interpolation)
+- [Jenkinsfile Escaping Quotes (GitHub Gist)](https://gist.github.com/Faheetah/e11bd0315c34ed32e681616e41279ef4)
+
+---
+
 ### ⚠️ Fix Plugin Jenkins Alpine (CRITICO)
 
 Jenkins Alpine (`lts-alpine`) ha un problema noto: i plugin vengono installati in `/usr/share/jenkins/ref/plugins/` ma **NON vengono copiati** automaticamente in `/var/jenkins_home/plugins/` se la directory esiste già.
