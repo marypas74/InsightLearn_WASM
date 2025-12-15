@@ -11,8 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
-**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components, **CRITICAL CSS FIX**: Layout/tabs visibility fix (flex layout override, tabs visibility below video)
+**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 00:17)
+**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-16) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components, **CRITICAL CSS FIX**: Layout/tabs visibility fix (flex layout override, tabs visibility below video), **HTML Mockups**: 3 pixel-perfect reference designs (`/tmp/linkedin-learning-*.html`)
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -99,7 +99,7 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming, **subtitle support** (WebVTT), auto-resize (`max-height: 60vh`), **real-time AI translation** (Ollama qwen2:0.5b, 20 languages)
 - [VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - Video upload placeholder (backend completo)
 
-**LinkedIn Learning UI Style** (v2.2.0-dev - ✅ CSS FIX DEPLOYED - 2025-12-15):
+**LinkedIn Learning UI Style** (v2.2.0-dev - ✅ DEPLOYED 2025-12-16):
 
 Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn Learning.
 
@@ -107,7 +107,12 @@ Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn 
 - [linkedin-learning-tokens.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-tokens.css) - Design tokens: colori, typography, spacing (8px grid), shadows, z-index
 - [linkedin-learning-components.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-components.css) - Componenti UI: navbar, sidebar, video player, tabs, AI assistant
 - [linkedin-learning-animations.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-animations.css) - Animazioni: fade, slide, pulse, typing indicator, skeleton loading
-- [learning-space-v3.css](src/InsightLearn.WebAssembly/wwwroot/css/learning-space-v3.css) - **CRITICAL OVERRIDES**: Layout flex, tabs visibility, sidebar overlay (6138 lines, optimized)
+- [learning-space-v3.css](src/InsightLearn.WebAssembly/wwwroot/css/learning-space-v3.css) - **CRITICAL OVERRIDES**: Layout flex, tabs visibility, sidebar overlay (6138 lines, optimized 2025-12-16)
+
+*HTML Reference Mockups* (3 files - Tailwind CSS pixel-perfect):
+- `/tmp/linkedin-learning-redesign.html` - Full two-column layout with responsive tabs, video player, course accordion, AI chat (1468 lines)
+- `/tmp/learning-dashboard-fixed.html` - Single-page interface, 75/25 split, embedded AI chat, fixed input (233 lines)
+- `/tmp/linkedin-learning-4col-perfect.html` - **4-zone layout** (80px Global Nav + 350px Course Content + flex Main Stage + 400px AI Assistant) - Pixel-perfect LinkedIn Learning clone (395 lines)
 
 *Componenti Aggiornati*:
 - [CourseCurriculum.razor](src/InsightLearn.WebAssembly/Components/CourseCurriculum.razor) - Redesign con progress circles SVG, lock icons, sezioni espandibili, ARIA support
