@@ -1,5 +1,3 @@
-#!/usr/bin/env groovy
-
 /**
  * SEO Traffic Simulation & Monitoring Pipeline
  *
