@@ -44,14 +44,26 @@ public partial class AIChatPanel : ComponentBase, IDisposable
     private bool IsTyping { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private Guid? CurrentSessionId { get; set; }
+    private int? copiedMessageId { get; set; }
+    private bool shouldAutoScroll { get; set; } = true;
+    private string? lastUserQuestion { get; set; }
 
-    // Suggested questions for empty state
+    // Suggested questions for empty state - LinkedIn Learning style
     private readonly List<string> SuggestedQuestions = new()
     {
-        "What are the key concepts in this video?",
-        "Can you summarize what I just watched?",
-        "Explain the main points in simple terms",
-        "What should I learn from this section?"
+        "What are the key concepts covered so far?",
+        "Can you summarize this section for me?",
+        "Explain the main points in simpler terms",
+        "What practical skills will I learn here?"
+    };
+
+    // Quick action prompts - contextual questions based on video timestamp
+    private readonly Dictionary<string, string> QuickActionPrompts = new()
+    {
+        { "summarize", "Please summarize the key points covered up to this point in the video. Focus on the main takeaways I should remember." },
+        { "explain", "Can you explain the concepts being discussed at this point in the video? Break them down in a way that's easy to understand." },
+        { "quiz", "Based on what I've watched so far, create 3 quick quiz questions to test my understanding. Include the answers after I respond." },
+        { "examples", "Can you provide practical examples or code snippets related to what's being explained at this point in the video?" }
     };
 
     protected override async Task OnInitializedAsync()
@@ -145,6 +157,68 @@ public partial class AIChatPanel : ComponentBase, IDisposable
     private async Task AskSuggestedQuestion(string question)
     {
         CurrentMessage = question;
+        await SendMessage();
+    }
+
+    /// <summary>
+    /// Handle quick action button clicks - LinkedIn Learning style contextual prompts.
+    /// </summary>
+    private async Task AskQuickAction(string actionType)
+    {
+        if (!QuickActionPrompts.TryGetValue(actionType, out var prompt))
+            return;
+
+        CurrentMessage = prompt;
+        await SendMessage();
+    }
+
+    /// <summary>
+    /// Copy AI response to clipboard with visual feedback.
+    /// </summary>
+    private async Task CopyMessage(string content)
+    {
+        try
+        {
+            var success = await JS.InvokeAsync<bool>("copyToClipboard", content);
+            if (success)
+            {
+                copiedMessageId = content.GetHashCode();
+                StateHasChanged();
+
+                // Reset the copied indicator after 2 seconds
+                await Task.Delay(2000);
+                copiedMessageId = null;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // Clipboard access failed, silently ignore
+        }
+    }
+
+    /// <summary>
+    /// Regenerate the last AI response by re-asking the previous question.
+    /// </summary>
+    private async Task RegenerateResponse(ChatMessage aiMessage)
+    {
+        // Find the user message that preceded this AI response
+        var aiIndex = Messages.IndexOf(aiMessage);
+        if (aiIndex <= 0) return;
+
+        var userMessage = Messages.Take(aiIndex).LastOrDefault(m => m.IsUser);
+        if (userMessage == null) return;
+
+        // Remove the AI response we're regenerating
+        Messages.Remove(aiMessage);
+        StateHasChanged();
+
+        // Re-send the user's question
+        CurrentMessage = userMessage.Content;
+
+        // Remove the original user message since SendMessage will add it again
+        Messages.Remove(userMessage);
+
         await SendMessage();
     }
 

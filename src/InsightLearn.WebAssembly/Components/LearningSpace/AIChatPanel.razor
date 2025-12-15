@@ -1,39 +1,71 @@
 @* AI Chat Panel - LinkedIn Learning Style AI Assistant
    Part of Student Learning Space v2.2.0
-   Contextual AI chatbot for video lessons *@
+   Contextual AI chatbot for video lessons with quick actions *@
 
-<div class="ai-chat-panel @(IsLoading ? "loading" : "")">
-    @* Chat Header *@
-    <div class="chat-header">
-        <div class="chat-header-info">
-            <div class="ai-avatar">
-                <i class="fas fa-sparkles"></i>
+<div class="ll-ai-chat-panel @(IsLoading ? "loading" : "")">
+    @* Chat Header - LinkedIn Learning Style *@
+    <div class="ll-chat-header">
+        <div class="ll-chat-header-info">
+            <div class="ll-ai-avatar">
+                <i class="fas fa-brain"></i>
             </div>
-            <div class="chat-header-text">
-                <h4>AI Assistant</h4>
-                <span class="status @(IsAvailable ? "online" : "offline")">
-                    @(IsAvailable ? "Online" : "Connecting...")
+            <div class="ll-chat-header-text">
+                <h4>AI Learning Assistant</h4>
+                <span class="ll-status @(IsAvailable ? "online" : "offline")">
+                    <span class="ll-status-dot"></span>
+                    @(IsAvailable ? "Ready to help" : "Connecting...")
                 </span>
             </div>
         </div>
-        @if (Messages.Count > 0)
-        {
-            <button class="btn-clear-chat" @onclick="ClearConversation" title="Start new conversation">
-                <i class="fas fa-redo"></i>
-            </button>
-        }
+        <div class="ll-chat-header-actions">
+            @if (Messages.Count > 0)
+            {
+                <button class="ll-header-btn" @onclick="ClearConversation" title="Start new conversation">
+                    <i class="fas fa-redo-alt"></i>
+                </button>
+            }
+        </div>
     </div>
 
-    @* Suggested Questions *@
+    @* Quick Actions Bar - LinkedIn Learning Style *@
+    @if (!IsLoading && IsAvailable)
+    {
+        <div class="ll-quick-actions-bar">
+            <span class="ll-quick-actions-label">Quick actions:</span>
+            <div class="ll-quick-actions">
+                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("summarize"))" title="Summarize current section">
+                    <i class="fas fa-compress-alt"></i>
+                    <span>Summarize</span>
+                </button>
+                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("explain"))" title="Explain key concepts">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Explain</span>
+                </button>
+                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("quiz"))" title="Test my knowledge">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quiz Me</span>
+                </button>
+                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("examples"))" title="Show examples">
+                    <i class="fas fa-code"></i>
+                    <span>Examples</span>
+                </button>
+            </div>
+        </div>
+    }
+
+    @* Suggested Questions - Empty State *@
     @if (Messages.Count == 0 && !IsLoading)
     {
-        <div class="suggested-questions">
-            <p class="suggestions-label">Ask me about this video:</p>
-            <div class="suggestions-list">
+        <div class="ll-suggested-questions">
+            <div class="ll-suggestions-header">
+                <i class="fas fa-magic"></i>
+                <span>Try asking:</span>
+            </div>
+            <div class="ll-suggestions-list">
                 @foreach (var question in SuggestedQuestions)
                 {
-                    <button class="suggestion-btn" @onclick="@(() => AskSuggestedQuestion(question))">
-                        <i class="fas fa-lightbulb"></i>
+                    <button class="ll-suggestion-btn" @onclick="@(() => AskSuggestedQuestion(question))">
+                        <i class="fas fa-chevron-right"></i>
                         @question
                     </button>
                 }
@@ -41,14 +73,15 @@
         </div>
     }
 
-    @* Chat Messages *@
-    <div class="chat-messages" @ref="messagesContainer">
+    @* Chat Messages - LinkedIn Learning Style *@
+    <div class="ll-chat-messages" @ref="messagesContainer">
         @if (Messages.Count == 0 && !IsLoading)
         {
-            <div class="empty-chat">
-                <div class="empty-icon">
-                    <i class="fas fa-comments"></i>
+            <div class="ll-empty-chat">
+                <div class="ll-empty-icon">
+                    <i class="fas fa-robot"></i>
                 </div>
+                <h5>How can I help you learn?</h5>
                 <p>Ask questions about this lesson and I'll help you understand the content better.</p>
             </div>
         }
@@ -56,81 +89,110 @@
         {
             @foreach (var message in Messages)
             {
-                <div class="chat-message @(message.IsUser ? "user" : "assistant")">
+                <div class="ll-chat-message @(message.IsUser ? "user" : "assistant")">
                     @if (!message.IsUser)
                     {
-                        <div class="message-avatar">
-                            <i class="fas fa-sparkles"></i>
+                        <div class="ll-message-avatar">
+                            <i class="fas fa-brain"></i>
                         </div>
                     }
-                    <div class="message-content">
-                        <div class="message-text">@((MarkupString)FormatMessage(message.Content))</div>
-                        @if (message.VideoTimestamp.HasValue)
-                        {
-                            <button class="timestamp-link" @onclick="@(() => SeekToTimestamp(message.VideoTimestamp.Value))">
-                                <i class="fas fa-play-circle"></i>
-                                @FormatTimestamp(message.VideoTimestamp.Value)
-                            </button>
-                        }
-                        <span class="message-time">@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                    <div class="ll-message-bubble">
+                        <div class="ll-message-text">@((MarkupString)FormatMessage(message.Content))</div>
+                        <div class="ll-message-footer">
+                            @if (message.VideoTimestamp.HasValue)
+                            {
+                                <button class="ll-timestamp-link" @onclick="@(() => SeekToTimestamp(message.VideoTimestamp.Value))">
+                                    <i class="fas fa-play-circle"></i>
+                                    @FormatTimestamp(message.VideoTimestamp.Value)
+                                </button>
+                            }
+                            <span class="ll-message-time">@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                            @if (!message.IsUser)
+                            {
+                                <div class="ll-message-actions">
+                                    <button class="ll-msg-action-btn" @onclick="@(() => CopyMessage(message.Content))" title="Copy response">
+                                        <i class="fas @(copiedMessageId == message.GetHashCode() ? "fa-check" : "fa-copy")"></i>
+                                    </button>
+                                    <button class="ll-msg-action-btn" @onclick="@(() => RegenerateResponse(message))" title="Regenerate response">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
                     </div>
+                    @if (message.IsUser)
+                    {
+                        <div class="ll-user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    }
                 </div>
             }
 
             @if (IsTyping)
             {
-                <div class="chat-message assistant typing">
-                    <div class="message-avatar">
-                        <i class="fas fa-sparkles"></i>
+                <div class="ll-chat-message assistant typing">
+                    <div class="ll-message-avatar">
+                        <i class="fas fa-brain"></i>
                     </div>
-                    <div class="message-content">
-                        <div class="typing-indicator">
+                    <div class="ll-message-bubble">
+                        <div class="ll-typing-indicator">
                             <span></span>
                             <span></span>
                             <span></span>
                         </div>
+                        <span class="ll-typing-text">AI is thinking...</span>
                     </div>
                 </div>
             }
         }
     </div>
 
-    @* Context Indicator *@
+    @* Context Indicator - LinkedIn Learning Style *@
     @if (CurrentVideoTimestamp > 0)
     {
-        <div class="context-indicator">
-            <i class="fas fa-clock"></i>
-            <span>Context: Video at @FormatTimestamp(CurrentVideoTimestamp)</span>
+        <div class="ll-context-indicator">
+            <i class="fas fa-video"></i>
+            <span>Answering based on video at <strong>@FormatTimestamp(CurrentVideoTimestamp)</strong></span>
         </div>
     }
 
-    @* Chat Input *@
-    <div class="chat-input-area">
-        <div class="input-wrapper">
+    @* Chat Input - LinkedIn Learning Style *@
+    <div class="ll-chat-input-area">
+        <div class="ll-input-wrapper">
             <textarea @bind="CurrentMessage"
                       @bind:event="oninput"
                       @onkeydown="HandleKeyDown"
-                      placeholder="Ask a question about this video..."
+                      placeholder="Ask anything about this lesson..."
                       rows="1"
                       maxlength="2000"
                       disabled="@(!IsAvailable || IsTyping)"></textarea>
-            <button class="btn-send"
+            <button class="ll-btn-send @(string.IsNullOrWhiteSpace(CurrentMessage) ? "" : "active")"
                     @onclick="SendMessage"
                     disabled="@(string.IsNullOrWhiteSpace(CurrentMessage) || !IsAvailable || IsTyping)"
                     title="Send message">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
-        <span class="input-hint">Press Enter to send, Shift+Enter for new line</span>
+        <div class="ll-input-footer">
+            <span class="ll-input-hint">
+                <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
+            </span>
+            <span class="ll-char-count @(CurrentMessage?.Length > 1800 ? "warning" : "")">
+                @(CurrentMessage?.Length ?? 0)/2000
+            </span>
+        </div>
     </div>
 
-    @* Error Message *@
+    @* Error Message - LinkedIn Learning Style *@
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
-        <div class="chat-error">
-            <i class="fas fa-exclamation-circle"></i>
-            @ErrorMessage
-            <button @onclick="DismissError"><i class="fas fa-times"></i></button>
+        <div class="ll-chat-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>@ErrorMessage</span>
+            <button class="ll-error-dismiss" @onclick="DismissError">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     }
 </div>

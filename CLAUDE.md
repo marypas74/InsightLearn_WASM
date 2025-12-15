@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, CSS design system, progress circles, animated components
+**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)

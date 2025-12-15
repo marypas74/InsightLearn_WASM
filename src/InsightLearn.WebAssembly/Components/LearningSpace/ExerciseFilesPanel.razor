@@ -1,0 +1,225 @@
+@*
+    ExerciseFilesPanel Component - LinkedIn Learning Style
+    Part of Student Learning Space v2.1.0
+
+    Features:
+    - Lists exercise files for current lesson
+    - Download functionality
+    - File type icons
+    - File size display
+*@
+
+@using InsightLearn.Shared.DTOs
+@inject ICourseService CourseService
+@inject IJSRuntime JS
+
+<div class="ll-exercise-files-panel">
+    <div class="ll-panel-header">
+        <div class="ll-header-icon">
+            <i class="fas fa-folder-open"></i>
+        </div>
+        <div class="ll-header-content">
+            <h3>Exercise Files</h3>
+            <p>Download practice files for this lesson</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="ll-loading-state">
+            <div class="ll-spinner"></div>
+            <p>Loading exercise files...</p>
+        </div>
+    }
+    else if (exerciseFiles.Count == 0)
+    {
+        <div class="ll-empty-state">
+            <div class="ll-empty-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <h4>No exercise files</h4>
+            <p>This lesson doesn't have any exercise files yet.</p>
+            <p class="ll-tip">
+                <i class="fas fa-lightbulb"></i>
+                Check the Overview tab for any additional resources.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="ll-files-list">
+            @foreach (var file in exerciseFiles)
+            {
+                <div class="ll-file-item">
+                    <div class="ll-file-icon @GetFileIconClass(file.FileType)">
+                        <i class="@GetFileIcon(file.FileType)"></i>
+                    </div>
+                    <div class="ll-file-info">
+                        <span class="ll-file-name">@file.Name</span>
+                        <span class="ll-file-meta">
+                            @file.FileType.ToUpper() • @FormatFileSize(file.Size)
+                        </span>
+                    </div>
+                    <button class="ll-download-btn" @onclick="() => DownloadFile(file)" title="Download @file.Name">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="ll-files-footer">
+            <button class="ll-download-all-btn" @onclick="DownloadAll">
+                <i class="fas fa-file-archive"></i>
+                <span>Download All (@exerciseFiles.Count files)</span>
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid LessonId { get; set; }
+
+    [Parameter]
+    public Guid CourseId { get; set; }
+
+    private List<ExerciseFile> exerciseFiles = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExerciseFiles();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadExerciseFiles();
+    }
+
+    private async Task LoadExerciseFiles()
+    {
+        try
+        {
+            isLoading = true;
+            exerciseFiles.Clear();
+
+            // TODO: Replace with actual API call when backend is ready
+            // For now, simulate with mock data
+            await Task.Delay(300); // Simulate loading
+
+            // Mock data - replace with actual API call:
+            // var response = await CourseService.GetExerciseFilesAsync(LessonId);
+            // if (response.Success && response.Data != null)
+            // {
+            //     exerciseFiles = response.Data;
+            // }
+
+            // Placeholder: Show mock files for demo
+            exerciseFiles = new List<ExerciseFile>
+            {
+                // Uncomment below for demo:
+                // new ExerciseFile { Id = Guid.NewGuid(), Name = "starter-project.zip", FileType = "zip", Size = 1540000, Url = "#" },
+                // new ExerciseFile { Id = Guid.NewGuid(), Name = "resources.pdf", FileType = "pdf", Size = 245000, Url = "#" },
+                // new ExerciseFile { Id = Guid.NewGuid(), Name = "sample-data.json", FileType = "json", Size = 12400, Url = "#" }
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[ExerciseFilesPanel] Error loading files: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadFile(ExerciseFile file)
+    {
+        try
+        {
+            // Open file URL in new tab or trigger download
+            await JS.InvokeVoidAsync("open", file.Url, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[ExerciseFilesPanel] Download error: {ex.Message}");
+        }
+    }
+
+    private async Task DownloadAll()
+    {
+        try
+        {
+            // TODO: Implement bulk download (ZIP file) when backend supports it
+            foreach (var file in exerciseFiles)
+            {
+                await DownloadFile(file);
+                await Task.Delay(500); // Stagger downloads
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[ExerciseFilesPanel] Bulk download error: {ex.Message}");
+        }
+    }
+
+    private string GetFileIcon(string fileType)
+    {
+        return fileType.ToLower() switch
+        {
+            "pdf" => "fas fa-file-pdf",
+            "doc" or "docx" => "fas fa-file-word",
+            "xls" or "xlsx" => "fas fa-file-excel",
+            "ppt" or "pptx" => "fas fa-file-powerpoint",
+            "zip" or "rar" or "7z" => "fas fa-file-archive",
+            "jpg" or "jpeg" or "png" or "gif" or "svg" => "fas fa-file-image",
+            "mp4" or "mov" or "avi" or "webm" => "fas fa-file-video",
+            "mp3" or "wav" or "ogg" => "fas fa-file-audio",
+            "json" or "xml" or "yaml" => "fas fa-file-code",
+            "html" or "css" or "js" or "ts" => "fas fa-file-code",
+            "py" or "cs" or "java" or "cpp" => "fas fa-file-code",
+            "txt" or "md" => "fas fa-file-alt",
+            _ => "fas fa-file"
+        };
+    }
+
+    private string GetFileIconClass(string fileType)
+    {
+        return fileType.ToLower() switch
+        {
+            "pdf" => "ll-icon-pdf",
+            "doc" or "docx" => "ll-icon-word",
+            "xls" or "xlsx" => "ll-icon-excel",
+            "ppt" or "pptx" => "ll-icon-ppt",
+            "zip" or "rar" or "7z" => "ll-icon-archive",
+            "jpg" or "jpeg" or "png" or "gif" or "svg" => "ll-icon-image",
+            "mp4" or "mov" or "avi" or "webm" => "ll-icon-video",
+            "json" or "xml" or "html" or "css" or "js" or "ts" or "py" or "cs" => "ll-icon-code",
+            _ => "ll-icon-default"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    // Model for exercise files
+    public class ExerciseFile
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string FileType { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Url { get; set; } = string.Empty;
+    }
+}

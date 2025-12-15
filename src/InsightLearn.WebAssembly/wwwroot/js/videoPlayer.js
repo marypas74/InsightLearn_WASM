@@ -367,6 +367,169 @@ window.videoPlayer = {
     },
 
     /**
+     * Get click position as percentage of progress bar width
+     * @param {string} videoId - Video element ID
+     * @param {number} clientX - Mouse click X coordinate
+     * @returns {number} Click position as percentage (0-100)
+     */
+    getClickPosition: function (videoId, clientX) {
+        const container = document.querySelector('.ll-video-container');
+        const progressBar = container?.querySelector('.ll-progress-bar');
+
+        if (!progressBar) {
+            // Fallback: try to find any progress bar in the video container
+            const video = document.getElementById(videoId);
+            if (video) {
+                const rect = video.getBoundingClientRect();
+                const percent = ((clientX - rect.left) / rect.width) * 100;
+                return Math.max(0, Math.min(100, percent));
+            }
+            return 0;
+        }
+
+        const rect = progressBar.getBoundingClientRect();
+        const percent = ((clientX - rect.left) / rect.width) * 100;
+        return Math.max(0, Math.min(100, percent));
+    },
+
+    /**
+     * Get current buffered progress as percentage
+     * @param {string} videoId - Video element ID
+     * @returns {number} Buffered percentage (0-100)
+     */
+    getBufferedPercent: function (videoId) {
+        const video = document.getElementById(videoId);
+        if (!video || !video.buffered.length) {
+            return 0;
+        }
+
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        const duration = video.duration;
+
+        if (duration > 0) {
+            return (bufferedEnd / duration) * 100;
+        }
+        return 0;
+    },
+
+    /**
+     * Initialize enhanced video player with additional event listeners for LinkedIn Learning style controls
+     * @param {string} videoId - Video element ID
+     * @param {DotNetObjectReference} dotNetRef - Reference to .NET component
+     */
+    initializeEnhanced: function (videoId, dotNetRef) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return;
+        }
+
+        // Call base initialize
+        this.initialize(videoId, dotNetRef);
+
+        // Add buffering events
+        video.addEventListener('waiting', function () {
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnBufferingStateChangedFromJS', true);
+            }
+        });
+
+        video.addEventListener('canplay', function () {
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnBufferingStateChangedFromJS', false);
+            }
+        });
+
+        video.addEventListener('playing', function () {
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnBufferingStateChangedFromJS', false);
+            }
+        });
+
+        // Track buffered progress
+        video.addEventListener('progress', function () {
+            if (video.dotNetRef && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const duration = video.duration || 1;
+                const percent = (bufferedEnd / duration) * 100;
+                video.dotNetRef.invokeMethodAsync('OnBufferedUpdateFromJS', percent);
+            }
+        });
+
+        // Fullscreen change events
+        document.addEventListener('fullscreenchange', function () {
+            if (video.dotNetRef) {
+                const isFullscreen = !!document.fullscreenElement;
+                video.dotNetRef.invokeMethodAsync('OnFullscreenChangedFromJS', isFullscreen);
+            }
+        });
+
+        // Webkit fullscreen (Safari)
+        document.addEventListener('webkitfullscreenchange', function () {
+            if (video.dotNetRef) {
+                const isFullscreen = !!document.webkitFullscreenElement;
+                video.dotNetRef.invokeMethodAsync('OnFullscreenChangedFromJS', isFullscreen);
+            }
+        });
+
+        console.log(`[VideoPlayer] Enhanced initialization complete for ${videoId}`);
+    },
+
+    /**
+     * Toggle fullscreen for the video container (not just video element)
+     * This allows custom controls to remain visible in fullscreen
+     * @param {string} videoId - Video element ID
+     */
+    toggleFullscreen: function (videoId) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return;
+        }
+
+        // Get the container instead of just the video
+        const container = video.closest('.ll-video-container') || video;
+
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        } else {
+            // Enter fullscreen
+            if (container.requestFullscreen) {
+                container.requestFullscreen().catch(err => {
+                    console.error(`[VideoPlayer] Error entering fullscreen:`, err);
+                    // Fallback to video element only
+                    video.requestFullscreen();
+                });
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen();
+            } else if (video.requestFullscreen) {
+                video.requestFullscreen();
+            }
+        }
+    },
+
+    /**
+     * Set video muted state
+     * @param {string} videoId - Video element ID
+     * @param {boolean} muted - Mute state
+     */
+    setMuted: function (videoId, muted) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return;
+        }
+
+        video.muted = muted;
+        console.log(`[VideoPlayer] Muted: ${muted}`);
+    },
+
+    /**
      * Dispose video player (cleanup event listeners)
      * @param {string} videoId - Video element ID
      */

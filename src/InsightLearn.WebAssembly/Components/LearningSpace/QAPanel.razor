@@ -1,0 +1,416 @@
+@*
+    QAPanel Component - LinkedIn Learning Style
+    Part of Student Learning Space v2.1.0
+
+    Features:
+    - Question & Answer thread display
+    - Ask new questions
+    - Upvote/downvote functionality
+    - Reply to questions
+    - Filter by answered/unanswered
+*@
+
+@using InsightLearn.Shared.DTOs
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="ll-qa-panel">
+    <div class="ll-panel-header">
+        <div class="ll-header-icon">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div class="ll-header-content">
+            <h3>Questions & Answers</h3>
+            <p>Ask questions and help others learn</p>
+        </div>
+    </div>
+
+    <!-- Ask Question Form -->
+    <div class="ll-ask-question">
+        <div class="ll-ask-input-wrapper">
+            <input type="text"
+                   class="ll-ask-input"
+                   placeholder="Ask a question about this lesson..."
+                   @bind="newQuestion"
+                   @bind:event="oninput"
+                   @onkeypress="HandleKeyPress" />
+            <button class="ll-ask-btn"
+                    @onclick="SubmitQuestion"
+                    disabled="@(string.IsNullOrWhiteSpace(newQuestion))">
+                <i class="fas fa-paper-plane"></i>
+                <span>Ask</span>
+            </button>
+        </div>
+        <p class="ll-ask-tip">
+            <i class="fas fa-lightbulb"></i>
+            Tip: Include a timestamp to reference specific content
+        </p>
+    </div>
+
+    <!-- Filters -->
+    <div class="ll-qa-filters">
+        <button class="ll-filter-btn @(filter == "all" ? "active" : "")" @onclick="@(() => SetFilter("all"))">
+            All Questions (@questions.Count)
+        </button>
+        <button class="ll-filter-btn @(filter == "unanswered" ? "active" : "")" @onclick="@(() => SetFilter("unanswered"))">
+            Unanswered (@questions.Count(q => !q.IsAnswered))
+        </button>
+        <button class="ll-filter-btn @(filter == "my" ? "active" : "")" @onclick="@(() => SetFilter("my"))">
+            My Questions (@questions.Count(q => q.IsOwner))
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="ll-loading-state">
+            <div class="ll-spinner"></div>
+            <p>Loading questions...</p>
+        </div>
+    }
+    else if (filteredQuestions.Count == 0)
+    {
+        <div class="ll-empty-state">
+            <div class="ll-empty-icon">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <h4>No questions yet</h4>
+            <p>Be the first to ask a question about this lesson!</p>
+        </div>
+    }
+    else
+    {
+        <div class="ll-questions-list">
+            @foreach (var question in filteredQuestions)
+            {
+                <div class="ll-question-card @(question.IsAnswered ? "answered" : "")">
+                    <div class="ll-question-votes">
+                        <button class="ll-vote-btn @(question.UserVoted == 1 ? "voted" : "")"
+                                @onclick="() => Vote(question, 1)">
+                            <i class="fas fa-caret-up"></i>
+                        </button>
+                        <span class="ll-vote-count">@question.Votes</span>
+                        <button class="ll-vote-btn @(question.UserVoted == -1 ? "voted" : "")"
+                                @onclick="() => Vote(question, -1)">
+                            <i class="fas fa-caret-down"></i>
+                        </button>
+                    </div>
+
+                    <div class="ll-question-content">
+                        <div class="ll-question-header">
+                            <div class="ll-author-info">
+                                <div class="ll-author-avatar">
+                                    @if (!string.IsNullOrEmpty(question.AuthorAvatar))
+                                    {
+                                        <img src="@question.AuthorAvatar" alt="@question.AuthorName" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-user"></i>
+                                    }
+                                </div>
+                                <span class="ll-author-name">@question.AuthorName</span>
+                                @if (question.IsOwner)
+                                {
+                                    <span class="ll-badge ll-badge-owner">You</span>
+                                }
+                            </div>
+                            <span class="ll-question-time">@FormatTimeAgo(question.CreatedAt)</span>
+                        </div>
+
+                        <p class="ll-question-text">@question.Text</p>
+
+                        @if (question.Timestamp.HasValue)
+                        {
+                            <button class="ll-timestamp-link" @onclick="() => SeekToTimestamp(question.Timestamp.Value)">
+                                <i class="fas fa-play-circle"></i>
+                                @FormatTimestamp(question.Timestamp.Value)
+                            </button>
+                        }
+
+                        <div class="ll-question-actions">
+                            @if (question.IsAnswered)
+                            {
+                                <span class="ll-badge ll-badge-answered">
+                                    <i class="fas fa-check-circle"></i> Answered
+                                </span>
+                            }
+                            <span class="ll-replies-count">
+                                <i class="fas fa-comment"></i> @question.RepliesCount replies
+                            </span>
+                            <button class="ll-action-btn" @onclick="() => ToggleReplies(question)">
+                                @(question.ShowReplies ? "Hide Replies" : "Show Replies")
+                                <i class="fas @(question.ShowReplies ? "fa-chevron-up" : "fa-chevron-down")"></i>
+                            </button>
+                        </div>
+
+                        @if (question.ShowReplies)
+                        {
+                            <div class="ll-replies-section">
+                                @foreach (var reply in question.Replies)
+                                {
+                                    <div class="ll-reply-item @(reply.IsInstructor ? "instructor" : "")">
+                                        <div class="ll-reply-avatar">
+                                            @if (!string.IsNullOrEmpty(reply.AuthorAvatar))
+                                            {
+                                                <img src="@reply.AuthorAvatar" alt="@reply.AuthorName" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-user"></i>
+                                            }
+                                        </div>
+                                        <div class="ll-reply-content">
+                                            <div class="ll-reply-header">
+                                                <span class="ll-author-name">@reply.AuthorName</span>
+                                                @if (reply.IsInstructor)
+                                                {
+                                                    <span class="ll-badge ll-badge-instructor">Instructor</span>
+                                                }
+                                                <span class="ll-reply-time">@FormatTimeAgo(reply.CreatedAt)</span>
+                                            </div>
+                                            <p class="ll-reply-text">@reply.Text</p>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="ll-reply-input-wrapper">
+                                    <input type="text"
+                                           class="ll-reply-input"
+                                           placeholder="Write a reply..."
+                                           @bind="question.ReplyDraft"
+                                           @bind:event="oninput" />
+                                    <button class="ll-reply-btn"
+                                            @onclick="() => SubmitReply(question)"
+                                            disabled="@(string.IsNullOrWhiteSpace(question.ReplyDraft))">
+                                        <i class="fas fa-reply"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid LessonId { get; set; }
+
+    [Parameter]
+    public Guid CourseId { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnTimestampClick { get; set; }
+
+    private List<Question> questions = new();
+    private List<Question> filteredQuestions = new();
+    private string filter = "all";
+    private string newQuestion = string.Empty;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadQuestions();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadQuestions();
+    }
+
+    private async Task LoadQuestions()
+    {
+        try
+        {
+            isLoading = true;
+            questions.Clear();
+
+            // TODO: Replace with actual API call when backend is ready
+            await Task.Delay(300); // Simulate loading
+
+            // Mock data - replace with actual API call:
+            // var response = await QAService.GetQuestionsAsync(LessonId);
+            // if (response.Success && response.Data != null)
+            // {
+            //     questions = response.Data;
+            // }
+
+            // Placeholder: Empty list for now
+            questions = new List<Question>();
+
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[QAPanel] Error loading questions: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetFilter(string newFilter)
+    {
+        filter = newFilter;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        filteredQuestions = filter switch
+        {
+            "unanswered" => questions.Where(q => !q.IsAnswered).ToList(),
+            "my" => questions.Where(q => q.IsOwner).ToList(),
+            _ => questions.ToList()
+        };
+    }
+
+    private async Task SubmitQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(newQuestion)) return;
+
+        try
+        {
+            // TODO: Submit to API
+            // await QAService.CreateQuestionAsync(LessonId, newQuestion);
+
+            // For now, add to local list
+            var question = new Question
+            {
+                Id = Guid.NewGuid(),
+                Text = newQuestion,
+                AuthorName = "You",
+                IsOwner = true,
+                CreatedAt = DateTime.UtcNow,
+                Votes = 0
+            };
+            questions.Insert(0, question);
+            newQuestion = string.Empty;
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[QAPanel] Error submitting question: {ex.Message}");
+        }
+    }
+
+    private async Task SubmitReply(Question question)
+    {
+        if (string.IsNullOrWhiteSpace(question.ReplyDraft)) return;
+
+        try
+        {
+            // TODO: Submit to API
+            // await QAService.CreateReplyAsync(question.Id, question.ReplyDraft);
+
+            // For now, add to local list
+            question.Replies.Add(new Reply
+            {
+                Id = Guid.NewGuid(),
+                Text = question.ReplyDraft,
+                AuthorName = "You",
+                CreatedAt = DateTime.UtcNow
+            });
+            question.RepliesCount++;
+            question.ReplyDraft = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[QAPanel] Error submitting reply: {ex.Message}");
+        }
+    }
+
+    private async Task Vote(Question question, int direction)
+    {
+        try
+        {
+            // TODO: Submit to API
+            // await QAService.VoteAsync(question.Id, direction);
+
+            if (question.UserVoted == direction)
+            {
+                // Remove vote
+                question.Votes -= direction;
+                question.UserVoted = 0;
+            }
+            else
+            {
+                // Change or add vote
+                question.Votes += direction - question.UserVoted;
+                question.UserVoted = direction;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[QAPanel] Error voting: {ex.Message}");
+        }
+    }
+
+    private void ToggleReplies(Question question)
+    {
+        question.ShowReplies = !question.ShowReplies;
+    }
+
+    private async Task SeekToTimestamp(int timestamp)
+    {
+        await OnTimestampClick.InvokeAsync(timestamp);
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newQuestion))
+        {
+            SubmitQuestion();
+        }
+    }
+
+    private string FormatTimeAgo(DateTime dateTime)
+    {
+        var span = DateTime.UtcNow - dateTime;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalHours < 1) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalDays < 1) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        if (span.TotalDays < 30) return $"{(int)(span.TotalDays / 7)}w ago";
+        return dateTime.ToString("MMM d, yyyy");
+    }
+
+    private string FormatTimestamp(int seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0 ? ts.ToString(@"h\:mm\:ss") : ts.ToString(@"m\:ss");
+    }
+
+    // Models
+    public class Question
+    {
+        public Guid Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string AuthorName { get; set; } = string.Empty;
+        public string? AuthorAvatar { get; set; }
+        public bool IsOwner { get; set; }
+        public bool IsAnswered { get; set; }
+        public int Votes { get; set; }
+        public int UserVoted { get; set; } // 1 = upvoted, -1 = downvoted, 0 = no vote
+        public int? Timestamp { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int RepliesCount { get; set; }
+        public List<Reply> Replies { get; set; } = new();
+        public bool ShowReplies { get; set; }
+        public string ReplyDraft { get; set; } = string.Empty;
+    }
+
+    public class Reply
+    {
+        public Guid Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string AuthorName { get; set; } = string.Empty;
+        public string? AuthorAvatar { get; set; }
+        public bool IsInstructor { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

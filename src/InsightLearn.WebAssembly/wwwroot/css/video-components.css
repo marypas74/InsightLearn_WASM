@@ -814,3 +814,548 @@
         font-size: 0.85rem;
     }
 }
+
+/* ========================================
+   LINKEDIN LEARNING STYLE VIDEO CONTROLS
+   v2.2.0-dev - Custom Controls
+   ======================================== */
+
+/* Video Container - LinkedIn Learning Style */
+.ll-video-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+}
+
+.ll-video-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    border-radius: 0;
+    aspect-ratio: auto;
+}
+
+.ll-video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+/* Video Controls Container */
+.ll-video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.ll-video-controls.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.ll-video-container:hover .ll-video-controls {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Progress Bar */
+.ll-progress-bar {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: height 0.15s ease;
+}
+
+.ll-progress-bar:hover {
+    height: 6px;
+}
+
+.ll-progress-buffered {
+    position: absolute;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.ll-progress-played {
+    position: absolute;
+    height: 100%;
+    background: #0073b1; /* LinkedIn blue */
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+.ll-progress-thumb {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.ll-progress-bar:hover .ll-progress-thumb {
+    opacity: 1;
+}
+
+.ll-time-preview {
+    position: absolute;
+    bottom: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+/* Controls Row */
+.ll-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ll-controls-left,
+.ll-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Control Buttons */
+.ll-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 16px;
+}
+
+.ll-control-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.ll-control-btn.active {
+    color: #0073b1;
+}
+
+.ll-control-btn:focus {
+    outline: 2px solid #0073b1;
+    outline-offset: 2px;
+}
+
+.ll-play-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+}
+
+/* Skip Text (10s indicator) */
+.ll-skip-text {
+    font-size: 10px;
+    font-weight: 700;
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+}
+
+.ll-control-btn {
+    position: relative;
+}
+
+/* Volume Control */
+.ll-volume-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ll-volume-slider {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+}
+
+.ll-volume-slider.visible {
+    width: 80px;
+}
+
+.ll-volume-input {
+    width: 70px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.ll-volume-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.ll-volume-input::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Time Display */
+.ll-time-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+}
+
+.ll-time-separator {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Speed Control */
+.ll-speed-control {
+    position: relative;
+}
+
+.ll-speed-btn {
+    font-size: 13px;
+    font-weight: 600;
+    width: auto;
+    padding: 0 12px;
+}
+
+.ll-speed-menu {
+    position: absolute;
+    bottom: 45px;
+    right: 0;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    min-width: 100px;
+}
+
+.ll-speed-option {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s ease;
+}
+
+.ll-speed-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ll-speed-option.active {
+    background: rgba(0, 115, 177, 0.2);
+    color: #0073b1;
+    font-weight: 600;
+}
+
+/* Subtitle Control - LinkedIn Learning Style */
+.ll-subtitle-control {
+    position: relative;
+}
+
+.ll-subtitle-menu,
+.ll-settings-menu {
+    position: absolute;
+    bottom: 45px;
+    right: 0;
+    min-width: 200px;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.ll-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ll-menu-header i {
+    color: #0073b1;
+}
+
+.ll-menu-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.ll-menu-option:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ll-menu-option.active {
+    background: rgba(0, 115, 177, 0.15);
+    color: #fff;
+}
+
+.ll-menu-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ll-menu-option i {
+    width: 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.ll-menu-option.active i {
+    color: #0073b1;
+}
+
+.ll-menu-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ll-menu-section i {
+    font-size: 12px;
+}
+
+.ll-cached-badge {
+    margin-left: auto;
+    color: #22c55e;
+    font-size: 8px;
+}
+
+/* Settings Control */
+.ll-settings-control {
+    position: relative;
+}
+
+/* Big Play Overlay */
+.ll-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.ll-play-overlay:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.ll-play-button-large {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.ll-play-overlay:hover .ll-play-button-large {
+    transform: scale(1.1);
+}
+
+.ll-play-button-large i {
+    font-size: 28px;
+    color: #333;
+    margin-left: 4px; /* Optical center for play icon */
+}
+
+/* Buffering Overlay */
+.ll-buffering-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.ll-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #0073b1;
+    border-radius: 50%;
+    animation: ll-spin 1s linear infinite;
+}
+
+@keyframes ll-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .ll-video-controls {
+        padding: 12px;
+        opacity: 1; /* Always visible on mobile */
+    }
+
+    .ll-controls-left,
+    .ll-controls-right {
+        gap: 4px;
+    }
+
+    .ll-control-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .ll-play-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .ll-time-display {
+        font-size: 11px;
+    }
+
+    .ll-volume-slider {
+        display: none; /* Hide volume slider on mobile */
+    }
+
+    .ll-play-button-large {
+        width: 56px;
+        height: 56px;
+    }
+
+    .ll-play-button-large i {
+        font-size: 22px;
+    }
+
+    .ll-speed-btn {
+        display: none; /* Hide speed on mobile */
+    }
+}
+
+/* Fullscreen specific styles */
+.ll-video-container.fullscreen .ll-video-element {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+}
+
+.ll-video-container.fullscreen .ll-video-controls {
+    padding: 24px;
+}
+
+.ll-video-container.fullscreen .ll-control-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+}
+
+.ll-video-container.fullscreen .ll-time-display {
+    font-size: 15px;
+}
+
+/* Accessibility */
+.ll-video-controls *:focus-visible {
+    outline: 2px solid #0073b1;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ll-spinner {
+        animation: none;
+    }
+
+    .ll-video-controls,
+    .ll-progress-bar,
+    .ll-progress-thumb,
+    .ll-control-btn {
+        transition: none;
+    }
+}

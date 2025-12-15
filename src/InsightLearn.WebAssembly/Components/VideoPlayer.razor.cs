@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Timers;
@@ -88,6 +89,28 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     private double duration = 0;
     private bool isPlaying = false;
 
+    // LinkedIn Learning custom controls state
+    private bool controlsVisible = true;
+    private bool showVolumeSlider = false;
+    private bool showSpeedMenu = false;
+    private bool showSettingsMenu = false;
+    private double volume = 1.0;
+    private double previousVolume = 1.0;
+    private bool isMuted = false;
+    private double playbackSpeed = 1.0;
+    private double progressPercent = 0;
+    private double bufferedPercent = 0;
+    private bool isFullscreen = false;
+    private bool isBuffering = false;
+    private double previewTime = 0;
+    private double previewPosition = 0;
+    private bool showTimePreview = false;
+    private System.Threading.Timer? hideControlsTimer;
+    private string selectedQuality = "auto";
+
+    // Playback speed options
+    public static readonly double[] PlaybackSpeeds = { 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0 };
+
     // Translation state
     private bool isTranslating = false;
     private bool isTranslatedSubtitle = false;
@@ -126,8 +149,8 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
         {
             try
             {
-                // Initialize JS interop for video events
-                await JSRuntime.InvokeVoidAsync("videoPlayer.initialize", videoId, dotNetReference);
+                // Initialize enhanced JS interop for LinkedIn Learning style video controls
+                await JSRuntime.InvokeVoidAsync("videoPlayer.initializeEnhanced", videoId, dotNetReference);
 
                 // Start progress tracking timer (every 5 seconds)
                 progressTimer = new System.Timers.Timer(5000);
@@ -382,11 +405,14 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
         currentTime = currentTimeSeconds;
         duration = durationSeconds;
 
+        // Update progress percentage for custom controls
+        progressPercent = durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0;
+
         await OnTimeUpdate.InvokeAsync(new VideoTimeUpdate
         {
             CurrentTime = currentTimeSeconds,
             Duration = durationSeconds,
-            Progress = durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0
+            Progress = progressPercent
         });
     }
 
@@ -477,12 +503,320 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
         return $"{len:F2} {sizes[order]}";
     }
 
+    #region LinkedIn Learning Custom Controls
+
+    /// <summary>
+    /// Format time in MM:SS or HH:MM:SS format.
+    /// </summary>
+    private string FormatTime(double seconds)
+    {
+        if (double.IsNaN(seconds) || double.IsInfinity(seconds))
+            return "0:00";
+
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.TotalHours >= 1
+            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+
+    /// <summary>
+    /// Show video controls overlay on mouse move.
+    /// </summary>
+    private void ShowControlsOverlay()
+    {
+        controlsVisible = true;
+        ResetHideControlsTimer();
+    }
+
+    /// <summary>
+    /// Hide controls after delay when mouse leaves.
+    /// </summary>
+    private void HideControlsDelayed()
+    {
+        hideControlsTimer?.Dispose();
+        hideControlsTimer = new System.Threading.Timer(_ =>
+        {
+            if (isPlaying)
+            {
+                controlsVisible = false;
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, 3000, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Reset the hide controls timer.
+    /// </summary>
+    private void ResetHideControlsTimer()
+    {
+        hideControlsTimer?.Dispose();
+        hideControlsTimer = new System.Threading.Timer(_ =>
+        {
+            if (isPlaying)
+            {
+                controlsVisible = false;
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, 3000, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Toggle play/pause state.
+    /// </summary>
+    private async Task TogglePlayPause()
+    {
+        try
+        {
+            if (isPlaying)
+            {
+                await PauseAsync();
+            }
+            else
+            {
+                await PlayAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling play/pause");
+        }
+    }
+
+    /// <summary>
+    /// Rewind video by 10 seconds.
+    /// </summary>
+    private async Task Rewind10()
+    {
+        try
+        {
+            var newTime = Math.Max(0, currentTime - 10);
+            await SeekToAsync(newTime);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error rewinding video");
+        }
+    }
+
+    /// <summary>
+    /// Forward video by 10 seconds.
+    /// </summary>
+    private async Task Forward10()
+    {
+        try
+        {
+            var newTime = Math.Min(duration, currentTime + 10);
+            await SeekToAsync(newTime);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error forwarding video");
+        }
+    }
+
+    /// <summary>
+    /// Toggle mute state.
+    /// </summary>
+    private async Task ToggleMute()
+    {
+        try
+        {
+            if (isMuted)
+            {
+                volume = previousVolume;
+                isMuted = false;
+            }
+            else
+            {
+                previousVolume = volume;
+                volume = 0;
+                isMuted = true;
+            }
+            await JSRuntime.InvokeVoidAsync("videoPlayer.setVolume", videoId, volume);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling mute");
+        }
+    }
+
+    /// <summary>
+    /// Handle volume slider change.
+    /// </summary>
+    private async Task OnVolumeChange(ChangeEventArgs e)
+    {
+        try
+        {
+            if (double.TryParse(e.Value?.ToString(), out var newVolume))
+            {
+                volume = newVolume / 100;
+                isMuted = volume == 0;
+                await JSRuntime.InvokeVoidAsync("videoPlayer.setVolume", videoId, volume);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error changing volume");
+        }
+    }
+
+    /// <summary>
+    /// Show volume slider on hover.
+    /// </summary>
+    private void ShowVolumeSlider() => showVolumeSlider = true;
+
+    /// <summary>
+    /// Hide volume slider when mouse leaves.
+    /// </summary>
+    private void HideVolumeSlider() => showVolumeSlider = false;
+
+    /// <summary>
+    /// Get appropriate volume icon based on current state.
+    /// </summary>
+    private string GetVolumeIcon()
+    {
+        if (isMuted || volume == 0) return "fa-volume-mute";
+        if (volume < 0.3) return "fa-volume-off";
+        if (volume < 0.7) return "fa-volume-down";
+        return "fa-volume-up";
+    }
+
+    /// <summary>
+    /// Toggle playback speed menu.
+    /// </summary>
+    private void ToggleSpeedMenu()
+    {
+        showSpeedMenu = !showSpeedMenu;
+        showSettingsMenu = false;
+        showSubtitleMenu = false;
+    }
+
+    /// <summary>
+    /// Set playback speed.
+    /// </summary>
+    private async Task SetPlaybackSpeed(double speed)
+    {
+        try
+        {
+            playbackSpeed = speed;
+            showSpeedMenu = false;
+            await JSRuntime.InvokeVoidAsync("videoPlayer.setPlaybackRate", videoId, speed);
+            Logger.LogDebug("Playback speed set to {Speed}x", speed);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting playback speed");
+        }
+    }
+
+    /// <summary>
+    /// Toggle settings menu.
+    /// </summary>
+    private void ToggleSettingsMenu()
+    {
+        showSettingsMenu = !showSettingsMenu;
+        showSpeedMenu = false;
+        showSubtitleMenu = false;
+    }
+
+    /// <summary>
+    /// Set video quality (placeholder - requires HLS/DASH implementation).
+    /// </summary>
+    private void SetQuality(string quality)
+    {
+        selectedQuality = quality;
+        showSettingsMenu = false;
+        Logger.LogDebug("Quality set to {Quality}", quality);
+        // Note: Actual quality switching requires HLS/DASH implementation
+    }
+
+    /// <summary>
+    /// Toggle fullscreen mode.
+    /// </summary>
+    private async Task ToggleFullscreenMode()
+    {
+        try
+        {
+            isFullscreen = !isFullscreen;
+            await JSRuntime.InvokeVoidAsync("videoPlayer.toggleFullscreen", videoId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling fullscreen");
+            isFullscreen = false;
+        }
+    }
+
+    /// <summary>
+    /// Seek to position on progress bar click.
+    /// </summary>
+    private async Task SeekToPosition(MouseEventArgs e)
+    {
+        try
+        {
+            // Calculate position based on click
+            // This requires JS interop to get element dimensions
+            var percent = await JSRuntime.InvokeAsync<double>("videoPlayer.getClickPosition", videoId, e.ClientX);
+            var seekTime = duration * (percent / 100);
+            await SeekToAsync(seekTime);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error seeking to position");
+        }
+    }
+
+    /// <summary>
+    /// Show time preview on progress bar hover.
+    /// </summary>
+    private void ShowPreviewTime(MouseEventArgs e)
+    {
+        showTimePreview = true;
+        // Calculate preview time based on mouse position
+        // This would need JS interop for accurate calculation
+    }
+
+    /// <summary>
+    /// Called from JavaScript to update buffered progress.
+    /// </summary>
+    [JSInvokable]
+    public Task OnBufferedUpdateFromJS(double bufferedPercentage)
+    {
+        bufferedPercent = bufferedPercentage;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when buffering state changes.
+    /// </summary>
+    [JSInvokable]
+    public Task OnBufferingStateChangedFromJS(bool buffering)
+    {
+        isBuffering = buffering;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when fullscreen state changes.
+    /// </summary>
+    [JSInvokable]
+    public Task OnFullscreenChangedFromJS(bool fullscreen)
+    {
+        isFullscreen = fullscreen;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
     public async ValueTask DisposeAsync()
     {
         try
         {
             progressTimer?.Stop();
             progressTimer?.Dispose();
+            hideControlsTimer?.Dispose();
 
             if (!string.IsNullOrEmpty(videoId))
             {

@@ -14,23 +14,35 @@
 
 @if (isLoading)
 {
-    <div class="learning-space-loading">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading lesson...</span>
+    <div class="ll-learning-loading">
+        <div class="ll-loading-content">
+            <div class="ll-loading-spinner">
+                <div class="ll-spinner-ring"></div>
+                <div class="ll-spinner-ring"></div>
+                <div class="ll-spinner-ring"></div>
+            </div>
+            <h3>Preparing your learning experience</h3>
+            <p>Loading video, transcripts, and resources...</p>
         </div>
-        <p>Preparing your learning environment...</p>
     </div>
 }
 else if (errorMessage != null)
 {
-    <div class="learning-space-error">
-        <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle"></i>
-            <h4>Unable to load lesson</h4>
+    <div class="ll-learning-error">
+        <div class="ll-error-content">
+            <div class="ll-error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3>Unable to load lesson</h3>
             <p>@errorMessage</p>
-            <button class="btn btn-primary mt-3" @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
-                <i class="fas fa-arrow-left"></i> Back to Course
-            </button>
+            <div class="ll-error-actions">
+                <button class="ll-btn ll-btn-secondary" @onclick="@(() => LoadLearningEnvironment())">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+                <button class="ll-btn ll-btn-primary" @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
+                    <i class="fas fa-arrow-left"></i> Back to Course
+                </button>
+            </div>
         </div>
     </div>
 }
@@ -38,31 +50,39 @@ else if (lesson != null && course != null)
 {
     <div class="learning-space-container">
         <!-- Top Navigation Bar - LinkedIn Learning Style -->
-        <nav class="learning-navbar">
-            <div class="navbar-left">
-                <button class="btn-back" @onclick="BackToCourse" title="Back to course">
+        <nav class="ll-learning-navbar">
+            <div class="ll-navbar-left">
+                <button class="ll-btn-back" @onclick="BackToCourse" title="Back to course">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <div class="course-info">
-                    <h1 class="course-title">@course.Title</h1>
+                <div class="ll-course-info">
+                    <span class="ll-course-title">@course.Title</span>
+                    <span class="ll-lesson-title">@lesson.Title</span>
                 </div>
             </div>
-            <div class="navbar-center">
-                <span class="lesson-counter">@currentLessonIndex / @totalLessons</span>
+            <div class="ll-navbar-center">
+                <div class="ll-progress-pill">
+                    <span class="ll-lesson-counter">@currentLessonIndex of @totalLessons</span>
+                    <div class="ll-progress-bar-mini">
+                        <div class="ll-progress-fill" style="width: @((currentLessonIndex * 100.0 / totalLessons).ToString("0"))%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="navbar-right">
-                <div class="nav-buttons">
-                    <button class="nav-btn prev @(!hasPreviousLesson ? "disabled" : "")"
+            <div class="ll-navbar-right">
+                <div class="ll-nav-buttons">
+                    <button class="ll-nav-btn @(!hasPreviousLesson ? "disabled" : "")"
                             @onclick="NavigateToPreviousLesson"
                             disabled="@(!hasPreviousLesson)"
                             title="Previous lesson">
                         <i class="fas fa-chevron-left"></i>
+                        <span>Previous</span>
                     </button>
-                    <button class="nav-btn next @(!hasNextLesson ? "disabled" : "")"
+                    <button class="ll-nav-btn ll-nav-btn-next @(!hasNextLesson ? "disabled" : "")"
                             @onclick="NavigateToNextLesson"
                             disabled="@(!hasNextLesson)"
                             title="@(hasNextLesson ? "Next lesson" : "Course completed")">
-                        <i class="fas fa-chevron-right"></i>
+                        <span>@(hasNextLesson ? "Next" : "Complete")</span>
+                        <i class="fas @(hasNextLesson ? "fa-chevron-right" : "fa-check")"></i>
                     </button>
                 </div>
             </div>
@@ -71,18 +91,21 @@ else if (lesson != null && course != null)
         <!-- Sidebar Backdrop Overlay -->
         @if (leftSidebarOpen || rightSidebarOpen)
         {
-            <div class="sidebar-backdrop visible" @onclick="CloseAllSidebars"></div>
+            <div class="ll-sidebar-backdrop visible" @onclick="CloseAllSidebars"></div>
         }
 
         <!-- Left Sidebar: Course Curriculum (Overlay) -->
-        <aside class="learning-sidebar left-sidebar @(leftSidebarOpen ? "open" : "")">
-            <div class="sidebar-header">
-                <h3><i class="fas fa-list"></i> Course Content</h3>
-                <button class="btn-collapse" @onclick="ToggleLeftSidebar" title="Close">
+        <aside class="ll-learning-sidebar ll-sidebar-left @(leftSidebarOpen ? "open" : "")">
+            <div class="ll-sidebar-header">
+                <div class="ll-sidebar-title">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Course Content</span>
+                </div>
+                <button class="ll-sidebar-close" @onclick="ToggleLeftSidebar" title="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="sidebar-content">
+            <div class="ll-sidebar-content">
                 <CourseCurriculum Sections="@course.Sections"
                                   CurrentLessonId="@LessonId"
                                   OnLessonClick="NavigateToLesson" />
@@ -90,11 +113,17 @@ else if (lesson != null && course != null)
         </aside>
 
         <!-- Right Sidebar: AI Assistant (Overlay) -->
-        <aside class="learning-sidebar right-sidebar @(rightSidebarOpen ? "open" : "")">
-            <button class="btn-close-sidebar" @onclick="ToggleRightSidebar" title="Close">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="sidebar-content ai-chat-container">
+        <aside class="ll-learning-sidebar ll-sidebar-right @(rightSidebarOpen ? "open" : "")">
+            <div class="ll-sidebar-header">
+                <div class="ll-sidebar-title">
+                    <i class="fas fa-brain"></i>
+                    <span>AI Learning Assistant</span>
+                </div>
+                <button class="ll-sidebar-close" @onclick="ToggleRightSidebar" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ll-sidebar-content ll-ai-sidebar-content">
                 <AIChatPanel LessonId="@LessonId"
                              CurrentVideoTimestamp="@((int)currentVideoTime)"
                              OnTimestampClick="@HandleAIChatTimestampClick" />
@@ -102,20 +131,20 @@ else if (lesson != null && course != null)
         </aside>
 
         <!-- Main Learning Space Layout -->
-        <div class="learning-space-layout">
+        <div class="ll-learning-layout">
             <!-- Center: Video Player + Tabs -->
-            <main class="learning-main-content">
+            <main class="ll-main-content">
                 <!-- Video Player with Toggle Buttons - LinkedIn Learning style responsive layout -->
-                <div class="video-player-wrapper">
+                <div class="ll-video-player-wrapper">
                     <!-- Toggle Buttons on Video -->
-                    <div class="sidebar-toggle-buttons">
-                        <button class="sidebar-toggle left" @onclick="ToggleLeftSidebar">
-                            <i class="fas fa-list"></i>
+                    <div class="ll-sidebar-toggles">
+                        <button class="ll-sidebar-toggle ll-toggle-left @(leftSidebarOpen ? "active" : "")" @onclick="ToggleLeftSidebar">
+                            <i class="fas fa-list-ul"></i>
                             <span>Contents</span>
                         </button>
-                        <button class="sidebar-toggle right" @onclick="ToggleRightSidebar">
-                            <i class="fas fa-sparkles"></i>
-                            <span>AI Assistant</span>
+                        <button class="ll-sidebar-toggle ll-toggle-right @(rightSidebarOpen ? "active" : "")" @onclick="ToggleRightSidebar">
+                            <i class="fas fa-brain"></i>
+                            <span>AI Help</span>
                         </button>
                     </div>
                     <VideoPlayer @ref="videoPlayerRef"
@@ -131,52 +160,151 @@ else if (lesson != null && course != null)
                 </div>
 
                 <!-- Video Progress Indicator -->
-                <div class="progress-indicator-wrapper">
+                <div class="ll-progress-indicator-wrapper">
                     <VideoProgressIndicator LessonId="@LessonId"
                                             CurrentPosition="@currentVideoTime"
                                             TotalDuration="@videoDuration"
                                             OnSeek="@HandleProgressSeek" />
                 </div>
 
-                <!-- Lesson Info -->
-                <div class="lesson-header">
-                    <h2>@lesson.Title</h2>
-                    @if (!string.IsNullOrEmpty(lesson.Description))
-                    {
-                        <p class="lesson-description">@lesson.Description</p>
-                    }
+                <!-- Lesson Header - LinkedIn Learning Style -->
+                <div class="ll-lesson-header">
+                    <div class="ll-lesson-header-content">
+                        <h2 class="ll-lesson-title">@lesson.Title</h2>
+                        @if (!string.IsNullOrEmpty(lesson.Description))
+                        {
+                            <p class="ll-lesson-description">@lesson.Description</p>
+                        }
+                    </div>
+                    <div class="ll-lesson-actions">
+                        @if (lesson.IsCompleted)
+                        {
+                            <span class="ll-completed-badge">
+                                <i class="fas fa-check-circle"></i> Completed
+                            </span>
+                        }
+                    </div>
                 </div>
 
-                <!-- Tab Navigation -->
-                <div class="learning-tabs">
-                    <ul class="nav nav-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link @(activeTab == "notes" ? "active" : "")"
-                                    @onclick="@(() => SetActiveTab("notes"))"
-                                    type="button" role="tab">
-                                <i class="fas fa-sticky-note"></i> Notes
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link @(activeTab == "transcript" ? "active" : "")"
-                                    @onclick="@(() => SetActiveTab("transcript"))"
-                                    type="button" role="tab">
-                                <i class="fas fa-file-alt"></i> Transcript
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link @(activeTab == "overview" ? "active" : "")"
+                <!-- Tab Navigation - LinkedIn Learning Style -->
+                <div class="ll-learning-tabs">
+                    <div class="ll-tabs-container">
+                        <div class="ll-tabs-nav" role="tablist">
+                            <button class="ll-tab-btn @(activeTab == "overview" ? "active" : "")"
                                     @onclick="@(() => SetActiveTab("overview"))"
-                                    type="button" role="tab">
-                                <i class="fas fa-info-circle"></i> Overview
+                                    type="button" role="tab"
+                                    aria-selected="@(activeTab == "overview")">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Overview</span>
                             </button>
-                        </li>
-                    </ul>
+                            <button class="ll-tab-btn @(activeTab == "notes" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("notes"))"
+                                    type="button" role="tab"
+                                    aria-selected="@(activeTab == "notes")">
+                                <i class="fas fa-sticky-note"></i>
+                                <span>Notes</span>
+                            </button>
+                            <button class="ll-tab-btn @(activeTab == "transcript" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("transcript"))"
+                                    type="button" role="tab"
+                                    aria-selected="@(activeTab == "transcript")">
+                                <i class="fas fa-closed-captioning"></i>
+                                <span>Transcript</span>
+                            </button>
+                            <button class="ll-tab-btn @(activeTab == "exercise-files" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("exercise-files"))"
+                                    type="button" role="tab"
+                                    aria-selected="@(activeTab == "exercise-files")">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Exercise Files</span>
+                                @if (HasExerciseFiles())
+                                {
+                                    <span class="ll-tab-badge">@GetExerciseFileCount()</span>
+                                }
+                            </button>
+                            <button class="ll-tab-btn @(activeTab == "qa" ? "active" : "")"
+                                    @onclick="@(() => SetActiveTab("qa"))"
+                                    type="button" role="tab"
+                                    aria-selected="@(activeTab == "qa")">
+                                <i class="fas fa-comments"></i>
+                                <span>Q&A</span>
+                            </button>
+                        </div>
+                    </div>
 
-                    <div class="tab-content">
-                        @if (activeTab == "notes")
+                    <div class="ll-tab-content">
+                        @if (activeTab == "overview")
                         {
-                            <div class="tab-pane active">
+                            <div class="ll-tab-pane ll-overview-pane">
+                                <div class="ll-lesson-info">
+                                    <div class="ll-lesson-meta">
+                                        <span class="ll-meta-item">
+                                            <i class="fas fa-clock"></i>
+                                            @FormatDuration(lesson.DurationMinutes)
+                                        </span>
+                                        <span class="ll-meta-item">
+                                            <i class="fas fa-layer-group"></i>
+                                            @currentSection?.Title
+                                        </span>
+                                        @if (lesson.IsFree)
+                                        {
+                                            <span class="ll-meta-badge ll-badge-free">
+                                                <i class="fas fa-unlock"></i> Free Preview
+                                            </span>
+                                        }
+                                        @if (lesson.IsCompleted)
+                                        {
+                                            <span class="ll-meta-badge ll-badge-completed">
+                                                <i class="fas fa-check-circle"></i> Completed
+                                            </span>
+                                        }
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(lesson.Description))
+                                    {
+                                        <div class="ll-overview-section">
+                                            <h4 class="ll-section-title">About this lesson</h4>
+                                            <p class="ll-description">@lesson.Description</p>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(lesson.AttachmentUrl))
+                                    {
+                                        <div class="ll-overview-section">
+                                            <h4 class="ll-section-title">Resources</h4>
+                                            <a href="@lesson.AttachmentUrl" target="_blank" class="ll-resource-link">
+                                                <i class="fas fa-file-download"></i>
+                                                <span>@(lesson.AttachmentName ?? "Download Attachment")</span>
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                        </div>
+                                    }
+
+                                    <div class="ll-overview-section ll-course-info">
+                                        <h4 class="ll-section-title">About this course</h4>
+                                        <div class="ll-course-card">
+                                            @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                                            {
+                                                <img src="@course.ThumbnailUrl" alt="@course.Title" class="ll-course-thumb" />
+                                            }
+                                            <div class="ll-course-details">
+                                                <h5>@course.Title</h5>
+                                                <p class="ll-instructor">by @course.InstructorName</p>
+                                                @if (course.LessonCount > 0)
+                                                {
+                                                    <p class="ll-course-stats">
+                                                        @course.LessonCount lessons • @FormatDuration(course.EstimatedDurationMinutes)
+                                                    </p>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (activeTab == "notes")
+                        {
+                            <div class="ll-tab-pane">
                                 <StudentNotesPanel LessonId="@LessonId"
                                                    CurrentVideoTimestamp="@((int)currentVideoTime)"
                                                    OnTimestampClick="@HandleNotesTimestampClick" />
@@ -184,48 +312,24 @@ else if (lesson != null && course != null)
                         }
                         else if (activeTab == "transcript")
                         {
-                            <div class="tab-pane active">
+                            <div class="ll-tab-pane">
                                 <VideoTranscriptViewer LessonId="@LessonId"
                                                        CurrentVideoTimestamp="@((int)currentVideoTime)"
                                                        OnTimestampClick="@HandleTranscriptTimestampClick" />
                             </div>
                         }
-                        else if (activeTab == "overview")
+                        else if (activeTab == "exercise-files")
                         {
-                            <div class="tab-pane active">
-                                <div class="lesson-overview">
-                                    @if (!string.IsNullOrEmpty(lesson.Description))
-                                    {
-                                        <section class="mb-4">
-                                            <h4><i class="fas fa-info-circle"></i> Description</h4>
-                                            <p>@lesson.Description</p>
-                                        </section>
-                                    }
-                                    @if (!string.IsNullOrEmpty(lesson.AttachmentUrl))
-                                    {
-                                        <section class="mb-4">
-                                            <h4><i class="fas fa-download"></i> Resources</h4>
-                                            <a href="@lesson.AttachmentUrl" target="_blank" class="btn btn-outline-primary">
-                                                <i class="fas fa-file-download"></i>
-                                                @(lesson.AttachmentName ?? "Download Attachment")
-                                            </a>
-                                        </section>
-                                    }
-                                    <section>
-                                        <h4><i class="fas fa-clock"></i> Lesson Info</h4>
-                                        <p><strong>Duration:</strong> @FormatDuration(lesson.DurationMinutes)</p>
-                                        <p><strong>Section:</strong> @currentSection?.Title</p>
-                                        <p><strong>Type:</strong> @lesson.Type</p>
-                                        @if (lesson.IsFree)
-                                        {
-                                            <p><span class="badge bg-info">Free Preview Available</span></p>
-                                        }
-                                        @if (lesson.IsCompleted)
-                                        {
-                                            <p><span class="badge bg-success">Completed</span></p>
-                                        }
-                                    </section>
-                                </div>
+                            <div class="ll-tab-pane ll-exercise-files-pane">
+                                <ExerciseFilesPanel LessonId="@LessonId"
+                                                    CourseId="@CourseId" />
+                            </div>
+                        }
+                        else if (activeTab == "qa")
+                        {
+                            <div class="ll-tab-pane ll-qa-pane">
+                                <QAPanel LessonId="@LessonId"
+                                         CourseId="@CourseId" />
                             </div>
                         }
                     </div>
@@ -253,7 +357,7 @@ else if (lesson != null && course != null)
     private bool isPlaying = false;
 
     // UI state
-    private string activeTab = "notes";
+    private string activeTab = "overview"; // LinkedIn Learning default tab
     private bool leftSidebarOpen = false; // MUST start closed for LinkedIn Learning style
     private bool rightSidebarOpen = false; // MUST start closed for LinkedIn Learning style
 
@@ -547,5 +651,23 @@ else if (lesson != null && course != null)
         // Could be enhanced to read from user preferences or browser settings
         // For now, return Italian as default for the Italian user base
         return "it";
+    }
+
+    /// <summary>
+    /// Check if the current lesson has exercise files (attachment)
+    /// </summary>
+    private bool HasExerciseFiles()
+    {
+        // Check lesson attachment URL
+        return !string.IsNullOrEmpty(lesson?.AttachmentUrl);
+    }
+
+    /// <summary>
+    /// Get the count of exercise files for the badge
+    /// </summary>
+    private int GetExerciseFileCount()
+    {
+        // Currently only counts the main attachment
+        return !string.IsNullOrEmpty(lesson?.AttachmentUrl) ? 1 : 0;
     }
 }

@@ -771,8 +771,42 @@
         // Scroll to bottom helper for AI Chat Panel (v2.2.0)
         function scrollToBottom(element) {
             if (element) {
-                element.scrollTop = element.scrollHeight;
+                element.scrollTo({
+                    top: element.scrollHeight,
+                    behavior: 'smooth'
+                });
             }
+        }
+
+        // Copy to clipboard helper for AI Chat Panel (v2.2.0)
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text)
+                    .then(() => true)
+                    .catch(() => false);
+            }
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return Promise.resolve(true);
+            } catch (e) {
+                document.body.removeChild(textarea);
+                return Promise.resolve(false);
+            }
+        }
+
+        // Check if element is scrolled to bottom (for auto-scroll control)
+        function isScrolledToBottom(element) {
+            if (!element) return true;
+            const threshold = 50; // pixels from bottom to consider "at bottom"
+            return element.scrollHeight - element.scrollTop - element.clientHeight < threshold;
         }
     </script>
 </body>

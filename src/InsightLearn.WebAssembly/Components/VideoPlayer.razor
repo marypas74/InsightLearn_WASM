@@ -64,14 +64,15 @@
     }
     else
     {
-        <div class="video-wrapper">
+        <div class="ll-video-container @(isFullscreen ? "fullscreen" : "")" @onmousemove="ShowControlsOverlay" @onmouseleave="HideControlsDelayed">
             <video
                 id="@videoId"
-                class="video-element"
-                controls="@ShowControls"
+                class="ll-video-element"
                 autoplay="@AutoPlay"
                 preload="metadata"
-                crossorigin="anonymous">
+                crossorigin="anonymous"
+                @onclick="TogglePlayPause"
+                @ondblclick="ToggleFullscreenMode">
                 <source src="@videoUrl" type="@contentType" />
                 @if (SubtitleTracks != null && SubtitleTracks.Any())
                 {
@@ -87,62 +88,184 @@
                 Your browser does not support the video tag.
             </video>
 
-            @* Subtitle/Translation selector control - ALWAYS VISIBLE for user language support *@
-            <div class="subtitle-controls">
-                <button class="btn-subtitle-toggle" @onclick="ToggleSubtitleMenu" title="Subtitles / Translation">
-                    <i class="fas fa-closed-captioning"></i>
-                </button>
-                @if (showSubtitleMenu)
-                {
-                    <div class="subtitle-menu">
-                        <div class="subtitle-menu-header">
-                            <i class="fas fa-language"></i>
-                            <span>Subtitles / Translation</span>
-                        </div>
-                        <button class="subtitle-option @(selectedSubtitleLanguage == null ? "active" : "")"
-                                @onclick="() => SelectSubtitle(null)">
-                            <i class="fas fa-times-circle"></i> Off
-                        </button>
-                        @if (SubtitleTracks != null && SubtitleTracks.Any())
-                        {
-                            <div class="subtitle-section-header">
-                                <i class="fas fa-file-alt"></i> Original
-                            </div>
-                            @foreach (var track in SubtitleTracks)
-                            {
-                                <button class="subtitle-option @(selectedSubtitleLanguage == track.Language && !isTranslatedSubtitle ? "active" : "")"
-                                        @onclick="() => SelectSubtitle(track.Language)">
-                                    <i class="fas fa-check-circle"></i> @track.Label
-                                </button>
-                            }
-                        }
+            @* LinkedIn Learning Style Custom Controls *@
+            <div class="ll-video-controls @(controlsVisible ? "visible" : "")">
+                @* Progress Bar *@
+                <div class="ll-progress-bar" @onclick="SeekToPosition" @onmousemove="ShowPreviewTime">
+                    <div class="ll-progress-buffered" style="width: @(bufferedPercent)%;"></div>
+                    <div class="ll-progress-played" style="width: @(progressPercent)%;"></div>
+                    <div class="ll-progress-thumb" style="left: @(progressPercent)%;"></div>
+                    @if (showTimePreview)
+                    {
+                        <div class="ll-time-preview" style="left: @(previewPosition)%;">@FormatTime(previewTime)</div>
+                    }
+                </div>
 
-                        @* Auto-Translate Section - Real-time translation with Ollama *@
-                        <div class="subtitle-section-header translate-header">
-                            <i class="fas fa-robot"></i> Auto-Translate (AI)
-                            @if (isTranslating)
+                @* Controls Row *@
+                <div class="ll-controls-row">
+                    @* Left Controls *@
+                    <div class="ll-controls-left">
+                        @* Play/Pause *@
+                        <button class="ll-control-btn ll-play-btn" @onclick="TogglePlayPause" title="@(isPlaying ? "Pause (k)" : "Play (k)")">
+                            <i class="fas @(isPlaying ? "fa-pause" : "fa-play")"></i>
+                        </button>
+
+                        @* Rewind 10s *@
+                        <button class="ll-control-btn" @onclick="Rewind10" title="Rewind 10 seconds (j)">
+                            <i class="fas fa-undo"></i>
+                            <span class="ll-skip-text">10</span>
+                        </button>
+
+                        @* Forward 10s *@
+                        <button class="ll-control-btn" @onclick="Forward10" title="Forward 10 seconds (l)">
+                            <i class="fas fa-redo"></i>
+                            <span class="ll-skip-text">10</span>
+                        </button>
+
+                        @* Volume Control *@
+                        <div class="ll-volume-control" @onmouseenter="ShowVolumeSlider" @onmouseleave="HideVolumeSlider">
+                            <button class="ll-control-btn" @onclick="ToggleMute" title="@(isMuted ? "Unmute (m)" : "Mute (m)")">
+                                <i class="fas @GetVolumeIcon()"></i>
+                            </button>
+                            <div class="ll-volume-slider @(showVolumeSlider ? "visible" : "")">
+                                <input type="range" min="0" max="100" value="@((int)(volume * 100))"
+                                       @oninput="OnVolumeChange" class="ll-volume-input" />
+                            </div>
+                        </div>
+
+                        @* Time Display *@
+                        <div class="ll-time-display">
+                            <span class="ll-current-time">@FormatTime(currentTime)</span>
+                            <span class="ll-time-separator">/</span>
+                            <span class="ll-total-time">@FormatTime(duration)</span>
+                        </div>
+                    </div>
+
+                    @* Right Controls *@
+                    <div class="ll-controls-right">
+                        @* Playback Speed *@
+                        <div class="ll-speed-control">
+                            <button class="ll-control-btn ll-speed-btn" @onclick="ToggleSpeedMenu" title="Playback speed">
+                                <span>@(playbackSpeed)x</span>
+                            </button>
+                            @if (showSpeedMenu)
                             {
-                                <span class="translating-indicator">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                </span>
+                                <div class="ll-speed-menu">
+                                    @foreach (var speed in PlaybackSpeeds)
+                                    {
+                                        <button class="ll-speed-option @(playbackSpeed == speed ? "active" : "")"
+                                                @onclick="() => SetPlaybackSpeed(speed)">
+                                            @(speed)x
+                                        </button>
+                                    }
+                                </div>
                             }
                         </div>
-                        @foreach (var lang in AvailableTranslationLanguages)
-                        {
-                            <button class="subtitle-option translate-option @(selectedSubtitleLanguage == lang.Code && isTranslatedSubtitle ? "active" : "")"
-                                    @onclick="() => RequestTranslation(lang.Code)"
-                                    disabled="@isTranslating">
-                                <i class="fas @(isTranslatedSubtitle && selectedSubtitleLanguage == lang.Code ? "fa-check-circle" : "fa-globe")"></i>
-                                @lang.Name
-                                @if (translationCache.ContainsKey(lang.Code))
-                                {
-                                    <span class="cached-indicator" title="Cached">●</span>
-                                }
+
+                        @* Subtitles/Captions *@
+                        <div class="ll-subtitle-control">
+                            <button class="ll-control-btn @(selectedSubtitleLanguage != null ? "active" : "")"
+                                    @onclick="ToggleSubtitleMenu" title="Subtitles (c)">
+                                <i class="fas fa-closed-captioning"></i>
                             </button>
-                        }
+                            @if (showSubtitleMenu)
+                            {
+                                <div class="ll-subtitle-menu">
+                                    <div class="ll-menu-header">
+                                        <i class="fas fa-language"></i>
+                                        <span>Subtitles</span>
+                                    </div>
+                                    <button class="ll-menu-option @(selectedSubtitleLanguage == null ? "active" : "")"
+                                            @onclick="() => SelectSubtitle(null)">
+                                        <i class="fas fa-times-circle"></i> Off
+                                    </button>
+                                    @if (SubtitleTracks != null && SubtitleTracks.Any())
+                                    {
+                                        <div class="ll-menu-section">Original</div>
+                                        @foreach (var track in SubtitleTracks)
+                                        {
+                                            <button class="ll-menu-option @(selectedSubtitleLanguage == track.Language && !isTranslatedSubtitle ? "active" : "")"
+                                                    @onclick="() => SelectSubtitle(track.Language)">
+                                                @track.Label
+                                            </button>
+                                        }
+                                    }
+                                    <div class="ll-menu-section">
+                                        <i class="fas fa-robot"></i> AI Translation
+                                        @if (isTranslating)
+                                        {
+                                            <i class="fas fa-spinner fa-spin ml-2"></i>
+                                        }
+                                    </div>
+                                    @foreach (var lang in AvailableTranslationLanguages.Take(6))
+                                    {
+                                        <button class="ll-menu-option @(selectedSubtitleLanguage == lang.Code && isTranslatedSubtitle ? "active" : "")"
+                                                @onclick="() => RequestTranslation(lang.Code)"
+                                                disabled="@isTranslating">
+                                            @lang.Name
+                                            @if (translationCache.ContainsKey(lang.Code))
+                                            {
+                                                <span class="ll-cached-badge">●</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @* Settings *@
+                        <div class="ll-settings-control">
+                            <button class="ll-control-btn" @onclick="ToggleSettingsMenu" title="Settings">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            @if (showSettingsMenu)
+                            {
+                                <div class="ll-settings-menu">
+                                    <div class="ll-menu-header">
+                                        <i class="fas fa-cog"></i>
+                                        <span>Settings</span>
+                                    </div>
+                                    <button class="ll-menu-option" @onclick="@(() => SetQuality("auto"))">
+                                        <i class="fas fa-magic"></i> Auto Quality
+                                    </button>
+                                    <button class="ll-menu-option" @onclick="@(() => SetQuality("1080p"))">
+                                        <i class="fas fa-hd"></i> 1080p HD
+                                    </button>
+                                    <button class="ll-menu-option" @onclick="@(() => SetQuality("720p"))">
+                                        <i class="fas fa-video"></i> 720p
+                                    </button>
+                                    <button class="ll-menu-option" @onclick="@(() => SetQuality("480p"))">
+                                        <i class="fas fa-mobile-alt"></i> 480p
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        @* Fullscreen *@
+                        <button class="ll-control-btn" @onclick="ToggleFullscreenMode" title="@(isFullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)")">
+                            <i class="fas @(isFullscreen ? "fa-compress" : "fa-expand")"></i>
+                        </button>
                     </div>
-                }
+                </div>
             </div>
+
+            @* Big Play Button Overlay (when paused) *@
+            @if (!isPlaying && !isLoading)
+            {
+                <div class="ll-play-overlay" @onclick="TogglePlayPause">
+                    <div class="ll-play-button-large">
+                        <i class="fas fa-play"></i>
+                    </div>
+                </div>
+            }
+
+            @* Loading Spinner *@
+            @if (isBuffering)
+            {
+                <div class="ll-buffering-overlay">
+                    <div class="ll-spinner"></div>
+                </div>
+            }
 
             @if (ShowMetadata && metadata != null)
             {

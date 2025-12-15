@@ -30,13 +30,13 @@
                 <button class="ll-section-header @(isExpanded ? "expanded" : "")"
                         @onclick="@(() => ToggleSection(section.Id))"
                         aria-expanded="@isExpanded"
-                        aria-controls="section-@section.Id">
+                        aria-controls="@($"section-{section.Id}")">
                     <div class="ll-section-expand">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                     <div class="ll-section-info">
                         <div class="ll-section-title">
-                            @(sectionIndex + 1). @section.Title
+                            @(sectionIndex + 1). @(section.Title)
                         </div>
                         <div class="ll-section-meta">
                             @sectionProgress.Completed/@sectionProgress.Total lessons
@@ -53,9 +53,9 @@
                 </button>
 
                 <div class="ll-section-content @(isExpanded ? "expanded" : "")"
-                     id="section-@section.Id"
+                     id="@($"section-{section.Id}")"
                      role="region"
-                     aria-label="@section.Title lessons">
+                     aria-label="@(section.Title) lessons">
                     @if (section.Lessons != null && section.Lessons.Any())
                     {
                         @foreach (var (lesson, lessonIndex) in section.Lessons.Select((l, i) => (l, i)))
