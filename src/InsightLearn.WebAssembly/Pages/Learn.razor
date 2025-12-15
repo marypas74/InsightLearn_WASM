@@ -105,7 +105,7 @@ else if (lesson != null && course != null)
         <div class="learning-space-layout">
             <!-- Center: Video Player + Tabs -->
             <main class="learning-main-content">
-                <!-- Video Player with Toggle Buttons -->
+                <!-- Video Player with Toggle Buttons - LinkedIn Learning style responsive layout -->
                 <div class="video-player-wrapper">
                     <!-- Toggle Buttons on Video -->
                     <div class="sidebar-toggle-buttons">
@@ -123,6 +123,8 @@ else if (lesson != null && course != null)
                                  VideoUrl="@lesson.VideoUrl"
                                  ShowControls="true"
                                  ShowMetadata="false"
+                                 SubtitleTracks="@GetSubtitleTracks()"
+                                 DefaultSubtitleLanguage="@GetUserLanguage()"
                                  OnTimeUpdate="@HandleTimeUpdate"
                                  OnPlayStateChanged="@HandlePlayStateChanged"
                                  OnVideoEnded="@HandleVideoEnded" />
@@ -517,5 +519,33 @@ else if (lesson != null && course != null)
         var hours = minutes / 60;
         var mins = minutes % 60;
         return mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
+    }
+
+    /// <summary>
+    /// Get subtitle tracks from lesson data, converting Shared DTO to VideoPlayer.SubtitleTrack
+    /// </summary>
+    private List<VideoPlayer.SubtitleTrack>? GetSubtitleTracks()
+    {
+        if (lesson?.SubtitleTracks == null || !lesson.SubtitleTracks.Any())
+            return null;
+
+        return lesson.SubtitleTracks.Select(t => new VideoPlayer.SubtitleTrack
+        {
+            Url = t.Url,
+            Language = t.Language,
+            Label = t.Label,
+            Kind = t.Kind,
+            IsDefault = t.IsDefault
+        }).ToList();
+    }
+
+    /// <summary>
+    /// Get user's preferred language for subtitles (defaults to browser language or "en")
+    /// </summary>
+    private string GetUserLanguage()
+    {
+        // Could be enhanced to read from user preferences or browser settings
+        // For now, return Italian as default for the Italian user base
+        return "it";
     }
 }

@@ -50,6 +50,16 @@ COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 # Copy custom nginx configuration
 COPY k8s/nginx-wasm.conf /etc/nginx/conf.d/default.conf
 
+# Copy SSL certificates for HTTPS
+RUN mkdir -p /etc/nginx/certs
+COPY nginx/certs/tls.crt /etc/nginx/certs/tls.crt
+COPY nginx/certs/tls.key /etc/nginx/certs/tls.key
+RUN chmod 644 /etc/nginx/certs/tls.crt && chmod 600 /etc/nginx/certs/tls.key
+
+# Copy SEO snapshot files
+COPY src/InsightLearn.WebAssembly/wwwroot/seo-snapshots/ /usr/share/nginx/html/seo-snapshots/
+RUN chmod -R 755 /usr/share/nginx/html/seo-snapshots/
+
 # Remove default nginx site to prevent conflicts (fixes "Welcome to nginx" issue)
 RUN rm -f /etc/nginx/sites-enabled/default
 

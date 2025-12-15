@@ -1,0 +1,670 @@
+/*
+ * LinkedIn Learning Animations
+ * InsightLearn WASM v2.1.0
+ *
+ * Animation definitions for smooth, professional transitions
+ * Requires: linkedin-learning-tokens.css
+ */
+
+/* ========================================
+   KEYFRAME ANIMATIONS
+   ======================================== */
+
+/* Fade In */
+@keyframes ll-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Fade In Up */
+@keyframes ll-fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade In Down */
+@keyframes ll-fade-in-down {
+    from {
+        opacity: 0;
+        transform: translateY(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade In Left */
+@keyframes ll-fade-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Fade In Right */
+@keyframes ll-fade-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale In */
+@keyframes ll-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Scale Out */
+@keyframes ll-scale-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* Slide In Left */
+@keyframes ll-slide-in-left {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Slide Out Left */
+@keyframes ll-slide-out-left {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+/* Slide In Right */
+@keyframes ll-slide-in-right {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Slide Out Right */
+@keyframes ll-slide-out-right {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(100%);
+    }
+}
+
+/* Slide In Up */
+@keyframes ll-slide-in-up {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* Slide Out Down */
+@keyframes ll-slide-out-down {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(100%);
+    }
+}
+
+/* Pulse */
+@keyframes ll-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Spin */
+@keyframes ll-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Bounce */
+@keyframes ll-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* Shake */
+@keyframes ll-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(4px);
+    }
+}
+
+/* Progress Circle Draw */
+@keyframes ll-progress-draw {
+    from {
+        stroke-dashoffset: 75.4; /* 2 * PI * 12 (radius) */
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Checkmark Draw */
+@keyframes ll-checkmark-draw {
+    from {
+        stroke-dashoffset: 24;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Typing Indicator */
+@keyframes ll-typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-6px);
+    }
+}
+
+/* Shimmer (Loading Skeleton) */
+@keyframes ll-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Video Loading Spinner */
+@keyframes ll-video-loading {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Play Button Ripple */
+@keyframes ll-ripple {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Message Send */
+@keyframes ll-message-send {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Toast Enter */
+@keyframes ll-toast-enter {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Toast Exit */
+@keyframes ll-toast-exit {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* ========================================
+   ANIMATION UTILITY CLASSES
+   ======================================== */
+
+/* Base Animation */
+.ll-animate {
+    animation-fill-mode: both;
+}
+
+/* Durations */
+.ll-animate-fast {
+    animation-duration: 150ms;
+}
+
+.ll-animate-normal {
+    animation-duration: 300ms;
+}
+
+.ll-animate-slow {
+    animation-duration: 500ms;
+}
+
+/* Delays */
+.ll-animate-delay-100 {
+    animation-delay: 100ms;
+}
+
+.ll-animate-delay-200 {
+    animation-delay: 200ms;
+}
+
+.ll-animate-delay-300 {
+    animation-delay: 300ms;
+}
+
+.ll-animate-delay-500 {
+    animation-delay: 500ms;
+}
+
+/* Animation Names */
+.ll-animate-fade-in {
+    animation-name: ll-fade-in;
+}
+
+.ll-animate-fade-in-up {
+    animation-name: ll-fade-in-up;
+}
+
+.ll-animate-fade-in-down {
+    animation-name: ll-fade-in-down;
+}
+
+.ll-animate-fade-in-left {
+    animation-name: ll-fade-in-left;
+}
+
+.ll-animate-fade-in-right {
+    animation-name: ll-fade-in-right;
+}
+
+.ll-animate-scale-in {
+    animation-name: ll-scale-in;
+}
+
+.ll-animate-slide-in-left {
+    animation-name: ll-slide-in-left;
+}
+
+.ll-animate-slide-in-right {
+    animation-name: ll-slide-in-right;
+}
+
+.ll-animate-slide-in-up {
+    animation-name: ll-slide-in-up;
+}
+
+.ll-animate-pulse {
+    animation-name: ll-pulse;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+}
+
+.ll-animate-spin {
+    animation-name: ll-spin;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+.ll-animate-bounce {
+    animation-name: ll-bounce;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+/* ========================================
+   COMPONENT-SPECIFIC ANIMATIONS
+   ======================================== */
+
+/* Sidebar Animations */
+.ll-sidebar-enter {
+    animation: ll-slide-in-left var(--ll-transition-slow) ease-out;
+}
+
+.ll-sidebar-exit {
+    animation: ll-slide-out-left var(--ll-transition-slow) ease-out;
+}
+
+.ll-sidebar-right-enter {
+    animation: ll-slide-in-right var(--ll-transition-slow) ease-out;
+}
+
+.ll-sidebar-right-exit {
+    animation: ll-slide-out-right var(--ll-transition-slow) ease-out;
+}
+
+/* Lesson Item Animations */
+.ll-lesson-item-enter {
+    animation: ll-fade-in-up 200ms ease-out;
+}
+
+/* Tab Panel Animations */
+.ll-tab-panel-enter {
+    animation: ll-fade-in 200ms ease-out;
+}
+
+/* AI Message Animations */
+.ll-ai-message-enter {
+    animation: ll-message-send 300ms ease-out;
+}
+
+/* Typing Indicator */
+.ll-typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--ll-space-3) var(--ll-space-4);
+    background-color: var(--ll-gray-100);
+    border-radius: var(--ll-radius-lg);
+}
+
+.ll-typing-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--ll-gray-400);
+    border-radius: var(--ll-radius-full);
+    animation: ll-typing 1.4s ease-in-out infinite;
+}
+
+.ll-typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.ll-typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+/* Video Loading Spinner */
+.ll-video-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: var(--ll-radius-full);
+    animation: ll-video-loading 1s linear infinite;
+}
+
+/* Play Button Ripple Effect */
+.ll-play-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--ll-radius-full);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    animation: ll-ripple 1.5s ease-out infinite;
+}
+
+/* Progress Circle Animation */
+.ll-progress-circle-animated .ll-progress-circle-fill {
+    animation: ll-progress-draw 1s ease-out;
+    stroke-dasharray: 75.4;
+}
+
+/* Checkmark Animation */
+.ll-checkmark-animated {
+    stroke-dasharray: 24;
+    animation: ll-checkmark-draw 300ms ease-out forwards;
+}
+
+/* Loading Skeleton */
+.ll-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--ll-gray-200) 0%,
+        var(--ll-gray-100) 50%,
+        var(--ll-gray-200) 100%
+    );
+    background-size: 200% 100%;
+    animation: ll-shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--ll-radius-md);
+}
+
+.ll-skeleton-text {
+    height: 16px;
+    margin-bottom: var(--ll-space-2);
+}
+
+.ll-skeleton-text.short {
+    width: 60%;
+}
+
+.ll-skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--ll-radius-full);
+}
+
+.ll-skeleton-btn {
+    width: 100px;
+    height: 40px;
+    border-radius: var(--ll-radius-full);
+}
+
+/* Toast Notification Animations */
+.ll-toast-enter {
+    animation: ll-toast-enter 300ms ease-out;
+}
+
+.ll-toast-exit {
+    animation: ll-toast-exit 300ms ease-out;
+}
+
+/* Modal Animations */
+.ll-modal-backdrop-enter {
+    animation: ll-fade-in 200ms ease-out;
+}
+
+.ll-modal-backdrop-exit {
+    animation: ll-fade-in 200ms ease-out reverse;
+}
+
+.ll-modal-enter {
+    animation: ll-scale-in 200ms ease-out;
+}
+
+.ll-modal-exit {
+    animation: ll-scale-out 200ms ease-out;
+}
+
+/* Dropdown Animations */
+.ll-dropdown-enter {
+    animation: ll-fade-in-down 150ms ease-out;
+}
+
+.ll-dropdown-exit {
+    animation: ll-fade-in-down 150ms ease-out reverse;
+}
+
+/* ========================================
+   REDUCED MOTION SUPPORT
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .ll-animate-pulse,
+    .ll-animate-spin,
+    .ll-animate-bounce,
+    .ll-typing-dot,
+    .ll-video-spinner,
+    .ll-play-ripple,
+    .ll-skeleton {
+        animation: none !important;
+    }
+}
+
+/* ========================================
+   STAGGER ANIMATION CHILDREN
+   ======================================== */
+
+.ll-stagger-children > * {
+    animation: ll-fade-in-up 300ms ease-out both;
+}
+
+.ll-stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.ll-stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.ll-stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.ll-stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.ll-stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.ll-stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.ll-stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.ll-stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.ll-stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+.ll-stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+
+/* ========================================
+   HOVER ANIMATIONS
+   ======================================== */
+
+/* Lift on Hover */
+.ll-hover-lift {
+    transition: transform var(--ll-transition-normal), box-shadow var(--ll-transition-normal);
+}
+
+.ll-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ll-shadow-lg);
+}
+
+/* Scale on Hover */
+.ll-hover-scale {
+    transition: transform var(--ll-transition-normal);
+}
+
+.ll-hover-scale:hover {
+    transform: scale(1.02);
+}
+
+/* Glow on Hover */
+.ll-hover-glow {
+    transition: box-shadow var(--ll-transition-normal);
+}
+
+.ll-hover-glow:hover {
+    box-shadow: 0 0 20px rgba(0, 115, 177, 0.3);
+}
+
+/* Underline Animation */
+.ll-hover-underline {
+    position: relative;
+}
+
+.ll-hover-underline::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--ll-primary);
+    transition: width var(--ll-transition-normal);
+}
+
+.ll-hover-underline:hover::after {
+    width: 100%;
+}
+
+/* ========================================
+   FOCUS ANIMATIONS
+   ======================================== */
+
+.ll-focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ll-bg-primary), 0 0 0 4px var(--ll-primary);
+    transition: box-shadow var(--ll-transition-fast);
+}
+
+/* ========================================
+   ACTIVE/CLICK ANIMATIONS
+   ======================================== */
+
+.ll-active-press:active {
+    transform: scale(0.98);
+    transition: transform 50ms ease-out;
+}
+
+.ll-active-sink:active {
+    transform: translateY(1px);
+    transition: transform 50ms ease-out;
+}

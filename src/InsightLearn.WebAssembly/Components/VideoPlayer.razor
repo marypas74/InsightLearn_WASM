@@ -87,35 +87,62 @@
                 Your browser does not support the video tag.
             </video>
 
-            @* Subtitle selector control - shown when subtitles are available *@
-            @if (SubtitleTracks != null && SubtitleTracks.Any())
-            {
-                <div class="subtitle-controls">
-                    <button class="btn-subtitle-toggle" @onclick="ToggleSubtitleMenu" title="Subtitles/CC">
-                        <i class="fas fa-closed-captioning"></i>
-                    </button>
-                    @if (showSubtitleMenu)
-                    {
-                        <div class="subtitle-menu">
-                            <div class="subtitle-menu-header">
-                                <i class="fas fa-language"></i>
-                                <span>Subtitles</span>
+            @* Subtitle/Translation selector control - ALWAYS VISIBLE for user language support *@
+            <div class="subtitle-controls">
+                <button class="btn-subtitle-toggle" @onclick="ToggleSubtitleMenu" title="Subtitles / Translation">
+                    <i class="fas fa-closed-captioning"></i>
+                </button>
+                @if (showSubtitleMenu)
+                {
+                    <div class="subtitle-menu">
+                        <div class="subtitle-menu-header">
+                            <i class="fas fa-language"></i>
+                            <span>Subtitles / Translation</span>
+                        </div>
+                        <button class="subtitle-option @(selectedSubtitleLanguage == null ? "active" : "")"
+                                @onclick="() => SelectSubtitle(null)">
+                            <i class="fas fa-times-circle"></i> Off
+                        </button>
+                        @if (SubtitleTracks != null && SubtitleTracks.Any())
+                        {
+                            <div class="subtitle-section-header">
+                                <i class="fas fa-file-alt"></i> Original
                             </div>
-                            <button class="subtitle-option @(selectedSubtitleLanguage == null ? "active" : "")"
-                                    @onclick="() => SelectSubtitle(null)">
-                                <i class="fas fa-times-circle"></i> Off
-                            </button>
                             @foreach (var track in SubtitleTracks)
                             {
-                                <button class="subtitle-option @(selectedSubtitleLanguage == track.Language ? "active" : "")"
+                                <button class="subtitle-option @(selectedSubtitleLanguage == track.Language && !isTranslatedSubtitle ? "active" : "")"
                                         @onclick="() => SelectSubtitle(track.Language)">
                                     <i class="fas fa-check-circle"></i> @track.Label
                                 </button>
                             }
+                        }
+
+                        @* Auto-Translate Section - Real-time translation with Ollama *@
+                        <div class="subtitle-section-header translate-header">
+                            <i class="fas fa-robot"></i> Auto-Translate (AI)
+                            @if (isTranslating)
+                            {
+                                <span class="translating-indicator">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            }
                         </div>
-                    }
-                </div>
-            }
+                        @foreach (var lang in AvailableTranslationLanguages)
+                        {
+                            <button class="subtitle-option translate-option @(selectedSubtitleLanguage == lang.Code && isTranslatedSubtitle ? "active" : "")"
+                                    @onclick="() => RequestTranslation(lang.Code)"
+                                    disabled="@isTranslating">
+                                <i class="fas @(isTranslatedSubtitle && selectedSubtitleLanguage == lang.Code ? "fa-check-circle" : "fa-globe")"></i>
+                                @lang.Name
+                                @if (translationCache.ContainsKey(lang.Code))
+                                {
+                                    <span class="cached-indicator" title="Cached">●</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
 
             @if (ShowMetadata && metadata != null)
             {

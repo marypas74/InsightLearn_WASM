@@ -72,6 +72,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     public DbSet<AIKeyTakeawaysMetadata> AIKeyTakeawaysMetadata { get; set; }
     public DbSet<AIConversation> AIConversations { get; set; }
 
+    // Multi-language subtitle support (v2.2.0-dev)
+    public DbSet<SubtitleTrack> SubtitleTracks { get; set; }
+
     // SaaS Subscription Model entities
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
@@ -670,6 +673,40 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
             // Indexes for performance
             entity.HasIndex(e => e.UserId)
                 .HasDatabaseName("IX_AIConversations_UserId");
+        });
+
+        // SubtitleTrack configuration (v2.2.0-dev) - Multi-language subtitle support
+        builder.Entity<SubtitleTrack>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LessonId).IsRequired();
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.FileUrl).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Kind).IsRequired().HasMaxLength(20).HasDefaultValue("subtitles");
+            entity.Property(e => e.IsDefault).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign key to Lesson
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.SubtitleTracks)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign key to User (CreatedBy) - IMPORTANT: explicitly use CreatedByUserId
+            entity.HasOne(e => e.CreatedBy)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.LessonId)
+                .HasDatabaseName("IX_SubtitleTracks_LessonId");
+
+            entity.HasIndex(e => new { e.LessonId, e.Language })
+                .IsUnique()
+                .HasDatabaseName("IX_SubtitleTracks_LessonId_Language_Unique");
         });
     }
 }

@@ -1,93 +1,538 @@
+@*
+    CourseCurriculum Component - LinkedIn Learning Style
+    InsightLearn WASM v2.1.0
+
+    Features:
+    - Expandable sections with progress tracking
+    - SVG progress circles with completion state
+    - Lock icons for premium/unavailable lessons
+    - Active lesson highlighting
+    - Smooth animations
+*@
+
 @using InsightLearn.Shared.DTOs
 @using InsightLearn.Core.Entities
 
-<div class="course-curriculum">
+<div class="ll-sidebar-content ll-stagger-children">
     @if (Sections != null && Sections.Any())
     {
-        @foreach (var courseSection in Sections)
+        <div class="ll-sidebar-header">
+            <span class="ll-sidebar-title">Course content</span>
+            <span class="ll-sidebar-progress">@GetCompletionPercentage()% complete</span>
+        </div>
+
+        @foreach (var (section, sectionIndex) in Sections.Select((s, i) => (s, i)))
         {
-            <div class="curriculum-section @(expandedSections.Contains(courseSection.Id) ? "expanded" : "")">
-                <button class="section-header" @onclick="@(() => ToggleSection(courseSection.Id))">
-                    <div class="section-info">
-                        <i class="fas fa-chevron-@(expandedSections.Contains(courseSection.Id) ? "down" : "right")"></i>
-                        <h4>@courseSection.Title</h4>
+            var isExpanded = expandedSections.Contains(section.Id);
+            var sectionProgress = GetSectionProgress(section);
+
+            <div class="ll-section @(isExpanded ? "expanded" : "")">
+                <button class="ll-section-header @(isExpanded ? "expanded" : "")"
+                        @onclick="@(() => ToggleSection(section.Id))"
+                        aria-expanded="@isExpanded"
+                        aria-controls="section-@section.Id">
+                    <div class="ll-section-expand">
+                        <i class="fas fa-chevron-right"></i>
                     </div>
-                    <div class="section-meta">
-                        <span>@courseSection.TotalLessons lessons</span>
-                        <span>•</span>
-                        <span>@FormatDuration(courseSection.TotalDurationMinutes)</span>
+                    <div class="ll-section-info">
+                        <div class="ll-section-title">
+                            @(sectionIndex + 1). @section.Title
+                        </div>
+                        <div class="ll-section-meta">
+                            @sectionProgress.Completed/@sectionProgress.Total lessons
+                            <span class="ll-section-separator">•</span>
+                            @FormatDuration(section.TotalDurationMinutes)
+                        </div>
                     </div>
+                    @if (sectionProgress.Completed == sectionProgress.Total && sectionProgress.Total > 0)
+                    {
+                        <div class="ll-section-complete-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    }
                 </button>
 
-                @if (expandedSections.Contains(courseSection.Id))
-                {
-                    <div class="section-content">
-                        @if (courseSection.Lessons != null && courseSection.Lessons.Any())
+                <div class="ll-section-content @(isExpanded ? "expanded" : "")"
+                     id="section-@section.Id"
+                     role="region"
+                     aria-label="@section.Title lessons">
+                    @if (section.Lessons != null && section.Lessons.Any())
+                    {
+                        @foreach (var (lesson, lessonIndex) in section.Lessons.Select((l, i) => (l, i)))
                         {
-                            @foreach (var lesson in courseSection.Lessons)
-                            {
-                                var isCurrentLesson = CurrentLessonId.HasValue && lesson.Id == CurrentLessonId.Value;
-                                var isClickable = OnLessonClick.HasDelegate;
-                                <div class="lesson-item @(lesson.IsFree ? "free-preview" : "") @(isCurrentLesson ? "current" : "") @(isClickable ? "clickable" : "")"
-                                     @onclick="@(() => HandleLessonClick(lesson.Id))">
-                                    <div class="lesson-info">
-                                        <i class="@GetLessonIcon(lesson.Type)"></i>
-                                        <span class="lesson-title">@lesson.Title</span>
-                                        @if (lesson.IsFree && !OnLessonClick.HasDelegate)
-                                        {
-                                            <button class="preview-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))" @onclick:stopPropagation="true">
-                                                <i class="fas fa-play-circle"></i>
-                                                Preview
-                                            </button>
-                                        }
+                            var isCurrentLesson = CurrentLessonId.HasValue && lesson.Id == CurrentLessonId.Value;
+                            var isLocked = IsLessonLocked(lesson);
+                            var isClickable = OnLessonClick.HasDelegate && !isLocked;
+                            var lessonNumber = GetLessonNumber(sectionIndex, lessonIndex);
+
+                            <div class="ll-lesson-item @(isCurrentLesson ? "active" : "") @(lesson.IsCompleted ? "completed" : "") @(isLocked ? "locked" : "") @(isClickable ? "clickable" : "")"
+                                 @onclick="@(() => HandleLessonClick(lesson.Id, isLocked))"
+                                 role="button"
+                                 tabindex="@(isClickable ? 0 : -1)"
+                                 aria-current="@(isCurrentLesson ? "true" : "false")"
+                                 aria-disabled="@isLocked">
+
+                                @* Progress Circle / Lock Icon *@
+                                @if (isLocked)
+                                {
+                                    <div class="ll-lesson-lock" title="Premium content - Enroll to access">
+                                        <i class="fas fa-lock"></i>
                                     </div>
-                                    <div class="lesson-meta">
+                                }
+                                else
+                                {
+                                    <div class="ll-progress-circle @(lesson.IsCompleted ? "completed" : "") @(isCurrentLesson ? "active" : "")">
                                         @if (lesson.IsCompleted)
                                         {
-                                            <i class="fas fa-check-circle completed-icon"></i>
+                                            <svg viewBox="0 0 24 24" class="ll-progress-svg">
+                                                <circle class="ll-progress-circle-bg" cx="12" cy="12" r="10" />
+                                                <circle class="ll-progress-circle-fill" cx="12" cy="12" r="10"
+                                                        stroke-dasharray="62.83"
+                                                        stroke-dashoffset="0" />
+                                            </svg>
+                                            <div class="ll-progress-circle-check">
+                                                <i class="fas fa-check"></i>
+                                            </div>
                                         }
-                                        @if (isCurrentLesson)
+                                        else if (isCurrentLesson)
                                         {
-                                            <span class="badge bg-primary">Now Playing</span>
+                                            <svg viewBox="0 0 24 24" class="ll-progress-svg">
+                                                <circle class="ll-progress-circle-bg" cx="12" cy="12" r="10" />
+                                                <circle class="ll-progress-circle-fill ll-progress-active" cx="12" cy="12" r="10"
+                                                        stroke-dasharray="62.83"
+                                                        stroke-dashoffset="@GetProgressOffset(lesson)" />
+                                            </svg>
+                                            <div class="ll-progress-playing">
+                                                <i class="fas fa-play"></i>
+                                            </div>
                                         }
-                                        <span class="lesson-duration">@FormatDuration(lesson.DurationMinutes)</span>
+                                        else
+                                        {
+                                            <svg viewBox="0 0 24 24" class="ll-progress-svg">
+                                                <circle class="ll-progress-circle-bg" cx="12" cy="12" r="10" />
+                                            </svg>
+                                            <div class="ll-progress-number">@lessonNumber</div>
+                                        }
+                                    </div>
+                                }
+
+                                @* Lesson Info *@
+                                <div class="ll-lesson-info">
+                                    <div class="ll-lesson-title" title="@lesson.Title">
+                                        @lesson.Title
+                                    </div>
+                                    <div class="ll-lesson-duration">
+                                        <i class="@GetLessonTypeIcon(lesson.Type)"></i>
+                                        @FormatDuration(lesson.DurationMinutes)
+                                        @if (lesson.IsFree && !OnLessonClick.HasDelegate)
+                                        {
+                                            <span class="ll-free-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))" @onclick:stopPropagation="true">
+                                                <i class="fas fa-play"></i> Preview
+                                            </span>
+                                        }
                                     </div>
                                 </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="empty-section">
-                                <p>No lessons in this section</p>
+
+                                @* Status Indicators *@
+                                <div class="ll-lesson-status">
+                                    @if (isCurrentLesson)
+                                    {
+                                        <span class="ll-now-playing-badge">
+                                            <i class="fas fa-volume-up"></i>
+                                        </span>
+                                    }
+                                </div>
                             </div>
                         }
-                    </div>
-                }
+                    }
+                    else
+                    {
+                        <div class="ll-empty-section">
+                            <i class="fas fa-folder-open"></i>
+                            <span>No lessons in this section</span>
+                        </div>
+                    }
+                </div>
             </div>
         }
     }
     else
     {
-        <div class="empty-curriculum">
-            <p>No curriculum available</p>
+        <div class="ll-empty-curriculum">
+            <i class="fas fa-book-open"></i>
+            <h4>No curriculum available</h4>
+            <p>Course content is being prepared</p>
         </div>
     }
 </div>
+
+<style>
+    /* LinkedIn Learning Curriculum Styles */
+    .ll-sidebar-content {
+        padding: 0;
+    }
+
+    .ll-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--ll-space-4, 1rem);
+        border-bottom: 1px solid var(--ll-border-light, rgba(0,0,0,0.08));
+        position: sticky;
+        top: 0;
+        background: var(--ll-sidebar-bg, #ffffff);
+        z-index: 1;
+    }
+
+    .ll-sidebar-title {
+        font-size: var(--ll-font-size-base, 1rem);
+        font-weight: var(--ll-font-weight-semibold, 600);
+        color: var(--ll-text-primary, rgba(0,0,0,0.9));
+    }
+
+    .ll-sidebar-progress {
+        font-size: var(--ll-font-size-sm, 0.875rem);
+        color: var(--ll-success, #057642);
+        font-weight: var(--ll-font-weight-medium, 500);
+    }
+
+    /* Section Styles */
+    .ll-section {
+        border-bottom: 1px solid var(--ll-border-light, rgba(0,0,0,0.08));
+    }
+
+    .ll-section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--ll-space-3, 0.75rem);
+        width: 100%;
+        padding: var(--ll-space-4, 1rem);
+        background: var(--ll-gray-100, #f3f2ef);
+        border: none;
+        cursor: pointer;
+        text-align: left;
+        transition: background-color 0.2s ease;
+    }
+
+    .ll-section-header:hover {
+        background: var(--ll-gray-200, #e8e8e8);
+    }
+
+    .ll-section-expand {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ll-text-secondary, rgba(0,0,0,0.6));
+        transition: transform 0.3s ease;
+    }
+
+    .ll-section-header.expanded .ll-section-expand {
+        transform: rotate(90deg);
+    }
+
+    .ll-section-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ll-section-title {
+        font-size: var(--ll-font-size-sm, 0.875rem);
+        font-weight: var(--ll-font-weight-semibold, 600);
+        color: var(--ll-text-primary, rgba(0,0,0,0.9));
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ll-section-meta {
+        font-size: var(--ll-font-size-xs, 0.75rem);
+        color: var(--ll-text-secondary, rgba(0,0,0,0.6));
+    }
+
+    .ll-section-separator {
+        margin: 0 4px;
+    }
+
+    .ll-section-complete-badge {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--ll-success, #057642);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+
+    /* Section Content */
+    .ll-section-content {
+        display: none;
+        background: var(--ll-bg-primary, #ffffff);
+    }
+
+    .ll-section-content.expanded {
+        display: block;
+        animation: ll-fade-in 0.2s ease;
+    }
+
+    /* Lesson Item */
+    .ll-lesson-item {
+        display: flex;
+        align-items: center;
+        gap: var(--ll-space-3, 0.75rem);
+        padding: var(--ll-space-3, 0.75rem) var(--ll-space-4, 1rem);
+        border-left: 3px solid transparent;
+        cursor: default;
+        transition: all 0.2s ease;
+    }
+
+    .ll-lesson-item.clickable {
+        cursor: pointer;
+    }
+
+    .ll-lesson-item.clickable:hover {
+        background: var(--ll-gray-100, #f3f2ef);
+    }
+
+    .ll-lesson-item.active {
+        background: var(--ll-primary-light, #cae6f4);
+        border-left-color: var(--ll-primary, #0073b1);
+    }
+
+    .ll-lesson-item.completed {
+        opacity: 0.85;
+    }
+
+    .ll-lesson-item.locked {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Progress Circle */
+    .ll-progress-circle {
+        width: 24px;
+        height: 24px;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .ll-progress-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+
+    .ll-progress-circle-bg {
+        fill: none;
+        stroke: var(--ll-gray-300, #d0cece);
+        stroke-width: 2;
+    }
+
+    .ll-progress-circle-fill {
+        fill: none;
+        stroke: var(--ll-success, #057642);
+        stroke-width: 2;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .ll-progress-circle-fill.ll-progress-active {
+        stroke: var(--ll-primary, #0073b1);
+    }
+
+    .ll-progress-circle.completed .ll-progress-circle-bg {
+        stroke: var(--ll-success, #057642);
+    }
+
+    .ll-progress-circle-check,
+    .ll-progress-number,
+    .ll-progress-playing {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10px;
+    }
+
+    .ll-progress-circle-check {
+        color: var(--ll-success, #057642);
+    }
+
+    .ll-progress-number {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ll-text-secondary, rgba(0,0,0,0.6));
+    }
+
+    .ll-progress-playing {
+        color: var(--ll-primary, #0073b1);
+        font-size: 8px;
+    }
+
+    /* Lock Icon */
+    .ll-lesson-lock {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ll-gray-500, #8c8c8c);
+        flex-shrink: 0;
+    }
+
+    /* Lesson Info */
+    .ll-lesson-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ll-lesson-title {
+        font-size: var(--ll-font-size-sm, 0.875rem);
+        color: var(--ll-text-primary, rgba(0,0,0,0.9));
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .ll-lesson-item.active .ll-lesson-title {
+        font-weight: var(--ll-font-weight-medium, 500);
+        color: var(--ll-primary, #0073b1);
+    }
+
+    .ll-lesson-duration {
+        font-size: var(--ll-font-size-xs, 0.75rem);
+        color: var(--ll-text-secondary, rgba(0,0,0,0.6));
+        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ll-lesson-duration i {
+        font-size: 10px;
+    }
+
+    .ll-free-badge {
+        background: var(--ll-primary, #0073b1);
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    .ll-free-badge:hover {
+        background: var(--ll-primary-hover, #006097);
+    }
+
+    /* Status Indicators */
+    .ll-lesson-status {
+        flex-shrink: 0;
+    }
+
+    .ll-now-playing-badge {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--ll-primary, #0073b1);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        animation: ll-pulse 2s ease infinite;
+    }
+
+    /* Empty States */
+    .ll-empty-section,
+    .ll-empty-curriculum {
+        padding: var(--ll-space-6, 1.5rem);
+        text-align: center;
+        color: var(--ll-text-secondary, rgba(0,0,0,0.6));
+    }
+
+    .ll-empty-section i,
+    .ll-empty-curriculum i {
+        font-size: 24px;
+        margin-bottom: var(--ll-space-2, 0.5rem);
+        display: block;
+    }
+
+    .ll-empty-curriculum h4 {
+        margin: var(--ll-space-2, 0.5rem) 0;
+        color: var(--ll-text-primary, rgba(0,0,0,0.9));
+    }
+
+    .ll-empty-curriculum p {
+        margin: 0;
+        font-size: var(--ll-font-size-sm, 0.875rem);
+    }
+
+    /* Animations */
+    @@keyframes ll-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes ll-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+</style>
 
 @code {
     [Parameter] public List<SectionDto> Sections { get; set; } = new();
     [Parameter] public EventCallback<Guid> OnPreviewClick { get; set; }
     [Parameter] public Guid? CurrentLessonId { get; set; }
     [Parameter] public EventCallback<Guid> OnLessonClick { get; set; }
+    [Parameter] public bool IsEnrolled { get; set; } = false;
 
     private HashSet<Guid> expandedSections = new();
+    private int totalLessons = 0;
+    private int completedLessons = 0;
 
     protected override void OnInitialized()
     {
-        // Expand first section by default
+        // Calculate totals
         if (Sections?.Any() == true)
         {
-            expandedSections.Add(Sections.First().Id);
+            totalLessons = Sections.Sum(s => s.Lessons?.Count ?? 0);
+            completedLessons = Sections.Sum(s => s.Lessons?.Count(l => l.IsCompleted) ?? 0);
+
+            // Expand section containing current lesson, or first section
+            var sectionWithCurrentLesson = Sections.FirstOrDefault(s =>
+                s.Lessons?.Any(l => l.Id == CurrentLessonId) == true);
+
+            if (sectionWithCurrentLesson != null)
+            {
+                expandedSections.Add(sectionWithCurrentLesson.Id);
+            }
+            else
+            {
+                expandedSections.Add(Sections.First().Id);
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Update when current lesson changes
+        if (CurrentLessonId.HasValue && Sections?.Any() == true)
+        {
+            var sectionWithCurrentLesson = Sections.FirstOrDefault(s =>
+                s.Lessons?.Any(l => l.Id == CurrentLessonId) == true);
+
+            if (sectionWithCurrentLesson != null && !expandedSections.Contains(sectionWithCurrentLesson.Id))
+            {
+                expandedSections.Add(sectionWithCurrentLesson.Id);
+            }
         }
     }
 
@@ -103,20 +548,58 @@
         }
     }
 
-    private async Task HandlePreviewClick(Guid lessonId)
+    private async Task HandleLessonClick(Guid lessonId, bool isLocked)
     {
-        await OnPreviewClick.InvokeAsync(lessonId);
-    }
-
-    private async Task HandleLessonClick(Guid lessonId)
-    {
-        if (OnLessonClick.HasDelegate)
+        if (!isLocked && OnLessonClick.HasDelegate)
         {
             await OnLessonClick.InvokeAsync(lessonId);
         }
     }
 
-    private string GetLessonIcon(LessonType type)
+    private async Task HandlePreviewClick(Guid lessonId)
+    {
+        await OnPreviewClick.InvokeAsync(lessonId);
+    }
+
+    private bool IsLessonLocked(LessonDto lesson)
+    {
+        // Lessons are locked if user is not enrolled and lesson is not free
+        return !IsEnrolled && !lesson.IsFree;
+    }
+
+    private int GetCompletionPercentage()
+    {
+        if (totalLessons == 0) return 0;
+        return (int)Math.Round((double)completedLessons / totalLessons * 100);
+    }
+
+    private (int Completed, int Total) GetSectionProgress(SectionDto section)
+    {
+        var total = section.Lessons?.Count ?? 0;
+        var completed = section.Lessons?.Count(l => l.IsCompleted) ?? 0;
+        return (completed, total);
+    }
+
+    private string GetLessonNumber(int sectionIndex, int lessonIndex)
+    {
+        // Calculate cumulative lesson number
+        int number = lessonIndex + 1;
+        for (int i = 0; i < sectionIndex; i++)
+        {
+            number += Sections[i].Lessons?.Count ?? 0;
+        }
+        return number.ToString();
+    }
+
+    private double GetProgressOffset(LessonDto lesson)
+    {
+        // For active lesson, show partial progress based on watch progress
+        // Full circle circumference = 2 * PI * 10 = 62.83
+        // Default to showing 25% progress for active lesson
+        return 62.83 * 0.75; // 75% offset = 25% filled
+    }
+
+    private string GetLessonTypeIcon(LessonType type)
     {
         return type switch
         {
@@ -133,9 +616,9 @@
     private string FormatDuration(int minutes)
     {
         if (minutes < 1)
-            return "< 1 min";
+            return "< 1m";
         else if (minutes < 60)
-            return $"{minutes} min";
+            return $"{minutes}m";
         else
         {
             var hours = minutes / 60;

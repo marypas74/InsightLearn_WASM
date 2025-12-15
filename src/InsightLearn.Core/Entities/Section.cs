@@ -79,6 +79,9 @@ public class Lesson
 
     [JsonIgnore]
     public virtual ICollection<Note> Notes { get; set; } = new List<Note>();
+
+    [JsonIgnore]
+    public virtual ICollection<SubtitleTrack> SubtitleTracks { get; set; } = new List<SubtitleTrack>();
 }
 
 public enum LessonType

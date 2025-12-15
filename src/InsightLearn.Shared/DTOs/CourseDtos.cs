@@ -176,6 +176,42 @@ public class LessonDto
     public string? AttachmentName { get; set; }
     public bool IsCompleted { get; set; }
     public double ProgressPercentage { get; set; }
+
+    /// <summary>
+    /// Subtitle tracks for video lessons (WebVTT format)
+    /// </summary>
+    public List<SubtitleTrackDto>? SubtitleTracks { get; set; }
+}
+
+/// <summary>
+/// Subtitle track information for video lessons
+/// </summary>
+public class SubtitleTrackDto
+{
+    /// <summary>
+    /// URL to the WebVTT subtitle file
+    /// </summary>
+    public string Url { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ISO 639-1 language code (e.g., "en", "it", "es")
+    /// </summary>
+    public string Language { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable label (e.g., "English", "Italiano")
+    /// </summary>
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Track kind: "subtitles", "captions", or "descriptions"
+    /// </summary>
+    public string Kind { get; set; } = "subtitles";
+
+    /// <summary>
+    /// Whether this should be the default track
+    /// </summary>
+    public bool IsDefault { get; set; }
 }
 
 public class CreateLessonDto

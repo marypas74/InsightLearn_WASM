@@ -30,6 +30,7 @@ public class LessonRepository : ILessonRepository
         return await _context.Lessons
             .Include(l => l.Section)
                 .ThenInclude(s => s.Course)
+            .Include(l => l.SubtitleTracks.Where(st => st.IsActive))
             .FirstOrDefaultAsync(l => l.Id == id);
     }
 

@@ -42,6 +42,7 @@ public class CourseRepository : ICourseRepository
             .Include(c => c.Instructor)
             .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
                 .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+                    .ThenInclude(l => l.SubtitleTracks.Where(st => st.IsActive))
             .Include(c => c.Reviews)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
@@ -56,6 +57,7 @@ public class CourseRepository : ICourseRepository
             .Include(c => c.Instructor)
             .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
                 .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+                    .ThenInclude(l => l.SubtitleTracks.Where(st => st.IsActive))
             .Include(c => c.Reviews)
             .FirstOrDefaultAsync(c => c.Slug == slug);
     }

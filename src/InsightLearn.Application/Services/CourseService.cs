@@ -715,7 +715,19 @@ public class CourseService : ICourseService
             AttachmentName = lesson.AttachmentName,
             VideoQuality = lesson.VideoQuality,
             VideoFileSize = lesson.VideoFileSize,
-            VideoFormat = lesson.VideoFormat
+            VideoFormat = lesson.VideoFormat,
+            // Map subtitle tracks (v2.2.0-dev - Multi-language support)
+            SubtitleTracks = lesson.SubtitleTracks?
+                .Where(st => st.IsActive)
+                .Select(st => new SubtitleTrackDto
+                {
+                    Url = st.FileUrl,
+                    Language = st.Language,
+                    Label = st.Label,
+                    Kind = st.Kind,
+                    IsDefault = st.IsDefault
+                })
+                .ToList()
         };
     }
 

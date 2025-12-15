@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using System.Timers;
 using System.Net.Http.Json;
+using System.Timers;
 using InsightLearn.WebAssembly.Services.LearningSpace;
 
 namespace InsightLearn.WebAssembly.Components;
@@ -87,6 +87,32 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     private double currentTime = 0;
     private double duration = 0;
     private bool isPlaying = false;
+
+    // Translation state
+    private bool isTranslating = false;
+    private bool isTranslatedSubtitle = false;
+    private Dictionary<string, string> translationCache = new();
+
+    /// <summary>
+    /// Available languages for AI auto-translation via Ollama
+    /// </summary>
+    public static readonly List<TranslationLanguage> AvailableTranslationLanguages = new()
+    {
+        new("it", "🇮🇹 Italiano"),
+        new("en", "🇬🇧 English"),
+        new("es", "🇪🇸 Español"),
+        new("fr", "🇫🇷 Français"),
+        new("de", "🇩🇪 Deutsch"),
+        new("pt", "🇵🇹 Português"),
+        new("ru", "🇷🇺 Русский"),
+        new("zh", "🇨🇳 中文"),
+        new("ja", "🇯🇵 日本語"),
+        new("ko", "🇰🇷 한국어"),
+        new("ar", "🇸🇦 العربية"),
+        new("hi", "🇮🇳 हिन्दी"),
+    };
+
+    public record TranslationLanguage(string Code, string Name);
 
     protected override async Task OnInitializedAsync()
     {
@@ -201,6 +227,87 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error setting subtitle: {Language}", language);
+        }
+
+        isTranslatedSubtitle = false;
+    }
+
+    /// <summary>
+    /// Request AI translation of subtitles to target language via Ollama.
+    /// </summary>
+    private async Task RequestTranslation(string targetLanguage)
+    {
+        if (LessonId == Guid.Empty)
+        {
+            Logger.LogWarning("Cannot translate: LessonId is empty");
+            return;
+        }
+
+        isTranslating = true;
+        showSubtitleMenu = false;
+        StateHasChanged();
+
+        try
+        {
+            // Check if we have cached translation
+            if (translationCache.TryGetValue(targetLanguage, out var cachedVttUrl))
+            {
+                await ApplyTranslatedSubtitle(cachedVttUrl, targetLanguage);
+                return;
+            }
+
+            // Call backend API to get translated subtitles
+            var translationUrl = $"api/subtitles/{LessonId}/translate/{targetLanguage}";
+            var response = await Http.GetAsync(translationUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var vttContent = await response.Content.ReadAsStringAsync();
+
+                // Create blob URL for the translated VTT
+                var blobUrl = await JSRuntime.InvokeAsync<string>("videoPlayer.createSubtitleBlobUrl", vttContent);
+
+                // Cache and apply
+                translationCache[targetLanguage] = blobUrl;
+                await ApplyTranslatedSubtitle(blobUrl, targetLanguage);
+
+                Logger.LogInformation("Successfully translated subtitles to {Language}", targetLanguage);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Translation failed: {StatusCode} - {Error}", response.StatusCode, error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error requesting translation to {Language}", targetLanguage);
+        }
+        finally
+        {
+            isTranslating = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Apply translated subtitle track to video element.
+    /// </summary>
+    private async Task ApplyTranslatedSubtitle(string vttUrl, string language)
+    {
+        try
+        {
+            // Add translated track to video element and enable it
+            await JSRuntime.InvokeVoidAsync("videoPlayer.addTranslatedSubtitle", videoId, vttUrl, language,
+                AvailableTranslationLanguages.FirstOrDefault(l => l.Code == language)?.Name ?? language);
+
+            selectedSubtitleLanguage = language;
+            isTranslatedSubtitle = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying translated subtitle");
         }
     }
 

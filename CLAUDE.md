@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 📹 VideoPlayer v2.1.0-dev ENHANCED (2025-12-14) - Subtitle/CC support, auto-resize, progress visibility
+**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, CSS design system, progress circles, animated components
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -96,8 +96,32 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [GoogleSignInButton.razor](src/InsightLearn.WebAssembly/Components/GoogleSignInButton.razor) - OAuth Google login
 - [CookieConsent.razor](src/InsightLearn.WebAssembly/Components/CookieConsent.razor) - GDPR compliance
 - [AuthenticationStateHandler.razor](src/InsightLearn.WebAssembly/Components/AuthenticationStateHandler.razor) - Auth state management
-- [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming, **subtitle support** (WebVTT), auto-resize (`max-height: 60vh`)
+- [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming, **subtitle support** (WebVTT), auto-resize (`max-height: 60vh`), **real-time AI translation** (Ollama qwen2:0.5b, 20 languages)
 - [VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - Video upload placeholder (backend completo)
+
+**LinkedIn Learning UI Style** (v2.2.0-dev - 🚧 IN PROGRESS - 2025-12-15):
+
+Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn Learning.
+
+*CSS Design System* (3 file):
+- [linkedin-learning-tokens.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-tokens.css) - Design tokens: colori, typography, spacing (8px grid), shadows, z-index
+- [linkedin-learning-components.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-components.css) - Componenti UI: navbar, sidebar, video player, tabs, AI assistant
+- [linkedin-learning-animations.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-animations.css) - Animazioni: fade, slide, pulse, typing indicator, skeleton loading
+
+*Componenti Aggiornati*:
+- [CourseCurriculum.razor](src/InsightLearn.WebAssembly/Components/CourseCurriculum.razor) - Redesign con progress circles SVG, lock icons, sezioni espandibili, ARIA support
+- [LessonInfo.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/LessonInfo.razor) - Instructor avatar, course progress bar, action buttons (Like/Save/Share), AI subtitle badge
+
+*Caratteristiche LinkedIn Learning Style*:
+- Navbar 56px con logo e course title
+- Sidebar 320px con curriculum espandibile
+- Progress circles SVG con animazioni
+- Lock icons per contenuti premium
+- Video player 52vh con custom controls
+- Tab navigation (Overview, Notebook, Transcript, Exercise Files, Q&A)
+- AI Assistant sidebar con quick actions
+- Responsive: Desktop (1024px+), Tablet (768-1023px), Mobile (<768px)
+- Dark mode support via CSS custom properties
 
 **Student Learning Space Components** (v2.1.0 - ✅ COMPLETE):
 - [StudentNotesPanel.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/StudentNotesPanel.razor) - Markdown note editor con bookmark/share
@@ -1726,6 +1750,31 @@ Esempio modifica version:
 | `api/admin/reports/export/csv` | POST | ✅ | Export report as CSV |
 | `api/admin/reports/export/pdf` | POST | ✅ | Export report as PDF (returns CSV format for now) |
 | `api/admin/reports/export/excel` | POST | ✅ | Export report as Excel (returns CSV format for now) |
+
+##### Subtitles (4 endpoint - 4 implementati) ✅
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/subtitles/lesson/{lessonId}` | GET | ✅ | Get all subtitle tracks for a lesson |
+| `api/subtitles/upload` | POST | ✅ | Upload WebVTT subtitle file (Admin/Instructor) |
+| `api/subtitles/stream/{fileId}` | GET | ✅ | Stream subtitle file content (WebVTT) |
+| `api/subtitles/{subtitleId}` | DELETE | ✅ | Delete a subtitle track (Admin/Instructor) |
+
+##### Subtitle Translation - AI Powered (4 endpoint - 4 implementati) ✅ NEW 2025-12-15
+
+| Endpoint | Metodo | Stato | Note |
+|----------|--------|-------|------|
+| `api/subtitles/{lessonId}/translate/{targetLanguage}` | GET | ✅ | Translate subtitles to target language (Ollama qwen2:0.5b) |
+| `api/subtitles/translate/languages` | GET | ✅ | Get 20 supported translation languages |
+| `api/subtitles/{lessonId}/translate/{targetLanguage}/exists` | GET | ✅ | Check if translation exists in cache |
+| `api/subtitles/{lessonId}/translate` | DELETE | ✅ | Delete cached translations for lesson (Admin) |
+
+**🌍 REAL-TIME SUBTITLE TRANSLATION (2025-12-15)**: Sistema completo di traduzione sottotitoli in tempo reale:
+- **AI Engine**: Ollama qwen2:0.5b per traduzioni context-aware
+- **Lingue Supportate**: 20 (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO, AR, HI, NL, PL, TR, VI, TH, SV, NO, DA)
+- **Caching**: MongoDB collection `TranslatedSubtitles` per riuso traduzioni
+- **Context-Aware**: 3 sottotitoli precedenti inviati per contesto migliore
+- **Frontend UI**: Menu sottotitoli con sezione "Auto-Translate (AI)", indicatore loading, badge cached
 
 **✅ ADMIN CONSOLE COMPLETATA (2025-11-26)**: 9 nuovi endpoint implementati per gestione Instructors, Payments e Reports.
 

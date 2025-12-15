@@ -1,0 +1,382 @@
+/*
+ * LinkedIn Learning Design Tokens
+ * InsightLearn WASM v2.1.0
+ *
+ * Design system foundation matching LinkedIn Learning interface
+ * Reference: https://www.linkedin.com/learning/
+ */
+
+:root {
+    /* ========================================
+       COLOR PALETTE - LinkedIn Learning Style
+       ======================================== */
+
+    /* Primary Colors */
+    --ll-primary: #0073b1;
+    --ll-primary-hover: #006097;
+    --ll-primary-light: #cae6f4;
+    --ll-primary-dark: #004471;
+
+    /* Secondary Colors */
+    --ll-secondary: #0a66c2;
+    --ll-secondary-hover: #004182;
+
+    /* Accent Colors */
+    --ll-success: #057642;
+    --ll-success-light: #d4edda;
+    --ll-warning: #b24020;
+    --ll-warning-light: #fff3cd;
+    --ll-error: #cc1016;
+    --ll-error-light: #f8d7da;
+    --ll-info: #0073b1;
+    --ll-info-light: #d1ecf1;
+
+    /* Neutral Colors */
+    --ll-white: #ffffff;
+    --ll-black: #000000;
+    --ll-gray-100: #f3f2ef;
+    --ll-gray-200: #e8e8e8;
+    --ll-gray-300: #d0cece;
+    --ll-gray-400: #b0b0b0;
+    --ll-gray-500: #8c8c8c;
+    --ll-gray-600: #666666;
+    --ll-gray-700: #474747;
+    --ll-gray-800: #2d2d2d;
+    --ll-gray-900: #1d1d1d;
+
+    /* Background Colors */
+    --ll-bg-primary: #ffffff;
+    --ll-bg-secondary: #f3f2ef;
+    --ll-bg-tertiary: #e8e8e8;
+    --ll-bg-dark: #1d1d1d;
+    --ll-bg-overlay: rgba(0, 0, 0, 0.75);
+    --ll-bg-video: #0d0d0d;
+
+    /* Text Colors */
+    --ll-text-primary: rgba(0, 0, 0, 0.9);
+    --ll-text-secondary: rgba(0, 0, 0, 0.6);
+    --ll-text-tertiary: rgba(0, 0, 0, 0.4);
+    --ll-text-inverse: #ffffff;
+    --ll-text-link: #0073b1;
+    --ll-text-link-hover: #004471;
+
+    /* Border Colors */
+    --ll-border-light: rgba(0, 0, 0, 0.08);
+    --ll-border-medium: rgba(0, 0, 0, 0.15);
+    --ll-border-dark: rgba(0, 0, 0, 0.3);
+    --ll-border-focus: #0073b1;
+
+    /* ========================================
+       TYPOGRAPHY SYSTEM
+       ======================================== */
+
+    /* Font Families */
+    --ll-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --ll-font-family-mono: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", "Source Code Pro", monospace;
+
+    /* Font Sizes - Type Scale (Major Second - 1.125) */
+    --ll-font-size-xs: 0.75rem;      /* 12px */
+    --ll-font-size-sm: 0.875rem;     /* 14px */
+    --ll-font-size-base: 1rem;       /* 16px */
+    --ll-font-size-md: 1.125rem;     /* 18px */
+    --ll-font-size-lg: 1.25rem;      /* 20px */
+    --ll-font-size-xl: 1.5rem;       /* 24px */
+    --ll-font-size-2xl: 1.75rem;     /* 28px */
+    --ll-font-size-3xl: 2rem;        /* 32px */
+    --ll-font-size-4xl: 2.5rem;      /* 40px */
+
+    /* Font Weights */
+    --ll-font-weight-normal: 400;
+    --ll-font-weight-medium: 500;
+    --ll-font-weight-semibold: 600;
+    --ll-font-weight-bold: 700;
+
+    /* Line Heights */
+    --ll-line-height-tight: 1.2;
+    --ll-line-height-snug: 1.35;
+    --ll-line-height-normal: 1.5;
+    --ll-line-height-relaxed: 1.65;
+    --ll-line-height-loose: 1.8;
+
+    /* Letter Spacing */
+    --ll-letter-spacing-tight: -0.02em;
+    --ll-letter-spacing-normal: 0;
+    --ll-letter-spacing-wide: 0.02em;
+    --ll-letter-spacing-wider: 0.05em;
+
+    /* ========================================
+       SPACING SYSTEM (8px Grid)
+       ======================================== */
+
+    --ll-space-0: 0;
+    --ll-space-1: 0.25rem;   /* 4px */
+    --ll-space-2: 0.5rem;    /* 8px */
+    --ll-space-3: 0.75rem;   /* 12px */
+    --ll-space-4: 1rem;      /* 16px */
+    --ll-space-5: 1.25rem;   /* 20px */
+    --ll-space-6: 1.5rem;    /* 24px */
+    --ll-space-8: 2rem;      /* 32px */
+    --ll-space-10: 2.5rem;   /* 40px */
+    --ll-space-12: 3rem;     /* 48px */
+    --ll-space-16: 4rem;     /* 64px */
+    --ll-space-20: 5rem;     /* 80px */
+    --ll-space-24: 6rem;     /* 96px */
+
+    /* ========================================
+       LAYOUT CONSTANTS
+       ======================================== */
+
+    /* Navbar */
+    --ll-navbar-height: 56px;
+    --ll-navbar-bg: #ffffff;
+    --ll-navbar-border: var(--ll-border-light);
+
+    /* Sidebar */
+    --ll-sidebar-width: 320px;
+    --ll-sidebar-width-collapsed: 0px;
+    --ll-sidebar-bg: #ffffff;
+    --ll-sidebar-border: var(--ll-border-light);
+
+    /* Video Player */
+    --ll-video-height-desktop: 52vh;
+    --ll-video-height-tablet: 45vh;
+    --ll-video-height-mobile: 35vh;
+    --ll-video-max-height: 600px;
+    --ll-video-bg: var(--ll-bg-video);
+
+    /* Content Area */
+    --ll-content-max-width: 1200px;
+    --ll-content-padding: var(--ll-space-6);
+
+    /* ========================================
+       BORDER RADIUS
+       ======================================== */
+
+    --ll-radius-none: 0;
+    --ll-radius-sm: 2px;
+    --ll-radius-md: 4px;
+    --ll-radius-lg: 8px;
+    --ll-radius-xl: 12px;
+    --ll-radius-2xl: 16px;
+    --ll-radius-full: 9999px;
+
+    /* ========================================
+       SHADOWS
+       ======================================== */
+
+    --ll-shadow-none: none;
+    --ll-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --ll-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --ll-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --ll-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --ll-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --ll-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --ll-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    --ll-shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.1);
+    --ll-shadow-dropdown: 0 8px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    --ll-shadow-overlay: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.25);
+
+    /* ========================================
+       TRANSITIONS
+       ======================================== */
+
+    --ll-transition-fast: 100ms ease-out;
+    --ll-transition-normal: 200ms ease-out;
+    --ll-transition-slow: 300ms ease-out;
+    --ll-transition-slower: 500ms ease-out;
+
+    /* Specific Transitions */
+    --ll-transition-color: color var(--ll-transition-fast);
+    --ll-transition-background: background-color var(--ll-transition-fast);
+    --ll-transition-border: border-color var(--ll-transition-fast);
+    --ll-transition-shadow: box-shadow var(--ll-transition-normal);
+    --ll-transition-transform: transform var(--ll-transition-normal);
+    --ll-transition-opacity: opacity var(--ll-transition-normal);
+    --ll-transition-all: all var(--ll-transition-normal);
+
+    /* ========================================
+       Z-INDEX LAYERS
+       ======================================== */
+
+    --ll-z-base: 0;
+    --ll-z-dropdown: 100;
+    --ll-z-sticky: 200;
+    --ll-z-fixed: 300;
+    --ll-z-sidebar: 400;
+    --ll-z-modal-backdrop: 500;
+    --ll-z-modal: 600;
+    --ll-z-popover: 700;
+    --ll-z-tooltip: 800;
+    --ll-z-toast: 900;
+    --ll-z-max: 9999;
+
+    /* ========================================
+       PROGRESS & COMPLETION
+       ======================================== */
+
+    /* Progress Circle */
+    --ll-progress-size: 24px;
+    --ll-progress-stroke-width: 2px;
+    --ll-progress-bg: var(--ll-gray-300);
+    --ll-progress-fill: var(--ll-success);
+    --ll-progress-incomplete: var(--ll-gray-400);
+
+    /* Completion Badge */
+    --ll-complete-color: var(--ll-success);
+    --ll-incomplete-color: var(--ll-gray-400);
+    --ll-locked-color: var(--ll-gray-500);
+
+    /* ========================================
+       INTERACTIVE ELEMENTS
+       ======================================== */
+
+    /* Buttons */
+    --ll-btn-height-sm: 32px;
+    --ll-btn-height-md: 40px;
+    --ll-btn-height-lg: 48px;
+    --ll-btn-padding-sm: var(--ll-space-2) var(--ll-space-3);
+    --ll-btn-padding-md: var(--ll-space-3) var(--ll-space-4);
+    --ll-btn-padding-lg: var(--ll-space-4) var(--ll-space-6);
+
+    /* Form Elements */
+    --ll-input-height: 40px;
+    --ll-input-padding: var(--ll-space-3) var(--ll-space-4);
+    --ll-input-border-radius: var(--ll-radius-md);
+    --ll-input-border: 1px solid var(--ll-border-medium);
+    --ll-input-focus-ring: 0 0 0 2px var(--ll-primary-light);
+
+    /* ========================================
+       VIDEO PLAYER CONTROLS
+       ======================================== */
+
+    --ll-control-bar-height: 48px;
+    --ll-control-bar-bg: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    --ll-control-icon-size: 24px;
+    --ll-control-icon-color: #ffffff;
+    --ll-control-icon-hover: rgba(255, 255, 255, 0.9);
+
+    /* Progress Bar */
+    --ll-progress-bar-height: 4px;
+    --ll-progress-bar-height-hover: 8px;
+    --ll-progress-bar-bg: rgba(255, 255, 255, 0.3);
+    --ll-progress-bar-fill: var(--ll-primary);
+    --ll-progress-bar-buffer: rgba(255, 255, 255, 0.5);
+
+    /* ========================================
+       CURRICULUM/LESSON LIST
+       ======================================== */
+
+    --ll-lesson-item-height: 56px;
+    --ll-lesson-item-padding: var(--ll-space-4);
+    --ll-lesson-item-hover-bg: var(--ll-gray-100);
+    --ll-lesson-item-active-bg: var(--ll-primary-light);
+    --ll-lesson-item-active-border: 3px solid var(--ll-primary);
+
+    /* Section Header */
+    --ll-section-header-height: 48px;
+    --ll-section-header-bg: var(--ll-gray-100);
+    --ll-section-header-font-weight: var(--ll-font-weight-semibold);
+
+    /* ========================================
+       TABS
+       ======================================== */
+
+    --ll-tab-height: 48px;
+    --ll-tab-padding: var(--ll-space-4) var(--ll-space-5);
+    --ll-tab-border-width: 2px;
+    --ll-tab-active-color: var(--ll-primary);
+    --ll-tab-inactive-color: var(--ll-text-secondary);
+    --ll-tab-hover-bg: var(--ll-gray-100);
+
+    /* ========================================
+       BREAKPOINTS (for reference in media queries)
+       ======================================== */
+
+    /*
+     * --ll-breakpoint-sm: 640px
+     * --ll-breakpoint-md: 768px
+     * --ll-breakpoint-lg: 1024px
+     * --ll-breakpoint-xl: 1280px
+     * --ll-breakpoint-2xl: 1536px
+     */
+}
+
+/* ========================================
+   DARK MODE OVERRIDES
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Background Colors - Dark Mode */
+        --ll-bg-primary: #1d1d1d;
+        --ll-bg-secondary: #2d2d2d;
+        --ll-bg-tertiary: #3d3d3d;
+
+        /* Text Colors - Dark Mode */
+        --ll-text-primary: rgba(255, 255, 255, 0.9);
+        --ll-text-secondary: rgba(255, 255, 255, 0.6);
+        --ll-text-tertiary: rgba(255, 255, 255, 0.4);
+
+        /* Border Colors - Dark Mode */
+        --ll-border-light: rgba(255, 255, 255, 0.08);
+        --ll-border-medium: rgba(255, 255, 255, 0.15);
+        --ll-border-dark: rgba(255, 255, 255, 0.3);
+
+        /* Navbar - Dark Mode */
+        --ll-navbar-bg: #1d1d1d;
+
+        /* Sidebar - Dark Mode */
+        --ll-sidebar-bg: #1d1d1d;
+
+        /* Hover States - Dark Mode */
+        --ll-lesson-item-hover-bg: var(--ll-gray-700);
+        --ll-lesson-item-active-bg: rgba(0, 115, 177, 0.2);
+        --ll-section-header-bg: var(--ll-gray-800);
+        --ll-tab-hover-bg: var(--ll-gray-700);
+    }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Visually Hidden (Accessibility) */
+.ll-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus Visible */
+.ll-focus-visible:focus-visible {
+    outline: 2px solid var(--ll-primary);
+    outline-offset: 2px;
+}
+
+/* Truncate Text */
+.ll-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Line Clamp */
+.ll-line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ll-line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

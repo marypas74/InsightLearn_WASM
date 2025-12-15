@@ -682,6 +682,110 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
+/* Disabled option - Coming soon styling */
+.subtitle-option.disabled {
+    cursor: default;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+.subtitle-option.disabled:hover {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.subtitle-option.disabled i {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Section Headers for Original and Auto-Translate */
+.subtitle-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subtitle-section-header:first-of-type {
+    border-top: none;
+}
+
+.subtitle-section-header i {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.subtitle-section-header.translate-header {
+    background: rgba(138, 43, 226, 0.1);
+    border-top: 1px solid rgba(138, 43, 226, 0.2);
+}
+
+.subtitle-section-header.translate-header i {
+    color: #a855f7;
+}
+
+/* Translating indicator */
+.translating-indicator {
+    margin-left: auto;
+    color: #a855f7;
+}
+
+/* Translation option styling */
+.subtitle-option.translate-option {
+    padding-left: 24px;
+}
+
+.subtitle-option.translate-option i {
+    color: #a855f7;
+}
+
+.subtitle-option.translate-option.active {
+    background: rgba(138, 43, 226, 0.15);
+}
+
+.subtitle-option.translate-option.active i {
+    opacity: 1;
+    color: #a855f7;
+}
+
+/* Cached indicator (green dot) */
+.cached-indicator {
+    margin-left: auto;
+    color: #22c55e;
+    font-size: 0.6rem;
+}
+
+/* Subtitle menu scrollable with max-height */
+.subtitle-menu {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.subtitle-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.subtitle-menu::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.subtitle-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.subtitle-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     .subtitle-controls {

@@ -22,6 +22,7 @@ using InsightLearn.Core.DTOs.AIChat;
 using InsightLearn.Core.DTOs.VideoBookmarks;
 using InsightLearn.Core.DTOs.Engagement;
 using InsightLearn.Core.DTOs.Cart;
+using InsightLearn.Core.DTOs.Subtitle;
 using Hangfire;
 using Hangfire.SqlServer;
 using InsightLearn.Application.BackgroundJobs;
@@ -628,6 +629,20 @@ Console.WriteLine("[CONFIG] Redis DistributedCache registered for AI services");
 // Register MongoDB Video Storage Services
 builder.Services.AddSingleton<IMongoVideoStorageService, MongoVideoStorageService>();
 builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
+
+// Register Subtitle Service (v2.2.0-dev - Multi-language subtitle support)
+builder.Services.AddScoped<ISubtitleRepository, SubtitleRepository>();
+builder.Services.AddScoped<ISubtitleService, SubtitleService>();
+Console.WriteLine("[CONFIG] Subtitle Service registered for multi-language support");
+
+// Register Subtitle Translation Service (v2.2.0-dev - Real-time Ollama-powered translation)
+builder.Services.AddScoped<ISubtitleTranslationService, SubtitleTranslationService>();
+builder.Services.AddHttpClient<SubtitleTranslationService>(); // For downloading VTT files
+Console.WriteLine("[CONFIG] Subtitle Translation Service registered (Ollama-powered, 20 languages)");
+
+// Register Subtitle Auto-Generation Service (v2.2.0-dev - Whisper ASR powered)
+builder.Services.AddScoped<ISubtitleGenerationService, SubtitleGenerationService>();
+Console.WriteLine("[CONFIG] Subtitle Generation Service registered (Whisper ASR, automatic WebVTT creation)");
 
 // Register IMongoDatabase for Student Learning Space repositories (v2.1.0-dev fix)
 builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>
@@ -1861,6 +1876,7 @@ app.MapGet("/api/chat/health", async (
 app.MapPost("/api/video/upload", async (
     HttpRequest request,
     [FromServices] IVideoProcessingService videoService,
+    [FromServices] ISubtitleGenerationService subtitleGenService,
     [FromServices] ILogger<Program> logger) =>
 {
     try
@@ -1874,6 +1890,8 @@ app.MapPost("/api/video/upload", async (
         var videoFile = form.Files.GetFile("video");
         var lessonIdStr = form["lessonId"].ToString();
         var userIdStr = form["userId"].ToString();
+        var autoGenerateSubtitles = form["autoGenerateSubtitles"].ToString();
+        var subtitleLanguage = form["subtitleLanguage"].ToString();
 
         if (videoFile == null)
         {
@@ -1914,6 +1932,46 @@ app.MapPost("/api/video/upload", async (
             result.CompressionRatio
         );
 
+        // Auto-generate subtitles if requested (v2.2.0-dev feature)
+        string? subtitleJobId = null;
+        var shouldGenerateSubtitles = string.IsNullOrEmpty(autoGenerateSubtitles) ||
+            autoGenerateSubtitles.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+        if (shouldGenerateSubtitles && !string.IsNullOrEmpty(result.VideoUrl))
+        {
+            try
+            {
+                // Extract file ID from video URL (format: /api/video/stream/{fileId})
+                var videoFileId = result.VideoUrl.Split('/').Last();
+                var language = string.IsNullOrWhiteSpace(subtitleLanguage) ? "it-IT" : subtitleLanguage;
+
+                // Check if subtitles already exist for this language
+                var shortLang = language.Split('-')[0].ToLowerInvariant();
+                if (!await subtitleGenService.HasSubtitlesAsync(lessonId, shortLang))
+                {
+                    subtitleJobId = await subtitleGenService.QueueSubtitleGenerationAsync(
+                        lessonId, videoFileId, language);
+
+                    logger.LogInformation(
+                        "[VIDEO] Queued automatic subtitle generation for lesson {LessonId}, job {JobId}",
+                        lessonId, subtitleJobId);
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "[VIDEO] Subtitles already exist for lesson {LessonId} in language {Language}, skipping generation",
+                        lessonId, language);
+                }
+            }
+            catch (Exception subEx)
+            {
+                // Log but don't fail the video upload if subtitle generation fails to queue
+                logger.LogWarning(subEx,
+                    "[VIDEO] Failed to queue subtitle generation for lesson {LessonId}, continuing without subtitles",
+                    lessonId);
+            }
+        }
+
         return Results.Ok(new
         {
             success = true,
@@ -1924,7 +1982,9 @@ app.MapPost("/api/video/upload", async (
             compressedSize = result.CompressedSize,
             compressionRatio = result.CompressionRatio,
             format = result.Format,
-            quality = result.Quality
+            quality = result.Quality,
+            subtitleGenerationJobId = subtitleJobId,
+            subtitleGenerationQueued = subtitleJobId != null
         });
     }
     catch (Exception ex)
@@ -2059,6 +2119,483 @@ app.MapGet("/api/video/upload/progress/{uploadId}", async (
 })
 .WithName("GetUploadProgress")
 .WithTags("Video");
+
+// ====================================
+// SUBTITLE ENDPOINTS API (v2.2.0-dev)
+// Multi-language subtitle support for all video lessons
+// ====================================
+
+// Get all subtitle tracks for a lesson
+app.MapGet("/api/subtitles/lesson/{lessonId}", async (
+    [FromRoute] Guid lessonId,
+    [FromServices] ISubtitleService subtitleService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[SUBTITLES] Getting subtitles for lesson {LessonId}", lessonId);
+        var subtitles = await subtitleService.GetSubtitlesByLessonIdAsync(lessonId);
+        return Results.Ok(subtitles);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLES] Error getting subtitles for lesson {LessonId}", lessonId);
+        return Results.Problem("Error retrieving subtitles");
+    }
+})
+.WithName("GetSubtitlesByLesson")
+.WithTags("Subtitles")
+.Produces<List<SubtitleTrackDto>>(200);
+
+// Upload a new subtitle file (WebVTT format)
+app.MapPost("/api/subtitles/upload", async (
+    HttpRequest request,
+    [FromServices] ISubtitleService subtitleService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (!request.HasFormContentType)
+        {
+            return Results.BadRequest(new { error = "Multipart form data required" });
+        }
+
+        var form = await request.ReadFormAsync();
+        var subtitleFile = form.Files.GetFile("subtitle");
+        var lessonIdStr = form["lessonId"].ToString();
+        var userIdStr = form["userId"].ToString();
+        var language = form["language"].ToString();
+        var label = form["label"].ToString();
+        var isDefaultStr = form["isDefault"].ToString();
+        var kind = form["kind"].ToString();
+
+        if (subtitleFile == null)
+        {
+            return Results.BadRequest(new { error = "Subtitle file is required" });
+        }
+
+        if (!Guid.TryParse(lessonIdStr, out var lessonId))
+        {
+            return Results.BadRequest(new { error = "Valid lessonId is required" });
+        }
+
+        if (!Guid.TryParse(userIdStr, out var userId))
+        {
+            return Results.BadRequest(new { error = "Valid userId is required" });
+        }
+
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return Results.BadRequest(new { error = "Language code is required (e.g., 'en', 'it', 'es')" });
+        }
+
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return Results.BadRequest(new { error = "Language label is required (e.g., 'English', 'Italiano')" });
+        }
+
+        var isDefault = bool.TryParse(isDefaultStr, out var defaultValue) && defaultValue;
+        var trackKind = string.IsNullOrWhiteSpace(kind) ? "subtitles" : kind;
+
+        logger.LogInformation("[SUBTITLES] Uploading subtitle for lesson {LessonId}, language {Language}",
+            lessonId, language);
+
+        var result = await subtitleService.UploadSubtitleAsync(
+            lessonId, language, label, subtitleFile, userId, isDefault, trackKind);
+
+        return Results.Ok(result);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLES] Unauthorized upload attempt");
+        return Results.Unauthorized();
+    }
+    catch (ArgumentException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLES] Invalid upload request");
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLES] Error uploading subtitle");
+        return Results.Problem("Error uploading subtitle file");
+    }
+})
+.WithName("UploadSubtitle")
+.WithTags("Subtitles")
+.Produces<SubtitleTrackDto>(200)
+.Produces(400)
+.Produces(401);
+
+// Stream subtitle file content (WebVTT)
+app.MapGet("/api/subtitles/stream/{fileId}", async (
+    [FromRoute] string fileId,
+    [FromServices] ISubtitleService subtitleService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (!Guid.TryParse(fileId, out var subtitleId))
+        {
+            return Results.BadRequest(new { error = "Invalid subtitle ID" });
+        }
+
+        logger.LogInformation("[SUBTITLES] Streaming subtitle file {FileId}", fileId);
+        var content = await subtitleService.GetSubtitleContentAsync(subtitleId);
+
+        return Results.Content(content, "text/vtt; charset=utf-8");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLES] Error streaming subtitle {FileId}", fileId);
+        return Results.NotFound(new { error = "Subtitle file not found" });
+    }
+})
+.WithName("StreamSubtitle")
+.WithTags("Subtitles")
+.Produces(200, contentType: "text/vtt")
+.Produces(404);
+
+// Delete a subtitle track
+app.MapDelete("/api/subtitles/{subtitleId}", async (
+    [FromRoute] Guid subtitleId,
+    [FromQuery] Guid userId,
+    [FromServices] ISubtitleService subtitleService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[SUBTITLES] Deleting subtitle {SubtitleId} by user {UserId}",
+            subtitleId, userId);
+
+        var deleted = await subtitleService.DeleteSubtitleAsync(subtitleId, userId);
+
+        if (!deleted)
+        {
+            return Results.NotFound(new { error = "Subtitle track not found" });
+        }
+
+        return Results.Ok(new { message = "Subtitle deleted successfully" });
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLES] Unauthorized delete attempt");
+        return Results.Unauthorized();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLES] Error deleting subtitle {SubtitleId}", subtitleId);
+        return Results.Problem("Error deleting subtitle");
+    }
+})
+.WithName("DeleteSubtitle")
+.WithTags("Subtitles")
+.Produces(200)
+.Produces(401)
+.Produces(404);
+
+// ====================================
+// Subtitle Translation API (v2.2.0-dev)
+// Real-time translation using Ollama LLM
+// ====================================
+
+// Translate subtitles to target language (with MongoDB caching)
+app.MapGet("/api/subtitles/{lessonId}/translate/{targetLanguage}", async (
+    [FromRoute] Guid lessonId,
+    [FromRoute] string targetLanguage,
+    [FromServices] ISubtitleTranslationService translationService,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        logger.LogInformation("[SUBTITLE-TRANSLATE] Translating lesson {LessonId} to {TargetLanguage}",
+            lessonId, targetLanguage);
+
+        // Validate language code
+        var supportedLanguages = translationService.GetSupportedLanguages();
+        if (!supportedLanguages.ContainsKey(targetLanguage.ToLowerInvariant()))
+        {
+            return Results.BadRequest(new
+            {
+                error = $"Unsupported language: {targetLanguage}",
+                supportedLanguages = supportedLanguages.Keys.ToList()
+            });
+        }
+
+        // Get or create translation
+        var translatedVtt = await translationService.GetOrCreateTranslatedSubtitlesAsync(
+            lessonId,
+            targetLanguage.ToLowerInvariant(),
+            cancellationToken);
+
+        if (translatedVtt == null)
+        {
+            return Results.NotFound(new
+            {
+                error = "No source subtitles found for this lesson",
+                lessonId = lessonId.ToString()
+            });
+        }
+
+        // Return WebVTT content
+        return Results.Content(translatedVtt, "text/vtt; charset=utf-8");
+    }
+    catch (OperationCanceledException)
+    {
+        logger.LogWarning("[SUBTITLE-TRANSLATE] Translation cancelled for lesson {LessonId}", lessonId);
+        return Results.StatusCode(408); // Request Timeout
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-TRANSLATE] Error translating subtitles for lesson {LessonId}", lessonId);
+        return Results.Problem($"Error translating subtitles: {ex.Message}");
+    }
+})
+.WithName("TranslateSubtitles")
+.WithTags("Subtitles", "Translation")
+.Produces(200, contentType: "text/vtt")
+.Produces(400)
+.Produces(404)
+.Produces(408)
+.Produces(500);
+
+// Get list of supported translation languages
+app.MapGet("/api/subtitles/translate/languages", (
+    [FromServices] ISubtitleTranslationService translationService) =>
+{
+    var languages = translationService.GetSupportedLanguages();
+    var languageList = languages.Select(kvp => new
+    {
+        code = kvp.Key,
+        name = kvp.Value
+    }).ToList();
+
+    return Results.Ok(new
+    {
+        count = languageList.Count,
+        languages = languageList
+    });
+})
+.WithName("GetSupportedTranslationLanguages")
+.WithTags("Subtitles", "Translation")
+.Produces(200);
+
+// Check if translation exists in cache
+app.MapGet("/api/subtitles/{lessonId}/translate/{targetLanguage}/exists", async (
+    [FromRoute] Guid lessonId,
+    [FromRoute] string targetLanguage,
+    [FromServices] ISubtitleTranslationService translationService,
+    CancellationToken cancellationToken) =>
+{
+    var exists = await translationService.TranslationExistsAsync(
+        lessonId,
+        targetLanguage.ToLowerInvariant(),
+        cancellationToken);
+
+    return Results.Ok(new
+    {
+        lessonId = lessonId.ToString(),
+        targetLanguage,
+        exists,
+        cacheHit = exists
+    });
+})
+.WithName("CheckTranslationExists")
+.WithTags("Subtitles", "Translation")
+.Produces(200);
+
+// Delete cached translations for a lesson (admin/instructor only)
+app.MapDelete("/api/subtitles/{lessonId}/translate", async (
+    [FromRoute] Guid lessonId,
+    [FromQuery] Guid userId,
+    [FromServices] ISubtitleTranslationService translationService,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        // Authorization: User must own the lesson (instructor) or be admin
+        var lesson = await dbContext.Set<Section>()
+            .Include(s => s.Course)
+            .Where(s => s.Lessons.Any(l => l.Id == lessonId))
+            .Select(s => new { s.Course.InstructorId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (lesson == null)
+        {
+            return Results.NotFound(new { error = "Lesson not found" });
+        }
+
+        var user = await dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user == null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var isInstructor = lesson.InstructorId == userId;
+        var isAdmin = user.UserType.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
+        if (!isInstructor && !isAdmin)
+        {
+            return Results.Forbid();
+        }
+
+        // Delete all cached translations
+        await translationService.DeleteTranslationsForLessonAsync(lessonId, cancellationToken);
+
+        logger.LogInformation("[SUBTITLE-TRANSLATE] Deleted cached translations for lesson {LessonId} by user {UserId}",
+            lessonId, userId);
+
+        return Results.Ok(new { message = "Cached translations deleted successfully" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-TRANSLATE] Error deleting translations for lesson {LessonId}", lessonId);
+        return Results.Problem("Error deleting cached translations");
+    }
+})
+.WithName("DeleteCachedTranslations")
+.WithTags("Subtitles", "Translation")
+.Produces(200)
+.Produces(401)
+.Produces(403)
+.Produces(404);
+
+// ====================================
+// Subtitle Auto-Generation API (v2.2.0-dev)
+// Automatic subtitle generation using Whisper ASR
+// ====================================
+
+// Queue automatic subtitle generation for a lesson
+app.MapPost("/api/subtitles/generate", async (
+    [FromBody] SubtitleGenerationRequestDto request,
+    [FromServices] ISubtitleGenerationService generationService,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        logger.LogInformation("[SUBTITLE-GEN] Queuing subtitle generation for lesson {LessonId}, language {Language}",
+            request.LessonId, request.Language);
+
+        // Validate inputs
+        if (request.LessonId == Guid.Empty)
+        {
+            return Results.BadRequest(new { error = "Valid lessonId is required" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.VideoFileId))
+        {
+            return Results.BadRequest(new { error = "videoFileId is required" });
+        }
+
+        var language = string.IsNullOrWhiteSpace(request.Language) ? "it-IT" : request.Language;
+
+        // Check if subtitles already exist
+        var shortLang = language.Split('-')[0].ToLowerInvariant();
+        if (await generationService.HasSubtitlesAsync(request.LessonId, shortLang, cancellationToken))
+        {
+            return Results.Conflict(new
+            {
+                error = $"Subtitles in language '{language}' already exist for this lesson",
+                lessonId = request.LessonId.ToString()
+            });
+        }
+
+        // Queue the generation job
+        var jobId = await generationService.QueueSubtitleGenerationAsync(
+            request.LessonId,
+            request.VideoFileId,
+            language,
+            cancellationToken);
+
+        logger.LogInformation("[SUBTITLE-GEN] Queued job {JobId} for lesson {LessonId}",
+            jobId, request.LessonId);
+
+        return Results.Accepted($"/api/subtitles/generate/{request.LessonId}/status", new
+        {
+            message = "Subtitle generation queued successfully",
+            jobId = jobId,
+            lessonId = request.LessonId.ToString(),
+            language = language,
+            status = "Queued"
+        });
+    }
+    catch (InvalidOperationException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLE-GEN] Invalid request for lesson {LessonId}", request.LessonId);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-GEN] Error queuing subtitle generation for lesson {LessonId}", request.LessonId);
+        return Results.Problem($"Error queuing subtitle generation: {ex.Message}");
+    }
+})
+.WithName("QueueSubtitleGeneration")
+.WithTags("Subtitles", "Generation")
+.Produces(202)
+.Produces(400)
+.Produces(409)
+.Produces(500);
+
+// Get subtitle generation status for a lesson
+app.MapGet("/api/subtitles/generate/{lessonId}/status", async (
+    [FromRoute] Guid lessonId,
+    [FromServices] ISubtitleGenerationService generationService,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        logger.LogDebug("[SUBTITLE-GEN] Getting generation status for lesson {LessonId}", lessonId);
+
+        var status = await generationService.GetGenerationStatusAsync(lessonId, cancellationToken);
+
+        return Results.Ok(status);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-GEN] Error getting generation status for lesson {LessonId}", lessonId);
+        return Results.Problem($"Error getting generation status: {ex.Message}");
+    }
+})
+.WithName("GetSubtitleGenerationStatus")
+.WithTags("Subtitles", "Generation")
+.Produces<SubtitleGenerationStatusDto>(200)
+.Produces(500);
+
+// Check if subtitles exist for a lesson in a specific language
+app.MapGet("/api/subtitles/lesson/{lessonId}/exists/{language}", async (
+    [FromRoute] Guid lessonId,
+    [FromRoute] string language,
+    [FromServices] ISubtitleGenerationService generationService,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var exists = await generationService.HasSubtitlesAsync(lessonId, language, cancellationToken);
+
+        return Results.Ok(new
+        {
+            lessonId = lessonId.ToString(),
+            language = language,
+            exists = exists
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-GEN] Error checking subtitles for lesson {LessonId}", lessonId);
+        return Results.Problem($"Error checking subtitles: {ex.Message}");
+    }
+})
+.WithName("CheckSubtitlesExist")
+.WithTags("Subtitles", "Generation")
+.Produces(200)
+.Produces(500);
 
 // SYSTEM ENDPOINTS API
 app.MapGet("/api/system/endpoints", async (

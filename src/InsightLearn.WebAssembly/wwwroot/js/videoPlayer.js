@@ -302,6 +302,71 @@ window.videoPlayer = {
     },
 
     /**
+     * Create a Blob URL from WebVTT content for translated subtitles
+     * @param {string} vttContent - WebVTT file content as string
+     * @returns {string} Blob URL that can be used as track src
+     */
+    createSubtitleBlobUrl: function (vttContent) {
+        const blob = new Blob([vttContent], { type: 'text/vtt' });
+        const url = URL.createObjectURL(blob);
+        console.log(`[VideoPlayer] Created subtitle blob URL: ${url.substring(0, 50)}...`);
+        return url;
+    },
+
+    /**
+     * Add translated subtitle track to video element and enable it
+     * @param {string} videoId - Video element ID
+     * @param {string} vttUrl - URL to the translated VTT file (can be blob URL)
+     * @param {string} language - Language code (e.g., "es", "fr")
+     * @param {string} label - Human-readable label (e.g., "Español (AI)")
+     */
+    addTranslatedSubtitle: function (videoId, vttUrl, language, label) {
+        const video = document.getElementById(videoId);
+        if (!video) {
+            console.error(`[VideoPlayer] Video element '${videoId}' not found`);
+            return;
+        }
+
+        // Remove any existing translated track with same language
+        const existingTracks = video.querySelectorAll(`track[data-translated="${language}"]`);
+        existingTracks.forEach(t => t.remove());
+
+        // Disable all current tracks
+        for (let i = 0; i < video.textTracks.length; i++) {
+            video.textTracks[i].mode = 'disabled';
+        }
+
+        // Create and add new translated track
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.label = `${label} (AI)`;
+        track.srclang = language;
+        track.src = vttUrl;
+        track.default = true;
+        track.setAttribute('data-translated', language);
+
+        // Add track to video
+        video.appendChild(track);
+
+        // Enable the track after it's loaded
+        track.addEventListener('load', function() {
+            for (let i = 0; i < video.textTracks.length; i++) {
+                if (video.textTracks[i].language === language &&
+                    video.textTracks[i].label.includes('(AI)')) {
+                    video.textTracks[i].mode = 'showing';
+                    console.log(`[VideoPlayer] Translated subtitle enabled: ${label} (${language})`);
+                    break;
+                }
+            }
+        });
+
+        // Force track to load
+        track.track.mode = 'showing';
+
+        console.log(`[VideoPlayer] Added translated subtitle track: ${label} (${language})`);
+    },
+
+    /**
      * Dispose video player (cleanup event listeners)
      * @param {string} videoId - Video element ID
      */
