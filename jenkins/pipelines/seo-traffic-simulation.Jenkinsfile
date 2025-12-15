@@ -26,8 +26,8 @@ pipeline {
         SITEMAP_URL = "${SITE_URL}/sitemap.xml"
         USER_AGENT_GOOGLEBOT = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
         USER_AGENT_ORGANIC = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
-        CRAWL_DELAY = '2' // seconds between requests
-        MAX_URLS = '46' // Total URLs in sitemap
+        CRAWL_DELAY = '2'
+        MAX_URLS = '46'
     }
 
     stages {
@@ -71,14 +71,12 @@ pipeline {
                             TOTAL=$((TOTAL + 1))
                             echo "[${TOTAL}/${MAX_URLS}] Crawling as Googlebot: ${url}"
 
-                            # Fetch as Googlebot
                             HTTP_CODE=$(curl -s -o /tmp/page-${TOTAL}.html -w "%{http_code}" \
                                 -A "${USER_AGENT_GOOGLEBOT}" "${url}")
 
                             if [ "${HTTP_CODE}" = "200" ]; then
                                 SUCCESS=$((SUCCESS + 1))
 
-                                # Check if pre-rendering worked (structured data present)
                                 if grep -q "application/ld+json" /tmp/page-${TOTAL}.html; then
                                     PRERENDER_OK=$((PRERENDER_OK + 1))
                                     echo "  ✅ Pre-rendered (structured data found)"
@@ -89,7 +87,6 @@ pipeline {
                                 echo "  ❌ HTTP ${HTTP_CODE}"
                             fi
 
-                            # Respect crawl delay
                             sleep ${CRAWL_DELAY}
                         done < /tmp/urls-${BUILD_NUMBER}.txt
 
@@ -103,7 +100,6 @@ pipeline {
                         echo "Pre-render Rate: $(( PRERENDER_OK * 100 / TOTAL ))%"
                         echo "========================================="
 
-                        # Store metrics for reporting
                         echo "${SUCCESS}" > /tmp/googlebot-success-${BUILD_NUMBER}.txt
                         echo "${PRERENDER_OK}" > /tmp/prerender-ok-${BUILD_NUMBER}.txt
                     '''
@@ -116,7 +112,6 @@ pipeline {
                 script {
                     echo "👥 Simulating organic user traffic (engagement signals)..."
                     sh '''
-                        # Simulate realistic user behavior on key pages
                         KEY_PAGES=(
                             "${SITE_URL}/"
                             "${SITE_URL}/courses"
@@ -142,7 +137,6 @@ pipeline {
                         for url in "${KEY_PAGES[@]}"; do
                             echo "Visiting: ${url}"
 
-                            # Fetch with organic user-agent + measure time
                             RESPONSE=$(curl -s -o /dev/null -w "HTTP:%{http_code} Time:%{time_total}s" \
                                 -A "${USER_AGENT_ORGANIC}" \
                                 -H "Accept: text/html,application/xhtml+xml" \
@@ -161,7 +155,6 @@ pipeline {
                                 echo "  ❌ ${RESPONSE}"
                             fi
 
-                            # Simulate realistic user dwell time (3-8 seconds)
                             DWELL_TIME=$(( RANDOM % 6 + 3 ))
                             sleep ${DWELL_TIME}
                         done
@@ -190,8 +183,6 @@ pipeline {
                 script {
                     echo "🔍 Verifying structured data integrity..."
                     sh '''
-                        # Test key pages for required schema types
-
                         echo "Checking Homepage schemas..."
                         HOMEPAGE=$(curl -s -A "${USER_AGENT_GOOGLEBOT}" ${SITE_URL}/)
                         SCHEMAS=$(echo "${HOMEPAGE}" | grep -o '"@type": "[^"]*"' | cut -d'"' -f4 | sort | uniq)
@@ -199,7 +190,6 @@ pipeline {
                         echo "Found schemas:"
                         echo "${SCHEMAS}"
 
-                        # Count critical schemas
                         ORGANIZATION=$(echo "${SCHEMAS}" | grep -c "Organization" || echo 0)
                         WEBSITE=$(echo "${SCHEMAS}" | grep -c "WebSite" || echo 0)
                         EDUCATIONAL=$(echo "${SCHEMAS}" | grep -c "EducationalOrganization" || echo 0)
@@ -226,7 +216,6 @@ pipeline {
                         echo "Courses - offers: ${OFFERS}/3"
                         echo "========================================="
 
-                        # Store for reporting
                         echo "${COURSE_SCHEMAS}" > /tmp/course-schemas-${BUILD_NUMBER}.txt
                         echo "${AGGREGATE_RATING}" > /tmp/aggregate-rating-${BUILD_NUMBER}.txt
                     '''
@@ -239,8 +228,6 @@ pipeline {
                 script {
                     echo "⚡ Collecting performance metrics..."
                     sh '''
-                        # Test key performance indicators
-
                         echo "Testing Homepage..."
                         HOME_METRICS=$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" \
                             ${SITE_URL}/)
@@ -254,7 +241,6 @@ pipeline {
 
                         echo "Courses: ${COURSES_METRICS}"
 
-                        # Extract TTFB for scoring
                         HOME_TTFB=$(echo "${HOME_METRICS}" | grep -o 'TTFB:[0-9.]*s' | cut -d':' -f2 | cut -d's' -f1)
                         COURSES_TTFB=$(echo "${COURSES_METRICS}" | grep -o 'TTFB:[0-9.]*s' | cut -d':' -f2 | cut -d's' -f1)
 
@@ -284,8 +270,6 @@ pipeline {
                 script {
                     echo "📊 Generating SEO health report..."
                     sh '''
-
-                        # Read metrics
                         GOOGLEBOT_SUCCESS=$(cat /tmp/googlebot-success-${BUILD_NUMBER}.txt)
                         PRERENDER_OK=$(cat /tmp/prerender-ok-${BUILD_NUMBER}.txt)
                         ORGANIC_SUCCESS=$(cat /tmp/organic-success-${BUILD_NUMBER}.txt)
@@ -294,13 +278,11 @@ pipeline {
                         AGGREGATE_RATING=$(cat /tmp/aggregate-rating-${BUILD_NUMBER}.txt)
                         AVG_TTFB=$(cat /tmp/avg-ttfb-${BUILD_NUMBER}.txt)
 
-                        # Calculate SEO health score (out of 100)
                         CRAWL_SCORE=$(( GOOGLEBOT_SUCCESS * 100 / ${MAX_URLS} ))
                         PRERENDER_SCORE=$(( PRERENDER_OK * 100 / ${MAX_URLS} ))
                         ORGANIC_SCORE=$(( ORGANIC_SUCCESS * 100 / 15 ))
                         SCHEMA_SCORE=$(( COURSE_SCHEMAS * 100 / 3 ))
 
-                        # Performance score (inverse - lower is better)
                         PERF_SCORE=100
                         if (( $(echo "${AVG_TTFB} > 1.0" | bc -l) )); then
                             PERF_SCORE=50
@@ -388,13 +370,21 @@ EOF
 
     post {
         success {
-            echo "✅ SEO traffic simulation completed successfully!"
+            script {
+                echo '✅ SEO traffic simulation completed successfully!'
+            }
         }
+
         failure {
-            echo "❌ SEO traffic simulation failed. Check logs for details."
+            script {
+                echo '❌ SEO traffic simulation failed. Check logs for details.'
+            }
         }
+
         always {
-            echo "Build finished at: ${new Date()}"
+            script {
+                echo "Build finished at: ${new Date()}"
+            }
         }
     }
 }
