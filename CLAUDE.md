@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-11-19)
-**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components
+**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-15) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components, **CRITICAL CSS FIX**: Layout/tabs visibility fix (flex layout override, tabs visibility below video)
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -99,26 +99,35 @@ La solution [InsightLearn.WASM.sln](/InsightLearn.WASM.sln) è organizzata in 4 
 - [VideoPlayer.razor](src/InsightLearn.WebAssembly/Components/VideoPlayer.razor) - HTML5 video player con MongoDB streaming, **subtitle support** (WebVTT), auto-resize (`max-height: 60vh`), **real-time AI translation** (Ollama qwen2:0.5b, 20 languages)
 - [VideoUpload.razor](src/InsightLearn.WebAssembly/Components/VideoUpload.razor) - Video upload placeholder (backend completo)
 
-**LinkedIn Learning UI Style** (v2.2.0-dev - 🚧 IN PROGRESS - 2025-12-15):
+**LinkedIn Learning UI Style** (v2.2.0-dev - ✅ CSS FIX DEPLOYED - 2025-12-15):
 
 Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn Learning.
 
-*CSS Design System* (3 file):
+*CSS Design System* (4 file):
 - [linkedin-learning-tokens.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-tokens.css) - Design tokens: colori, typography, spacing (8px grid), shadows, z-index
 - [linkedin-learning-components.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-components.css) - Componenti UI: navbar, sidebar, video player, tabs, AI assistant
 - [linkedin-learning-animations.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-animations.css) - Animazioni: fade, slide, pulse, typing indicator, skeleton loading
+- [learning-space-v3.css](src/InsightLearn.WebAssembly/wwwroot/css/learning-space-v3.css) - **CRITICAL OVERRIDES**: Layout flex, tabs visibility, sidebar overlay (6160 lines)
 
 *Componenti Aggiornati*:
 - [CourseCurriculum.razor](src/InsightLearn.WebAssembly/Components/CourseCurriculum.razor) - Redesign con progress circles SVG, lock icons, sezioni espandibili, ARIA support
 - [LessonInfo.razor](src/InsightLearn.WebAssembly/Components/LearningSpace/LessonInfo.razor) - Instructor avatar, course progress bar, action buttons (Like/Save/Share), AI subtitle badge
 
+*CRITICAL CSS FIX (2025-12-15)*:
+- ✅ **Flex Layout Override**: Force `display: flex` su `.ll-learning-layout` per prevenire grid 3-column squeeze
+- ✅ **Tabs Visibility**: Force `visibility: visible` su `.ll-learning-tabs` e tab buttons
+- ✅ **Tab Panes**: Display logic per tab pane attivo/inattivo
+- ✅ **Sidebar True Overlay**: `position: fixed` con `transform: translateX()` per slide-in/out
+- ✅ **Main Content Full Width**: Override `margin-left/right: 0` da linkedin-learning-components.css
+- ✅ **Expert Review**: UI Designer + Code Reviewer recommendations applied
+
 *Caratteristiche LinkedIn Learning Style*:
 - Navbar 56px con logo e course title
-- Sidebar 320px con curriculum espandibile
+- Sidebar 320px con curriculum espandibile (TRUE OVERLAY, not fixed columns)
 - Progress circles SVG con animazioni
 - Lock icons per contenuti premium
 - Video player 52vh con custom controls
-- Tab navigation (Overview, Notebook, Transcript, Exercise Files, Q&A)
+- Tab navigation (Overview, Notebook, Transcript, Exercise Files, Q&A) - **VISIBLE BELOW VIDEO**
 - AI Assistant sidebar con quick actions
 - Responsive: Desktop (1024px+), Tablet (768-1023px), Mobile (<768px)
 - Dark mode support via CSS custom properties
