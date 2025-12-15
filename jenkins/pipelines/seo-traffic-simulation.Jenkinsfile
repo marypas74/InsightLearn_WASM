@@ -65,7 +65,6 @@ pipeline {
                 script {
                     echo "🤖 Simulating Googlebot crawler (pre-rendering verification)..."
                     sh '''
-                        #!/bin/bash
                         TOTAL=0
                         SUCCESS=0
                         PRERENDER_OK=0
@@ -119,7 +118,6 @@ pipeline {
                 script {
                     echo "👥 Simulating organic user traffic (engagement signals)..."
                     sh '''
-                        #!/bin/bash
                         # Simulate realistic user behavior on key pages
                         KEY_PAGES=(
                             "${SITE_URL}/"
@@ -194,7 +192,6 @@ pipeline {
                 script {
                     echo "🔍 Verifying structured data integrity..."
                     sh '''
-                        #!/bin/bash
                         # Test key pages for required schema types
 
                         echo "Checking Homepage schemas..."
@@ -244,7 +241,6 @@ pipeline {
                 script {
                     echo "⚡ Collecting performance metrics..."
                     sh '''
-                        #!/bin/bash
                         # Test key performance indicators
 
                         echo "Testing Homepage..."
@@ -290,7 +286,6 @@ pipeline {
                 script {
                     echo "📊 Generating SEO health report..."
                     sh '''
-                        #!/bin/bash
 
                         # Read metrics
                         GOOGLEBOT_SUCCESS=$(cat /tmp/googlebot-success-${BUILD_NUMBER}.txt)
