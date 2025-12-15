@@ -152,8 +152,8 @@ pipeline {
                                 -H "DNT: 1" \
                                 "${url}")
 
-                            HTTP_CODE=$(echo "${RESPONSE}" | grep -oP 'HTTP:\K[0-9]+')
-                            TIME=$(echo "${RESPONSE}" | grep -oP 'Time:\K[0-9.]+')
+                            HTTP_CODE=$(echo "${RESPONSE}" | grep -oP 'HTTP:\\K[0-9]+')
+                            TIME=$(echo "${RESPONSE}" | grep -oP 'Time:\\K[0-9.]+')
 
                             if [ "${HTTP_CODE}" = "200" ]; then
                                 SUCCESS=$((SUCCESS + 1))
