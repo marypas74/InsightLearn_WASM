@@ -52,7 +52,7 @@ pipeline {
                     echo "📥 Fetching sitemap from ${SITEMAP_URL}..."
                     sh '''
                         curl -s ${SITEMAP_URL} > /tmp/sitemap-${BUILD_NUMBER}.xml
-                        grep -oP '(?<=<loc>)[^<]+' /tmp/sitemap-${BUILD_NUMBER}.xml > /tmp/urls-${BUILD_NUMBER}.txt
+                        grep -o '<loc>[^<]*</loc>' /tmp/sitemap-${BUILD_NUMBER}.xml | sed 's|<loc>||;s|</loc>||' > /tmp/urls-${BUILD_NUMBER}.txt
                         echo "Found URLs: $(wc -l < /tmp/urls-${BUILD_NUMBER}.txt)"
                         head -10 /tmp/urls-${BUILD_NUMBER}.txt
                     '''
@@ -152,8 +152,8 @@ pipeline {
                                 -H "DNT: 1" \
                                 "${url}")
 
-                            HTTP_CODE=$(echo "${RESPONSE}" | grep -oP 'HTTP:\\K[0-9]+')
-                            TIME=$(echo "${RESPONSE}" | grep -oP 'Time:\\K[0-9.]+')
+                            HTTP_CODE=$(echo "${RESPONSE}" | cut -d':' -f2 | cut -d' ' -f1)
+                            TIME=$(echo "${RESPONSE}" | cut -d':' -f3 | cut -d's' -f1)
 
                             if [ "${HTTP_CODE}" = "200" ]; then
                                 SUCCESS=$((SUCCESS + 1))
@@ -196,7 +196,7 @@ pipeline {
 
                         echo "Checking Homepage schemas..."
                         HOMEPAGE=$(curl -s -A "${USER_AGENT_GOOGLEBOT}" ${SITE_URL}/)
-                        SCHEMAS=$(echo "${HOMEPAGE}" | grep -oP '(?<="@type": ")[^"]+' | sort | uniq)
+                        SCHEMAS=$(echo "${HOMEPAGE}" | grep -o '"@type": "[^"]*"' | cut -d'"' -f4 | sort | uniq)
 
                         echo "Found schemas:"
                         echo "${SCHEMAS}"
@@ -257,8 +257,8 @@ pipeline {
                         echo "Courses: ${COURSES_METRICS}"
 
                         # Extract TTFB for scoring
-                        HOME_TTFB=$(echo "${HOME_METRICS}" | grep -oP 'TTFB:\K[0-9.]+')
-                        COURSES_TTFB=$(echo "${COURSES_METRICS}" | grep -oP 'TTFB:\K[0-9.]+')
+                        HOME_TTFB=$(echo "${HOME_METRICS}" | grep -o 'TTFB:[0-9.]*s' | cut -d':' -f2 | cut -d's' -f1)
+                        COURSES_TTFB=$(echo "${COURSES_METRICS}" | grep -o 'TTFB:[0-9.]*s' | cut -d':' -f2 | cut -d's' -f1)
 
                         AVG_TTFB=$(echo "scale=3; (${HOME_TTFB} + ${COURSES_TTFB}) / 2" | bc)
 
