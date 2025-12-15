@@ -107,7 +107,7 @@ Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn 
 - [linkedin-learning-tokens.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-tokens.css) - Design tokens: colori, typography, spacing (8px grid), shadows, z-index
 - [linkedin-learning-components.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-components.css) - Componenti UI: navbar, sidebar, video player, tabs, AI assistant
 - [linkedin-learning-animations.css](src/InsightLearn.WebAssembly/wwwroot/css/linkedin-learning-animations.css) - Animazioni: fade, slide, pulse, typing indicator, skeleton loading
-- [learning-space-v3.css](src/InsightLearn.WebAssembly/wwwroot/css/learning-space-v3.css) - **CRITICAL OVERRIDES**: Layout flex, tabs visibility, sidebar overlay (6160 lines)
+- [learning-space-v3.css](src/InsightLearn.WebAssembly/wwwroot/css/learning-space-v3.css) - **CRITICAL OVERRIDES**: Layout flex, tabs visibility, sidebar overlay (6138 lines, optimized)
 
 *Componenti Aggiornati*:
 - [CourseCurriculum.razor](src/InsightLearn.WebAssembly/Components/CourseCurriculum.razor) - Redesign con progress circles SVG, lock icons, sezioni espandibili, ARIA support
@@ -119,7 +119,9 @@ Redesign completo dell'interfaccia Learning Space con stile identico a LinkedIn 
 - ✅ **Tab Panes**: Display logic per tab pane attivo/inattivo
 - ✅ **Sidebar True Overlay**: `position: fixed` con `transform: translateX()` per slide-in/out
 - ✅ **Main Content Full Width**: Override `margin-left/right: 0` da linkedin-learning-components.css
+- ✅ **Duplicate Rules Removed**: Eliminate regole CSS duplicate sidebar (5651-5687) che causavano conflitti di specificity
 - ✅ **Expert Review**: UI Designer + Code Reviewer recommendations applied
+- ✅ **Reference Design**: HTML mockup completo LinkedIn Learning style in [/tmp/linkedin-learning-redesign.html](/tmp/linkedin-learning-redesign.html)
 
 *Caratteristiche LinkedIn Learning Style*:
 - Navbar 56px con logo e course title
