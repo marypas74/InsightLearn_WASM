@@ -5648,37 +5648,11 @@ body:has(.learning-layout) .main-layout {
     visibility: visible;
 }
 
-.ll-learning-sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    width: 380px;
-    max-width: 100%;
-    background: white;
-    z-index: 300;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ll-sidebar-left {
-    left: 0;
-    transform: translateX(-100%);
-}
-
-.ll-sidebar-left.open {
-    transform: translateX(0);
-}
-
-.ll-sidebar-right {
-    right: 0;
-    transform: translateX(100%);
-}
-
-.ll-sidebar-right.open {
-    transform: translateX(0);
-}
+/* =============================================================================
+   SIDEBAR BASE RULES - Removed to prevent conflicts
+   All sidebar styling is now handled by .learning-space-container rules below
+   (lines 5803-5847) which have higher specificity and correct positioning
+   ============================================================================= */
 
 .ll-sidebar-header {
     display: flex;
@@ -5803,9 +5777,13 @@ div.learning-space-container aside.ll-learning-sidebar {
     top: 56px !important; /* Height of navbar */
     height: calc(100vh - 56px) !important;
     width: 320px !important;
+    max-width: 100% !important;
     z-index: 1000 !important;
     background: var(--ll-sidebar-bg, #1b1b1b) !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow-y: auto !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3) !important;
     transition: transform 0.3s ease-in-out !important;
 }
 
