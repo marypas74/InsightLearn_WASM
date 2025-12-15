@@ -50,12 +50,12 @@ pipeline {
             steps {
                 script {
                     echo "📥 Fetching sitemap from ${SITEMAP_URL}..."
-                    sh """
+                    sh '''
                         curl -s ${SITEMAP_URL} > /tmp/sitemap-${BUILD_NUMBER}.xml
                         grep -oP '(?<=<loc>)[^<]+' /tmp/sitemap-${BUILD_NUMBER}.xml > /tmp/urls-${BUILD_NUMBER}.txt
-                        echo "Found URLs: \$(wc -l < /tmp/urls-${BUILD_NUMBER}.txt)"
+                        echo "Found URLs: $(wc -l < /tmp/urls-${BUILD_NUMBER}.txt)"
                         head -10 /tmp/urls-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
@@ -64,7 +64,7 @@ pipeline {
             steps {
                 script {
                     echo "🤖 Simulating Googlebot crawler (pre-rendering verification)..."
-                    sh """
+                    sh '''
                         #!/bin/bash
                         TOTAL=0
                         SUCCESS=0
@@ -75,7 +75,7 @@ pipeline {
                             echo "[\${TOTAL}/${MAX_URLS}] Crawling as Googlebot: \${url}"
 
                             # Fetch as Googlebot
-                            HTTP_CODE=\$(curl -s -o /tmp/page-\${TOTAL}.html -w "%{http_code}" \
+                            HTTP_CODE=\$(curl -s -o /tmp/page-\${TOTAL}.html -w "%{http_code}" $
                                 -A "${USER_AGENT_GOOGLEBOT}" "\${url}")
 
                             if [ "\${HTTP_CODE}" = "200" ]; then
@@ -118,7 +118,7 @@ pipeline {
             steps {
                 script {
                     echo "👥 Simulating organic user traffic (engagement signals)..."
-                    sh """
+                    sh '''
                         #!/bin/bash
                         # Simulate realistic user behavior on key pages
                         KEY_PAGES=(
@@ -147,11 +147,11 @@ pipeline {
                             echo "Visiting: \${url}"
 
                             # Fetch with organic user-agent + measure time
-                            RESPONSE=\$(curl -s -o /dev/null -w "HTTP:%{http_code} Time:%{time_total}s" \
-                                -A "${USER_AGENT_ORGANIC}" \
-                                -H "Accept: text/html,application/xhtml+xml" \
-                                -H "Accept-Language: en-US,en;q=0.9,it;q=0.8" \
-                                -H "DNT: 1" \
+                            RESPONSE=\$(curl -s -o /dev/null -w "HTTP:%{http_code} Time:%{time_total}s" $
+                                -A "${USER_AGENT_ORGANIC}" $
+                                -H "Accept: text/html,application/xhtml+xml" $
+                                -H "Accept-Language: en-US,en;q=0.9,it;q=0.8" $
+                                -H "DNT: 1" $
                                 "\${url}")
 
                             HTTP_CODE=\$(echo "\${RESPONSE}" | grep -oP 'HTTP:\K[0-9]+')
@@ -193,7 +193,7 @@ pipeline {
             steps {
                 script {
                     echo "🔍 Verifying structured data integrity..."
-                    sh """
+                    sh '''
                         #!/bin/bash
                         # Test key pages for required schema types
 
@@ -243,19 +243,19 @@ pipeline {
             steps {
                 script {
                     echo "⚡ Collecting performance metrics..."
-                    sh """
+                    sh '''
                         #!/bin/bash
                         # Test key performance indicators
 
                         echo "Testing Homepage..."
-                        HOME_METRICS=\$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" \
+                        HOME_METRICS=\$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" $
                             ${SITE_URL}/)
 
                         echo "Homepage: \${HOME_METRICS}"
 
                         echo ""
                         echo "Testing Courses Page..."
-                        COURSES_METRICS=\$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" \
+                        COURSES_METRICS=\$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" $
                             ${SITE_URL}/courses)
 
                         echo "Courses: \${COURSES_METRICS}"
@@ -289,7 +289,7 @@ pipeline {
             steps {
                 script {
                     echo "📊 Generating SEO health report..."
-                    sh """
+                    sh '''
                         #!/bin/bash
 
                         # Read metrics
@@ -382,12 +382,12 @@ EOF
             steps {
                 script {
                     echo "🧹 Cleaning up temporary files..."
-                    sh """
+                    sh '''
                         rm -f /tmp/sitemap-${BUILD_NUMBER}.xml
                         rm -f /tmp/urls-${BUILD_NUMBER}.txt
                         rm -f /tmp/page-*.html
                         rm -f /tmp/*-${BUILD_NUMBER}.txt
-                    """
+                    '''
                 }
             }
         }
