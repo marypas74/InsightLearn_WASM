@@ -72,7 +72,7 @@ pipeline {
                             echo "[${TOTAL}/${MAX_URLS}] Crawling as Googlebot: ${url}"
 
                             # Fetch as Googlebot
-                            HTTP_CODE=$(curl -s -o /tmp/page-${TOTAL}.html -w "%{http_code}" $
+                            HTTP_CODE=$(curl -s -o /tmp/page-${TOTAL}.html -w "%{http_code}" \
                                 -A "${USER_AGENT_GOOGLEBOT}" "${url}")
 
                             if [ "${HTTP_CODE}" = "200" ]; then
@@ -242,14 +242,14 @@ pipeline {
                         # Test key performance indicators
 
                         echo "Testing Homepage..."
-                        HOME_METRICS=$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" $
+                        HOME_METRICS=$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" \
                             ${SITE_URL}/)
 
                         echo "Homepage: ${HOME_METRICS}"
 
                         echo ""
                         echo "Testing Courses Page..."
-                        COURSES_METRICS=$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" $
+                        COURSES_METRICS=$(curl -s -o /dev/null -w "DNS:%{time_namelookup}s Connect:%{time_connect}s SSL:%{time_appconnect}s TTFB:%{time_starttransfer}s Total:%{time_total}s Size:%{size_download}bytes" \
                             ${SITE_URL}/courses)
 
                         echo "Courses: ${COURSES_METRICS}"
