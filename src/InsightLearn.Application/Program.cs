@@ -2692,6 +2692,93 @@ app.MapPost("/api/system/endpoints/refresh-cache", async (
 .WithName("RefreshEndpointCache")
 .WithTags("System");
 
+// SEO API ENDPOINTS
+
+// Dynamic Sitemap XML Generator
+app.MapGet("/api/seo/sitemap.xml", async (
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[SEO] Generating dynamic sitemap.xml");
+
+        var baseUrl = "https://wasm.insightlearn.cloud";
+        var now = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+        var urls = new List<string>();
+
+        // Static pages (priority 1.0 - 0.5)
+        urls.Add($"<url><loc>{baseUrl}/</loc><lastmod>{now}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/courses</loc><lastmod>{now}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/categories</loc><lastmod>{now}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/about</loc><lastmod>{now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/faq</loc><lastmod>{now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/contact</loc><lastmod>{now}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/pricing</loc><lastmod>{now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/instructors</loc><lastmod>{now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>");
+        urls.Add($"<url><loc>{baseUrl}/blog</loc><lastmod>{now}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>");
+
+        // Published courses (priority 0.8)
+        var courses = await dbContext.Courses
+            .Where(c => c.IsPublished)
+            .Select(c => new { c.Id, c.UpdatedAt })
+            .Take(500) // Limit to avoid huge sitemaps
+            .ToListAsync();
+
+        foreach (var course in courses)
+        {
+            var lastMod = course.UpdatedAt?.ToString("yyyy-MM-dd") ?? now;
+            urls.Add($"<url><loc>{baseUrl}/course/{course.Id}</loc><lastmod>{lastMod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>");
+        }
+
+        // Categories (priority 0.7)
+        var categories = await dbContext.Categories
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync();
+
+        foreach (var category in categories)
+        {
+            var categorySlug = category.Name.ToLower().Replace(" ", "-");
+            urls.Add($"<url><loc>{baseUrl}/courses?category={categorySlug}</loc><lastmod>{now}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>");
+        }
+
+        // Instructors (priority 0.6)
+        var instructors = await dbContext.Users
+            .Where(u => u.UserType == UserType.Instructor)
+            .Select(u => new { u.Id, u.FirstName, u.LastName })
+            .Take(100)
+            .ToListAsync();
+
+        foreach (var instructor in instructors)
+        {
+            urls.Add($"<url><loc>{baseUrl}/instructor/{instructor.Id}</loc><lastmod>{now}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>");
+        }
+
+        // Build XML
+        var xml = new System.Text.StringBuilder();
+        xml.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        xml.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+        foreach (var url in urls)
+        {
+            xml.AppendLine($"  {url}");
+        }
+        xml.AppendLine("</urlset>");
+
+        logger.LogInformation($"[SEO] Generated sitemap with {urls.Count} URLs");
+
+        return Results.Content(xml.ToString(), "application/xml");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SEO] Error generating sitemap");
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetDynamicSitemap")
+.WithTags("SEO")
+.AllowAnonymous();
+
 // ADMIN API ENDPOINTS (require Admin role)
 
 // Dashboard Stats
