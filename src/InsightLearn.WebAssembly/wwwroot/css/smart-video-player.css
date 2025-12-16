@@ -1,0 +1,685 @@
+/**
+ * SmartVideoPlayer CSS - Modern Video Player Controls
+ * Part of SmartVideoPlayer component stack (v2.2.0-dev)
+ * Inspired by YouTube/Netflix player design
+ */
+
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+    --svp-primary: #a435f0;
+    --svp-primary-hover: #8710d8;
+    --svp-bg-dark: rgba(0, 0, 0, 0.9);
+    --svp-bg-overlay: rgba(0, 0, 0, 0.6);
+    --svp-text: #ffffff;
+    --svp-text-muted: rgba(255, 255, 255, 0.7);
+    --svp-progress-bg: rgba(255, 255, 255, 0.3);
+    --svp-progress-buffered: rgba(255, 255, 255, 0.5);
+    --svp-progress-played: var(--svp-primary);
+    --svp-control-size: 40px;
+    --svp-transition: 0.2s ease;
+    --svp-border-radius: 8px;
+    --svp-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================
+   Container
+   ======================================== */
+.smart-video-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    background: #000;
+    border-radius: var(--svp-border-radius);
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    outline: none;
+}
+
+.smart-video-container:focus-visible {
+    box-shadow: 0 0 0 3px var(--svp-primary);
+}
+
+.smart-video-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    border-radius: 0;
+    z-index: 9999;
+    aspect-ratio: auto;
+}
+
+/* ========================================
+   Video Element
+   ======================================== */
+.smart-video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+/* ========================================
+   Loading Overlay
+   ======================================== */
+.video-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--svp-bg-overlay);
+    z-index: 10;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--svp-progress-bg);
+    border-top-color: var(--svp-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   Big Play Button
+   ======================================== */
+.big-play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: var(--svp-primary);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--svp-shadow);
+    transition: transform var(--svp-transition), background var(--svp-transition);
+    z-index: 5;
+}
+
+.big-play-button:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: var(--svp-primary-hover);
+}
+
+.big-play-button svg {
+    width: 40px;
+    height: 40px;
+    color: var(--svp-text);
+    margin-left: 4px; /* Visual centering for play icon */
+}
+
+/* ========================================
+   Controls Overlay
+   ======================================== */
+.video-controls-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 60px 16px 16px;
+    background: linear-gradient(transparent, var(--svp-bg-dark));
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--svp-transition), visibility var(--svp-transition);
+    z-index: 20;
+}
+
+.video-controls-overlay.visible,
+.smart-video-container:hover .video-controls-overlay,
+.smart-video-container:focus-within .video-controls-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   Progress Bar
+   ======================================== */
+.progress-container {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--svp-progress-bg);
+    border-radius: 2px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: height var(--svp-transition);
+}
+
+.progress-container:hover {
+    height: 8px;
+}
+
+.progress-buffered {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--svp-progress-buffered);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+.progress-played {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--svp-progress-played);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+.progress-thumb {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 12px;
+    height: 12px;
+    background: var(--svp-primary);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform var(--svp-transition);
+}
+
+.progress-container:hover .progress-thumb {
+    transform: translateY(-50%) scale(1);
+}
+
+/* Bookmark Markers */
+.bookmark-marker {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 12px;
+    background: #ffd700;
+    border-radius: 2px;
+    cursor: pointer;
+    z-index: 5;
+    transition: transform var(--svp-transition);
+}
+
+.bookmark-marker:hover {
+    transform: scale(1.3);
+}
+
+/* ========================================
+   Controls Row
+   ======================================== */
+.controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.controls-left,
+.controls-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ========================================
+   Control Buttons
+   ======================================== */
+.control-btn {
+    width: var(--svp-control-size);
+    height: var(--svp-control-size);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--svp-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--svp-transition), transform var(--svp-transition);
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.control-btn:active {
+    transform: scale(0.9);
+}
+
+.control-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.control-btn.speed-btn {
+    width: auto;
+    padding: 0 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ========================================
+   Volume Control
+   ======================================== */
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.volume-slider {
+    width: 0;
+    opacity: 0;
+    transition: width var(--svp-transition), opacity var(--svp-transition);
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--svp-progress-bg);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.volume-control:hover .volume-slider {
+    width: 80px;
+    opacity: 1;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--svp-text);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--svp-text);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* ========================================
+   Time Display
+   ======================================== */
+.time-display {
+    font-size: 13px;
+    font-family: 'Roboto Mono', 'SF Mono', monospace;
+    color: var(--svp-text);
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+/* ========================================
+   Speed Menu
+   ======================================== */
+.speed-control,
+.subtitle-control {
+    position: relative;
+}
+
+.speed-menu,
+.subtitle-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    min-width: 120px;
+    background: var(--svp-bg-dark);
+    border-radius: var(--svp-border-radius);
+    box-shadow: var(--svp-shadow);
+    padding: 8px 0;
+    z-index: 30;
+}
+
+.speed-option,
+.subtitle-option {
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--svp-text);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--svp-transition);
+}
+
+.speed-option:hover,
+.subtitle-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.speed-option.active,
+.subtitle-option.active {
+    color: var(--svp-primary);
+}
+
+.subtitle-divider {
+    padding: 8px 16px 4px;
+    font-size: 11px;
+    color: var(--svp-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 4px;
+}
+
+.subtitle-option.ai-translate {
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+.subtitle-option.ai-translate::before {
+    content: '🤖 ';
+    font-size: 12px;
+}
+
+/* ========================================
+   Error Overlay
+   ======================================== */
+.video-error-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--svp-bg-dark);
+    z-index: 25;
+}
+
+.error-content {
+    text-align: center;
+    color: var(--svp-text);
+    padding: 24px;
+}
+
+.error-icon {
+    width: 48px;
+    height: 48px;
+    color: #ef4444;
+    margin-bottom: 16px;
+}
+
+.error-content p {
+    margin: 0 0 16px;
+    font-size: 16px;
+}
+
+.retry-btn {
+    padding: 10px 24px;
+    background: var(--svp-primary);
+    color: var(--svp-text);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--svp-transition);
+}
+
+.retry-btn:hover {
+    background: var(--svp-primary-hover);
+}
+
+/* ========================================
+   Transcript Panel
+   ======================================== */
+.transcript-panel {
+    margin-top: 16px;
+    background: #1a1a1a;
+    border-radius: var(--svp-border-radius);
+    overflow: hidden;
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #242424;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.transcript-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--svp-text);
+}
+
+.transcript-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.transcript-action-btn {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--svp-text-muted);
+    cursor: pointer;
+    transition: background var(--svp-transition), color var(--svp-transition);
+}
+
+.transcript-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--svp-text);
+}
+
+.transcript-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    scroll-behavior: smooth;
+}
+
+.transcript-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.transcript-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.transcript-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.transcript-segment {
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background var(--svp-transition);
+}
+
+.transcript-segment:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.transcript-segment.active {
+    background: rgba(164, 53, 240, 0.15);
+}
+
+.transcript-segment.active .segment-text {
+    color: var(--svp-text);
+}
+
+.segment-time {
+    font-size: 12px;
+    font-family: 'Roboto Mono', 'SF Mono', monospace;
+    color: var(--svp-primary);
+    min-width: 50px;
+    flex-shrink: 0;
+}
+
+.segment-text {
+    font-size: 14px;
+    color: var(--svp-text-muted);
+    line-height: 1.5;
+    transition: color var(--svp-transition);
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+@media (max-width: 768px) {
+    .smart-video-container {
+        border-radius: 0;
+    }
+
+    .video-controls-overlay {
+        padding: 40px 12px 12px;
+    }
+
+    .controls-row {
+        flex-wrap: wrap;
+    }
+
+    .controls-left,
+    .controls-right {
+        gap: 2px;
+    }
+
+    .control-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .control-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .time-display {
+        font-size: 12px;
+        padding: 0 4px;
+    }
+
+    .volume-control:hover .volume-slider {
+        width: 60px;
+    }
+
+    .big-play-button {
+        width: 60px;
+        height: 60px;
+    }
+
+    .big-play-button svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .transcript-panel {
+        max-height: 200px;
+    }
+}
+
+/* ========================================
+   Dark Mode Support (already dark by default)
+   ======================================== */
+@media (prefers-color-scheme: light) {
+    .transcript-panel {
+        background: #f5f5f5;
+    }
+
+    .transcript-header {
+        background: #e5e5e5;
+        border-bottom-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .transcript-header h4 {
+        color: #1a1a1a;
+    }
+
+    .transcript-action-btn {
+        color: #666;
+    }
+
+    .transcript-action-btn:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #1a1a1a;
+    }
+
+    .transcript-segment:hover {
+        background: rgba(0, 0, 0, 0.03);
+    }
+
+    .transcript-segment.active {
+        background: rgba(164, 53, 240, 0.1);
+    }
+
+    .segment-text {
+        color: #4a4a4a;
+    }
+
+    .transcript-segment.active .segment-text {
+        color: #1a1a1a;
+    }
+
+    .transcript-content::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .progress-thumb,
+    .control-btn,
+    .volume-slider,
+    .transcript-segment,
+    .big-play-button {
+        transition: none;
+    }
+
+    .loading-spinner {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .transcript-content {
+        scroll-behavior: auto;
+    }
+}

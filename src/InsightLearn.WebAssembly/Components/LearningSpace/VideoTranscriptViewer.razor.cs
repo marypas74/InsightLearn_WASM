@@ -31,6 +31,16 @@ public partial class VideoTranscriptViewer : ComponentBase
     /// </summary>
     [Parameter] public EventCallback<double> OnTimestampClick { get; set; }
 
+    /// <summary>
+    /// Lesson title for auto-generation context.
+    /// </summary>
+    [Parameter] public string? LessonTitle { get; set; }
+
+    /// <summary>
+    /// Video duration in seconds for segment timing.
+    /// </summary>
+    [Parameter] public int VideoDurationSeconds { get; set; } = 300;
+
     private VideoTranscriptDto? transcript = null;
     private List<TranscriptSegmentDto> segments = new();
     private List<TranscriptSegmentDto> filteredSegments = new();
@@ -41,6 +51,7 @@ public partial class VideoTranscriptViewer : ComponentBase
     private bool isSearching = false;
     private int? activeSegmentIndex = null;
     private string? errorMessage = null;
+    private bool isGenerating = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -67,7 +78,7 @@ public partial class VideoTranscriptViewer : ComponentBase
         try
         {
             var response = await TranscriptService.GetTranscriptAsync(LessonId);
-            if (response.Success && response.Data != null)
+            if (response.Success && response.Data != null && response.Data.Transcript.Count > 0)
             {
                 transcript = response.Data;
                 segments = transcript.Transcript ?? new();
@@ -77,39 +88,8 @@ public partial class VideoTranscriptViewer : ComponentBase
             }
             else
             {
-                // Check if transcript is still processing
-                var statusResponse = await TranscriptService.GetStatusAsync(LessonId);
-                if (statusResponse.Success && statusResponse.Data != null)
-                {
-                    processingStatus = statusResponse.Data.Status;
-                    if (processingStatus == "Processing" || processingStatus == "Queued")
-                    {
-                        errorMessage = "Transcript is being generated. This may take a few minutes.";
-                    }
-                    else if (processingStatus == "Failed")
-                    {
-                        errorMessage = statusResponse.Data.ErrorMessage ?? "Transcript generation failed";
-                    }
-                    else
-                    {
-                        errorMessage = "No transcript available for this lesson";
-                    }
-                }
-                else
-                {
-                    // Check for authentication/authorization errors
-                    var responseMsg = response.Message ?? "";
-                    if (responseMsg.Contains("401") || responseMsg.Contains("Unauthorized") ||
-                        responseMsg.Contains("403") || responseMsg.Contains("Forbidden"))
-                    {
-                        errorMessage = "Please log in to view the transcript";
-                        processingStatus = "Unauthorized";
-                    }
-                    else
-                    {
-                        errorMessage = responseMsg.Length > 0 ? responseMsg : "Failed to load transcript";
-                    }
-                }
+                // No transcript found - try auto-generation
+                await AutoGenerateTranscriptAsync();
             }
         }
         catch (Exception ex)
@@ -122,13 +102,64 @@ public partial class VideoTranscriptViewer : ComponentBase
             }
             else
             {
-                errorMessage = $"Error loading transcript: {ex.Message}";
-                ToastService.ShowError(errorMessage);
+                // Try auto-generation on error
+                await AutoGenerateTranscriptAsync();
             }
         }
         finally
         {
             isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Auto-generate transcript using Ollama when none exists.
+    /// </summary>
+    private async Task AutoGenerateTranscriptAsync()
+    {
+        if (isGenerating) return;
+
+        isGenerating = true;
+        errorMessage = "Generating transcript with AI...";
+        processingStatus = "Generating";
+        StateHasChanged();
+
+        try
+        {
+            var request = new AutoGenerateTranscriptRequest
+            {
+                LessonId = LessonId,
+                LessonTitle = LessonTitle ?? "Educational Lesson",
+                DurationSeconds = VideoDurationSeconds > 0 ? VideoDurationSeconds : 300,
+                Language = "en-US"
+            };
+
+            var response = await TranscriptService.AutoGenerateTranscriptAsync(request);
+
+            if (response.Success && response.Data != null && response.Data.Transcript.Count > 0)
+            {
+                transcript = response.Data;
+                segments = transcript.Transcript ?? new();
+                filteredSegments = segments;
+                hasTranscript = true;
+                processingStatus = "Completed";
+                errorMessage = null;
+                ToastService.ShowSuccess($"Transcript generated: {segments.Count} segments");
+            }
+            else
+            {
+                errorMessage = response.Message ?? "Failed to generate transcript";
+                processingStatus = "Failed";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error generating transcript: {ex.Message}";
+            processingStatus = "Failed";
+        }
+        finally
+        {
+            isGenerating = false;
         }
     }
 
@@ -235,10 +266,8 @@ public partial class VideoTranscriptViewer : ComponentBase
 
     private async Task RequestTranscriptGenerationAsync()
     {
-        // This would typically require video URL which we don't have here
-        // In production, this would be handled by admin/instructor
-        ToastService.ShowInfo("Contact instructor to generate transcript for this lesson");
-        await Task.CompletedTask;
+        // Trigger auto-generation using Ollama
+        await AutoGenerateTranscriptAsync();
     }
 
     private string GetConfidenceColor(double? confidence)

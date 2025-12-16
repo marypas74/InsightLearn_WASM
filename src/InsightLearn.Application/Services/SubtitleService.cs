@@ -308,6 +308,31 @@ public class SubtitleService : ISubtitleService
         }
     }
 
+    public async Task<string> GetSubtitleContentByGridFsIdAsync(string gridFsFileId)
+    {
+        try
+        {
+            if (!ObjectId.TryParse(gridFsFileId, out var objectId))
+            {
+                throw new InvalidOperationException($"Invalid GridFS file ID: {gridFsFileId}");
+            }
+
+            _logger.LogInformation("Downloading subtitle from GridFS with ID: {FileId}", gridFsFileId);
+
+            // Download directly from GridFS
+            using var stream = await _gridFsBucket.OpenDownloadStreamAsync(objectId);
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync();
+
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting subtitle content for GridFS ID {FileId}", gridFsFileId);
+            throw;
+        }
+    }
+
     public async Task<bool> CanManageSubtitlesAsync(Guid lessonId, Guid userId)
     {
         try

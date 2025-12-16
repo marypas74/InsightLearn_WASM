@@ -107,6 +107,10 @@ builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAITa
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IVideoBookmarkClientService, InsightLearn.WebAssembly.Services.LearningSpace.VideoBookmarkClientService>();
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAIConversationClientService, InsightLearn.WebAssembly.Services.LearningSpace.AIConversationClientService>();
 
+// SmartVideoPlayer AI Transcription Service (v2.2.0-dev)
+// Uses OllamaTranscriptionService - calls backend API for transcripts and Ollama for translations
+builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAiTranscriptionService, InsightLearn.WebAssembly.Services.LearningSpace.OllamaTranscriptionService>();
+
 Log.Information("InsightLearn WebAssembly application starting...");
 Log.Information("Base Address: {BaseAddress}", builder.HostEnvironment.BaseAddress);
 

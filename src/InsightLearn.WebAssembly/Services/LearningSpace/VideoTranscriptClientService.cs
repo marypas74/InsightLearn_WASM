@@ -46,4 +46,12 @@ public class VideoTranscriptClientService : IVideoTranscriptClientService
     {
         return await _apiClient.DeleteAsync<object>($"{BaseEndpoint}/{lessonId}");
     }
+
+    public async Task<ApiResponse<VideoTranscriptDto>> AutoGenerateTranscriptAsync(AutoGenerateTranscriptRequest request)
+    {
+        // POST /api/transcripts/{lessonId}/auto-generate
+        return await _apiClient.PostAsync<VideoTranscriptDto>(
+            $"{BaseEndpoint}/{request.LessonId}/auto-generate",
+            new { request.LessonTitle, request.DurationSeconds, request.Language });
+    }
 }

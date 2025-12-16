@@ -11,8 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
-**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 00:17)
-**Latest Release**: 🎨 LinkedIn Learning UI Style v2.2.0-dev (2025-12-16) - Complete UI redesign with LinkedIn Learning style, video player controls, sidebar overlay navigation, CourseCurriculum expandable sections, QAPanel and ExerciseFilesPanel components, **CRITICAL CSS FIX**: Layout/tabs visibility fix (flex layout override, tabs visibility below video), **HTML Mockups**: 3 pixel-perfect reference designs (`/tmp/linkedin-learning-*.html`)
+**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 15:45)
+**Latest Release**: 🔧 Subtitle Translation GridFS Fix v2.2.0-dev (2025-12-16) - Fixed SubtitleTranslationService to download VTT files directly from MongoDB GridFS instead of HTTP, enabling AI translation for subtitles stored in GridFS. Previous: LinkedIn Learning UI Style with video player controls, sidebar overlay navigation, CourseCurriculum expandable sections.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -1785,12 +1785,13 @@ Esempio modifica version:
 | `api/subtitles/{lessonId}/translate/{targetLanguage}/exists` | GET | ✅ | Check if translation exists in cache |
 | `api/subtitles/{lessonId}/translate` | DELETE | ✅ | Delete cached translations for lesson (Admin) |
 
-**🌍 REAL-TIME SUBTITLE TRANSLATION (2025-12-15)**: Sistema completo di traduzione sottotitoli in tempo reale:
+**🌍 REAL-TIME SUBTITLE TRANSLATION (2025-12-15, GridFS Fix 2025-12-16)**: Sistema completo di traduzione sottotitoli in tempo reale:
 - **AI Engine**: Ollama qwen2:0.5b per traduzioni context-aware
 - **Lingue Supportate**: 20 (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO, AR, HI, NL, PL, TR, VI, TH, SV, NO, DA)
 - **Caching**: MongoDB collection `TranslatedSubtitles` per riuso traduzioni
 - **Context-Aware**: 3 sottotitoli precedenti inviati per contesto migliore
 - **Frontend UI**: Menu sottotitoli con sezione "Auto-Translate (AI)", indicatore loading, badge cached
+- **🔧 GridFS Fix (2025-12-16)**: SubtitleTranslationService ora scarica VTT direttamente da MongoDB GridFS invece di HTTP, risolvendo errore "FileNotFoundException" per sottotitoli con URL `/api/subtitles/stream/{objectId}`
 
 **✅ ADMIN CONSOLE COMPLETATA (2025-11-26)**: 9 nuovi endpoint implementati per gestione Instructors, Payments e Reports.
 

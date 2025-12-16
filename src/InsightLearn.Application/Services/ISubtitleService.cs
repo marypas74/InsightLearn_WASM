@@ -67,6 +67,13 @@ public interface ISubtitleService
     Task<string> GetSubtitleContentAsync(Guid subtitleId);
 
     /// <summary>
+    /// Get subtitle file content by MongoDB GridFS file ID
+    /// </summary>
+    /// <param name="gridFsFileId">The MongoDB GridFS ObjectId as string</param>
+    /// <returns>WebVTT file content as string</returns>
+    Task<string> GetSubtitleContentByGridFsIdAsync(string gridFsFileId);
+
+    /// <summary>
     /// Check if user has permission to manage subtitles for a lesson
     /// </summary>
     /// <param name="lessonId">The lesson ID</param>

@@ -597,8 +597,10 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
             entity.Property(e => e.LessonId).IsRequired();
             entity.Property(e => e.MongoDocumentId).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Language).IsRequired().HasMaxLength(10).HasDefaultValue("en-US");
-            entity.Property(e => e.ProcessingStatus).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
-            entity.Property(e => e.AverageConfidence).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(e => e.SegmentCount);
+            entity.Property(e => e.DurationSeconds);
+            entity.Property(e => e.GeneratedAt);
             entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
             // Foreign key
@@ -612,9 +614,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
                 .IsUnique()
                 .HasDatabaseName("IX_VideoTranscriptMetadata_LessonId_Unique");
 
-            // Index for processing status queries
-            entity.HasIndex(e => e.ProcessingStatus)
-                .HasDatabaseName("IX_VideoTranscriptMetadata_ProcessingStatus");
+            // Index for status queries
+            entity.HasIndex(e => e.Status)
+                .HasDatabaseName("IX_VideoTranscriptMetadata_Status");
         });
 
         // AIKeyTakeawaysMetadata configuration

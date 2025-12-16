@@ -2232,13 +2232,10 @@ app.MapGet("/api/subtitles/stream/{fileId}", async (
 {
     try
     {
-        if (!Guid.TryParse(fileId, out var subtitleId))
-        {
-            return Results.BadRequest(new { error = "Invalid subtitle ID" });
-        }
-
         logger.LogInformation("[SUBTITLES] Streaming subtitle file {FileId}", fileId);
-        var content = await subtitleService.GetSubtitleContentAsync(subtitleId);
+
+        // Get content by MongoDB GridFS file ID (stored in FileUrl)
+        var content = await subtitleService.GetSubtitleContentByGridFsIdAsync(fileId);
 
         return Results.Content(content, "text/vtt; charset=utf-8");
     }
@@ -6126,6 +6123,48 @@ app.MapDelete("/api/transcripts/{lessonId:guid}", async (
 .Produces(403)
 .Produces(500);
 
+// POST /api/transcripts/{lessonId}/auto-generate - Auto-generate transcript with Ollama
+// v2.2.0-dev: Generates demo transcript when viewing lesson (no ASR required)
+app.MapPost("/api/transcripts/{lessonId:guid}/auto-generate", async (
+    Guid lessonId,
+    [FromBody] AutoGenerateTranscriptRequest request,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Auto-generating transcript for lesson {LessonId}, title: {Title}",
+            lessonId, request.LessonTitle);
+
+        // First check if transcript already exists
+        var existing = await transcriptService.GetTranscriptAsync(lessonId);
+        if (existing != null && existing.Transcript.Count > 0)
+        {
+            logger.LogInformation("[TRANSCRIPT] Returning existing transcript for lesson {LessonId}", lessonId);
+            return Results.Ok(existing);
+        }
+
+        // Generate demo transcript using Ollama
+        var transcript = await transcriptService.GenerateDemoTranscriptAsync(
+            lessonId,
+            request.LessonTitle ?? "Educational Lesson",
+            request.DurationSeconds ?? 300,
+            request.Language ?? "en-US"
+        );
+
+        return Results.Ok(transcript);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Error auto-generating transcript for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("AutoGenerateTranscript")
+.WithTags("Transcripts")
+.Produces<VideoTranscriptDto>(200)
+.Produces(500);
+
 // ========================================
 // AI TAKEAWAYS ENDPOINTS (3)
 // ========================================
@@ -7188,3 +7227,11 @@ app.Run();
 /// <param name="Url">Single URL to submit (optional if Urls provided)</param>
 /// <param name="Urls">Array of URLs to submit (optional if Url provided)</param>
 public record IndexNowRequest(string? Url, string[]? Urls);
+
+/// <summary>
+/// Request body for auto-generating transcripts
+/// </summary>
+/// <param name="LessonTitle">Title of the lesson for context (optional)</param>
+/// <param name="DurationSeconds">Video duration in seconds (default: 300)</param>
+/// <param name="Language">Language code (default: en-US)</param>
+public record AutoGenerateTranscriptRequest(string? LessonTitle, int? DurationSeconds, string? Language);

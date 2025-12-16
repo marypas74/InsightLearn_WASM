@@ -64,5 +64,15 @@ namespace InsightLearn.Core.Interfaces
         /// Update processing status (used by background job).
         /// </summary>
         Task UpdateProcessingStatusAsync(Guid lessonId, string status, string? errorMessage = null, CancellationToken ct = default);
+
+        /// <summary>
+        /// Generate demo transcript using Ollama LLM.
+        /// Used when no real ASR is available - creates sample educational content.
+        /// </summary>
+        /// <param name="lessonId">Lesson ID</param>
+        /// <param name="lessonTitle">Lesson title for context</param>
+        /// <param name="durationSeconds">Video duration in seconds (for segment timing)</param>
+        /// <param name="language">Language code</param>
+        Task<VideoTranscriptDto> GenerateDemoTranscriptAsync(Guid lessonId, string lessonTitle, int durationSeconds = 300, string language = "en-US", CancellationToken ct = default);
     }
 }

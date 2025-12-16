@@ -251,6 +251,19 @@ public class SubtitleTranslationService : ISubtitleTranslationService
     {
         try
         {
+            // Check if URL is a GridFS reference (pattern: /api/subtitles/stream/{objectId})
+            if (url.StartsWith("/api/subtitles/stream/"))
+            {
+                var objectIdString = url.Split('/').Last();
+                _logger.LogInformation("Detected GridFS URL, extracting ObjectId: {ObjectId}", objectIdString);
+
+                if (ObjectId.TryParse(objectIdString, out var objectId))
+                {
+                    return await DownloadFromGridFsAsync(objectId, cancellationToken);
+                }
+                throw new InvalidOperationException($"Invalid MongoDB ObjectId in URL: {objectIdString}");
+            }
+
             // If URL is a local path, read from file system
             if (!url.StartsWith("http://") && !url.StartsWith("https://"))
             {
@@ -271,6 +284,31 @@ public class SubtitleTranslationService : ISubtitleTranslationService
         {
             _logger.LogError(ex, "Error downloading VTT file from {Url}", url);
             throw new Exception($"Failed to download VTT file: {ex.Message}", ex);
+        }
+    }
+
+    private async Task<string> DownloadFromGridFsAsync(ObjectId objectId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var gridFsBucket = new MongoDB.Driver.GridFS.GridFSBucket(_mongoDatabase, new MongoDB.Driver.GridFS.GridFSBucketOptions
+            {
+                BucketName = "subtitles"
+            });
+
+            _logger.LogInformation("Downloading VTT file from GridFS bucket 'subtitles', ObjectId: {ObjectId}", objectId);
+
+            using var stream = await gridFsBucket.OpenDownloadStreamAsync(objectId, cancellationToken: cancellationToken);
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync(cancellationToken);
+
+            _logger.LogInformation("Successfully downloaded {Bytes} bytes from GridFS", content.Length);
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading VTT from GridFS, ObjectId: {ObjectId}", objectId);
+            throw;
         }
     }
 

@@ -1,0 +1,254 @@
+@namespace InsightLearn.WebAssembly.Components.LearningSpace
+@using InsightLearn.WebAssembly.Services.LearningSpace
+@inject IAiTranscriptionService TranscriptionService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="smart-video-container @(IsFullscreen ? "fullscreen" : "")" tabindex="0" @ref="_containerRef">
+    @* Video Element *@
+    <video id="@VideoElementId"
+           class="smart-video-element"
+           preload="metadata"
+           playsinline
+           @onclick="TogglePlayPause"
+           @ondblclick="ToggleFullscreen">
+        <source src="@VideoSource" type="video/mp4" />
+        @if (SubtitleTracks != null)
+        {
+            @foreach (var track in SubtitleTracks)
+            {
+                <track kind="subtitles"
+                       src="@track.Src"
+                       srclang="@track.Language"
+                       label="@track.Label"
+                       @(track.IsDefault ? "default" : "") />
+            }
+        }
+    </video>
+
+    @* Loading Overlay *@
+    @if (IsBuffering)
+    {
+        <div class="video-loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+    }
+
+    @* Play/Pause Big Button (center) *@
+    @if (ShowBigPlayButton && IsPaused && !IsBuffering)
+    {
+        <button class="big-play-button" @onclick="Play" aria-label="Play video">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+        </button>
+    }
+
+    @* Controls Overlay *@
+    <div class="video-controls-overlay @(ShowControls ? "visible" : "")"
+         @onmouseenter="() => ShowControls = true"
+         @onmouseleave="StartControlsHideTimer">
+
+        @* Progress Bar *@
+        <div class="progress-container" @onclick="SeekToPosition" @ref="_progressRef">
+            <div class="progress-buffered" style="width: @(BufferedPercentage)%"></div>
+            <div class="progress-played" style="width: @(ProgressPercentage)%">
+                <div class="progress-thumb"></div>
+            </div>
+            @* Bookmark markers *@
+            @if (Bookmarks != null)
+            {
+                @foreach (var bookmark in Bookmarks)
+                {
+                    <div class="bookmark-marker"
+                         style="left: @((bookmark.Time / Duration) * 100)%"
+                         title="@bookmark.Label"></div>
+                }
+            }
+        </div>
+
+        @* Control Buttons *@
+        <div class="controls-row">
+            @* Left Controls *@
+            <div class="controls-left">
+                <button class="control-btn" @onclick="TogglePlayPause" aria-label="@(IsPaused ? "Play" : "Pause")">
+                    @if (IsPaused)
+                    {
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    }
+                    else
+                    {
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    }
+                </button>
+
+                <button class="control-btn" @onclick="() => Skip(-10)" aria-label="Rewind 10 seconds">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.5 8c-1.57 0-3.02.5-4.22 1.34L5 6v6h6l-2.28-2.28c.86-.6 1.87-1 2.96-1.06 2.76-.06 5.12 2.21 5.26 4.98.15 2.92-2.23 5.36-5.16 5.36-1.42 0-2.71-.58-3.64-1.51l-.94.94c1.17 1.17 2.77 1.86 4.58 1.86 3.59 0 6.5-2.91 6.5-6.5S16.09 8 12.5 8z"/>
+                        <text x="12" y="14" font-size="6" text-anchor="middle" fill="currentColor">10</text>
+                    </svg>
+                </button>
+
+                <button class="control-btn" @onclick="() => Skip(10)" aria-label="Forward 10 seconds">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.5 8c-1.57 0-3.02.5-4.22 1.34L4 6v6h6l-2.28-2.28c.86-.6 1.87-1 2.96-1.06 2.76-.06 5.12 2.21 5.26 4.98.15 2.92-2.23 5.36-5.16 5.36-1.42 0-2.71-.58-3.64-1.51l-.94.94c1.17 1.17 2.77 1.86 4.58 1.86 3.59 0 6.5-2.91 6.5-6.5S15.09 8 11.5 8z" transform="scale(-1,1) translate(-24,0)"/>
+                        <text x="12" y="14" font-size="6" text-anchor="middle" fill="currentColor">10</text>
+                    </svg>
+                </button>
+
+                @* Volume Control *@
+                <div class="volume-control">
+                    <button class="control-btn" @onclick="ToggleMute" aria-label="@(IsMuted ? "Unmute" : "Mute")">
+                        @if (IsMuted || Volume == 0)
+                        {
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                        }
+                        else if (Volume < 0.5)
+                        {
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9v6h4l5 5V4l-5 5H7z"/></svg>
+                        }
+                        else
+                        {
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        }
+                    </button>
+                    <input type="range"
+                           class="volume-slider"
+                           min="0" max="1" step="0.1"
+                           value="@Volume"
+                           @oninput="OnVolumeInput"
+                           aria-label="Volume" />
+                </div>
+
+                @* Time Display *@
+                <span class="time-display">
+                    @FormatTime(CurrentTime) / @FormatTime(Duration)
+                </span>
+            </div>
+
+            @* Right Controls *@
+            <div class="controls-right">
+                @* Playback Speed *@
+                <div class="speed-control">
+                    <button class="control-btn speed-btn" @onclick="ToggleSpeedMenu">
+                        @(PlaybackRate)x
+                    </button>
+                    @if (ShowSpeedMenu)
+                    {
+                        <div class="speed-menu">
+                            @foreach (var rate in PlaybackRates)
+                            {
+                                <button class="speed-option @(PlaybackRate == rate ? "active" : "")"
+                                        @onclick="() => SetPlaybackRate(rate)">
+                                    @(rate)x
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* Subtitles *@
+                <div class="subtitle-control">
+                    <button class="control-btn" @onclick="ToggleSubtitleMenu" aria-label="Subtitles">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 12h4v2H4v-2zm10 6H4v-2h10v2zm6 0h-4v-2h4v2zm0-4H10v-2h10v2z"/>
+                        </svg>
+                    </button>
+                    @if (ShowSubtitleMenu)
+                    {
+                        <div class="subtitle-menu">
+                            <button class="subtitle-option @(ActiveSubtitle == "off" ? "active" : "")"
+                                    @onclick="@(() => SetSubtitleOff())">
+                                Off
+                            </button>
+                            @if (SubtitleTracks != null)
+                            {
+                                @foreach (var track in SubtitleTracks)
+                                {
+                                    <button class="subtitle-option @(ActiveSubtitle == track.Language ? "active" : "")"
+                                            @onclick="() => SetSubtitle(track.Language)">
+                                        @track.Label
+                                    </button>
+                                }
+                            }
+                            @* AI Translation Section *@
+                            <div class="subtitle-divider">AI Translation</div>
+                            @foreach (var lang in TranslationLanguages.Take(5))
+                            {
+                                <button class="subtitle-option ai-translate"
+                                        @onclick="() => RequestAiTranslation(lang.Code)">
+                                    @lang.NativeName
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* Settings *@
+                <button class="control-btn" @onclick="ToggleSettingsMenu" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22l-1.92 3.32c-.12.21-.07.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94 0 .31.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                </button>
+
+                @* Fullscreen *@
+                <button class="control-btn" @onclick="ToggleFullscreen" aria-label="@(IsFullscreen ? "Exit fullscreen" : "Fullscreen")">
+                    @if (IsFullscreen)
+                    {
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                    }
+                    else
+                    {
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @* Error Overlay *@
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="video-error-overlay">
+            <div class="error-content">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="error-icon">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <p>@ErrorMessage</p>
+                <button class="retry-btn" @onclick="RetryLoad">Retry</button>
+            </div>
+        </div>
+    }
+</div>
+
+@* Transcript Panel (optional, toggled by parent) *@
+@if (ShowTranscript && TranscriptData != null)
+{
+    <div class="transcript-panel">
+        <div class="transcript-header">
+            <h4>Transcript</h4>
+            <div class="transcript-actions">
+                <button class="transcript-action-btn" @onclick="CopyTranscript" title="Copy full transcript">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                </button>
+                <button class="transcript-action-btn" @onclick="() => ShowTranscript = false" title="Close">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="transcript-content" @ref="_transcriptRef">
+            @foreach (var segment in TranscriptData.Segments)
+            {
+                <div class="transcript-segment @(IsSegmentActive(segment) ? "active" : "")"
+                     @onclick="() => SeekToSegment(segment)">
+                    <span class="segment-time">@FormatTime(segment.StartTime)</span>
+                    <span class="segment-text">@segment.Text</span>
+                </div>
+            }
+        </div>
+    </div>
+}

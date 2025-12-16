@@ -249,17 +249,17 @@ else if (lesson != null && course != null)
                     <i class="fas fa-robot mr-2"></i>AI Help
                 </button>
 
-                <!-- Video Player Component -->
-                <VideoPlayer @ref="videoPlayerRef"
-                             LessonId="@LessonId"
-                             VideoUrl="@lesson.VideoUrl"
-                             ShowControls="true"
-                             ShowMetadata="false"
-                             SubtitleTracks="@GetSubtitleTracks()"
-                             DefaultSubtitleLanguage="@GetUserLanguage()"
-                             OnTimeUpdate="@HandleTimeUpdate"
-                             OnPlayStateChanged="@HandlePlayStateChanged"
-                             OnVideoEnded="@HandleVideoEnded" />
+                <!-- SmartVideoPlayer Component (v2.2.0-dev) -->
+                <SmartVideoPlayer @ref="smartVideoPlayerRef"
+                                  VideoSource="@(lesson.VideoUrl ?? "")"
+                                  VideoId="@LessonId.ToString()"
+                                  LessonId="@LessonId.ToString()"
+                                  SubtitleTracks="@GetSmartSubtitleTracks()"
+                                  AutoPlay="false"
+                                  ShowBigPlayButton="true"
+                                  OnTimeChange="@HandleTimeChange"
+                                  OnVideoEnded="@HandleVideoEnded"
+                                  OnErrorOccurred="@HandleVideoError" />
             </div>
 
             <!-- TABS BAR (Sticky) -->
@@ -537,7 +537,7 @@ else if (lesson != null && course != null)
     [Parameter] public Guid CourseId { get; set; }
     [Parameter] public Guid LessonId { get; set; }
 
-    private VideoPlayer? videoPlayerRef;
+    private SmartVideoPlayer? smartVideoPlayerRef;
     private CourseDto? course;
     private LessonDto? lesson;
     private SectionDto? currentSection;
@@ -689,14 +689,11 @@ else if (lesson != null && course != null)
         }
     }
 
-    // Video event handlers
-    private void HandleTimeUpdate(VideoPlayer.VideoTimeUpdate timeUpdate)
+    // Video event handlers (SmartVideoPlayer v2.2.0-dev)
+    private void HandleTimeChange(double time)
     {
-        currentVideoTime = timeUpdate.CurrentTime;
-        videoDuration = timeUpdate.Duration;
+        currentVideoTime = time;
     }
-
-    private void HandlePlayStateChanged(bool playing) => isPlaying = playing;
 
     private void HandleVideoEnded()
     {
@@ -704,20 +701,26 @@ else if (lesson != null && course != null)
         if (hasNextLesson) NavigateToNextLesson();
     }
 
+    private void HandleVideoError(string errorMessage)
+    {
+        Console.WriteLine($"[Learn] Video error: {errorMessage}");
+        ToastService.ShowError($"Video playback error: {errorMessage}");
+    }
+
     // Timestamp click handlers
     private async Task HandleNotesTimestampClick(int timestamp)
     {
-        if (videoPlayerRef != null) await videoPlayerRef.SeekToAsync(timestamp);
+        if (smartVideoPlayerRef != null) await smartVideoPlayerRef.SeekToAsync(timestamp);
     }
 
     private async Task HandleTranscriptTimestampClick(double timestamp)
     {
-        if (videoPlayerRef != null) await videoPlayerRef.SeekToAsync(timestamp);
+        if (smartVideoPlayerRef != null) await smartVideoPlayerRef.SeekToAsync(timestamp);
     }
 
     private async Task HandleAIChatTimestampClick(int timestamp)
     {
-        if (videoPlayerRef != null) await videoPlayerRef.SeekToAsync(timestamp);
+        if (smartVideoPlayerRef != null) await smartVideoPlayerRef.SeekToAsync(timestamp);
     }
 
     // Navigation
@@ -778,6 +781,19 @@ else if (lesson != null && course != null)
             Language = t.Language,
             Label = t.Label,
             Kind = t.Kind,
+            IsDefault = t.IsDefault
+        }).ToList();
+    }
+
+    // SmartVideoPlayer subtitle track conversion (v2.2.0-dev)
+    private List<SmartVideoPlayer.SubtitleTrack>? GetSmartSubtitleTracks()
+    {
+        if (lesson?.SubtitleTracks == null || !lesson.SubtitleTracks.Any()) return null;
+        return lesson.SubtitleTracks.Select(t => new SmartVideoPlayer.SubtitleTrack
+        {
+            Src = t.Url,
+            Language = t.Language,
+            Label = t.Label,
             IsDefault = t.IsDefault
         }).ToList();
     }

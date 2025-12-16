@@ -34,6 +34,23 @@ public interface IVideoTranscriptClientService
     /// Delete transcript.
     /// </summary>
     Task<ApiResponse<object>> DeleteTranscriptAsync(Guid lessonId);
+
+    /// <summary>
+    /// Auto-generate transcript using Ollama LLM.
+    /// Creates demo transcript when viewing lesson.
+    /// </summary>
+    Task<ApiResponse<VideoTranscriptDto>> AutoGenerateTranscriptAsync(AutoGenerateTranscriptRequest request);
+}
+
+/// <summary>
+/// Request for auto-generating transcripts.
+/// </summary>
+public class AutoGenerateTranscriptRequest
+{
+    public Guid LessonId { get; set; }
+    public string? LessonTitle { get; set; }
+    public int? DurationSeconds { get; set; }
+    public string? Language { get; set; }
 }
 
 /// <summary>

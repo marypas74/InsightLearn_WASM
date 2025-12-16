@@ -40,16 +40,17 @@ namespace InsightLearn.Core.Entities
 
         /// <summary>
         /// Processing status: Pending, Processing, Completed, Failed.
+        /// Maps to 'Status' column in database.
         /// </summary>
         [Required]
         [MaxLength(50)]
-        public string ProcessingStatus { get; set; } = "Pending";
+        [Column("Status")]
+        public string Status { get; set; } = "Pending";
 
         /// <summary>
-        /// Total word count in transcript.
-        /// Calculated after processing.
+        /// Number of segments in transcript.
         /// </summary>
-        public int? WordCount { get; set; }
+        public int? SegmentCount { get; set; }
 
         /// <summary>
         /// Video duration in seconds.
@@ -57,15 +58,11 @@ namespace InsightLearn.Core.Entities
         public int? DurationSeconds { get; set; }
 
         /// <summary>
-        /// Average confidence score from ASR (0.0 - 1.0).
+        /// Timestamp when transcript was generated.
+        /// Maps to 'GeneratedAt' column in database.
         /// </summary>
-        [Column(TypeName = "decimal(5,2)")]
-        public decimal? AverageConfidence { get; set; }
-
-        /// <summary>
-        /// Timestamp when transcript processing completed.
-        /// </summary>
-        public DateTime? ProcessedAt { get; set; }
+        [Column("GeneratedAt")]
+        public DateTime? GeneratedAt { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

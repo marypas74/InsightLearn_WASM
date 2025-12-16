@@ -160,17 +160,17 @@ namespace InsightLearn.Infrastructure.Repositories
             var mongoDocId = mongoDoc["_id"].AsObjectId.ToString();
 
             // 2. Create metadata in SQL Server
+            // Note: Entity uses Status/GeneratedAt, WordCount/AverageConfidence stored in MongoDB only
             var metadata = new VideoTranscriptMetadata
             {
                 Id = Guid.NewGuid(),
                 LessonId = lessonId,
                 MongoDocumentId = mongoDocId,
                 Language = transcriptDto.Language,
-                ProcessingStatus = "Completed",
-                WordCount = transcriptDto.Metadata?.WordCount,
+                Status = "Completed",
+                SegmentCount = transcriptDto.Transcript?.Count,
                 DurationSeconds = transcriptDto.Metadata?.DurationSeconds,
-                AverageConfidence = (decimal?)transcriptDto.Metadata?.AverageConfidence,
-                ProcessedAt = DateTime.UtcNow,
+                GeneratedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -186,9 +186,9 @@ namespace InsightLearn.Infrastructure.Repositories
             if (metadata == null)
                 throw new KeyNotFoundException($"Transcript metadata for lesson {lessonId} not found");
 
-            metadata.ProcessingStatus = status;
+            metadata.Status = status;
             if (status == "Completed")
-                metadata.ProcessedAt = DateTime.UtcNow;
+                metadata.GeneratedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(ct);
         }
@@ -225,7 +225,7 @@ namespace InsightLearn.Infrastructure.Repositories
             {
                 LessonId = metadata.LessonId,
                 Language = metadata.Language,
-                ProcessingStatus = metadata.ProcessingStatus,
+                ProcessingStatus = metadata.Status,
                 Transcript = new List<TranscriptSegmentDto>()
             };
 
