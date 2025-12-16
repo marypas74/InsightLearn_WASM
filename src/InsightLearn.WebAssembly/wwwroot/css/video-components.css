@@ -1275,6 +1275,43 @@
     }
 }
 
+/* Custom Subtitle Overlay - Synchronized with Video Timecode */
+.ll-subtitle-overlay {
+    position: absolute;
+    bottom: 80px; /* Above controls */
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+    z-index: 15;
+    padding: 0 10%;
+}
+
+.ll-subtitle-text {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1.5;
+    border-radius: 4px;
+    max-width: 90%;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    word-wrap: break-word;
+}
+
+/* Fullscreen subtitle adjustments */
+.ll-video-container.fullscreen .ll-subtitle-overlay {
+    bottom: 100px;
+    padding: 0 15%;
+}
+
+.ll-video-container.fullscreen .ll-subtitle-text {
+    font-size: 1.5rem;
+    padding: 12px 24px;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .ll-video-controls {
@@ -1317,6 +1354,18 @@
 
     .ll-speed-btn {
         display: none; /* Hide speed on mobile */
+    }
+
+    /* Subtitle overlay mobile */
+    .ll-subtitle-overlay {
+        bottom: 60px;
+        padding: 0 5%;
+    }
+
+    .ll-subtitle-text {
+        font-size: 0.95rem;
+        padding: 6px 12px;
+        max-width: 95%;
     }
 }
 

@@ -446,7 +446,29 @@
     <link rel="stylesheet" href="css/checkout.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/video-components.css" media="print" onload="this.media='all'" />
 
-    <!-- LinkedIn Learning Style System (v2.1.0) -->
+    <!-- ==========================================================================
+         TAILWIND CSS CDN (v2.2.0 - Learning Space Refactoring)
+         Used for LinkedIn Learning style 4-column fixed layout
+         ========================================================================== -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        'dark-navy': '#19212d',
+                        'dark-navy-light': '#242d3a',
+                        'linkedin-blue': '#0073b1',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- LinkedIn Learning Style System (v2.1.0) - DEPRECATED, kept for backwards compatibility -->
     <link rel="stylesheet" href="css/linkedin-learning-tokens.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/linkedin-learning-components.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/linkedin-learning-animations.css" media="print" onload="this.media='all'" />

@@ -262,12 +262,20 @@ window.videoPlayer = {
             for (let i = 0; i < tracks.length; i++) {
                 if (tracks[i].language === language) {
                     tracks[i].mode = 'showing';
+
+                    // Setup cue change listener for custom overlay
+                    window.videoPlayer.setupSubtitleCueListener(videoId, tracks[i]);
+
                     console.log(`[VideoPlayer] Subtitle track enabled: ${tracks[i].label} (${language})`);
                     return;
                 }
             }
             console.warn(`[VideoPlayer] Subtitle track for language '${language}' not found`);
         } else {
+            // Clear subtitle overlay when subtitles are turned off
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnSubtitleCueChangeFromJS', '');
+            }
             console.log(`[VideoPlayer] Subtitles turned off`);
         }
     },
@@ -363,7 +371,43 @@ window.videoPlayer = {
         // Force track to load
         track.track.mode = 'showing';
 
+        // Add cue change listener for custom overlay
+        track.addEventListener('load', function() {
+            window.videoPlayer.setupSubtitleCueListener(videoId, track.track);
+        });
+
         console.log(`[VideoPlayer] Added translated subtitle track: ${label} (${language})`);
+    },
+
+    /**
+     * Setup listener for subtitle cue changes to update custom overlay
+     * @param {string} videoId - Video element ID
+     * @param {TextTrack} track - Text track to monitor
+     */
+    setupSubtitleCueListener: function (videoId, track) {
+        const video = document.getElementById(videoId);
+        if (!video || !track) return;
+
+        track.addEventListener('cuechange', function() {
+            const activeCues = track.activeCues;
+            let text = '';
+
+            if (activeCues && activeCues.length > 0) {
+                // Combine all active cues
+                for (let i = 0; i < activeCues.length; i++) {
+                    if (activeCues[i].text) {
+                        text += (i > 0 ? ' ' : '') + activeCues[i].text;
+                    }
+                }
+            }
+
+            // Notify Blazor component
+            if (video.dotNetRef) {
+                video.dotNetRef.invokeMethodAsync('OnSubtitleCueChangeFromJS', text);
+            }
+        });
+
+        console.log(`[VideoPlayer] Subtitle cue listener setup for ${videoId}`);
     },
 
     /**

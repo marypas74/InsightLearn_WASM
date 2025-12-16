@@ -9,9 +9,11 @@
 
    CRITICAL: This is a ROOT layout that replaces MainLayout completely.
    No header, no footer - just the learning content.
+
+   v2.2.0-dev: Updated for Tailwind CSS 4-column fixed layout
 *@
 
-<div class="learning-layout-root">
+<div class="learning-layout-root h-screen overflow-hidden">
     @Body
 </div>
 
@@ -20,4 +22,5 @@
 
 @code {
     // This is a minimal root layout - no shared components
+    // The child content (Learn.razor) handles the full viewport layout
 }

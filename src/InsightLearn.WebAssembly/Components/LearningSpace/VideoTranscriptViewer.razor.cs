@@ -50,7 +50,14 @@ public partial class VideoTranscriptViewer : ComponentBase
         }
 
         // Update active segment based on current video time
+        var previousActiveIndex = activeSegmentIndex;
         UpdateActiveSegment();
+
+        // Auto-scroll to active segment if it changed
+        if (activeSegmentIndex != previousActiveIndex && activeSegmentIndex.HasValue)
+        {
+            await ScrollToActiveSegmentAsync();
+        }
     }
 
     private async Task LoadTranscriptAsync()
@@ -90,14 +97,34 @@ public partial class VideoTranscriptViewer : ComponentBase
                 }
                 else
                 {
-                    errorMessage = response.Message ?? "Failed to load transcript";
+                    // Check for authentication/authorization errors
+                    var responseMsg = response.Message ?? "";
+                    if (responseMsg.Contains("401") || responseMsg.Contains("Unauthorized") ||
+                        responseMsg.Contains("403") || responseMsg.Contains("Forbidden"))
+                    {
+                        errorMessage = "Please log in to view the transcript";
+                        processingStatus = "Unauthorized";
+                    }
+                    else
+                    {
+                        errorMessage = responseMsg.Length > 0 ? responseMsg : "Failed to load transcript";
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error loading transcript: {ex.Message}";
-            ToastService.ShowError(errorMessage);
+            // Check for authentication-related exceptions
+            if (ex.Message.Contains("401") || ex.Message.Contains("Unauthorized"))
+            {
+                errorMessage = "Please log in to view the transcript";
+                processingStatus = "Unauthorized";
+            }
+            else
+            {
+                errorMessage = $"Error loading transcript: {ex.Message}";
+                ToastService.ShowError(errorMessage);
+            }
         }
         finally
         {
@@ -236,5 +263,49 @@ public partial class VideoTranscriptViewer : ComponentBase
         if (confidence.Value >= 0.7)
             return "Medium";
         return "Low";
+    }
+
+    /// <summary>
+    /// Get Tailwind CSS class for confidence indicator badge.
+    /// </summary>
+    private string GetConfidenceClass(double? confidence)
+    {
+        if (!confidence.HasValue)
+            return "bg-gray-100 text-gray-600";
+
+        if (confidence.Value >= 0.9)
+            return "bg-green-100 text-green-700"; // High confidence
+        if (confidence.Value >= 0.7)
+            return "bg-amber-100 text-amber-700"; // Medium confidence
+        return "bg-red-100 text-red-700"; // Low confidence
+    }
+
+    /// <summary>
+    /// Scroll to active segment when video time changes.
+    /// </summary>
+    private async Task ScrollToActiveSegmentAsync()
+    {
+        if (activeSegmentIndex.HasValue)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", $@"
+                    const element = document.getElementById('segment-{activeSegmentIndex.Value}');
+                    const container = document.getElementById('transcript-scroll-container');
+                    if (element && container) {{
+                        const elementRect = element.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {{
+                            element.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                        }}
+                    }}
+                ");
+            }
+            catch (Exception ex)
+            {
+                // Silently ignore scroll errors
+                Console.WriteLine($"[VideoTranscriptViewer] Scroll error: {ex.Message}");
+            }
+        }
     }
 }

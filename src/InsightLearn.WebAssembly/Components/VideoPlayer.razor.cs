@@ -116,6 +116,9 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     private bool isTranslatedSubtitle = false;
     private Dictionary<string, string> translationCache = new();
 
+    // Custom subtitle overlay state
+    private string currentSubtitleText = "";
+
     /// <summary>
     /// Available languages for AI auto-translation via Ollama
     /// </summary>
@@ -804,6 +807,17 @@ public partial class VideoPlayer : ComponentBase, IAsyncDisposable
     public Task OnFullscreenChangedFromJS(bool fullscreen)
     {
         isFullscreen = fullscreen;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when subtitle cue changes.
+    /// </summary>
+    [JSInvokable]
+    public Task OnSubtitleCueChangeFromJS(string text)
+    {
+        currentSubtitleText = text;
         InvokeAsync(StateHasChanged);
         return Task.CompletedTask;
     }

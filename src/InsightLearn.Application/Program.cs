@@ -1,5 +1,6 @@
 using InsightLearn.Application.DTOs;
 using InsightLearn.Application.Endpoints;
+using InsightLearn.Application.Extensions;
 using InsightLearn.Application.Interfaces;
 using InsightLearn.Application.Middleware;
 using InsightLearn.Application.Services;
@@ -570,13 +571,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ISystemEndpointRepository, SystemEndpointRepository>();
 builder.Services.AddScoped<IEndpointService, EndpointService>();
 
-// Register Ollama Service
-builder.Services.AddScoped<IOllamaService>(sp =>
-{
-    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
-    var logger = sp.GetRequiredService<ILogger<OllamaService>>();
-    return new OllamaService(httpClient, ollamaUrl, ollamaModel, logger);
-});
+// Register Ollama Service (with mock support via Ollama:UseMock config)
+// Set Ollama:UseMock=true in appsettings.json to use MockOllamaService with dummy transcript data
+builder.Services.AddOllamaService(builder.Configuration);
 
 // Register Chatbot Service
 builder.Services.AddScoped<IChatbotService>(sp =>
@@ -2721,7 +2718,7 @@ app.MapGet("/api/seo/sitemap.xml", async (
 
         // Published courses (priority 0.8)
         var courses = await dbContext.Courses
-            .Where(c => c.IsPublished)
+            .Where(c => c.Status == CourseStatus.Published && c.IsActive)
             .Select(c => new { c.Id, c.UpdatedAt })
             .Take(500) // Limit to avoid huge sitemaps
             .ToListAsync();
@@ -2745,7 +2742,7 @@ app.MapGet("/api/seo/sitemap.xml", async (
 
         // Instructors (priority 0.6)
         var instructors = await dbContext.Users
-            .Where(u => u.UserType == UserType.Instructor)
+            .Where(u => u.IsInstructor == true)
             .Select(u => new { u.Id, u.FirstName, u.LastName })
             .Take(100)
             .ToListAsync();

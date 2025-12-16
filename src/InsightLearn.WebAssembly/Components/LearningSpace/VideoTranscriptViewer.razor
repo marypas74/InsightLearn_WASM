@@ -1,76 +1,82 @@
 @namespace InsightLearn.WebAssembly.Components.LearningSpace
+@*
+    VideoTranscriptViewer v2.2.0-dev
+    Modern transcript viewer with FontAwesome icons and Tailwind CSS styling
+    Features: Search, auto-scroll, click-to-seek, confidence indicators
+*@
 
-<div class="video-transcript-viewer">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <!-- Header -->
-    <div class="transcript-header">
-        <h3 class="transcript-title">
-            <span class="icon">📄</span>
-            Transcript
-        </h3>
-
-        @if (hasTranscript && transcript?.Metadata != null)
-        {
-            <div class="transcript-meta">
-                <span class="meta-item" title="Duration">
-                    <span class="icon">⏱️</span>
-                    @FormatTimestamp(transcript.Metadata.DurationSeconds)
-                </span>
-                <span class="meta-item" title="Word Count">
-                    <span class="icon">📝</span>
-                    @transcript.Metadata.WordCount words
-                </span>
-                @if (transcript.Metadata.AverageConfidence > 0)
-                {
-                    <span class="meta-item" title="Average Confidence">
-                        <span class="icon">✓</span>
-                        @((transcript.Metadata.AverageConfidence * 100).ToString("F0"))%
-                    </span>
-                }
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-closed-captioning text-white text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-white font-semibold text-base">Transcript</h3>
+                    @if (hasTranscript && transcript?.Metadata != null)
+                    {
+                        <p class="text-white/70 text-xs">@transcript.Metadata.WordCount words • @FormatTimestamp(transcript.Metadata.DurationSeconds)</p>
+                    }
+                </div>
             </div>
-        }
+
+            @if (hasTranscript && transcript?.Metadata != null && transcript.Metadata.AverageConfidence > 0)
+            {
+                <div class="flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1.5">
+                    <i class="fas fa-check-circle text-green-300 text-xs"></i>
+                    <span class="text-white/90 text-xs font-medium">@((transcript.Metadata.AverageConfidence * 100).ToString("F0"))% accuracy</span>
+                </div>
+            }
+        </div>
     </div>
 
     <!-- Search Bar -->
     @if (hasTranscript)
     {
-        <div class="transcript-search">
-            <div class="search-input-group">
-                <input
-                    type="text"
-                    class="search-input"
-                    placeholder="Search in transcript..."
-                    @bind="searchText"
-                    @bind:event="oninput"
-                    @onkeydown="@(async (e) => { if (e.Key == "Enter") await SearchTranscriptAsync(); })" />
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400 text-sm"></i>
+                </div>
+                <input type="text"
+                       class="w-full pl-10 pr-20 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                       placeholder="Search in transcript..."
+                       @bind="searchText"
+                       @bind:event="oninput"
+                       @onkeydown="@(async (e) => { if (e.Key == "Enter") await SearchTranscriptAsync(); })" />
 
-                @if (!string.IsNullOrWhiteSpace(searchText))
-                {
-                    <button class="btn-clear-search" @onclick="ClearSearch" title="Clear search">
-                        ✕
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2 space-x-1">
+                    @if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        <button @onclick="ClearSearch"
+                                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                title="Clear search">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    }
+                    <button @onclick="SearchTranscriptAsync"
+                            disabled="@isSearching"
+                            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-md text-xs font-medium transition-colors">
+                        @if (isSearching)
+                        {
+                            <i class="fas fa-spinner fa-spin"></i>
+                        }
+                        else
+                        {
+                            <span>Search</span>
+                        }
                     </button>
-                }
-
-                <button
-                    class="btn-search"
-                    @onclick="SearchTranscriptAsync"
-                    disabled="@isSearching"
-                    title="Search">
-                    @if (isSearching)
-                    {
-                        <span class="spinner-small"></span>
-                    }
-                    else
-                    {
-                        <span>🔍</span>
-                    }
-                </button>
+                </div>
             </div>
 
             @if (filteredSegments.Count < segments.Count)
             {
-                <div class="search-results-info">
+                <p class="mt-2 text-xs text-gray-500">
+                    <i class="fas fa-filter mr-1"></i>
                     Showing @filteredSegments.Count of @segments.Count segments
-                </div>
+                </p>
             }
         </div>
     }
@@ -78,34 +84,48 @@
     <!-- Loading State -->
     @if (isLoading)
     {
-        <div class="transcript-loading">
-            <div class="spinner"></div>
-            <span>Loading transcript...</span>
+        <div class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+            <p class="text-gray-500 text-sm">Loading transcript...</p>
         </div>
     }
 
     <!-- Error State -->
     @if (!isLoading && errorMessage != null)
     {
-        <div class="transcript-error">
-            <span class="icon">⚠️</span>
-            <div class="error-content">
-                <p class="error-title">@errorMessage</p>
-                @if (processingStatus == "Processing" || processingStatus == "Queued")
-                {
-                    <div class="processing-status">
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill processing"></div>
-                        </div>
-                        <small>Please check back in a few minutes</small>
+        <div class="p-6">
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
                     </div>
-                }
-                else if (processingStatus == "NotStarted" || processingStatus == "Failed")
-                {
-                    <button class="btn-request-transcript" @onclick="RequestTranscriptGenerationAsync">
-                        Request Transcript Generation
-                    </button>
-                }
+                    <div class="flex-1">
+                        <p class="text-amber-800 font-medium text-sm">@errorMessage</p>
+                        @if (processingStatus == "Processing" || processingStatus == "Queued")
+                        {
+                            <div class="mt-3">
+                                <div class="h-2 bg-amber-200 rounded-full overflow-hidden">
+                                    <div class="h-full bg-amber-500 rounded-full animate-pulse" style="width: 60%;"></div>
+                                </div>
+                                <p class="mt-2 text-amber-600 text-xs">Please check back in a few minutes</p>
+                            </div>
+                        }
+                        else if (processingStatus == "Unauthorized")
+                        {
+                            <a href="/login"
+                               class="mt-3 inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                <i class="fas fa-sign-in-alt mr-2"></i>Log In to View
+                            </a>
+                        }
+                        else if (processingStatus == "NotStarted" || processingStatus == "Failed")
+                        {
+                            <button @onclick="RequestTranscriptGenerationAsync"
+                                    class="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                <i class="fas fa-magic mr-2"></i>Request Transcript
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -113,59 +133,71 @@
     <!-- Transcript Segments -->
     @if (hasTranscript && !isLoading)
     {
-        <div class="transcript-segments">
+        <div id="transcript-scroll-container" class="max-h-[500px] overflow-y-auto">
             @if (filteredSegments.Count == 0)
             {
-                <div class="empty-state">
-                    <span class="icon">🔍</span>
-                    <p>No matching segments found</p>
-                    <button class="btn-link" @onclick="ClearSearch">Clear search</button>
+                <div class="flex flex-col items-center justify-center py-12 px-4">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-search text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-600 font-medium">No matching segments found</p>
+                    <button @onclick="ClearSearch"
+                            class="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                        <i class="fas fa-undo mr-1"></i>Clear search
+                    </button>
                 </div>
             }
             else
             {
-                @for (int i = 0; i < filteredSegments.Count; i++)
-                {
-                    var segment = filteredSegments[i];
-                    var index = i;
-                    var isActive = activeSegmentIndex == index;
+                <div class="divide-y divide-gray-100">
+                    @for (int i = 0; i < filteredSegments.Count; i++)
+                    {
+                        var segment = filteredSegments[i];
+                        var index = i;
+                        var isActive = activeSegmentIndex == index;
 
-                    <div class="transcript-segment @(isActive ? "active" : "")"
-                         @onclick="@(() => OnSegmentClickAsync(segment, index))">
+                        <div id="segment-@index"
+                             class="group px-4 py-3 cursor-pointer transition-all duration-200 @(isActive ? "bg-indigo-50 border-l-4 border-indigo-500" : "hover:bg-gray-50 border-l-4 border-transparent")"
+                             @onclick="@(() => OnSegmentClickAsync(segment, index))">
 
-                        <div class="segment-header">
-                            <button class="segment-timestamp" title="Jump to this moment">
-                                <span class="icon">▶️</span>
-                                @FormatTimestamp(segment.StartTime)
-                            </button>
+                            <div class="flex items-center justify-between mb-2">
+                                <button class="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 transition-colors"
+                                        title="Jump to @FormatTimestamp(segment.StartTime)">
+                                    <i class="fas fa-play-circle text-sm"></i>
+                                    <span class="font-mono text-sm font-medium">@FormatTimestamp(segment.StartTime)</span>
+                                </button>
 
-                            @if (segment.Speaker != null)
-                            {
-                                <span class="segment-speaker">@segment.Speaker</span>
-                            }
+                                <div class="flex items-center space-x-2">
+                                    @if (segment.Speaker != null)
+                                    {
+                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                            <i class="fas fa-user mr-1"></i>@segment.Speaker
+                                        </span>
+                                    }
 
-                            @if (segment.Confidence.HasValue)
-                            {
-                                <span class="segment-confidence"
-                                      style="color: @GetConfidenceColor(segment.Confidence)"
-                                      title="Transcription confidence: @GetConfidenceLabel(segment.Confidence)">
-                                    @GetConfidenceLabel(segment.Confidence)
-                                </span>
-                            }
+                                    @if (segment.Confidence.HasValue)
+                                    {
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-medium @GetConfidenceClass(segment.Confidence)"
+                                              title="Transcription confidence: @GetConfidenceLabel(segment.Confidence)">
+                                            @GetConfidenceLabel(segment.Confidence)
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <p class="text-gray-700 text-sm leading-relaxed @(isActive ? "text-gray-900 font-medium" : "")">
+                                @if (!string.IsNullOrWhiteSpace(searchText))
+                                {
+                                    @((MarkupString)HighlightSearchText(segment.Text))
+                                }
+                                else
+                                {
+                                    @segment.Text
+                                }
+                            </p>
                         </div>
-
-                        <div class="segment-text">
-                            @if (!string.IsNullOrWhiteSpace(searchText))
-                            {
-                                @((MarkupString)HighlightSearchText(segment.Text))
-                            }
-                            else
-                            {
-                                @segment.Text
-                            }
-                        </div>
-                    </div>
-                }
+                    }
+                </div>
             }
         </div>
     }
@@ -173,11 +205,11 @@
     <!-- Footer Info -->
     @if (hasTranscript && transcript?.Metadata != null)
     {
-        <div class="transcript-footer">
-            <small class="footer-info">
-                Generated by @transcript.Metadata.ProcessingEngine
-                on @transcript.Metadata.ProcessedAt.ToString("MMM d, yyyy")
-            </small>
+        <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
+            <p class="text-xs text-gray-400 flex items-center">
+                <i class="fas fa-robot mr-2"></i>
+                Generated by @transcript.Metadata.ProcessingEngine on @transcript.Metadata.ProcessedAt.ToString("MMM d, yyyy")
+            </p>
         </div>
     }
 </div>

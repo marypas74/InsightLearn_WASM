@@ -2595,12 +2595,18 @@ curl -I http://localhost:31081/api/info | grep -E "X-Frame|X-Content|CSP|Permiss
   - `GET /api/chat/history?sessionId={id}&limit={n}` - Get chat history
 - **Services**:
   - [OllamaService.cs](src/InsightLearn.Application/Services/OllamaService.cs) - HTTP client for Ollama API
+  - [MockOllamaService.cs](src/InsightLearn.Application/Services/MockOllamaService.cs) - Mock service for testing (1.5s delay, dummy transcripts)
   - [ChatbotService.cs](src/InsightLearn.Application/Services/ChatbotService.cs) - Business logic + persistence
+- **Interfaces**:
+  - [IOllamaService.cs](src/InsightLearn.Application/Interfaces/IOllamaService.cs) - Base interface
+  - [IMockOllamaService.cs](src/InsightLearn.Application/Interfaces/IMockOllamaService.cs) - Extended interface with transcript/translation methods
+- **DI Registration**: [OllamaServiceExtensions.cs](src/InsightLearn.Application/Extensions/OllamaServiceExtensions.cs) - Toggle mock/real via `Ollama:UseMock`
 - **Storage**: SQL Server `ChatbotMessages` table (via EF Core DbContext), NOT MongoDB
 - **Background Cleanup**: [ChatbotCleanupBackgroundService.cs](src/InsightLearn.Application/Services/ChatbotCleanupBackgroundService.cs) - deletes old messages
 - **Configuration** (in appsettings.json or env vars):
   - `Ollama:BaseUrl` or `Ollama:Url` - default: `http://ollama-service:11434`
   - `Ollama:Model` - default: `qwen2:0.5b`
+  - `Ollama:UseMock` - default: `false` (set to `true` to use MockOllamaService with dummy data)
 
 **Ollama Troubleshooting** (v1.6.0 fix):
 - Se il chatbot restituisce 404 errors, il modello potrebbe non essere caricato in memoria
