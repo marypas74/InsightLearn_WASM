@@ -37,6 +37,11 @@ public class LessonDto
 public class SubtitleTrackDto
 {
     /// <summary>
+    /// Unique identifier for the subtitle track
+    /// </summary>
+    public Guid Id { get; set; }
+
+    /// <summary>
     /// URL to the WebVTT subtitle file
     /// </summary>
     public string Url { get; set; } = string.Empty;

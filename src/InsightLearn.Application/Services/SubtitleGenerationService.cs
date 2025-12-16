@@ -265,6 +265,7 @@ public class SubtitleGenerationService : ISubtitleGenerationService
 
             return new SubtitleTrackDto
             {
+                Id = savedTrack.Id,
                 Url = savedTrack.FileUrl,
                 Language = savedTrack.Language,
                 Label = savedTrack.Label,

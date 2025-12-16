@@ -1,0 +1,364 @@
+---
+# ============================================
+# Multi-Language Subtitle Generation Job
+# Purpose: Generate subtitles for ALL videos in ALL languages
+# Including: Subtitles + Transcriptions (Captions)
+# ============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-language-subtitle-script
+  namespace: insightlearn
+  labels:
+    app: multi-lang-subtitle-generator
+data:
+  generate-all-subtitles.sh: |
+    #!/bin/bash
+    #
+    # Kubernetes Job Script: Generate subtitles for ALL videos in ALL languages
+    # Uses API calls only - no direct database access required
+    # Generates both subtitles and captions (transcriptions)
+    #
+
+    set -e
+
+    # Configuration
+    API_URL="${API_BASE_URL:-http://api-service:80}"
+    MIN_DURATION="${MIN_DURATION_MINUTES:-0}"
+    BATCH_DELAY="${BATCH_DELAY_SECONDS:-5}"
+
+    # Supported languages (ISO 639-1 codes with labels)
+    declare -A LANGUAGES=(
+      ["it"]="Italiano"
+      ["en"]="English"
+      ["es"]="Espaol"
+      ["fr"]="Francais"
+      ["de"]="Deutsch"
+      ["pt"]="Portugues"
+      ["ru"]="Russkiy"
+      ["zh"]="Zhongwen"
+      ["ja"]="Nihongo"
+      ["ko"]="Hangugeo"
+    )
+
+    # Track kinds to generate
+    TRACK_KINDS=("subtitles" "captions")
+
+    # Logging
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
+    log_info() { log "INFO: $1"; }
+    log_success() { log "SUCCESS: $1"; }
+    log_error() { log "ERROR: $1"; }
+    log_warn() { log "WARN: $1"; }
+
+    log_info "=============================================="
+    log_info "Multi-Language Subtitle Generation Job Started"
+    log_info "=============================================="
+    log_info "API URL: $API_URL"
+    log_info "Languages: ${!LANGUAGES[*]}"
+    log_info "Track Kinds: ${TRACK_KINDS[*]}"
+    log_info "Min Duration: $MIN_DURATION minutes (0 = all videos)"
+    log_info "Batch Delay: ${BATCH_DELAY}s"
+
+    # Wait for API to be ready
+    log_info "Waiting for API to be ready..."
+    RETRY=0
+    MAX_RETRY=30
+    until curl -s "$API_URL/health" > /dev/null 2>&1; do
+      RETRY=$((RETRY + 1))
+      if [ $RETRY -ge $MAX_RETRY ]; then
+        log_error "API not ready after $MAX_RETRY attempts. Exiting."
+        exit 1
+      fi
+      log_info "API not ready, waiting 5s... (attempt $RETRY/$MAX_RETRY)"
+      sleep 5
+    done
+    log_success "API is ready!"
+
+    # Get all course IDs from API
+    log_info "Fetching course list from API..."
+    COURSES_RESPONSE=$(curl -s "$API_URL/api/courses?page=1&pageSize=1000" 2>/dev/null)
+
+    if [ -z "$COURSES_RESPONSE" ]; then
+      log_error "Failed to fetch courses"
+      exit 1
+    fi
+
+    # Extract course IDs
+    COURSE_IDS=$(echo "$COURSES_RESPONSE" | jq -r '.Courses[]?.Id // empty' 2>/dev/null)
+
+    if [ -z "$COURSE_IDS" ]; then
+      log_info "No courses found in response"
+      exit 0
+    fi
+
+    COURSE_COUNT=$(echo "$COURSE_IDS" | wc -l)
+    log_info "Found $COURSE_COUNT courses"
+
+    # Collect ALL video lessons
+    log_info "Scanning courses for ALL video lessons..."
+    LESSONS=""
+
+    for COURSE_ID in $COURSE_IDS; do
+      log_info "  Checking course: $COURSE_ID"
+
+      # Get full course details with sections and lessons
+      COURSE_DETAIL=$(curl -s "$API_URL/api/courses/$COURSE_ID" 2>/dev/null)
+
+      if [ -z "$COURSE_DETAIL" ]; then
+        continue
+      fi
+
+      # Extract ALL video lessons (with optional duration filter)
+      if [ "$MIN_DURATION" -eq 0 ]; then
+        # Get ALL videos regardless of duration
+        COURSE_LESSONS=$(echo "$COURSE_DETAIL" | jq -r '
+          .Sections[]?.Lessons[]? |
+          select(.Type == "Video" or .Type == 0) |
+          "\(.Id)|\(.Title)|\(.DurationMinutes // 1)"
+        ' 2>/dev/null || echo "")
+      else
+        # Filter by minimum duration
+        COURSE_LESSONS=$(echo "$COURSE_DETAIL" | jq -r '
+          .Sections[]?.Lessons[]? |
+          select(.Type == "Video" or .Type == 0) |
+          select(.DurationMinutes >= '"$MIN_DURATION"') |
+          "\(.Id)|\(.Title)|\(.DurationMinutes)"
+        ' 2>/dev/null || echo "")
+      fi
+
+      if [ -n "$COURSE_LESSONS" ]; then
+        if [ -n "$LESSONS" ]; then
+          LESSONS="$LESSONS
+    $COURSE_LESSONS"
+        else
+          LESSONS="$COURSE_LESSONS"
+        fi
+      fi
+
+      sleep 0.3
+    done
+
+    if [ -z "$LESSONS" ]; then
+      log_info "No video lessons found"
+      exit 0
+    fi
+
+    LESSON_COUNT=$(echo "$LESSONS" | grep -c '|' || echo "0")
+    log_info "Found $LESSON_COUNT video lessons to process"
+
+    # Statistics
+    TOTAL_GENERATED=0
+    TOTAL_SKIPPED=0
+    TOTAL_FAILED=0
+    TOTAL_VIDEOS=0
+
+    # Process each lesson
+    while IFS='|' read -r LESSON_ID TITLE DURATION; do
+      [ -z "$LESSON_ID" ] && continue
+
+      TOTAL_VIDEOS=$((TOTAL_VIDEOS + 1))
+
+      log_info "=============================================="
+      log_info "[$TOTAL_VIDEOS] Video: $TITLE"
+      log_info "    ID: $LESSON_ID"
+      log_info "    Duration: ${DURATION}min"
+
+      # Get existing subtitles for this lesson
+      EXISTING_SUBS=$(curl -s "$API_URL/api/subtitles/lesson/$LESSON_ID" 2>/dev/null)
+
+      # Process each language
+      for LANG_CODE in "${!LANGUAGES[@]}"; do
+        LANG_LABEL="${LANGUAGES[$LANG_CODE]}"
+
+        # Process each track kind (subtitles and captions)
+        for KIND in "${TRACK_KINDS[@]}"; do
+
+          # Check if this language+kind already exists
+          if echo "$EXISTING_SUBS" | grep -qi "\"language\":\"$LANG_CODE\".*\"kind\":\"$KIND\""; then
+            log_info "    [$LANG_CODE/$KIND] Already exists, skipping"
+            TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+            continue
+          fi
+
+          # Also check reverse order in JSON
+          if echo "$EXISTING_SUBS" | grep -qi "\"kind\":\"$KIND\".*\"language\":\"$LANG_CODE\""; then
+            log_info "    [$LANG_CODE/$KIND] Already exists, skipping"
+            TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+            continue
+          fi
+
+          # Simple check for language only (if kind not in response)
+          if [ "$KIND" = "subtitles" ]; then
+            if echo "$EXISTING_SUBS" | grep -qi "\"language\":\"$LANG_CODE\""; then
+              # Check if it's the same kind
+              HAS_SUBS=$(echo "$EXISTING_SUBS" | jq -r ".[] | select(.language == \"$LANG_CODE\" and .kind == \"$KIND\") | .id" 2>/dev/null)
+              if [ -n "$HAS_SUBS" ]; then
+                log_info "    [$LANG_CODE/$KIND] Already exists, skipping"
+                TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+                continue
+              fi
+            fi
+          fi
+
+          log_info "    [$LANG_CODE/$KIND] Generating..."
+
+          # Escape title for JSON
+          ESCAPED_TITLE=$(echo "$TITLE" | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+
+          # Call the auto-generate endpoint
+          RESPONSE=$(curl -s -X POST "$API_URL/api/subtitles/auto-generate" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"lessonId\": \"$LESSON_ID\",
+              \"title\": \"$ESCAPED_TITLE\",
+              \"durationMinutes\": $DURATION,
+              \"language\": \"${LANG_CODE}-${LANG_CODE^^}\",
+              \"kind\": \"$KIND\"
+            }" 2>/dev/null)
+
+          if echo "$RESPONSE" | grep -qi "id\|success\|created\|subtitleId"; then
+            log_success "    [$LANG_CODE/$KIND] Generated successfully!"
+            TOTAL_GENERATED=$((TOTAL_GENERATED + 1))
+          elif echo "$RESPONSE" | grep -qi "already exists"; then
+            log_info "    [$LANG_CODE/$KIND] Already exists (API response)"
+            TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+          else
+            log_error "    [$LANG_CODE/$KIND] Failed: $RESPONSE"
+            TOTAL_FAILED=$((TOTAL_FAILED + 1))
+          fi
+
+          # Small delay between API calls
+          sleep "$BATCH_DELAY"
+        done
+      done
+
+    done <<< "$LESSONS"
+
+    # Final Summary
+    echo ""
+    log_info "=============================================="
+    log_info "JOB COMPLETE!"
+    log_info "=============================================="
+    log_info "Videos processed: $TOTAL_VIDEOS"
+    log_info "Languages: ${#LANGUAGES[@]}"
+    log_info "Track kinds: ${#TRACK_KINDS[@]}"
+    log_info "Max possible tracks: $((TOTAL_VIDEOS * ${#LANGUAGES[@]} * ${#TRACK_KINDS[@]}))"
+    echo ""
+    log_success "Successfully generated: $TOTAL_GENERATED"
+    log_info "Skipped (existing): $TOTAL_SKIPPED"
+    if [ $TOTAL_FAILED -gt 0 ]; then
+      log_error "Failed: $TOTAL_FAILED"
+    fi
+    log_info "=============================================="
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: multi-language-subtitle-job
+  namespace: insightlearn
+  labels:
+    app: multi-lang-subtitle-generator
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 7200  # Keep for 2 hours
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app: multi-lang-subtitle-generator
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: default
+      containers:
+        - name: subtitle-generator
+          image: alpine:3.19
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache curl jq bash >/dev/null 2>&1
+              bash /scripts/generate-all-subtitles.sh
+          env:
+            - name: API_BASE_URL
+              value: "http://api-service.insightlearn.svc.cluster.local:80"
+            - name: MIN_DURATION_MINUTES
+              value: "0"  # ALL videos
+            - name: BATCH_DELAY_SECONDS
+              value: "3"  # Faster for multi-language
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: script-volume
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script-volume
+          configMap:
+            name: multi-language-subtitle-script
+            defaultMode: 0755
+---
+# CronJob version - runs weekly on Sunday at 3:00 AM
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: multi-language-subtitle-cronjob
+  namespace: insightlearn
+  labels:
+    app: multi-lang-subtitle-generator
+spec:
+  schedule: "0 3 * * 0"  # Every Sunday at 3:00 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  startingDeadlineSeconds: 1800  # 30 minutes deadline
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      ttlSecondsAfterFinished: 172800  # Keep for 48 hours
+      template:
+        metadata:
+          labels:
+            app: multi-lang-subtitle-generator
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: subtitle-generator
+              image: alpine:3.19
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache curl jq bash >/dev/null 2>&1
+                  bash /scripts/generate-all-subtitles.sh
+              env:
+                - name: API_BASE_URL
+                  value: "http://api-service.insightlearn.svc.cluster.local:80"
+                - name: MIN_DURATION_MINUTES
+                  value: "0"
+                - name: BATCH_DELAY_SECONDS
+                  value: "3"
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: script-volume
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: script-volume
+              configMap:
+                name: multi-language-subtitle-script
+                defaultMode: 0755

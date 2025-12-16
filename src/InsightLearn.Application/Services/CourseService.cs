@@ -721,6 +721,7 @@ public class CourseService : ICourseService
                 .Where(st => st.IsActive)
                 .Select(st => new SubtitleTrackDto
                 {
+                    Id = st.Id,
                     Url = st.FileUrl,
                     Language = st.Language,
                     Label = st.Label,

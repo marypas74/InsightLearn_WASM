@@ -1,0 +1,321 @@
+---
+# ============================================
+# Subtitle Generation Job
+# Purpose: Generate subtitles for all videos > 5 minutes
+# Resource Limit: 30% of cluster resources
+# Processing: One video at a time via API calls
+# ============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subtitle-generation-script
+  namespace: insightlearn
+  labels:
+    app: subtitle-generator
+data:
+  generate-subtitles.sh: |
+    #!/bin/bash
+    #
+    # Kubernetes Job Script: Generate subtitles for videos > 5 minutes
+    # Uses API calls only - no direct database access required
+    # Resource-conscious: processes ONE video at a time
+    #
+
+    set -e
+
+    # Configuration
+    API_URL="${API_BASE_URL:-http://api-service:80}"
+    MIN_DURATION="${MIN_DURATION_MINUTES:-5}"
+    LANGUAGE="${SUBTITLE_LANGUAGE:-it-IT}"
+    BATCH_DELAY="${BATCH_DELAY_SECONDS:-10}"
+
+    # Logging
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
+    log_info() { log "INFO: $1"; }
+    log_success() { log "SUCCESS: $1"; }
+    log_error() { log "ERROR: $1"; }
+
+    log_info "========================================"
+    log_info "Subtitle Generation Job Started"
+    log_info "========================================"
+    log_info "API URL: $API_URL"
+    log_info "Language: $LANGUAGE"
+    log_info "Min Duration: $MIN_DURATION minutes"
+    log_info "Batch Delay: ${BATCH_DELAY}s"
+
+    # Wait for API to be ready
+    log_info "Waiting for API to be ready..."
+    RETRY=0
+    MAX_RETRY=30
+    until curl -s "$API_URL/health" > /dev/null 2>&1; do
+      RETRY=$((RETRY + 1))
+      if [ $RETRY -ge $MAX_RETRY ]; then
+        log_error "API not ready after $MAX_RETRY attempts. Exiting."
+        exit 1
+      fi
+      log_info "API not ready, waiting 5s... (attempt $RETRY/$MAX_RETRY)"
+      sleep 5
+    done
+    log_success "API is ready!"
+
+    # Get all course IDs from API
+    log_info "Fetching course list from API..."
+    COURSES_RESPONSE=$(curl -s "$API_URL/api/courses?page=1&pageSize=1000" 2>/dev/null)
+
+    if [ -z "$COURSES_RESPONSE" ]; then
+      log_error "Failed to fetch courses"
+      exit 1
+    fi
+
+    # Extract course IDs
+    log_info "Using jq for JSON parsing"
+    COURSE_IDS=$(echo "$COURSES_RESPONSE" | jq -r '.Courses[]?.Id // empty' 2>/dev/null)
+
+    if [ -z "$COURSE_IDS" ]; then
+      log_info "No courses found in response"
+      exit 0
+    fi
+
+    COURSE_COUNT=$(echo "$COURSE_IDS" | wc -l)
+    log_info "Found $COURSE_COUNT courses"
+
+    # Collect all video lessons > MIN_DURATION
+    log_info "Scanning courses for video lessons > $MIN_DURATION minutes..."
+    LESSONS=""
+
+    for COURSE_ID in $COURSE_IDS; do
+      log_info "  Checking course: $COURSE_ID"
+
+      # Get full course details with sections and lessons
+      COURSE_DETAIL=$(curl -s "$API_URL/api/courses/$COURSE_ID" 2>/dev/null)
+
+      if [ -z "$COURSE_DETAIL" ]; then
+        continue
+      fi
+
+      # Extract video lessons with duration > MIN_DURATION
+      COURSE_LESSONS=$(echo "$COURSE_DETAIL" | jq -r '
+        .Sections[]?.Lessons[]? |
+        select(.Type == "Video" or .Type == 0) |
+        select(.DurationMinutes > '"$MIN_DURATION"') |
+        "\(.Id)|\(.Title)|\(.DurationMinutes)"
+      ' 2>/dev/null || echo "")
+
+      if [ -n "$COURSE_LESSONS" ]; then
+        if [ -n "$LESSONS" ]; then
+          LESSONS="$LESSONS
+    $COURSE_LESSONS"
+        else
+          LESSONS="$COURSE_LESSONS"
+        fi
+      fi
+
+      # Small delay to avoid overwhelming API
+      sleep 0.5
+    done
+
+    # Count and process
+    TOTAL=0
+    PROCESSED=0
+    SKIPPED=0
+    FAILED=0
+
+    if [ -z "$LESSONS" ]; then
+      log_info "No video lessons > $MIN_DURATION minutes found"
+      log_info "========================================"
+      log_info "Job completed - No videos to process"
+      log_info "========================================"
+      exit 0
+    fi
+
+    LESSON_COUNT=$(echo "$LESSONS" | grep -c '|' || echo "0")
+    log_info "Found $LESSON_COUNT video lessons > $MIN_DURATION minutes"
+    echo ""
+
+    # Process each lesson
+    while IFS='|' read -r LESSON_ID TITLE DURATION; do
+      # Skip empty lines
+      [ -z "$LESSON_ID" ] && continue
+
+      TOTAL=$((TOTAL + 1))
+
+      log_info "----------------------------------------"
+      log_info "[$TOTAL] Processing: $TITLE"
+      log_info "    ID: $LESSON_ID"
+      log_info "    Duration: ${DURATION}min"
+
+      # Check if subtitles already exist
+      EXISTING=$(curl -s -o /dev/null -w "%{http_code}" \
+        "$API_URL/api/subtitles/lesson/$LESSON_ID" 2>/dev/null)
+
+      if [ "$EXISTING" = "200" ]; then
+        log_info "    Subtitles exist, checking language..."
+
+        SUBS_RESPONSE=$(curl -s "$API_URL/api/subtitles/lesson/$LESSON_ID" 2>/dev/null)
+        if echo "$SUBS_RESPONSE" | grep -qi "\"language\":\"${LANGUAGE%%-*}\""; then
+          log_info "    ${LANGUAGE} subtitles exist, skipping"
+          SKIPPED=$((SKIPPED + 1))
+          continue
+        fi
+      fi
+
+      # Generate subtitles via API (uses internal auto-generate endpoint)
+      log_info "    Generating ${LANGUAGE} subtitles via API..."
+
+      # Call the auto-generate endpoint (AllowAnonymous - no auth required)
+      # Escape title for JSON
+      ESCAPED_TITLE=$(echo "$TITLE" | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+
+      UPLOAD_RESPONSE=$(curl -s -X POST "$API_URL/api/subtitles/auto-generate" \
+        -H "Content-Type: application/json" \
+        -d "{\"lessonId\": \"$LESSON_ID\", \"title\": \"$ESCAPED_TITLE\", \"durationMinutes\": $DURATION, \"language\": \"$LANGUAGE\"}" 2>/dev/null)
+
+      if echo "$UPLOAD_RESPONSE" | grep -qi "id\|success\|created\|subtitleId"; then
+        log_success "    Subtitles uploaded successfully!"
+        PROCESSED=$((PROCESSED + 1))
+      else
+        log_error "    Upload failed: $UPLOAD_RESPONSE"
+        FAILED=$((FAILED + 1))
+      fi
+
+      # Delay between videos (resource management)
+      log_info "    Waiting ${BATCH_DELAY}s before next video..."
+      sleep "$BATCH_DELAY"
+
+    done <<< "$LESSONS"
+
+    # Summary
+    echo ""
+    log_info "========================================"
+    log_info "JOB COMPLETE!"
+    log_info "========================================"
+    log_info "Total videos processed: $TOTAL"
+    log_success "Successfully generated: $PROCESSED"
+    log_info "Skipped (existing): $SKIPPED"
+    if [ $FAILED -gt 0 ]; then
+      log_error "Failed: $FAILED"
+    fi
+    log_info "========================================"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: subtitle-generation-job
+  namespace: insightlearn
+  labels:
+    app: subtitle-generator
+spec:
+  # Retry failed jobs up to 3 times
+  backoffLimit: 3
+  # Auto-cleanup completed jobs after 1 hour
+  ttlSecondsAfterFinished: 3600
+  # Only one job at a time
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app: subtitle-generator
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: default
+      containers:
+        - name: subtitle-generator
+          # Alpine with curl and jq for API calls
+          image: alpine:3.19
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Install required packages
+              apk add --no-cache curl jq bash >/dev/null 2>&1
+              # Run the script
+              bash /scripts/generate-subtitles.sh
+          env:
+            - name: API_BASE_URL
+              value: "http://api-service.insightlearn.svc.cluster.local:80"
+            - name: MIN_DURATION_MINUTES
+              value: "5"
+            - name: SUBTITLE_LANGUAGE
+              value: "it-IT"
+            - name: BATCH_DELAY_SECONDS
+              value: "10"
+          # Resource limits: 30% of typical node resources
+          # Based on cluster capacity: ~2 CPU cores, ~4GB RAM per node
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"    # 30% of 1 CPU core
+          volumeMounts:
+            - name: script-volume
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script-volume
+          configMap:
+            name: subtitle-generation-script
+            defaultMode: 0755
+---
+# CronJob version - runs daily at 2:00 AM
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: subtitle-generation-cronjob
+  namespace: insightlearn
+  labels:
+    app: subtitle-generator
+spec:
+  schedule: "0 2 * * *"  # Every day at 2:00 AM
+  concurrencyPolicy: Forbid  # Don't run if previous job still running
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600  # 10 minutes deadline
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      ttlSecondsAfterFinished: 86400  # Keep for 24 hours
+      template:
+        metadata:
+          labels:
+            app: subtitle-generator
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: subtitle-generator
+              image: alpine:3.19
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache curl jq bash >/dev/null 2>&1
+                  bash /scripts/generate-subtitles.sh
+              env:
+                - name: API_BASE_URL
+                  value: "http://api-service.insightlearn.svc.cluster.local:80"
+                - name: MIN_DURATION_MINUTES
+                  value: "5"
+                - name: SUBTITLE_LANGUAGE
+                  value: "it-IT"
+                - name: BATCH_DELAY_SECONDS
+                  value: "10"
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "300m"
+              volumeMounts:
+                - name: script-volume
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: script-volume
+              configMap:
+                name: subtitle-generation-script
+                defaultMode: 0755

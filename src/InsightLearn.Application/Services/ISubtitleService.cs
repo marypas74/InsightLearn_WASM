@@ -80,4 +80,23 @@ public interface ISubtitleService
     /// <param name="userId">The user ID</param>
     /// <returns>True if user is the course instructor or admin</returns>
     Task<bool> CanManageSubtitlesAsync(Guid lessonId, Guid userId);
+
+    /// <summary>
+    /// Upload a subtitle file for internal/system use (bypasses permission check).
+    /// Used by Kubernetes jobs and system automation.
+    /// </summary>
+    /// <param name="lessonId">The lesson ID</param>
+    /// <param name="language">ISO 639-1 language code</param>
+    /// <param name="label">Human-readable label for the language</param>
+    /// <param name="file">The WebVTT file to upload</param>
+    /// <param name="isDefault">Whether this should be the default subtitle track</param>
+    /// <param name="kind">Track kind: subtitles, captions, or descriptions</param>
+    /// <returns>The created subtitle track DTO</returns>
+    Task<SubtitleTrackDto> UploadSubtitleInternalAsync(
+        Guid lessonId,
+        string language,
+        string label,
+        IFormFile file,
+        bool isDefault = false,
+        string kind = "subtitles");
 }

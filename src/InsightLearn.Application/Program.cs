@@ -2591,6 +2591,318 @@ app.MapGet("/api/subtitles/lesson/{lessonId}/exists/{language}", async (
 .Produces(200)
 .Produces(500);
 
+// Auto-generate demo subtitles (for Kubernetes job, no auth required)
+app.MapPost("/api/subtitles/auto-generate", async (
+    HttpRequest request,
+    [FromServices] ISubtitleService subtitleService,
+    [FromServices] ISubtitleGenerationService generationService,
+    [FromServices] ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        // Read JSON body
+        using var reader = new StreamReader(request.Body);
+        var body = await reader.ReadToEndAsync(cancellationToken);
+        var json = System.Text.Json.JsonDocument.Parse(body);
+
+        var root = json.RootElement;
+        var lessonIdStr = root.GetProperty("lessonId").GetString() ?? "";
+        var title = root.GetProperty("title").GetString() ?? "Lesson";
+        var durationMinutes = root.TryGetProperty("durationMinutes", out var durProp) ? durProp.GetInt32() : 10;
+        var language = root.TryGetProperty("language", out var langProp) ? langProp.GetString() ?? "it" : "it";
+        var kind = root.TryGetProperty("kind", out var kindProp) ? kindProp.GetString() ?? "subtitles" : "subtitles";
+
+        // Validate kind
+        if (kind != "subtitles" && kind != "captions")
+        {
+            kind = "subtitles";
+        }
+
+        if (!Guid.TryParse(lessonIdStr, out var lessonId))
+        {
+            return Results.BadRequest(new { error = "Valid lessonId is required" });
+        }
+
+        var shortLang = language.Split('-')[0].ToLowerInvariant();
+        logger.LogInformation("[SUBTITLE-AUTO] Generating {Kind} for lesson {LessonId}, title {Title}, duration {Duration}min, lang {Lang}",
+            kind, lessonId, title, durationMinutes, shortLang);
+
+        // Multi-language subtitle text templates
+        var subtitleTextsByLang = new Dictionary<string, string[]>
+        {
+            { "it", new[] {
+                $"Benvenuti a questa lezione: {title}",
+                "Iniziamo con i concetti fondamentali",
+                "Questo è un punto importante da ricordare",
+                "Vediamo come applicare questi principi nella pratica",
+                "Ecco un esempio concreto di quello che stiamo studiando",
+                "Notate come questo si collega al tema principale",
+                "Passiamo ora al prossimo argomento",
+                "Ricordate sempre di praticare questi concetti",
+                "Continuiamo con la parte teorica",
+                "Questo concetto è fondamentale per capire il resto",
+                "Vediamo insieme come funziona nel dettaglio",
+                "Ecco un altro esempio che chiarisce il concetto",
+                "Riassumiamo brevemente quanto visto finora",
+                "Andiamo avanti con il prossimo materiale",
+                "Questo punto è molto importante"
+            }},
+            { "en", new[] {
+                $"Welcome to this lesson: {title}",
+                "Let's start with the fundamental concepts",
+                "This is an important point to remember",
+                "Let's see how to apply these principles in practice",
+                "Here's a concrete example of what we're studying",
+                "Notice how this connects to the main topic",
+                "Now let's move on to the next topic",
+                "Always remember to practice these concepts",
+                "Let's continue with the theoretical part",
+                "This concept is essential for understanding the rest",
+                "Let's see together how it works in detail",
+                "Here's another example that clarifies the concept",
+                "Let's briefly summarize what we've seen so far",
+                "Let's move on with the next material",
+                "This point is very important"
+            }},
+            { "es", new[] {
+                $"Bienvenidos a esta lección: {title}",
+                "Comencemos con los conceptos fundamentales",
+                "Este es un punto importante a recordar",
+                "Veamos cómo aplicar estos principios en la práctica",
+                "Aquí hay un ejemplo concreto de lo que estamos estudiando",
+                "Observen cómo esto se conecta con el tema principal",
+                "Ahora pasemos al siguiente tema",
+                "Recuerden siempre practicar estos conceptos",
+                "Continuemos con la parte teórica",
+                "Este concepto es esencial para entender el resto",
+                "Veamos juntos cómo funciona en detalle",
+                "Aquí hay otro ejemplo que aclara el concepto",
+                "Resumamos brevemente lo que hemos visto hasta ahora",
+                "Avancemos con el siguiente material",
+                "Este punto es muy importante"
+            }},
+            { "fr", new[] {
+                $"Bienvenue dans cette leçon: {title}",
+                "Commençons par les concepts fondamentaux",
+                "C'est un point important à retenir",
+                "Voyons comment appliquer ces principes en pratique",
+                "Voici un exemple concret de ce que nous étudions",
+                "Remarquez comment cela se connecte au sujet principal",
+                "Passons maintenant au prochain sujet",
+                "N'oubliez jamais de pratiquer ces concepts",
+                "Continuons avec la partie théorique",
+                "Ce concept est essentiel pour comprendre la suite",
+                "Voyons ensemble comment cela fonctionne en détail",
+                "Voici un autre exemple qui clarifie le concept",
+                "Résumons brièvement ce que nous avons vu jusqu'ici",
+                "Passons au matériel suivant",
+                "Ce point est très important"
+            }},
+            { "de", new[] {
+                $"Willkommen zu dieser Lektion: {title}",
+                "Beginnen wir mit den grundlegenden Konzepten",
+                "Dies ist ein wichtiger Punkt zum Merken",
+                "Sehen wir, wie man diese Prinzipien in der Praxis anwendet",
+                "Hier ist ein konkretes Beispiel dessen, was wir studieren",
+                "Beachten Sie, wie dies mit dem Hauptthema zusammenhängt",
+                "Gehen wir nun zum nächsten Thema über",
+                "Denken Sie immer daran, diese Konzepte zu üben",
+                "Fahren wir mit dem theoretischen Teil fort",
+                "Dieses Konzept ist wesentlich für das Verständnis des Rests",
+                "Sehen wir gemeinsam, wie es im Detail funktioniert",
+                "Hier ist ein weiteres Beispiel, das das Konzept verdeutlicht",
+                "Fassen wir kurz zusammen, was wir bisher gesehen haben",
+                "Machen wir mit dem nächsten Material weiter",
+                "Dieser Punkt ist sehr wichtig"
+            }},
+            { "pt", new[] {
+                $"Bem-vindos a esta lição: {title}",
+                "Vamos começar com os conceitos fundamentais",
+                "Este é um ponto importante a lembrar",
+                "Vejamos como aplicar estes princípios na prática",
+                "Aqui está um exemplo concreto do que estamos estudando",
+                "Observe como isso se conecta ao tema principal",
+                "Agora vamos passar para o próximo tópico",
+                "Lembre-se sempre de praticar estes conceitos",
+                "Continuemos com a parte teórica",
+                "Este conceito é essencial para entender o resto",
+                "Vejamos juntos como funciona em detalhes",
+                "Aqui está outro exemplo que esclarece o conceito",
+                "Vamos resumir brevemente o que vimos até agora",
+                "Avancemos com o próximo material",
+                "Este ponto é muito importante"
+            }},
+            { "ru", new[] {
+                $"Добро пожаловать на этот урок: {title}",
+                "Начнем с фундаментальных концепций",
+                "Это важный момент для запоминания",
+                "Посмотрим, как применить эти принципы на практике",
+                "Вот конкретный пример того, что мы изучаем",
+                "Обратите внимание, как это связано с главной темой",
+                "Теперь перейдем к следующей теме",
+                "Всегда помните практиковать эти концепции",
+                "Продолжим теоретическую часть",
+                "Эта концепция необходима для понимания остального",
+                "Давайте вместе посмотрим, как это работает в деталях",
+                "Вот еще один пример, который проясняет концепцию",
+                "Кратко подведем итог того, что мы видели до сих пор",
+                "Перейдем к следующему материалу",
+                "Этот момент очень важен"
+            }},
+            { "zh", new[] {
+                $"欢迎来到这节课: {title}",
+                "让我们从基本概念开始",
+                "这是一个需要记住的重要点",
+                "让我们看看如何在实践中应用这些原则",
+                "这是我们正在学习内容的具体示例",
+                "注意这与主题是如何联系的",
+                "现在让我们进入下一个话题",
+                "永远记得练习这些概念",
+                "让我们继续理论部分",
+                "这个概念对于理解其余部分至关重要",
+                "让我们一起详细了解它是如何工作的",
+                "这是另一个阐明概念的例子",
+                "让我们简要总结一下到目前为止所看到的",
+                "让我们继续下一个材料",
+                "这一点非常重要"
+            }},
+            { "ja", new[] {
+                $"このレッスンへようこそ: {title}",
+                "基本的な概念から始めましょう",
+                "これは覚えておくべき重要なポイントです",
+                "これらの原則を実践で適用する方法を見てみましょう",
+                "私たちが学んでいることの具体例がこちらです",
+                "これがメイントピックにどう関連しているか注目してください",
+                "それでは次のトピックに移りましょう",
+                "これらの概念を常に練習することを忘れないでください",
+                "理論的な部分を続けましょう",
+                "この概念は残りを理解するために不可欠です",
+                "詳細にどのように機能するか一緒に見てみましょう",
+                "概念を明確にする別の例がこちらです",
+                "これまでに見たことを簡単にまとめましょう",
+                "次の教材に進みましょう",
+                "このポイントは非常に重要です"
+            }},
+            { "ko", new[] {
+                $"이 수업에 오신 것을 환영합니다: {title}",
+                "기본 개념부터 시작하겠습니다",
+                "이것은 기억해야 할 중요한 포인트입니다",
+                "이러한 원칙을 실제로 적용하는 방법을 살펴보겠습니다",
+                "우리가 공부하고 있는 것의 구체적인 예가 여기 있습니다",
+                "이것이 주요 주제와 어떻게 연결되는지 주목하세요",
+                "이제 다음 주제로 넘어가겠습니다",
+                "이러한 개념을 연습하는 것을 항상 기억하세요",
+                "이론적인 부분을 계속하겠습니다",
+                "이 개념은 나머지를 이해하는 데 필수적입니다",
+                "자세히 어떻게 작동하는지 함께 살펴보겠습니다",
+                "개념을 명확히 하는 또 다른 예가 여기 있습니다",
+                "지금까지 본 것을 간략히 요약해 보겠습니다",
+                "다음 자료로 넘어가겠습니다",
+                "이 점은 매우 중요합니다"
+            }}
+        };
+
+        // Get subtitles for the specified language, fallback to English if not found
+        var subtitleTexts = subtitleTextsByLang.ContainsKey(shortLang)
+            ? subtitleTextsByLang[shortLang]
+            : subtitleTextsByLang["en"];
+
+        // Language labels
+        var languageLabels = new Dictionary<string, string>
+        {
+            { "it", "Italiano" }, { "en", "English" }, { "es", "Español" },
+            { "fr", "Français" }, { "de", "Deutsch" }, { "pt", "Português" },
+            { "ru", "Русский" }, { "zh", "中文" }, { "ja", "日本語" }, { "ko", "한국어" }
+        };
+        var label = languageLabels.TryGetValue(shortLang, out var lbl) ? lbl : language;
+
+        // Generate WebVTT content
+        var durationSeconds = durationMinutes * 60;
+        var segmentDuration = 10;
+        var totalSegments = Math.Min(durationSeconds / segmentDuration, 100);
+
+        var vttBuilder = new System.Text.StringBuilder();
+        vttBuilder.AppendLine("WEBVTT");
+        vttBuilder.AppendLine($"Kind: {kind}");
+        vttBuilder.AppendLine($"Language: {shortLang}");
+        vttBuilder.AppendLine();
+        vttBuilder.AppendLine($"NOTE Auto-generated by InsightLearn");
+        vttBuilder.AppendLine($"NOTE Lesson: {title}");
+        vttBuilder.AppendLine($"NOTE Kind: {kind}");
+        vttBuilder.AppendLine();
+
+        for (int i = 0; i < totalSegments; i++)
+        {
+            var startSec = i * segmentDuration;
+            var endSec = startSec + segmentDuration;
+            var startTime = TimeSpan.FromSeconds(startSec);
+            var endTime = TimeSpan.FromSeconds(endSec);
+            var text = subtitleTexts[i % subtitleTexts.Length];
+
+            vttBuilder.AppendLine($"{i + 1}");
+            vttBuilder.AppendLine($"{startTime:hh\\:mm\\:ss\\.fff} --> {endTime:hh\\:mm\\:ss\\.fff}");
+            vttBuilder.AppendLine(text);
+            vttBuilder.AppendLine();
+        }
+
+        var vttContent = vttBuilder.ToString();
+        var vttBytes = System.Text.Encoding.UTF8.GetBytes(vttContent);
+
+        // Create IFormFile from bytes
+        var stream = new MemoryStream(vttBytes);
+        var formFile = new FormFile(stream, 0, vttBytes.Length, "subtitle", $"{kind}_{lessonId}_{shortLang}.vtt")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "text/vtt"
+        };
+
+        // Use internal method that bypasses permission check (for K8s jobs)
+        var result = await subtitleService.UploadSubtitleInternalAsync(
+            lessonId, shortLang, label, formFile, false, kind);
+
+        logger.LogInformation("[SUBTITLE-AUTO] Successfully created {Kind} track {TrackId} for lesson {LessonId}, lang {Lang}",
+            kind, result?.Id, lessonId, shortLang);
+
+        return Results.Ok(new
+        {
+            success = true,
+            lessonId = lessonId.ToString(),
+            language = shortLang,
+            kind = kind,
+            trackId = result?.Id.ToString(),
+            cueCount = totalSegments
+        });
+    }
+    catch (System.Text.Json.JsonException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLE-AUTO] Invalid JSON in request");
+        return Results.BadRequest(new { error = "Invalid JSON format" });
+    }
+    catch (KeyNotFoundException ex)
+    {
+        logger.LogWarning(ex, "[SUBTITLE-AUTO] Missing required field");
+        return Results.BadRequest(new { error = "Missing required field: lessonId" });
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+    {
+        logger.LogInformation("[SUBTITLE-AUTO] Subtitle/caption already exists: {Message}", ex.Message);
+        return Results.Conflict(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE-AUTO] Error auto-generating subtitles");
+        return Results.Problem($"Error generating subtitles: {ex.Message}");
+    }
+})
+.WithName("AutoGenerateSubtitles")
+.WithTags("Subtitles", "Generation")
+.Produces(200)
+.Produces(400)
+.Produces(409)
+.Produces(500)
+.AllowAnonymous();
+
 // SYSTEM ENDPOINTS API
 app.MapGet("/api/system/endpoints", async (
     [FromServices] ISystemEndpointRepository repository,

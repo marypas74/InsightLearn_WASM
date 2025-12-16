@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `2.1.0-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `2.2.0-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
-**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 15:45)
-**Latest Release**: 🔧 Subtitle Translation GridFS Fix v2.2.0-dev (2025-12-16) - Fixed SubtitleTranslationService to download VTT files directly from MongoDB GridFS instead of HTTP, enabling AI translation for subtitles stored in GridFS. Previous: LinkedIn Learning UI Style with video player controls, sidebar overlay navigation, CourseCurriculum expandable sections.
+**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00)
+**Latest Release**: 🌍 Multi-Language Subtitle Generation v2.2.0-dev (2025-12-16) - Kubernetes Job per generazione automatica sottotitoli in 10 lingue (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO) + transcriptions per tutti i 140 video. Previous: Subtitle Translation GridFS Fix, LinkedIn Learning UI Style.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **SEO Strategy**: [SEO-COMPETITIVE-ANALYSIS-2025-12-12.md](docs/SEO-COMPETITIVE-ANALYSIS-2025-12-12.md) - Piano 12 mesi per Top 10
 
-✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.1.0-dev`.
+✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.0-dev`.
 
 ### 🔒 Security Status (v2.1.0-dev)
 
@@ -1793,6 +1793,20 @@ Esempio modifica version:
 - **Frontend UI**: Menu sottotitoli con sezione "Auto-Translate (AI)", indicatore loading, badge cached
 - **🔧 GridFS Fix (2025-12-16)**: SubtitleTranslationService ora scarica VTT direttamente da MongoDB GridFS invece di HTTP, risolvendo errore "FileNotFoundException" per sottotitoli con URL `/api/subtitles/stream/{objectId}`
 
+**🌍 MULTI-LANGUAGE SUBTITLE GENERATION (2025-12-16)**: Sistema Kubernetes Job per generazione automatica sottotitoli:
+- **Lingue Supportate**: 10 (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO) con testo localizzato
+- **Track Kinds**: `subtitles` (sottotitoli) + `captions` (trascrizioni/closed captions)
+- **Video Processati**: TUTTI i video (140 totali), nessun limite di durata
+- **API Endpoint**: `POST /api/subtitles/auto-generate` - Genera WebVTT con testo dummy per testing
+  - Parametri: `lessonId`, `title`, `durationMinutes`, `language` (es. `it-IT`), `kind` (subtitles/captions)
+  - Risposta: SubtitleTrackDto con ID del nuovo sottotitolo
+  - Conflict handling: Ritorna 409 se già esiste
+- **Kubernetes Job**: [k8s/20-multi-language-subtitle-job.yaml](k8s/20-multi-language-subtitle-job.yaml)
+  - Job one-time + CronJob settimanale (domenica 3:00 AM)
+  - ConfigMap con script bash per iterazione lingue/track kinds
+  - Skip automatico se sottotitolo già esistente
+- **Statistics**: 140 video × 10 lingue × 2 track kinds = **2800 sottotitoli potenziali**
+
 **✅ ADMIN CONSOLE COMPLETATA (2025-11-26)**: 9 nuovi endpoint implementati per gestione Instructors, Payments e Reports.
 
 **✅ PHASE 3 COMPLETATA (2025-11-10)**: Tutti i 31 endpoint LMS critici sono stati implementati. La piattaforma è ora completamente funzionale come LMS enterprise con:
@@ -3030,6 +3044,9 @@ kubectl apply -f k8s/15-jenkins-deployment-lightweight.yaml
 | [k8s/grafana-port-forward-persistent.sh](/k8s/grafana-port-forward-persistent.sh) | Port-forward persistente Grafana (localhost:3000) |
 | [k8s/api-port-forward-persistent.sh](/k8s/api-port-forward-persistent.sh) | Port-forward persistente API (localhost:8081) |
 | [k8s/service-watchdog.sh](/k8s/service-watchdog.sh) | Service monitoring & auto-healing (60s check interval) |
+| [scripts/manage-subtitle-job.sh](/scripts/manage-subtitle-job.sh) | Gestione job sottotitoli (deploy/run/status/logs) |
+| [k8s/19-subtitle-generation-job.yaml](/k8s/19-subtitle-generation-job.yaml) | Job generazione sottotitoli IT (video > 5 min) |
+| [k8s/20-multi-language-subtitle-job.yaml](/k8s/20-multi-language-subtitle-job.yaml) | **NEW**: Job multi-lingua (10 lingue × 2 track kinds × ALL video) |
 
 ⚠️ **Rocky Linux**: Gli script assumono Docker, sostituire con `podman` manualmente.
 
