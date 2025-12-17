@@ -33,7 +33,7 @@
       <extensions/>
     </scm>
     <scriptPath>jenkins/pipelines/seo-traffic-simulation.Jenkinsfile</scriptPath>
-    <lightweight>false</lightweight>
+    <lightweight>true</lightweight>
   </definition>
   <triggers/>
   <disabled>false</disabled>
