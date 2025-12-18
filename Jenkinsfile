@@ -1,5 +1,6 @@
 // InsightLearn WASM - Jenkins Pipeline for Automated Testing
-// This pipeline runs load tests and site monitoring every hour
+// This pipeline runs load tests, site monitoring, and SEO checks every hour
+// 10 stages: Health Check, Pages, Performance, Load Testing, Assets, Security Headers, Backend API, SEO Testing, Report
 
 pipeline {
     agent any
@@ -201,6 +202,108 @@ pipeline {
                         else
                             echo "kubectl not available, skipping pod status check"
                         fi
+                    '''
+                }
+            }
+        }
+
+        stage('SEO Testing') {
+            steps {
+                script {
+                    echo '=== SEO Health Check ==='
+                    sh '''#!/bin/bash
+                        echo "========================================="
+                        echo "SEO HEALTH CHECK"
+                        echo "========================================="
+
+                        # 1. Verify sitemap.xml exists
+                        echo ""
+                        echo "1. Checking sitemap.xml..."
+                        SITEMAP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${SITE_URL}/sitemap.xml)
+                        if [ "$SITEMAP_STATUS" = "200" ]; then
+                            echo "✅ Sitemap.xml: HTTP $SITEMAP_STATUS"
+                            URL_COUNT=$(curl -s ${SITE_URL}/sitemap.xml | grep -c '<loc>' || echo 0)
+                            echo "   Found $URL_COUNT URLs in sitemap"
+                        else
+                            echo "❌ Sitemap.xml: HTTP $SITEMAP_STATUS"
+                        fi
+
+                        # 2. Verify robots.txt exists
+                        echo ""
+                        echo "2. Checking robots.txt..."
+                        ROBOTS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${SITE_URL}/robots.txt)
+                        if [ "$ROBOTS_STATUS" = "200" ]; then
+                            echo "✅ Robots.txt: HTTP $ROBOTS_STATUS"
+                        else
+                            echo "❌ Robots.txt: HTTP $ROBOTS_STATUS"
+                        fi
+
+                        # 3. Simulate Googlebot crawl (verify pre-rendering)
+                        echo ""
+                        echo "3. Simulating Googlebot crawl..."
+                        GOOGLEBOT_UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+
+                        # Test homepage
+                        HOME_HTML=$(curl -s -A "$GOOGLEBOT_UA" ${SITE_URL}/)
+                        if echo "$HOME_HTML" | grep -q "application/ld+json"; then
+                            echo "✅ Homepage: Pre-rendered with structured data"
+                        else
+                            echo "⚠️  Homepage: No structured data detected (may impact SEO)"
+                        fi
+
+                        # 4. Check for essential structured data schemas
+                        echo ""
+                        echo "4. Verifying JSON-LD structured data..."
+                        SCHEMAS=$(echo "$HOME_HTML" | grep -o '"@type": "[^"]*"' | cut -d'"' -f4 | sort | uniq | tr '\n' ', ')
+
+                        if echo "$SCHEMAS" | grep -q "Organization"; then
+                            echo "✅ Organization schema found"
+                        else
+                            echo "❌ Organization schema missing"
+                        fi
+
+                        if echo "$SCHEMAS" | grep -q "WebSite"; then
+                            echo "✅ WebSite schema found"
+                        else
+                            echo "❌ WebSite schema missing"
+                        fi
+
+                        if echo "$SCHEMAS" | grep -q "EducationalOrganization"; then
+                            echo "✅ EducationalOrganization schema found"
+                        else
+                            echo "⚠️  EducationalOrganization schema missing (recommended)"
+                        fi
+
+                        # 5. Check courses page for Course schemas
+                        echo ""
+                        echo "5. Checking Courses page for Course schemas..."
+                        COURSES_HTML=$(curl -s -A "$GOOGLEBOT_UA" ${SITE_URL}/courses)
+                        COURSE_COUNT=$(echo "$COURSES_HTML" | grep -c '"@type": "Course"' || echo 0)
+
+                        if [ "$COURSE_COUNT" -gt 0 ]; then
+                            echo "✅ Found $COURSE_COUNT Course schemas on /courses page"
+                        else
+                            echo "⚠️  No Course schemas detected on /courses page"
+                        fi
+
+                        # 6. Performance check (TTFB - Time To First Byte)
+                        echo ""
+                        echo "6. Performance metrics (TTFB)..."
+                        TTFB=$(curl -s -o /dev/null -w "%{time_starttransfer}" ${SITE_URL}/)
+                        echo "   Time To First Byte: ${TTFB}s"
+
+                        if (( $(echo "$TTFB < 0.5" | bc -l) )); then
+                            echo "✅ Excellent TTFB (< 0.5s)"
+                        elif (( $(echo "$TTFB < 1.0" | bc -l) )); then
+                            echo "✅ Good TTFB (< 1.0s)"
+                        else
+                            echo "⚠️  TTFB needs improvement (> 1.0s)"
+                        fi
+
+                        echo ""
+                        echo "========================================="
+                        echo "SEO Health Check completed"
+                        echo "========================================="
                     '''
                 }
             }
