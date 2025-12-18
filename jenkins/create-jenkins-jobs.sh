@@ -168,7 +168,7 @@ echo -e "${BLUE}╚════════════════════�
 
 echo -e "${GREEN}Jenkins Jobs:${NC}"
 echo -e "  1. ${BLUE}insightlearn-automated-tests${NC} - Runs every hour (H * * * *)"
-echo -e "     Uses: Jenkinsfile (9 testing stages)"
+echo -e "     Uses: Jenkinsfile (10 testing stages including SEO)"
 echo -e "  2. ${BLUE}weekly-heavy-load-test${NC} - Runs every Sunday at 2:00 AM"
 echo -e "     Uses: jenkins/pipelines/weekly-heavy-load-test.Jenkinsfile"
 echo -e "  3. ${BLUE}seo-traffic-simulation${NC} - Runs every 6 hours (0 */6 * * *)"
