@@ -1,488 +1,1647 @@
 {
   "dashboard": {
-    "title": "InsightLearn Platform Monitoring",
-    "uid": "insightlearn-main",
-    "version": 5,
-    "timezone": "browser",
-    "schemaVersion": 27,
-    "refresh": "30s",
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    },
+    "id": 7,
     "panels": [
       {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 100,
+        "panels": [],
+        "title": "🟢 Service Status",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 0,
+          "y": 1
+        },
         "id": 1,
-        "type": "graph",
-        "title": "API Request Rate",
-        "description": "Richieste HTTP per secondo per route",
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
         "targets": [
           {
-            "expr": "sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_count{job=\"insightlearn-api\"}[5m])) by (http_route)",
-            "legendFormat": "{{http_route}}"
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "reqps", "label": "Requests/sec"},
-          {"format": "short"}
-        ]
+        "title": "🖥️ API",
+        "type": "stat"
       },
       {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 4,
+          "y": 1
+        },
         "id": 2,
-        "type": "graph",
-        "title": "API Response Time",
-        "description": "Latenza API (p95 e p50)",
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_bucket{job=\"insightlearn-api\"}[5m])) by (le, http_route))",
-            "legendFormat": "p95 {{http_route}}"
-          },
-          {
-            "expr": "histogram_quantile(0.50, sum(rate(microsoft_aspnetcore_hosting_http_server_request_duration_bucket{job=\"insightlearn-api\"}[5m])) by (le, http_route))",
-            "legendFormat": "p50 {{http_route}}"
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"mongodb.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "s", "label": "Latency (seconds)"},
-          {"format": "short"}
-        ]
+        "title": "🗄️ MongoDB",
+        "type": "stat"
       },
       {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 8,
+          "y": 1
+        },
         "id": 3,
-        "type": "stat",
-        "title": "API Health Status",
-        "description": "Stato salute API (up/down)",
-        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "up{job=\"insightlearn-api\"}",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "thresholds": {
-              "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
-              ]
-            },
-            "mappings": [
-              {"type": "value", "options": {"1": {"text": "Healthy", "color": "green"}}},
-              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
-            ]
-          }
-        }
-      },
-      {
-        "id": 4,
-        "type": "stat",
-        "title": "MongoDB Status",
-        "description": "Container MongoDB CPU > 0 indica running",
-        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"mongodb.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "thresholds": {
-              "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
-              ]
-            },
-            "mappings": [
-              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
-              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
-            ]
-          }
-        }
-      },
-      {
-        "id": 5,
-        "type": "stat",
-        "title": "SQL Server Status",
-        "description": "Container SQL Server running",
-        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"sqlserver.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "thresholds": {
-              "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
-              ]
-            },
-            "mappings": [
-              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
-              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
-            ]
-          }
-        }
-      },
-      {
-        "id": 6,
-        "type": "stat",
-        "title": "Redis Status",
-        "description": "Container Redis running",
-        "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "count(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"redis.*\", container!=\"POD\", container!=\"\"} > 0) or vector(0)",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "thresholds": {
-              "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
-              ]
-            },
-            "mappings": [
-              {"type": "range", "options": {"from": 1, "to": 100, "result": {"text": "Running", "color": "green"}}},
-              {"type": "value", "options": {"0": {"text": "Down", "color": "red"}}}
-            ]
-          }
-        }
-      },
-      {
-        "id": 7,
-        "type": "graph",
-        "title": "Ollama Container Resources",
-        "description": "CPU e Memory usage del container Ollama",
-        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"ollama.*\"}[5m])) * 100",
-            "legendFormat": "CPU %"
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
           },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
+        "targets": [
           {
-            "expr": "sum(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"ollama.*\"}) / 1024 / 1024 / 1024",
-            "legendFormat": "Memory GB"
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"sqlserver.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "short", "label": "CPU % / Memory GB"},
-          {"format": "short"}
-        ]
+        "title": "💾 SQL Server",
+        "type": "stat"
       },
       {
-        "id": 8,
-        "type": "graph",
-        "title": "Pod CPU Usage",
-        "description": "Utilizzo CPU per pod nel namespace insightlearn",
-        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 12,
+          "y": 1
+        },
+        "id": 4,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
+        "targets": [
+          {
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"redis.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "⚡ Redis",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 16,
+          "y": 1
+        },
+        "id": 5,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
+        "targets": [
+          {
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"ollama.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "🤖 Ollama",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  }
+                },
+                "type": "value"
+              },
+              {
+                "options": {
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 20,
+          "y": 1
+        },
+        "id": 6,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 16,
+            "valueSize": 36
+          },
+          "textMode": "value"
+        },
+        "targets": [
+          {
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"insightlearn-wasm.*\", condition=\"true\"})",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "🌐 WASM",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "fillOpacity": 10,
+              "lineWidth": 2,
+              "showPoints": "never"
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 5
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          }
+        },
         "targets": [
           {
             "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", container!=\"\", container!=\"POD\"}[5m])) by (pod) * 100",
-            "legendFormat": "{{pod}}"
+            "legendFormat": "{{pod}}",
+            "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "percent", "label": "CPU %"},
-          {"format": "short"}
-        ]
+        "title": "📊 CPU Usage",
+        "type": "timeseries"
       },
       {
-        "id": 9,
-        "type": "graph",
-        "title": "Pod Memory Usage",
-        "description": "Utilizzo memoria per pod nel namespace insightlearn",
-        "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "fillOpacity": 10,
+              "lineWidth": 2,
+              "showPoints": "never"
+            },
+            "unit": "decmbytes"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 5
+        },
+        "id": 8,
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          }
+        },
         "targets": [
           {
             "expr": "sum(container_memory_working_set_bytes{namespace=\"insightlearn\", container!=\"\", container!=\"POD\"}) by (pod) / 1024 / 1024",
-            "legendFormat": "{{pod}}"
+            "legendFormat": "{{pod}}",
+            "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "decmbytes", "label": "Memory (MB)"},
-          {"format": "short"}
-        ]
+        "title": "💾 Memory Usage",
+        "type": "timeseries"
       },
       {
-        "id": 10,
-        "type": "graph",
-        "title": "MongoDB Disk I/O",
-        "description": "Disk read/write activity del container MongoDB (bytes/s)",
-        "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "sum(rate(container_fs_writes_bytes_total{namespace=\"insightlearn\", pod=~\"mongodb.*\", container=\"mongodb\"}[5m]))",
-            "legendFormat": "Writes (bytes/s)"
-          },
-          {
-            "expr": "sum(rate(container_fs_reads_bytes_total{namespace=\"insightlearn\", pod=~\"mongodb.*\", container=\"mongodb\"}[5m]))",
-            "legendFormat": "Reads (bytes/s)"
-          }
-        ],
-        "yaxes": [
-          {"format": "Bps", "label": "Bytes/s"},
-          {"format": "short"}
-        ]
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 13
+        },
+        "id": 101,
+        "panels": [],
+        "title": "💽 Disk Partitions",
+        "type": "row"
       },
       {
-        "id": 11,
-        "type": "gauge",
-        "title": "Disk Usage - Root (/)",
-        "description": "Spazio disco usato sulla partizione root",
-        "gridPos": {"x": 0, "y": 28, "w": 8, "h": 6},
-        "targets": [
-          {
-            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype=\"xfs\"}) * 100)",
-            "legendFormat": "Root Usage %",
-            "instant": true
-          }
-        ],
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
-            "unit": "percent",
-            "min": 0,
+            "displayName": "/ (root)",
             "max": 100,
+            "min": 0,
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 70, "color": "yellow"},
-                {"value": 85, "color": "orange"},
-                {"value": 95, "color": "red"}
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "orange",
+                  "value": 85
+                },
+                {
+                  "color": "red",
+                  "value": 95
+                }
               ]
-            }
+            },
+            "unit": "percent"
           }
         },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 14
+        },
+        "id": 20,
         "options": {
           "showThresholdLabels": false,
-          "showThresholdMarkers": true
-        }
-      },
-      {
-        "id": 12,
-        "type": "gauge",
-        "title": "Disk Usage - Home (/home)",
-        "description": "Spazio disco usato sulla partizione /home",
-        "gridPos": {"x": 8, "y": 28, "w": 8, "h": 6},
+          "showThresholdMarkers": true,
+          "text": {
+            "titleSize": 14,
+            "valueSize": 28
+          }
+        },
         "targets": [
           {
-            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/home\",fstype=\"xfs\"}) * 100)",
-            "legendFormat": "Home Usage %",
-            "instant": true
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "📁 Root (/)",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
-            "unit": "percent",
-            "min": 0,
+            "displayName": "/home",
             "max": 100,
+            "min": 0,
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 70, "color": "yellow"},
-                {"value": 85, "color": "orange"},
-                {"value": 95, "color": "red"}
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "orange",
+                  "value": 85
+                },
+                {
+                  "color": "red",
+                  "value": 95
+                }
               ]
-            }
+            },
+            "unit": "percent"
           }
         },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 14
+        },
+        "id": 21,
         "options": {
           "showThresholdLabels": false,
-          "showThresholdMarkers": true
-        }
-      },
-      {
-        "id": 13,
-        "type": "gauge",
-        "title": "Disk Usage - Boot (/boot)",
-        "description": "Spazio disco usato sulla partizione /boot",
-        "gridPos": {"x": 16, "y": 28, "w": 8, "h": 6},
+          "showThresholdMarkers": true,
+          "text": {
+            "titleSize": 14,
+            "valueSize": 28
+          }
+        },
         "targets": [
           {
-            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"} / node_filesystem_size_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}) * 100)",
-            "legendFormat": "Boot Usage %",
-            "instant": true
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/home\"} / node_filesystem_size_bytes{mountpoint=\"/home\"})) * 100",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "📁 Home (/home)",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
-            "unit": "percent",
-            "min": 0,
+            "displayName": "/boot",
             "max": 100,
+            "min": 0,
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 70, "color": "yellow"},
-                {"value": 85, "color": "orange"},
-                {"value": 95, "color": "red"}
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "orange",
+                  "value": 85
+                },
+                {
+                  "color": "red",
+                  "value": 95
+                }
               ]
-            }
+            },
+            "unit": "percent"
           }
         },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 14
+        },
+        "id": 22,
         "options": {
           "showThresholdLabels": false,
-          "showThresholdMarkers": true
-        }
-      },
-      {
-        "id": 14,
-        "type": "timeseries",
-        "title": "Disk Space Available Over Time",
-        "description": "Spazio disco disponibile nel tempo per le partizioni principali",
-        "gridPos": {"x": 0, "y": 34, "w": 24, "h": 8},
+          "showThresholdMarkers": true,
+          "text": {
+            "titleSize": 14,
+            "valueSize": 28
+          }
+        },
         "targets": [
           {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"}",
-            "legendFormat": "/ (root)"
-          },
-          {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"}",
-            "legendFormat": "/home"
-          },
-          {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}",
-            "legendFormat": "/boot"
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/boot\"} / node_filesystem_size_bytes{mountpoint=\"/boot\"})) * 100",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "📁 Boot (/boot)",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
-            "unit": "bytes",
+            "displayName": "K3s ZFS",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "orange",
+                  "value": 85
+                },
+                {
+                  "color": "red",
+                  "value": 95
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 14
+        },
+        "id": 23,
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "text": {
+            "titleSize": 14,
+            "valueSize": 28
+          }
+        },
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/k3s-zfs\"} / node_filesystem_size_bytes{mountpoint=\"/k3s-zfs\"})) * 100",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "📁 K3s ZFS (/k3s-zfs)",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
             "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "gradientMode": "opacity"
+              "align": "center"
+            },
+            "unit": "decgbytes"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Partition"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 150
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Used"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Available"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 100
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "id": 24,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "reducer": [
+              "sum"
+            ],
+            "show": true
+          },
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": true,
+              "displayName": "Total"
+            }
+          ]
+        },
+        "targets": [
+          {
+            "expr": "node_filesystem_size_bytes{mountpoint=~\"/|/home|/boot|/k3s-zfs\"} / 1024 / 1024 / 1024",
+            "format": "table",
+            "instant": true,
+            "refId": "Total"
+          },
+          {
+            "expr": "(node_filesystem_size_bytes{mountpoint=~\"/|/home|/boot|/k3s-zfs\"} - node_filesystem_avail_bytes{mountpoint=~\"/|/home|/boot|/k3s-zfs\"}) / 1024 / 1024 / 1024",
+            "format": "table",
+            "instant": true,
+            "refId": "Used"
+          },
+          {
+            "expr": "node_filesystem_avail_bytes{mountpoint=~\"/|/home|/boot|/k3s-zfs\"} / 1024 / 1024 / 1024",
+            "format": "table",
+            "instant": true,
+            "refId": "Available"
+          }
+        ],
+        "title": "📊 Disk Space Details (GB)",
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "device": true,
+                "fstype": true,
+                "instance": true,
+                "job": true
+              },
+              "indexByName": {
+                "mountpoint": 0
+              },
+              "renameByName": {
+                "Value #Available": "Available",
+                "Value #Total": "Total",
+                "Value #Used": "Used",
+                "mountpoint": "Partition"
+              }
+            }
+          },
+          {
+            "id": "sortBy",
+            "options": {
+              "fields": {},
+              "sort": [
+                {
+                  "desc": true,
+                  "field": "Total"
+                }
+              ]
             }
           }
+        ],
+        "type": "table"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 26
         },
+        "id": 102,
+        "panels": [],
+        "title": "🌍 Geographic & Network",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {}
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 14,
+          "x": 0,
+          "y": 27
+        },
+        "id": 11,
+        "options": {
+          "basemap": {
+            "config": {},
+            "name": "Layer 0",
+            "type": "carto"
+          },
+          "controls": {
+            "mouseWheelZoom": true,
+            "showAttribution": true,
+            "showDebug": false,
+            "showMeasure": false,
+            "showScale": false,
+            "showZoom": true
+          },
+          "layers": [
+            {
+              "config": {
+                "showLegend": true,
+                "style": {
+                  "color": {
+                    "field": "Value",
+                    "fixed": "dark-green"
+                  },
+                  "opacity": 0.8,
+                  "rotation": {
+                    "fixed": 0,
+                    "max": 360,
+                    "min": -360,
+                    "mode": "mod"
+                  },
+                  "size": {
+                    "field": "Value",
+                    "fixed": 5,
+                    "max": 30,
+                    "min": 6
+                  },
+                  "symbol": {
+                    "fixed": "img/icons/marker/circle.svg",
+                    "mode": "fixed"
+                  },
+                  "symbolAlign": {
+                    "horizontal": "center",
+                    "vertical": "center"
+                  },
+                  "text": {
+                    "field": "country",
+                    "fixed": "",
+                    "mode": "field"
+                  },
+                  "textConfig": {
+                    "fontSize": 10,
+                    "offsetX": 0,
+                    "offsetY": 12,
+                    "textAlign": "center",
+                    "textBaseline": "top"
+                  }
+                }
+              },
+              "location": {
+                "gazetteer": "public/gazetteer/countries.json",
+                "lookup": "country",
+                "mode": "lookup"
+              },
+              "name": "Requests by Country",
+              "tooltip": true,
+              "type": "markers"
+            }
+          ],
+          "tooltip": {
+            "mode": "details"
+          },
+          "view": {
+            "allLayers": true,
+            "id": "fit",
+            "lat": 30,
+            "lon": 0,
+            "zoom": 2
+          }
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "prometheus"
+            },
+            "expr": "label_replace(node_api_requests_by_country, \"country\", \"United States\", \"country\", \"United States of America\")",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "__auto",
+            "refId": "A"
+          }
+        ],
+        "title": "🌍 Requests by Country",
+        "transformations": [
+          {
+            "id": "labelsToFields",
+            "options": {
+              "keepLabels": [
+                "country"
+              ],
+              "mode": "columns"
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "instance": true,
+                "job": true
+              },
+              "renameByName": {}
+            }
+          }
+        ],
+        "type": "geomap"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Requests"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 100
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Country"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 180
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 5,
+          "x": 14,
+          "y": 27
+        },
+        "id": 14,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "reducer": [
+              "sum"
+            ],
+            "show": true
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "expr": "topk(10, label_replace(node_api_requests_by_country, \"country\", \"United States\", \"country\", \"United States of America\"))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "📋 Top Countries",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "instance": true,
+                "job": true
+              },
+              "renameByName": {
+                "Value": "Requests",
+                "country": "Country"
+              }
+            }
+          },
+          {
+            "id": "sortBy",
+            "options": {
+              "fields": {},
+              "sort": [
+                {
+                  "desc": true,
+                  "field": "Requests"
+                }
+              ]
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {}
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 5,
+          "x": 19,
+          "y": 27
+        },
+        "id": 17,
         "options": {
           "legend": {
             "displayMode": "table",
             "placement": "right",
-            "calcs": ["lastNotNull", "min", "max"]
+            "showLegend": true,
+            "values": [
+              "value",
+              "percent"
+            ]
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "tooltip": {
+            "mode": "single"
           }
-        }
-      },
-      {
-        "id": 15,
-        "type": "stat",
-        "title": "Free Space Summary",
-        "description": "Riepilogo spazio libero",
-        "gridPos": {"x": 0, "y": 42, "w": 24, "h": 4},
+        },
         "targets": [
           {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype=\"xfs\"}",
-            "legendFormat": "Root (/) Free",
-            "instant": true
-          },
-          {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/home\",fstype=\"xfs\"}",
-            "legendFormat": "Home (/home) Free",
-            "instant": true
-          },
-          {
-            "expr": "node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype=\"xfs\"}",
-            "legendFormat": "Boot (/boot) Free",
-            "instant": true
+            "expr": "label_replace(node_api_requests_by_country, \"country\", \"United States\", \"country\", \"United States of America\")",
+            "instant": true,
+            "legendFormat": "{{country}}",
+            "refId": "A"
           }
         ],
+        "title": "🥧 Distribution",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
-            "unit": "bytes",
+            "custom": {
+              "fillOpacity": 5,
+              "lineWidth": 1,
+              "showPoints": "never"
+            },
+            "unit": "KBs"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 10,
+          "x": 14,
+          "y": 33
+        },
+        "id": 16,
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"insightlearn\"}[5m])) / 1024",
+            "legendFormat": "TX (upload)",
+            "refId": "TX"
+          },
+          {
+            "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"insightlearn\"}[5m])) / 1024",
+            "legendFormat": "RX (download)",
+            "refId": "RX"
+          }
+        ],
+        "title": "📉 Network I/O",
+        "type": "timeseries"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 39
+        },
+        "id": 103,
+        "panels": [],
+        "title": "📊 Stats & Metrics",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 5000000000, "color": "orange"},
-                {"value": 10000000000, "color": "yellow"},
-                {"value": 20000000000, "color": "green"}
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 5
+                },
+                {
+                  "color": "green",
+                  "value": 10
+                }
               ]
             }
           }
         },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 0,
+          "y": 40
+        },
+        "id": 13,
         "options": {
-          "colorMode": "background",
+          "colorMode": "value",
           "graphMode": "none",
-          "justifyMode": "center"
-        }
-      },
-      {
-        "id": 16,
-        "type": "stat",
-        "title": "Active Connections",
-        "description": "Connessioni HTTP attive all'API",
-        "gridPos": {"x": 0, "y": 46, "w": 8, "h": 4},
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 48
+          }
+        },
         "targets": [
           {
-            "expr": "sum(microsoft_aspnetcore_server_kestrel_kestrel_active_connections{job=\"insightlearn-api\"})",
-            "instant": true
+            "expr": "count(kube_pod_status_phase{namespace=\"insightlearn\", phase=\"Running\"})",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "🔢 Pods Running",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
             "thresholds": {
+              "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "blue"},
-                {"value": 50, "color": "yellow"},
-                {"value": 100, "color": "red"}
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
               ]
             }
           }
-        }
-      },
-      {
-        "id": 17,
-        "type": "stat",
-        "title": "Total Requests (Health)",
-        "description": "Totale richieste /health endpoint",
-        "gridPos": {"x": 8, "y": 46, "w": 8, "h": 4},
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 4,
+          "y": 40
+        },
+        "id": 10,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 40
+          }
+        },
         "targets": [
           {
-            "expr": "sum(microsoft_aspnetcore_hosting_http_server_request_duration_count{job=\"insightlearn-api\", http_route=\"/health\"})",
-            "instant": true
+            "expr": "sum(container_sockets{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\"})",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "🔗 Connections",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 3600
+                },
+                {
+                  "color": "green",
+                  "value": 86400
+                }
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 8,
+          "y": 40
+        },
+        "id": 15,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 32
+          }
+        },
+        "targets": [
+          {
+            "expr": "time() - kube_pod_start_time{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\"}",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "⏱️ Uptime API",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
             "unit": "short"
           }
-        }
-      },
-      {
-        "id": 18,
-        "type": "stat",
-        "title": "Prometheus Targets UP",
-        "description": "Numero di target Prometheus attivi",
-        "gridPos": {"x": 16, "y": 46, "w": 8, "h": 4},
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 12,
+          "y": 40
+        },
+        "id": 25,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 32
+          }
+        },
         "targets": [
           {
-            "expr": "count(up == 1)",
-            "instant": true
+            "expr": "sum(node_api_requests_by_country)",
+            "instant": true,
+            "refId": "A"
           }
         ],
+        "title": "📈 Total Requests",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
             "thresholds": {
+              "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 5, "color": "yellow"},
-                {"value": 8, "color": "green"}
+                {
+                  "color": "blue",
+                  "value": null
+                }
               ]
-            }
+            },
+            "unit": "decgbytes"
           }
-        }
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 16,
+          "y": 40
+        },
+        "id": 26,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 28
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(node_filesystem_avail_bytes{mountpoint=~\"/|/home|/k3s-zfs\"}) / 1024 / 1024 / 1024",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "💾 Total Free Space",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "purple",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 4,
+          "x": 20,
+          "y": 40
+        },
+        "id": 27,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {
+            "titleSize": 14,
+            "valueSize": 32
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg(sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", container!=\"\", container!=\"POD\"}[5m])) by (pod)) * 100",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "title": "⚙️ Avg CPU",
+        "type": "stat"
       }
-    ]
+    ],
+    "refresh": "30s",
+    "schemaVersion": 38,
+    "tags": [
+      "insightlearn",
+      "kubernetes",
+      "production",
+      "disk",
+      "geo"
+    ],
+    "timezone": "browser",
+    "title": "InsightLearn Platform Monitoring",
+    "uid": "insightlearn-main",
+    "version": 18
   },
   "overwrite": true
 }
