@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
-**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00)
+**Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
 **Latest Release**: 🌍 Multi-Language Subtitle Generation v2.2.0-dev (2025-12-16) - Kubernetes Job per generazione automatica sottotitoli in 10 lingue (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO) + transcriptions per tutti i 140 video. Previous: Subtitle Translation GridFS Fix, LinkedIn Learning UI Style.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
@@ -1026,19 +1026,79 @@ Professional student learning environment with AI-powered features inspired by L
    - **Backend**: Completamente funzionale (5 API endpoints video storage)
    - **Soluzione futura**: Code-behind pattern (.razor.cs) o upgrade .NET 9
 
-8. **🚨 K3s Disaster Recovery & Fixed Node Name** (✅ Risolto 2025-11-13)
+8. **🚨 K3s Disaster Recovery & Fixed Node Name** (✅ Risolto 2025-11-13, PV Fix 2025-12-18)
    - **Problema CRITICO**: Ad ogni riavvio K3s creava un nuovo cluster con node name diverso (`linux.fritz.box` ↔ `localhost.localdomain`)
    - **Conseguenza**: TUTTI i pod venivano persi perché legati al vecchio node
    - **Causa Root**: Hostname del sistema cambiava dinamicamente, K3s usava hostname come node name
    - **Soluzione Permanente**:
      1. **Hostname fisso** del sistema: `hostnamectl set-hostname insightlearn-k3s`
      2. **Node name fisso** in K3s service: `--node-name insightlearn-k3s`
-     3. **Label compatibilità** per PV legacy: `kubernetes.io/hostname=linux.fritz.box`
+     3. **Fix PV Legacy** (implementato 2025-12-18): Recreate PersistentVolumes con nuova node affinity
    - **File Modificati**:
      - `/etc/systemd/system/k3s.service` - Aggiunto `--node-name insightlearn-k3s`
      - `/etc/hostname` - Cambiato a `insightlearn-k3s`
    - **⚠️ CRITICAMENTE IMPORTANTE**: Il node name DEVE rimanere `insightlearn-k3s` per sempre
    - **Verifica**: `kubectl get nodes` deve mostrare SOLO `insightlearn-k3s` (mai duplicati)
+
+   **🔧 Fix PV Legacy dopo Node Name Change** (2025-12-18):
+   - **Problema**: PersistentVolumes creati PRIMA del node name fix hanno node affinity verso vecchio hostname (`linux.fritz.box`)
+   - **Sintomo**: Pods Pending con errore "0/1 nodes available: didn't match PersistentVolume's node affinity"
+   - **Causa**: Il campo `nodeAffinity` dei PV è **immutabile** in Kubernetes - non può essere patchato
+   - **Soluzione DEFINITIVA**: Delete & Recreate PV con stessa data path (dati intatti su disco)
+   - **Script Automatico**: [/tmp/fix-all-pv-node-affinity-FINAL.sh](/tmp/fix-all-pv-node-affinity-FINAL.sh)
+   - **Procedura Manuale** (esempio MongoDB):
+     ```bash
+     # 1. Get PVC UID
+     PVC_UID=$(kubectl get pvc mongodb-pvc -n insightlearn -o jsonpath='{.metadata.uid}')
+
+     # 2. Delete old PV (data remains on disk!)
+     kubectl delete pv pvc-6800fa72-36db-46b8-a20f-05732500c253
+
+     # 3. Create new PV with correct node affinity
+     cat <<EOF | kubectl create -f -
+     apiVersion: v1
+     kind: PersistentVolume
+     metadata:
+       name: pvc-6800fa72-36db-46b8-a20f-05732500c253
+     spec:
+       capacity:
+         storage: 50Gi
+       volumeMode: Filesystem
+       accessModes:
+         - ReadWriteOnce
+       persistentVolumeReclaimPolicy: Retain
+       storageClassName: local-path
+       local:
+         path: /var/lib/rancher/k3s/storage/pvc-6800fa72-36db-46b8-a20f-05732500c253_insightlearn_mongodb-pvc
+       nodeAffinity:
+         required:
+           nodeSelectorTerms:
+           - matchExpressions:
+             - key: kubernetes.io/hostname
+               operator: In
+               values:
+               - insightlearn-k3s
+       claimRef:
+         namespace: insightlearn
+         name: mongodb-pvc
+         uid: $PVC_UID
+         apiVersion: v1
+         kind: PersistentVolumeClaim
+     EOF
+
+     # 4. Restart pod to bind to new PV
+     kubectl delete pod mongodb-0 -n insightlearn --force --grace-period=0
+     ```
+   - **PV Affetti** (tutti fixati 2025-12-18):
+     - ✅ `mongodb-pvc` (50Gi)
+     - ✅ `sqlserver-data-sqlserver-0` (20Gi)
+     - ✅ `ollama-pvc` (5Gi)
+     - ✅ `redis-pvc` (1Gi)
+     - ✅ `elasticsearch-pvc` (5Gi)
+   - **⚠️ IMPORTANTE**:
+     - I dati su disco NON vengono mai toccati (path rimane identico)
+     - `persistentVolumeReclaimPolicy: Retain` previene accidental data loss
+     - Dopo node name change, TUTTI i PV local-path devono essere ricreati con questa procedura
 
 9. **🔄 HA Watchdog - Auto-Healing System** (✅ Implementato 2025-11-13)
    - **Scopo**: Ripristino automatico del cluster dopo riavvio/crash
@@ -1060,22 +1120,29 @@ Professional student learning environment with AI-powered features inspired by L
    - **Status**: `systemctl status insightlearn-ha-watchdog.timer`
    - **⚠️ IMPORTANTE**: Watchdog garantisce zero downtime dopo riavvio
 
-10. **🔧 Socat NodePort Tunnels** (✅ Implementato 2025-11-13)
-    - **Problema**: K3s NodePort non funzionante (networking issues post-riavvio)
-    - **Soluzione**: 6 servizi systemd socat per tunneling permanente
-    - **Servizi Attivi**:
-      - `socat-api-tunnel.service` → Porta 31081 (API)
-      - `socat-wasm-tunnel.service` → Porta 31090 (WASM Frontend)
-      - `socat-grafana-3000.service` → Porta 3000 (Grafana)
-      - `socat-grafana-tunnel.service` → Porta 31300 (Grafana NodePort)
-      - `socat-sqlserver-tunnel.service` → Porta 31433 (SQL Server)
-      - `socat-web-tunnel.service` → Porta 31080 (Web legacy)
-    - **Configurazione**:
-      - Auto-restart: Sì (RestartSec=10)
-      - Startup delay: 15 secondi (dopo K3s)
-      - Binding: 0.0.0.0 (accesso esterno)
-    - **Verifica**: `systemctl list-units 'socat-*'`
-    - **⚠️ IMPORTANTE**: Questi servizi sono CRITICI per l'accesso pubblico
+10. **🔧 Architettura Resiliente NodePort** (✅ Ottimizzato 2025-12-20)
+    - **Scoperta**: K3s gestisce NodePorts **nativamente via iptables** - socat NON necessario!
+    - **Architettura Attuale**:
+      - **NodePorts gestiti da K3s** (nessun socat richiesto):
+        - Porta 31081 (API) → K3s iptables diretto ✓
+        - Porta 31090 (WASM) → K3s iptables diretto ✓
+        - Porta 31300 (Grafana) → K3s iptables diretto ✓
+        - Porta 31433 (SQLServer) → K3s iptables diretto ✓
+        - Porta 31080 (Web) → K3s iptables diretto ✓
+      - **Unico socat attivo**:
+        - `socat-grafana-3000.service` → 3000 → localhost:31300 (per comodità)
+    - **Servizi Socat Mascherati** (non necessari):
+      - `socat-api-tunnel.service` → MASKED
+      - `socat-wasm-tunnel.service` → MASKED
+      - `socat-grafana-tunnel.service` → MASKED
+      - `socat-sqlserver-tunnel.service` → MASKED
+      - `socat-web-tunnel.service` → MASKED
+    - **Configurazione socat-grafana-3000**:
+      ```bash
+      ExecStart=/usr/bin/socat TCP-LISTEN:3000,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:31300
+      ```
+    - **Verifica**: `systemctl list-units 'socat-*'` (solo grafana-3000 attivo)
+    - **✅ RESILIENTE**: Usa localhost:NodePort, non cambia dopo crash
 
 11. **🌐 Cloudflared Login 502/520 Errors** (✅ RISOLTO 2025-11-20)
     - **Problema**: Login intermittente fallisce con HTTP 502/520 "unexpected EOF" errors
@@ -1116,6 +1183,12 @@ Professional student learning environment with AI-powered features inspired by L
     - **File Systemd Service Aggiornato**: [/tmp/cloudflared-tunnel-http2.service](/tmp/cloudflared-tunnel-http2.service)
     - **Status**: ✅ Login funzionante 100% (10/10 test consecutivi)
     - **Deployment Date**: 2025-11-20
+    - **🔄 Configurazione Resiliente** (Aggiornato 2025-12-20):
+      - Config file: `/home/mpasqui/.cloudflared/config.yml`
+      - **Usa localhost:NodePort** (mai ClusterIP che cambia dopo crash!)
+      - API: `http://127.0.0.1:31081` (NodePort stabile)
+      - WASM: `http://127.0.0.1:31090` (NodePort stabile)
+      - **Non richiede aggiornamenti IP dopo crash/riavvio**
 
 12. **🗄️ Student Learning Space Database Migration** (✅ RISOLTO 2025-12-02)
     - **Problema**: Tabelle Student Learning Space mancanti causavano HTTP 500/404
@@ -1226,6 +1299,123 @@ Professional student learning environment with AI-powered features inspired by L
       ```
     - **Status**: ✅ Video streaming funzionante (10MB in 0.045s)
     - **Deployment Date**: 2025-12-11
+
+15. **🚨 K3s Pod Creation Storm & Emergency Recovery** (✅ RISOLTO 2025-12-18)
+    - **Problema CRITICO**: Dopo restart K3s, creazione massiva di 3109 API pods in loop infinito
+    - **Sintomi**:
+      - ReplicaSet mostrava stato inconsistente: "1 desired, 0 running" ma nessun pod creato
+      - Errore K3s logs: `Failed to watch *v1.Deployment: Unauthorized`
+      - Dopo restart K3s: creazione storm di 3109 pods API in rapida successione
+      - K3s API server crash con "unexpected EOF" e "connection reset by peer"
+    - **Root Cause**: Restart K3s ha causato deployment controller a replay missed events, triggering loop
+    - **Emergency Recovery Procedure** (implementata 2025-12-18):
+      1. ✅ Delete deployment immediato per fermare creazione loop
+      2. ✅ Attesa auto-restart K3s
+      3. ✅ Batch deletion script per cleanup sicuro 3109 pods
+      4. ✅ Recreate deployment da manifest
+    - **Script Emergency Cleanup**: [/tmp/cleanup-api-pods.sh](/tmp/cleanup-api-pods.sh)
+      ```bash
+      #!/bin/bash
+      # Delete pods in batches of 50 with 5-second delays
+      # Prevents overwhelming K3s API server
+      BATCH_SIZE=50
+      DELAY=5
+      while true; do
+          PODS=$(kubectl get pods -n insightlearn -l app=insightlearn-api --no-headers -o custom-columns=":metadata.name" | head -n $BATCH_SIZE)
+          POD_COUNT=$(echo "$PODS" | grep -v '^$' | wc -l)
+          if [ $POD_COUNT -eq 0 ]; then break; fi
+          for POD in $PODS; do
+              kubectl delete pod -n insightlearn $POD --force --grace-period=0 &> /dev/null &
+          done
+          sleep $DELAY
+      done
+      ```
+    - **⚠️ IMPORTANTE**: Direct deletion of thousands of pods crashes K3s - ALWAYS use batch deletion
+
+    **Fix #1: SQL Server Node Affinity Mismatch** (✅ Risolto 2025-12-18):
+    - **Problema**: SQL Server pod Pending con errore "didn't match PersistentVolume's node affinity"
+    - **Root Cause**: PV richiede label `kubernetes.io/hostname=linux.fritz.box`, ma node ha solo `kubernetes.io/hostname=insightlearn-k3s`
+    - **Soluzione Temporanea**: Aggiunto label compatibilità al node
+      ```bash
+      kubectl label node insightlearn-k3s kubernetes.io/hostname=linux.fritz.box --overwrite
+      ```
+    - **Soluzione Permanente**: Recreate PV con nuova node affinity (vedi problema #8 sopra)
+    - **Impact**: SQL Server scheduling bloccava API health (database connection failed)
+
+    **Fix #2: Socat Tunnel DNS-Based Configuration** (✅ Implementato 2025-12-18):
+    - **Problema**: API NodePort 31081 non raggiungibile, timeout su curl requests
+    - **Root Cause**: Socat tunnel configurato con hardcoded ClusterIP obsoleto
+      ```bash
+      # OLD (falliva):
+      TCP:10.43.108.102:80
+
+      # NEW API service IP (diverso):
+      api-service   ClusterIP   10.43.240.71   <none>        80/TCP,443/TCP
+      ```
+    - **Soluzione Permanente**: Cambio da hardcoded IP a DNS-based resolution
+      ```bash
+      # File: /etc/systemd/system/socat-api-tunnel.service
+      # Prima:
+      ExecStart=/usr/bin/socat TCP-LISTEN:31081,fork,reuseaddr,bind=0.0.0.0 TCP:10.43.108.102:80
+
+      # Dopo:
+      ExecStart=/usr/bin/socat TCP-LISTEN:31081,fork,reuseaddr,bind=0.0.0.0 TCP:api-service.insightlearn.svc.cluster.local:80
+
+      # Comandi applicati:
+      sudo sed -i 's|TCP:10.43.108.102:80|TCP:api-service.insightlearn.svc.cluster.local:80|g' /etc/systemd/system/socat-api-tunnel.service
+      sudo systemctl daemon-reload
+      sudo systemctl restart socat-api-tunnel.service
+      ```
+    - **Benefit**: DNS resolution previene future IP mismatch dopo service recreation
+    - **⚠️ IMPORTANTE**: Tutti i socat tunnel dovrebbero usare DNS names, non hardcoded IPs
+
+    **Fix #3: SubtitleTracks Migration FK Constraint** (✅ Risolto 2025-12-18):
+    - **Problema**: Migration job completato ma tabella non creata
+    - **Errore SQL**:
+      ```
+      Msg 1767: Foreign key 'FK_SubtitleTracks_Users_CreatedByUserId' references invalid table 'AspNetUsers'
+      Msg 1750: Could not create constraint or index
+      ```
+    - **Root Cause**: Migration script referenced `AspNetUsers` (ASP.NET Identity default), ma InsightLearnDb usa custom `Users` table
+    - **Discovery**:
+      ```bash
+      kubectl exec sqlserver-0 -- sqlcmd -Q "SELECT name FROM sys.tables WHERE name LIKE '%User%'"
+      # Result: Users (NOT AspNetUsers)
+      ```
+    - **Fix**: Updated FK constraint in migration YAML
+      ```bash
+      # File: /tmp/sql-migration-fixed-v3.yaml
+      # Line 32: Changed from AspNetUsers to Users
+      sed 's/AspNetUsers/Users/g' /tmp/sql-migration-fixed.yaml > /tmp/sql-migration-fixed-v3.yaml
+
+      # Apply corrected migration:
+      kubectl delete job subtitle-tracks-migration-v2 -n insightlearn
+      kubectl apply -f /tmp/sql-migration-fixed-v3.yaml
+      ```
+    - **Verification**:
+      ```bash
+      kubectl exec sqlserver-0 -n insightlearn -- \
+        /opt/mssql-tools18/bin/sqlcmd -C -d InsightLearnDb \
+        -Q "SELECT name FROM sys.tables WHERE name = 'SubtitleTracks'"
+      # Result: SubtitleTracks (1 row affected) ✓
+      ```
+
+    **Final Status** (2025-12-18):
+    - ✅ API: 1/1 Running and Ready (version 2.1.0-dev responding)
+    - ✅ SQL Server: 1/1 Running and Ready (65 tables)
+    - ✅ SubtitleTracks table: Successfully created with proper FK constraints to Users
+    - ✅ Pod cleanup: 3109 orphaned pods removed without K3s crash
+    - ✅ Socat tunnel: Resilient DNS-based configuration
+    - ✅ All infrastructure pods: Running
+
+    **Lessons Learned**:
+    1. **Never restart K3s with inconsistent deployment state** - can trigger catastrophic pod creation storms
+    2. **Always use batch deletion for large pod counts** - direct deletion crashes K3s API server
+    3. **Use DNS names in socat tunnels** - prevents IP mismatch after service recreation
+    4. **Verify custom table names in migrations** - don't assume ASP.NET Identity defaults
+    5. **Node labels for backward compatibility** - temporary fix until PV recreation
+
+    **Deployment Date**: 2025-12-18
 
 ### 🔥 Disaster Recovery Completo - HA System v2.0.2 (✅ Implementato 2025-11-16)
 

@@ -25,7 +25,7 @@ BACKUP_FILE="k3s-cluster-snapshot.tar.gz"
 BACKUP_PATH="${BACKUP_DIR}/${BACKUP_FILE}"
 TEMP_DIR="/tmp/k3s-restore-$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="/var/log/k3s-restore.log"
-STATE_FILE="/var/lib/k3s-restore-state"
+STATE_FILE="/tmp/k3s-restore-state"
 
 # Maximum wait time for K3s to be ready (seconds)
 MAX_WAIT=300

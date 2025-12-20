@@ -270,4 +270,11 @@ if [[ -f "$SCRIPT_DIR/export-dr-metrics.sh" ]]; then
     bash "$SCRIPT_DIR/export-dr-metrics.sh" 2>&1 | tee -a "$LOG_FILE" || warn "Failed to export metrics"
 fi
 
+# Collect GeoIP metrics from Cloudflare CF-IPCountry header
+GEOIP_SCRIPT="/home/mpasqui/insightlearn_WASM/InsightLearn_WASM/scripts/collect-geoip-metrics.sh"
+if [[ -f "$GEOIP_SCRIPT" ]]; then
+    log "Collecting GeoIP metrics from Cloudflare..."
+    bash "$GEOIP_SCRIPT" 2>&1 | tee -a "$LOG_FILE" || warn "Failed to collect GeoIP metrics"
+fi
+
 exit 0
