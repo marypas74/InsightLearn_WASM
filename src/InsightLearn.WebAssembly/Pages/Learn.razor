@@ -10,39 +10,51 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IToastService ToastService
-@* v2.2.0-dev: LinkedIn Learning Style 4-Column Fixed Layout with Tailwind CSS *@
+
+@*
+   ============================================================================
+   v2.3.0-dev: LinkedIn Learning Style - 4-Column Fixed Layout
+   Completely rewritten with pure Tailwind CSS for pixel-perfect layout
+
+   Layout Structure:
+   - ZONA A: Global Nav Rail (80px fixed) - White background
+   - ZONA B: Course Sidebar (350px) - Dark Navy (#19212d)
+   - ZONA C: Main Stage (flex-1) - Light gray background
+   - ZONA D: AI Assistant (400px) - White background
+   ============================================================================
+*@
 
 <PageTitle>@(lesson?.Title ?? "Learning") - InsightLearn</PageTitle>
 
 @if (isLoading)
 {
-    <!-- Loading State - Full Screen Centered -->
-    <div class="flex h-screen items-center justify-center bg-gray-50">
+    <!-- Loading State - Full Screen Centered with Spinner -->
+    <div class="flex h-screen items-center justify-center bg-slate-50">
         <div class="text-center">
             <div class="relative inline-block">
                 <div class="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
             </div>
-            <h3 class="mt-4 text-lg font-semibold text-gray-800">Preparing your learning experience</h3>
-            <p class="mt-2 text-sm text-gray-500">Loading video, transcripts, and resources...</p>
+            <h3 class="mt-6 text-lg font-semibold text-slate-800">Preparing your learning experience</h3>
+            <p class="mt-2 text-sm text-slate-500">Loading video, transcripts, and resources...</p>
         </div>
     </div>
 }
 else if (errorMessage != null)
 {
-    <!-- Error State - Full Screen Centered -->
-    <div class="flex h-screen items-center justify-center bg-gray-50">
+    <!-- Error State -->
+    <div class="flex h-screen items-center justify-center bg-slate-50">
         <div class="text-center max-w-md px-6">
-            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                <i class="fas fa-exclamation-circle text-3xl text-red-500"></i>
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
             </div>
-            <h3 class="text-xl font-semibold text-gray-800">Unable to load lesson</h3>
-            <p class="mt-2 text-gray-600">@errorMessage</p>
+            <h3 class="text-xl font-semibold text-slate-800">Unable to load lesson</h3>
+            <p class="mt-2 text-slate-600">@errorMessage</p>
             <div class="mt-6 flex justify-center gap-3">
-                <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+                <button class="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
                         @onclick="@(() => LoadLearningEnvironment())">
                     <i class="fas fa-redo mr-2"></i>Try Again
                 </button>
-                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                <button class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
                         @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Course
                 </button>
@@ -53,134 +65,140 @@ else if (errorMessage != null)
 else if (lesson != null && course != null)
 {
     <!-- ==========================================================================
-         MAIN 4-COLUMN LAYOUT (LinkedIn Learning Style) - Theater Mode Enabled
-         - ZONA A: Global Nav (80px)
-         - ZONA B: Course Sidebar (350px, dark navy) - Collapsible
-         - ZONA C: Main Stage (flex-1, scrollable)
-         - ZONA D: AI Assistant (400px) - Collapsible
+         MAIN 4-COLUMN LAYOUT (LinkedIn Learning Style)
+         Using flex with h-screen and overflow-hidden for fixed viewport
          ========================================================================== -->
-    <div class="flex h-screen overflow-hidden bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden bg-slate-100">
 
-        <!-- ================================================================
-             ZONA A: GLOBAL NAV RAIL (80px, Estrema Sinistra)
-             ================================================================ -->
-        <nav class="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-6 space-y-6 flex-shrink-0">
-            <!-- Back to Course -->
+        <!-- ====================================================================
+             ZONA A: GLOBAL NAV RAIL (80px - Left Edge)
+             Fixed white sidebar with navigation icons
+             ==================================================================== -->
+        <nav class="w-20 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-5">
+
+            <!-- Back Button -->
             <button @onclick="BackToCourse"
-                    class="flex flex-col items-center space-y-1 text-gray-500 hover:text-blue-600 transition-colors"
-                    title="Back to course">
-                <i class="fas fa-arrow-left text-xl"></i>
-                <span class="text-xs font-medium">Back</span>
+                    class="group flex flex-col items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                    title="Back to course page">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                </div>
+                <span class="text-[10px] font-medium">Back</span>
             </button>
 
             <!-- Home -->
             <button @onclick="@(() => Navigation.NavigateTo("/"))"
-                    class="flex flex-col items-center space-y-1 text-gray-500 hover:text-blue-600 transition-colors"
-                    title="Home">
-                <i class="fas fa-home text-xl"></i>
-                <span class="text-xs font-medium">Home</span>
+                    class="group flex flex-col items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                    title="Go to homepage">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-home text-lg"></i>
+                </div>
+                <span class="text-[10px] font-medium">Home</span>
             </button>
 
             <!-- My Learning -->
             <button @onclick="@(() => Navigation.NavigateTo("/my-courses"))"
-                    class="flex flex-col items-center space-y-1 text-gray-500 hover:text-blue-600 transition-colors"
-                    title="My Learning">
-                <i class="fas fa-book-open text-xl"></i>
-                <span class="text-xs font-medium">My Learning</span>
+                    class="group flex flex-col items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                    title="My Learning dashboard">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-book-open text-lg"></i>
+                </div>
+                <span class="text-[10px] font-medium">My Learning</span>
             </button>
 
             <!-- Spacer -->
             <div class="flex-1"></div>
 
             <!-- Progress Indicator -->
-            <div class="text-center">
-                <div class="text-xs font-bold text-blue-600">@currentLessonIndex/@totalLessons</div>
-                <div class="text-xs text-gray-400">lessons</div>
+            <div class="text-center pb-2">
+                <div class="text-sm font-bold text-blue-600">@currentLessonIndex</div>
+                <div class="text-[10px] text-slate-400 leading-tight">of @totalLessons</div>
             </div>
         </nav>
 
-        <!-- ================================================================
-             ZONA B: COURSE CONTENT SIDEBAR (350px, BLU SCURO) - Collapsible
-             ================================================================ -->
-        <aside class="@(IsContentSidebarOpen ? "w-[350px]" : "w-0") bg-dark-navy flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out @(leftSidebarOpen ? "" : "hidden lg:flex")">
-            <!-- Header -->
-            <div class="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0 min-w-[350px]">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-list-ul text-white text-sm"></i>
-                    <h2 class="text-white font-semibold text-sm">Contents</h2>
+        <!-- ====================================================================
+             ZONA B: COURSE CONTENT SIDEBAR (350px - Dark Navy)
+             Collapsible sidebar with course curriculum/lessons list
+             ==================================================================== -->
+        <aside class="@(IsContentSidebarOpen ? "w-[350px]" : "w-0") flex-shrink-0 bg-[#19212d] flex flex-col transition-all duration-300 ease-in-out overflow-hidden">
+
+            <!-- Sidebar Header (fixed at top) -->
+            <div class="flex-shrink-0 p-4 border-b border-slate-700/50 flex items-center justify-between min-w-[350px]">
+                <div class="flex items-center gap-2.5">
+                    <i class="fas fa-list-ul text-white/80 text-sm"></i>
+                    <span class="text-white font-semibold text-sm">Contents</span>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <!-- Desktop Close Button -->
-                    <button @onclick="ToggleContentSidebar"
-                            class="hidden lg:flex p-1.5 hover:bg-white/10 rounded transition-colors"
-                            title="Hide Contents">
-                        <i class="fas fa-chevron-left text-white text-sm"></i>
-                    </button>
-                    <!-- Mobile Close Button -->
-                    <button @onclick="ToggleLeftSidebar"
-                            class="lg:hidden p-1.5 hover:bg-white/10 rounded transition-colors">
-                        <i class="fas fa-times text-white text-sm"></i>
-                    </button>
-                </div>
+                <!-- CLOSE BUTTON - Chiude la sidebar Contents -->
+                <button @onclick="ToggleContentSidebar"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-white/60 transition-all duration-200"
+                        title="Close Contents (Enter Theater Mode)">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
             </div>
 
-            <!-- Course Title -->
-            <div class="px-4 py-3 border-b border-gray-700 flex-shrink-0">
-                <h3 class="text-white font-medium text-sm truncate">@course.Title</h3>
-                <p class="text-gray-400 text-xs mt-1">by @course.InstructorName</p>
+            <!-- Course Title Section -->
+            <div class="flex-shrink-0 px-4 py-3 border-b border-slate-700/50 min-w-[350px]">
+                <h3 class="text-white font-medium text-sm leading-snug line-clamp-2">@course.Title</h3>
+                <p class="text-slate-400 text-xs mt-1.5">by @course.InstructorName</p>
             </div>
 
             <!-- Scrollable Lesson List -->
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto custom-scrollbar-dark min-w-[350px]">
                 @if (course.Sections != null)
                 {
                     @foreach (var section in course.Sections)
                     {
-                        <div class="border-b border-gray-700">
-                            <!-- Section Header -->
+                        <!-- Section Accordion -->
+                        <div class="border-b border-slate-700/30">
+                            <!-- Section Header (Clickable) -->
                             <button class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
                                     @onclick="@(() => ToggleSection(section.Id))">
-                                <div class="flex items-center space-x-3">
-                                    <i class="fas @(expandedSections.Contains(section.Id) ? "fa-chevron-down" : "fa-chevron-right") text-gray-400 text-xs transition-transform"></i>
-                                    <span class="text-white font-medium text-sm">@(section.Title)</span>
+                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    <i class="fas fa-chevron-right text-slate-500 text-[10px] transition-transform duration-200 @(expandedSections.Contains(section.Id) ? "rotate-90" : "")"></i>
+                                    <span class="text-white font-medium text-sm truncate">@(section.Title)</span>
                                 </div>
-                                <span class="text-gray-400 text-xs">@FormatSectionDuration(section)</span>
+                                <span class="text-slate-500 text-xs flex-shrink-0 ml-2">@FormatSectionDuration(section)</span>
                             </button>
 
-                            <!-- Lessons (Collapsible) -->
+                            <!-- Lessons Inside Section (Collapsible) -->
                             @if (expandedSections.Contains(section.Id) && section.Lessons != null)
                             {
-                                <div class="pl-4">
+                                <div class="pb-2">
                                     @foreach (var lessonItem in section.Lessons)
                                     {
                                         var isActive = lessonItem.Id == LessonId;
                                         var isCompleted = lessonItem.IsCompleted;
 
-                                        <div class="lesson-item flex items-center space-x-3 px-4 py-3 cursor-pointer transition-colors @(isActive ? "bg-white/10 border-l-2 border-blue-500" : "hover:bg-white/5")"
-                                             @onclick="@(() => NavigateToLesson(lessonItem.Id))">
+                                        <div @onclick="@(() => NavigateToLesson(lessonItem.Id))"
+                                             class="group flex items-center gap-3 px-4 py-2.5 mx-2 rounded cursor-pointer transition-all duration-150
+                                                    @(isActive ? "bg-white/15" : "hover:bg-white/5")
+                                                    @(isActive ? "border-l-2 border-blue-500 -ml-0.5 pl-[14px]" : "")">
+
                                             <!-- Status Circle -->
                                             <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                                                        @(isCompleted ? "border-green-500" : isActive ? "border-blue-500" : "border-gray-500")">
+                                                        @(isCompleted ? "border-green-500 bg-green-500/20" : isActive ? "border-blue-500 bg-blue-500/20" : "border-slate-500")">
                                                 @if (isCompleted)
                                                 {
-                                                    <i class="fas fa-check text-green-500 text-xs"></i>
+                                                    <i class="fas fa-check text-green-400 text-[9px]"></i>
                                                 }
                                                 else if (isActive)
                                                 {
-                                                    <i class="fas fa-play text-blue-500 text-xs"></i>
+                                                    <i class="fas fa-play text-blue-400 text-[8px] ml-0.5"></i>
                                                 }
                                             </div>
+
                                             <!-- Lesson Info -->
                                             <div class="flex-1 min-w-0">
-                                                <p class="@(isActive ? "text-white font-medium" : "text-gray-300") text-sm truncate">
+                                                <p class="text-sm truncate @(isActive ? "text-white font-medium" : "text-slate-300 group-hover:text-white")">
                                                     @lessonItem.Title
                                                 </p>
-                                                <p class="text-gray-500 text-xs">@FormatDuration(lessonItem.DurationMinutes)</p>
+                                                <p class="text-xs text-slate-500">@FormatDuration(lessonItem.DurationMinutes)</p>
                                             </div>
+
                                             <!-- Free Badge -->
                                             @if (lessonItem.IsFree)
                                             {
-                                                <span class="text-xs text-green-400 font-medium">FREE</span>
+                                                <span class="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide flex-shrink-0">Free</span>
                                             }
                                         </div>
                                     }
@@ -192,64 +210,77 @@ else if (lesson != null && course != null)
             </div>
         </aside>
 
-        <!-- ================================================================
-             ZONA C: MAIN STAGE (Flex-1, Scrollabile)
-             ================================================================ -->
-        <main class="flex-1 overflow-y-auto bg-gray-100">
-            <!-- Video Player Section -->
-            <div class="bg-black relative">
+        <!-- ====================================================================
+             ZONA C: MAIN STAGE (flex-1 - Center)
+             Video player on top, tabs bar, tab content below
+             ==================================================================== -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-100">
+
+            <!-- Video Player Container (Black Background) -->
+            <div class="relative bg-black flex-shrink-0 group">
 
                 <!-- ================================================================
-                     THEATER MODE OVERLAY CONTROLS
-                     Appear when sidebars are collapsed (desktop only)
+                     OVERLAY CONTROLS - Transparent Menu Over Video
+                     Appears when sidebars are collapsed for reopening them
                      ================================================================ -->
+                <div class="absolute top-0 left-0 right-0 z-20 p-4 flex items-start justify-between pointer-events-none">
 
-                <!-- Left Overlay: Show Contents Button (when Content Sidebar is closed) -->
-                @if (!IsContentSidebarOpen)
-                {
-                    <button @onclick="ToggleContentSidebar"
-                            class="hidden lg:flex absolute top-4 left-4 z-20 items-center space-x-2 px-3 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
-                            title="Show Contents">
-                        <i class="fas fa-list-ul"></i>
-                        <span>Contents</span>
-                        <i class="fas fa-chevron-right text-xs opacity-70"></i>
-                    </button>
-                }
+                    <!-- LEFT: Show Contents Button (only when sidebar is closed) -->
+                    @if (!IsContentSidebarOpen)
+                    {
+                        <button @onclick="ToggleContentSidebar"
+                                class="pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/10"
+                                title="Show Course Contents">
+                            <i class="fas fa-bars text-base"></i>
+                            <span class="hidden sm:inline">Contents</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div></div> <!-- Spacer -->
+                    }
 
-                <!-- Right Overlay: Show AI Button (when AI Sidebar is closed) -->
-                @if (!IsAISidebarOpen)
-                {
-                    <button @onclick="ToggleAISidebar"
-                            class="hidden lg:flex absolute top-4 right-4 z-20 items-center space-x-2 px-3 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
-                            title="Show AI Assistant">
-                        <i class="fas fa-chevron-left text-xs opacity-70"></i>
-                        <span>AI Help</span>
-                        <i class="fas fa-star"></i>
-                    </button>
-                }
+                    <!-- CENTER: Theater Mode Badge (when both sidebars are closed) -->
+                    @if (!IsContentSidebarOpen && !IsAISidebarOpen)
+                    {
+                        <div class="pointer-events-none flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md text-white rounded-full text-xs font-medium shadow-lg animate-pulse">
+                            <i class="fas fa-expand"></i>
+                            <span>Theater Mode Active</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div></div> <!-- Spacer -->
+                    }
 
-                <!-- Theater Mode Indicator (when both sidebars are closed) -->
-                @if (!IsContentSidebarOpen && !IsAISidebarOpen)
+                    <!-- RIGHT: Show AI Button (only when AI sidebar is closed) -->
+                    @if (!IsAISidebarOpen)
+                    {
+                        <button @onclick="ToggleAISidebar"
+                                class="pointer-events-auto flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 backdrop-blur-md text-white rounded-full text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/10"
+                                title="Show AI Learning Assistant">
+                            <i class="fas fa-robot text-base"></i>
+                            <span class="hidden sm:inline">AI Help</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div></div> <!-- Spacer -->
+                    }
+                </div>
+
+                <!-- Quick Action Hint (appears on video hover when sidebars visible) -->
+                @if (IsContentSidebarOpen && IsAISidebarOpen)
                 {
-                    <div class="hidden lg:flex absolute top-4 left-1/2 transform -translate-x-1/2 z-20 items-center space-x-2 px-3 py-1.5 bg-black/30 backdrop-blur-sm text-white/70 rounded-full text-xs">
-                        <i class="fas fa-expand"></i>
-                        <span>Theater Mode</span>
+                    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-sm text-white/60 rounded-full text-xs">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Close sidebars for Theater Mode</span>
+                        </div>
                     </div>
                 }
 
-                <!-- Mobile Toggle for Left Sidebar -->
-                <button @onclick="ToggleLeftSidebar"
-                        class="lg:hidden absolute top-4 left-4 z-10 px-3 py-2 bg-black/50 hover:bg-black/70 text-white rounded-lg text-sm font-medium transition-colors">
-                    <i class="fas fa-list-ul mr-2"></i>Contents
-                </button>
-
-                <!-- Mobile Toggle for Right Sidebar (AI) -->
-                <button @onclick="ToggleRightSidebar"
-                        class="lg:hidden absolute top-4 right-4 z-10 px-3 py-2 bg-black/50 hover:bg-black/70 text-white rounded-lg text-sm font-medium transition-colors">
-                    <i class="fas fa-robot mr-2"></i>AI Help
-                </button>
-
-                <!-- SmartVideoPlayer Component (v2.2.0-dev) -->
+                <!-- Smart Video Player Component -->
                 <SmartVideoPlayer @ref="smartVideoPlayerRef"
                                   VideoSource="@(lesson.VideoUrl ?? "")"
                                   VideoId="@LessonId.ToString()"
@@ -262,108 +293,109 @@ else if (lesson != null && course != null)
                                   OnErrorOccurred="@HandleVideoError" />
             </div>
 
-            <!-- TABS BAR (Sticky) -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div class="flex px-6 overflow-x-auto">
+            <!-- Tabs Navigation Bar (Sticky) -->
+            <div class="flex-shrink-0 bg-white border-b border-slate-200 shadow-sm">
+                <div class="flex px-4 sm:px-6 overflow-x-auto scrollbar-hide">
                     <!-- Tab: Overview -->
                     <button @onclick="@(() => SetActiveTab("overview"))"
-                            class="flex items-center space-x-2 py-4 px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
-                                   @(activeTab == "overview" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700")">
-                        <i class="far fa-file-alt"></i>
+                            class="flex items-center gap-2 py-4 px-3 sm:px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
+                                   @(activeTab == "overview" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300")">
+                        <i class="far fa-file-alt text-sm"></i>
                         <span>Overview</span>
                     </button>
 
                     <!-- Tab: Notebook -->
                     <button @onclick="@(() => SetActiveTab("notes"))"
-                            class="flex items-center space-x-2 py-4 px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
-                                   @(activeTab == "notes" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700")">
-                        <i class="far fa-sticky-note"></i>
+                            class="flex items-center gap-2 py-4 px-3 sm:px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
+                                   @(activeTab == "notes" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300")">
+                        <i class="far fa-sticky-note text-sm"></i>
                         <span>Notebook</span>
                     </button>
 
                     <!-- Tab: Transcript -->
                     <button @onclick="@(() => SetActiveTab("transcript"))"
-                            class="flex items-center space-x-2 py-4 px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
-                                   @(activeTab == "transcript" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700")">
-                        <i class="fas fa-align-left"></i>
+                            class="flex items-center gap-2 py-4 px-3 sm:px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
+                                   @(activeTab == "transcript" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300")">
+                        <i class="fas fa-align-left text-sm"></i>
                         <span>Transcript</span>
                     </button>
 
                     <!-- Tab: Exercise Files -->
                     <button @onclick="@(() => SetActiveTab("exercise-files"))"
-                            class="flex items-center space-x-2 py-4 px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
-                                   @(activeTab == "exercise-files" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700")">
-                        <i class="far fa-folder"></i>
+                            class="flex items-center gap-2 py-4 px-3 sm:px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
+                                   @(activeTab == "exercise-files" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300")">
+                        <i class="far fa-folder text-sm"></i>
                         <span>Exercise Files</span>
                         @if (HasExerciseFiles())
                         {
-                            <span class="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">@GetExerciseFileCount()</span>
+                            <span class="px-1.5 py-0.5 bg-blue-100 text-blue-600 text-[10px] rounded-full font-semibold">@GetExerciseFileCount()</span>
                         }
                     </button>
 
                     <!-- Tab: Q&A -->
                     <button @onclick="@(() => SetActiveTab("qa"))"
-                            class="flex items-center space-x-2 py-4 px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
-                                   @(activeTab == "qa" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-500 hover:text-gray-700")">
-                        <i class="far fa-comments"></i>
+                            class="flex items-center gap-2 py-4 px-3 sm:px-4 border-b-2 whitespace-nowrap transition-colors text-sm font-medium
+                                   @(activeTab == "qa" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300")">
+                        <i class="far fa-comments text-sm"></i>
                         <span>Q&A</span>
                     </button>
                 </div>
             </div>
 
-            <!-- TAB CONTENT -->
-            <div class="bg-white min-h-[400px]">
+            <!-- Tab Content Area (Scrollable) -->
+            <div class="flex-1 overflow-y-auto bg-white">
                 @if (activeTab == "overview")
                 {
-                    <!-- OVERVIEW TAB -->
-                    <div class="p-6 space-y-6 max-w-4xl">
-                        <!-- Lesson Title & Status -->
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <h1 class="text-2xl font-bold text-gray-900">@lesson.Title</h1>
+                    <!-- ========== OVERVIEW TAB ========== -->
+                    <div class="p-6 sm:p-8 max-w-4xl space-y-8">
+
+                        <!-- Lesson Title & Completion Badge -->
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div class="flex-1">
+                                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">@lesson.Title</h1>
                                 @if (!string.IsNullOrEmpty(lesson.Description))
                                 {
-                                    <p class="mt-2 text-gray-600">@lesson.Description</p>
+                                    <p class="mt-3 text-slate-600 leading-relaxed">@lesson.Description</p>
                                 }
                             </div>
                             @if (lesson.IsCompleted)
                             {
-                                <span class="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium flex-shrink-0">
                                     <i class="fas fa-check-circle"></i>
-                                    <span>Completed</span>
+                                    Completed
                                 </span>
                             }
                         </div>
 
-                        <!-- Lesson Meta -->
-                        <div class="flex flex-wrap gap-4 text-sm text-gray-500">
-                            <span class="flex items-center space-x-1">
-                                <i class="fas fa-clock"></i>
-                                <span>@FormatDuration(lesson.DurationMinutes)</span>
+                        <!-- Lesson Metadata -->
+                        <div class="flex flex-wrap gap-4 text-sm text-slate-500">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-clock text-slate-400"></i>
+                                @FormatDuration(lesson.DurationMinutes)
                             </span>
-                            <span class="flex items-center space-x-1">
-                                <i class="fas fa-layer-group"></i>
-                                <span>@currentSection?.Title</span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-layer-group text-slate-400"></i>
+                                @currentSection?.Title
                             </span>
                             @if (lesson.IsFree)
                             {
-                                <span class="flex items-center space-x-1 text-green-600">
-                                    <i class="fas fa-unlock"></i>
-                                    <span>Free Preview</span>
+                                <span class="flex items-center gap-1.5 text-emerald-600">
+                                    <i class="fas fa-unlock text-emerald-500"></i>
+                                    Free Preview
                                 </span>
                             }
                         </div>
 
                         <!-- Instructor Section -->
-                        <div class="border-t border-gray-200 pt-6">
-                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Instructor</h2>
-                            <div class="flex items-start space-x-4">
-                                <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                        <div class="pt-6 border-t border-slate-100">
+                            <h2 class="text-lg font-semibold text-slate-900 mb-4">Instructor</h2>
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                                     @GetInstructorInitials()
                                 </div>
-                                <div class="flex-1">
-                                    <h3 class="text-base font-semibold text-gray-900">@course.InstructorName</h3>
-                                    <p class="text-sm text-gray-600 mt-1">Course Instructor</p>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900">@course.InstructorName</h3>
+                                    <p class="text-sm text-slate-500 mt-0.5">Course Instructor</p>
                                 </div>
                             </div>
                         </div>
@@ -371,52 +403,62 @@ else if (lesson != null && course != null)
                         <!-- Related Resources -->
                         @if (!string.IsNullOrEmpty(lesson.AttachmentUrl))
                         {
-                            <div class="border-t border-gray-200 pt-6">
-                                <h2 class="text-lg font-semibold text-gray-900 mb-4">Related to this course</h2>
+                            <div class="pt-6 border-t border-slate-100">
+                                <h2 class="text-lg font-semibold text-slate-900 mb-4">Related to this lesson</h2>
                                 <a href="@lesson.AttachmentUrl" target="_blank"
-                                   class="flex items-center justify-between py-3 px-3 -mx-3 hover:bg-gray-50 rounded-lg transition-colors">
-                                    <div class="flex items-center space-x-3">
-                                        <i class="far fa-folder text-gray-600 text-lg"></i>
-                                        <span class="text-sm font-medium text-gray-900">@(lesson.AttachmentName ?? "Exercise Files")</span>
+                                   class="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                            <i class="far fa-folder text-slate-600"></i>
+                                        </div>
+                                        <span class="font-medium text-slate-900">@(lesson.AttachmentName ?? "Exercise Files")</span>
                                     </div>
-                                    <i class="fas fa-download text-blue-600"></i>
+                                    <i class="fas fa-download text-blue-600 group-hover:translate-y-0.5 transition-transform"></i>
                                 </a>
                             </div>
                         }
 
-                        <!-- Course Details -->
-                        <div class="border-t border-gray-200 pt-6">
-                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Course details</h2>
-                            <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                        <!-- Course Card -->
+                        <div class="pt-6 border-t border-slate-100">
+                            <h2 class="text-lg font-semibold text-slate-900 mb-4">Course details</h2>
+                            <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
                                 @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
                                 {
                                     <img src="@course.ThumbnailUrl" alt="@course.Title"
-                                         class="w-24 h-16 object-cover rounded flex-shrink-0" />
+                                         class="w-28 h-16 object-cover rounded-lg flex-shrink-0" />
                                 }
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-medium text-gray-900 truncate">@course.Title</h4>
-                                    <p class="text-sm text-gray-500 mt-1">
-                                        @course.LessonCount lessons • @FormatDuration(course.EstimatedDurationMinutes)
+                                else
+                                {
+                                    <div class="w-28 h-16 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-play text-slate-400"></i>
+                                    </div>
+                                }
+                                <div class="min-w-0">
+                                    <h4 class="font-medium text-slate-900 truncate">@course.Title</h4>
+                                    <p class="text-sm text-slate-500 mt-1">
+                                        @course.LessonCount lessons · @FormatDuration(course.EstimatedDurationMinutes) total
                                     </p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Navigation Buttons -->
-                        <div class="border-t border-gray-200 pt-6 flex justify-between">
+                        <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
                             <button @onclick="NavigateToPreviousLesson"
                                     disabled="@(!hasPreviousLesson)"
-                                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm transition-colors
-                                           @(hasPreviousLesson ? "hover:bg-gray-50" : "opacity-50 cursor-not-allowed")">
-                                <i class="fas fa-chevron-left mr-2"></i>Previous
+                                    class="px-6 py-3 border border-slate-300 text-slate-700 rounded-xl font-medium text-sm transition-all
+                                           @(hasPreviousLesson ? "hover:bg-slate-50 hover:border-slate-400" : "opacity-40 cursor-not-allowed")">
+                                <i class="fas fa-chevron-left mr-2"></i>Previous Lesson
                             </button>
                             <button @onclick="NavigateToNextLesson"
                                     disabled="@(!hasNextLesson)"
-                                    class="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors
-                                           @(hasNextLesson ? "hover:bg-blue-700" : "bg-green-600 hover:bg-green-700")">
+                                    class="px-6 py-3 rounded-xl font-medium text-sm transition-all
+                                           @(hasNextLesson
+                                               ? "bg-blue-600 text-white hover:bg-blue-700"
+                                               : "bg-emerald-600 text-white hover:bg-emerald-700")">
                                 @if (hasNextLesson)
                                 {
-                                    <span>Next<i class="fas fa-chevron-right ml-2"></i></span>
+                                    <span>Next Lesson<i class="fas fa-chevron-right ml-2"></i></span>
                                 }
                                 else
                                 {
@@ -428,7 +470,7 @@ else if (lesson != null && course != null)
                 }
                 else if (activeTab == "notes")
                 {
-                    <!-- NOTEBOOK TAB -->
+                    <!-- ========== NOTEBOOK TAB ========== -->
                     <div class="p-6">
                         <StudentNotesPanel LessonId="@LessonId"
                                            CurrentVideoTimestamp="@((int)currentVideoTime)"
@@ -437,7 +479,7 @@ else if (lesson != null && course != null)
                 }
                 else if (activeTab == "transcript")
                 {
-                    <!-- TRANSCRIPT TAB -->
+                    <!-- ========== TRANSCRIPT TAB ========== -->
                     <div class="p-6">
                         <VideoTranscriptViewer LessonId="@LessonId"
                                                CurrentVideoTimestamp="@((int)currentVideoTime)"
@@ -446,7 +488,7 @@ else if (lesson != null && course != null)
                 }
                 else if (activeTab == "exercise-files")
                 {
-                    <!-- EXERCISE FILES TAB -->
+                    <!-- ========== EXERCISE FILES TAB ========== -->
                     <div class="p-6">
                         <ExerciseFilesPanel LessonId="@LessonId"
                                             CourseId="@CourseId" />
@@ -454,7 +496,7 @@ else if (lesson != null && course != null)
                 }
                 else if (activeTab == "qa")
                 {
-                    <!-- Q&A TAB -->
+                    <!-- ========== Q&A TAB ========== -->
                     <div class="p-6">
                         <QAPanel LessonId="@LessonId"
                                  CourseId="@CourseId" />
@@ -463,33 +505,33 @@ else if (lesson != null && course != null)
             </div>
         </main>
 
-        <!-- ================================================================
-             ZONA D: AI ASSISTANT SIDEBAR (400px, Destra) - Collapsible
-             ================================================================ -->
-        <aside class="@(IsAISidebarOpen ? "w-[400px]" : "w-0") bg-white border-l border-gray-200 flex flex-col flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out @(rightSidebarOpen ? "" : "hidden lg:flex")">
+        <!-- ====================================================================
+             ZONA D: AI ASSISTANT SIDEBAR (400px - Right Edge)
+             Collapsible white sidebar with AI chat interface
+             ==================================================================== -->
+        <aside class="@(IsAISidebarOpen ? "w-[400px]" : "w-0") flex-shrink-0 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden">
+
             <!-- Header -->
-            <div class="p-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0 min-w-[400px]">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-star text-blue-600"></i>
-                    <h2 class="font-semibold text-gray-800 text-sm">AI Learning Assistant</h2>
+            <div class="flex-shrink-0 p-4 border-b border-slate-200 flex items-center justify-between min-w-[400px]">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-slate-800 text-sm">AI Learning Assistant</h2>
+                        <p class="text-[10px] text-slate-400">Powered by AI</p>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <!-- Desktop Close Button -->
-                    <button @onclick="ToggleAISidebar"
-                            class="hidden lg:flex p-1.5 hover:bg-gray-100 rounded transition-colors"
-                            title="Hide AI Assistant">
-                        <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
-                    </button>
-                    <!-- Mobile Close Button -->
-                    <button @onclick="ToggleRightSidebar"
-                            class="lg:hidden p-1.5 hover:bg-gray-100 rounded transition-colors">
-                        <i class="fas fa-times text-gray-500"></i>
-                    </button>
-                </div>
+                <!-- CLOSE BUTTON - Chiude la sidebar AI Assistant -->
+                <button @onclick="ToggleAISidebar"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-red-100 hover:text-red-500 text-slate-400 transition-all duration-200"
+                        title="Close AI Assistant (Enter Theater Mode)">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
             </div>
 
-            <!-- AI Chat Content -->
-            <div class="flex-1 overflow-hidden">
+            <!-- AI Chat Panel -->
+            <div class="flex-1 overflow-hidden min-w-[400px]">
                 <AIChatPanel LessonId="@LessonId"
                              CurrentVideoTimestamp="@((int)currentVideoTime)"
                              OnTimestampClick="@HandleAIChatTimestampClick" />
@@ -498,67 +540,91 @@ else if (lesson != null && course != null)
 
     </div>
 
-    <!-- Mobile Backdrop Overlay -->
-    @if (leftSidebarOpen || rightSidebarOpen)
-    {
-        <div class="lg:hidden fixed inset-0 bg-black/50 z-40" @onclick="CloseAllSidebars"></div>
-    }
-
-    <!-- Mobile Bottom Navigation (Optional) -->
-    <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <!-- Mobile Bottom Navigation Bar (shown on small screens) -->
+    <div class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 safe-area-bottom z-50">
         <div class="flex justify-around py-2">
             <button @onclick="NavigateToPreviousLesson"
                     disabled="@(!hasPreviousLesson)"
-                    class="flex flex-col items-center py-2 px-4 @(!hasPreviousLesson ? "opacity-50" : "")">
-                <i class="fas fa-chevron-left text-gray-600"></i>
-                <span class="text-xs text-gray-600 mt-1">Previous</span>
+                    class="flex flex-col items-center py-2 px-4 @(!hasPreviousLesson ? "opacity-40" : "")">
+                <i class="fas fa-chevron-left text-slate-600 text-lg"></i>
+                <span class="text-[10px] text-slate-500 mt-1">Previous</span>
             </button>
-            <button @onclick="ToggleLeftSidebar"
-                    class="flex flex-col items-center py-2 px-4">
-                <i class="fas fa-list-ul text-gray-600"></i>
-                <span class="text-xs text-gray-600 mt-1">Contents</span>
+            <button @onclick="ToggleContentSidebar"
+                    class="flex flex-col items-center py-2 px-4 @(IsContentSidebarOpen ? "text-blue-600" : "")">
+                <i class="fas fa-list-ul text-lg"></i>
+                <span class="text-[10px] mt-1">Contents</span>
             </button>
-            <button @onclick="ToggleRightSidebar"
-                    class="flex flex-col items-center py-2 px-4">
-                <i class="fas fa-robot text-gray-600"></i>
-                <span class="text-xs text-gray-600 mt-1">AI Help</span>
+            <button @onclick="ToggleAISidebar"
+                    class="flex flex-col items-center py-2 px-4 @(IsAISidebarOpen ? "text-blue-600" : "")">
+                <i class="fas fa-robot text-lg"></i>
+                <span class="text-[10px] mt-1">AI Help</span>
             </button>
             <button @onclick="NavigateToNextLesson"
                     disabled="@(!hasNextLesson)"
-                    class="flex flex-col items-center py-2 px-4 @(!hasNextLesson ? "opacity-50" : "")">
-                <i class="fas fa-chevron-right text-gray-600"></i>
-                <span class="text-xs text-gray-600 mt-1">Next</span>
+                    class="flex flex-col items-center py-2 px-4 @(!hasNextLesson ? "opacity-40" : "")">
+                <i class="fas fa-chevron-right text-slate-600 text-lg"></i>
+                <span class="text-[10px] text-slate-500 mt-1">Next</span>
             </button>
         </div>
     </div>
 }
 
+@* Custom Styles for Dark Scrollbar *@
+<style>
+    .custom-scrollbar-dark::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar-dark::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+    }
+    .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+</style>
+
 @code {
     [Parameter] public Guid CourseId { get; set; }
     [Parameter] public Guid LessonId { get; set; }
 
+    // Component references
     private SmartVideoPlayer? smartVideoPlayerRef;
+
+    // Data state
     private CourseDto? course;
     private LessonDto? lesson;
     private SectionDto? currentSection;
+
+    // Loading state
     private bool isLoading = true;
     private string? errorMessage;
     private bool isEnrolled = false;
 
-    // Video state
+    // Video playback state
     private double currentVideoTime = 0;
     private double videoDuration = 0;
     private bool isPlaying = false;
 
     // UI state
     private string activeTab = "overview";
-    private bool leftSidebarOpen = false;   // Mobile sidebar toggle
-    private bool rightSidebarOpen = false;  // Mobile sidebar toggle
     private HashSet<Guid> expandedSections = new();
 
-    // Theater Mode state (Desktop sidebar visibility)
-    private bool IsContentSidebarOpen = true;  // Left sidebar (Contents)
-    private bool IsAISidebarOpen = true;       // Right sidebar (AI Assistant)
+    // Sidebar visibility (Theater Mode)
+    private bool IsContentSidebarOpen = true;
+    private bool IsAISidebarOpen = true;
 
     // Navigation state
     private int currentLessonIndex = 1;
@@ -588,6 +654,7 @@ else if (lesson != null && course != null)
             isLoading = true;
             errorMessage = null;
 
+            // Load course data
             var courseResponse = await CourseService.GetCourseByIdAsync(CourseId);
             if (!courseResponse.Success || courseResponse.Data == null)
             {
@@ -596,6 +663,7 @@ else if (lesson != null && course != null)
             }
             course = courseResponse.Data;
 
+            // Find lesson within course
             lesson = FindLesson(course, LessonId);
             if (lesson == null)
             {
@@ -603,12 +671,13 @@ else if (lesson != null && course != null)
                 return;
             }
 
-            // Expand the section containing the current lesson
+            // Auto-expand the section containing current lesson
             if (currentSection != null)
             {
                 expandedSections.Add(currentSection.Id);
             }
 
+            // Check authentication and enrollment
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
 
@@ -689,7 +758,8 @@ else if (lesson != null && course != null)
         }
     }
 
-    // Video event handlers (SmartVideoPlayer v2.2.0-dev)
+    // ========== Video Event Handlers ==========
+
     private void HandleTimeChange(double time)
     {
         currentVideoTime = time;
@@ -707,7 +777,8 @@ else if (lesson != null && course != null)
         ToastService.ShowError($"Video playback error: {errorMessage}");
     }
 
-    // Timestamp click handlers
+    // ========== Timestamp Click Handlers ==========
+
     private async Task HandleNotesTimestampClick(int timestamp)
     {
         if (smartVideoPlayerRef != null) await smartVideoPlayerRef.SeekToAsync(timestamp);
@@ -723,23 +794,31 @@ else if (lesson != null && course != null)
         if (smartVideoPlayerRef != null) await smartVideoPlayerRef.SeekToAsync(timestamp);
     }
 
-    // Navigation
+    // ========== Navigation ==========
+
     private void NavigateToLesson(Guid lessonId) => Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
-    private void NavigateToPreviousLesson() { if (previousLessonId.HasValue) Navigation.NavigateTo($"/learn/{CourseId}/{previousLessonId.Value}"); }
-    private void NavigateToNextLesson() { if (nextLessonId.HasValue) Navigation.NavigateTo($"/learn/{CourseId}/{nextLessonId.Value}"); }
+
+    private void NavigateToPreviousLesson()
+    {
+        if (previousLessonId.HasValue)
+            Navigation.NavigateTo($"/learn/{CourseId}/{previousLessonId.Value}");
+    }
+
+    private void NavigateToNextLesson()
+    {
+        if (nextLessonId.HasValue)
+            Navigation.NavigateTo($"/learn/{CourseId}/{nextLessonId.Value}");
+    }
+
     private void BackToCourse() => Navigation.NavigateTo($"/courses/{CourseId}");
 
-    // UI helpers
-    private void SetActiveTab(string tab) => activeTab = tab;
-    private void ToggleLeftSidebar() { leftSidebarOpen = !leftSidebarOpen; if (leftSidebarOpen) rightSidebarOpen = false; }
-    private void ToggleRightSidebar() { rightSidebarOpen = !rightSidebarOpen; if (rightSidebarOpen) leftSidebarOpen = false; }
-    private void CloseAllSidebars() { leftSidebarOpen = false; rightSidebarOpen = false; }
+    // ========== UI Helpers ==========
 
-    // Theater Mode toggles (Desktop sidebar visibility)
+    private void SetActiveTab(string tab) => activeTab = tab;
+
     private void ToggleContentSidebar() => IsContentSidebarOpen = !IsContentSidebarOpen;
+
     private void ToggleAISidebar() => IsAISidebarOpen = !IsAISidebarOpen;
-    private void EnterTheaterMode() { IsContentSidebarOpen = false; IsAISidebarOpen = false; }
-    private void ExitTheaterMode() { IsContentSidebarOpen = true; IsAISidebarOpen = true; }
 
     private void ToggleSection(Guid sectionId)
     {
@@ -772,20 +851,6 @@ else if (lesson != null && course != null)
         return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
     }
 
-    private List<VideoPlayer.SubtitleTrack>? GetSubtitleTracks()
-    {
-        if (lesson?.SubtitleTracks == null || !lesson.SubtitleTracks.Any()) return null;
-        return lesson.SubtitleTracks.Select(t => new VideoPlayer.SubtitleTrack
-        {
-            Url = t.Url,
-            Language = t.Language,
-            Label = t.Label,
-            Kind = t.Kind,
-            IsDefault = t.IsDefault
-        }).ToList();
-    }
-
-    // SmartVideoPlayer subtitle track conversion (v2.2.0-dev)
     private List<SmartVideoPlayer.SubtitleTrack>? GetSmartSubtitleTracks()
     {
         if (lesson?.SubtitleTracks == null || !lesson.SubtitleTracks.Any()) return null;
@@ -797,8 +862,6 @@ else if (lesson != null && course != null)
             IsDefault = t.IsDefault
         }).ToList();
     }
-
-    private string GetUserLanguage() => "it";
 
     private bool HasExerciseFiles() => !string.IsNullOrEmpty(lesson?.AttachmentUrl);
 

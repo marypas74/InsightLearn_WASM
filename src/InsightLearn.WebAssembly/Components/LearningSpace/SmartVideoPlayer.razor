@@ -1,7 +1,9 @@
 @namespace InsightLearn.WebAssembly.Components.LearningSpace
 @using InsightLearn.WebAssembly.Services.LearningSpace
+@using InsightLearn.WebAssembly.Services.Auth
 @inject IAiTranscriptionService TranscriptionService
 @inject IJSRuntime JS
+@inject ITokenService TokenService
 @implements IAsyncDisposable
 
 <div class="smart-video-container @(IsFullscreen ? "fullscreen" : "")" tabindex="0" @ref="_containerRef">
@@ -12,7 +14,9 @@
            playsinline
            @onclick="TogglePlayPause"
            @ondblclick="ToggleFullscreen">
-        <source src="@VideoSource" type="video/mp4" />
+        @* REMOVED hardcoded type="video/mp4" - let browser auto-detect content type *@
+        @* Backend may serve video/mp4, video/MP2T (MPEG-TS), video/webm, etc. *@
+        <source src="@VideoSource" />
         @if (SubtitleTracks != null)
         {
             @foreach (var track in SubtitleTracks)
@@ -206,16 +210,29 @@
         </div>
     </div>
 
-    @* Error Overlay *@
-    @if (!string.IsNullOrEmpty(ErrorMessage))
+    @* Error Overlay - Enhanced with debug info (v2.2.0-dev) *@
+    @if (!string.IsNullOrEmpty(ErrorMessage) || IsLoadingTimedOut)
     {
         <div class="video-error-overlay">
             <div class="error-content">
                 <svg viewBox="0 0 24 24" fill="currentColor" class="error-icon">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                 </svg>
-                <p>@ErrorMessage</p>
-                <button class="retry-btn" @onclick="RetryLoad">Retry</button>
+                <p>@(ErrorMessage ?? "Video loading timed out")</p>
+                @if (!string.IsNullOrEmpty(DebugInfo))
+                {
+                    <details class="video-debug-details">
+                        <summary>Debug Info</summary>
+                        <pre style="font-size: 11px; text-align: left; max-width: 400px; overflow-x: auto;">@DebugInfo</pre>
+                    </details>
+                }
+                <div class="error-actions">
+                    <button class="retry-btn" @onclick="RetryLoad">Retry</button>
+                    @if (!string.IsNullOrEmpty(VideoSource))
+                    {
+                        <a href="@VideoSource" target="_blank" class="retry-btn" style="margin-left: 8px; text-decoration: none;">Open Direct</a>
+                    }
+                </div>
             </div>
         </div>
     }

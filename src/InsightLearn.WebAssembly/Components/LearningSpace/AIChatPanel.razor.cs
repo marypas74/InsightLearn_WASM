@@ -82,11 +82,22 @@ public partial class AIChatPanel : ComponentBase, IDisposable
     {
         try
         {
+            Console.WriteLine("[AIChatPanel] Checking Ollama service availability...");
             IsAvailable = await ChatService.IsAvailableAsync();
+
+            if (IsAvailable)
+            {
+                Console.WriteLine("[AIChatPanel] ✅ Ollama service is available and ready");
+            }
+            else
+            {
+                Console.WriteLine("[AIChatPanel] ⚠️ Ollama service returned not available");
+            }
         }
-        catch
+        catch (Exception ex)
         {
             IsAvailable = false;
+            Console.WriteLine($"[AIChatPanel] ❌ Ollama connection failed: {ex.Message}");
         }
     }
 

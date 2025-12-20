@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using InsightLearn.WebAssembly.Services.LearningSpace;
+using InsightLearn.WebAssembly.Services.Auth;
 
 namespace InsightLearn.WebAssembly.Components.LearningSpace;
 
@@ -55,6 +56,10 @@ public partial class SmartVideoPlayer : IAsyncDisposable
 
     private string ActiveSubtitle { get; set; } = "off";
     private string? ErrorMessage { get; set; }
+    private string? DebugInfo { get; set; }
+    private bool IsLoadingTimedOut { get; set; } = false;
+    private System.Timers.Timer? _loadingTimeoutTimer;
+    private const int LoadingTimeoutSeconds = 15;
 
     private TranscriptData? TranscriptData { get; set; }
     private IEnumerable<TranslationLanguage> TranslationLanguages { get; set; } = [];
@@ -71,25 +76,131 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     {
         if (firstRender)
         {
-            _dotNetRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("VideoInterop.initialize", VideoElementId, _dotNetRef);
+            // Start loading timeout timer (shows error if video doesn't load in time)
+            StartLoadingTimeout();
 
-            // Load transcript data
-            await LoadTranscriptAsync();
+            // Log video source for debugging
+            Console.WriteLine($"[SmartVideoPlayer] Loading video: {VideoSource}");
+            DebugInfo = $"Source: {VideoSource}\nLessonId: {LessonId}\nVideoId: {VideoId}";
 
-            // Load translation languages
-            TranslationLanguages = TranscriptionService.GetSupportedLanguages();
-
-            // Start at specified time
-            if (StartTime > 0)
+            // CRITICAL: Initialize video JS interop FIRST (required for video playback)
+            try
             {
-                await JS.InvokeVoidAsync("VideoInterop.seek", VideoElementId, StartTime);
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("VideoInterop.initialize", VideoElementId, _dotNetRef);
+                Console.WriteLine($"[SmartVideoPlayer] Video JS interop initialized: {VideoElementId}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] CRITICAL: Video init failed: {ex.Message}");
+                StopLoadingTimeout();
+                ErrorMessage = "Failed to initialize video player";
+                DebugInfo += $"\nInit Error: {ex.Message}";
+                StateHasChanged();
+                return; // Cannot continue without video initialization
             }
 
-            // Auto-play if requested
-            if (AutoPlay)
+            // AUTHENTICATED VIDEO LOADING: Fetch video with JWT token and create Blob URL
+            // This is required because HTML <video src="..."> tag doesn't send Authorization header
+            try
             {
-                await Play();
+                if (!string.IsNullOrEmpty(VideoSource) && VideoSource.Contains("/api/video/"))
+                {
+                    Console.WriteLine($"[SmartVideoPlayer] Attempting authenticated video load: {VideoSource}");
+                    var token = await TokenService.GetTokenAsync();
+
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        Console.WriteLine($"[SmartVideoPlayer] JWT token obtained, loading video with authentication...");
+                        var result = await JS.InvokeAsync<VideoLoadResult>("VideoInterop.loadAuthenticatedVideo",
+                            VideoElementId, VideoSource, token);
+
+                        Console.WriteLine($"[SmartVideoPlayer] Auth video load result: Success={result.Success}, Status={result.StatusCode}, Message={result.Message}");
+                        DebugInfo += $"\nAuth Load: {result.Success} (HTTP {result.StatusCode})";
+
+                        if (!result.Success)
+                        {
+                            if (result.IsAuthError)
+                            {
+                                ErrorMessage = "Authentication required. Please log in again.";
+                                DebugInfo += $"\nAuth Error: Token may be expired";
+                            }
+                            else
+                            {
+                                ErrorMessage = result.Message ?? "Failed to load video";
+                            }
+                            StopLoadingTimeout();
+                            StateHasChanged();
+                            return;
+                        }
+
+                        if (result.Size > 0)
+                        {
+                            DebugInfo += $"\nBlob Size: {result.Size / 1024 / 1024:F2} MB";
+                            DebugInfo += $"\nContent-Type: {result.ContentType}";
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[SmartVideoPlayer] No JWT token available, trying direct load...");
+                        DebugInfo += $"\nNo auth token - trying direct load";
+                        // Fall through to let HTML5 video element try direct loading
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] Authenticated video load failed: {ex.Message}");
+                DebugInfo += $"\nAuth Load Error: {ex.Message}";
+                // Continue - video might still work without authentication
+            }
+
+            // Load transcript data (non-blocking - video works without this)
+            try
+            {
+                await LoadTranscriptAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] Transcript loading skipped: {ex.Message}");
+                // Continue - video playback works without transcripts
+            }
+
+            // Load translation languages (non-blocking - video works without this)
+            try
+            {
+                TranslationLanguages = TranscriptionService.GetSupportedLanguages();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] Translation languages skipped: {ex.Message}");
+                TranslationLanguages = [];
+            }
+
+            // Start at specified time (optional - video works without this)
+            try
+            {
+                if (StartTime > 0)
+                {
+                    await JS.InvokeVoidAsync("VideoInterop.seek", VideoElementId, StartTime);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] Seek to start time failed: {ex.Message}");
+            }
+
+            // Auto-play if requested (optional - video works without this)
+            try
+            {
+                if (AutoPlay)
+                {
+                    await Play();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SmartVideoPlayer] Auto-play failed: {ex.Message}");
             }
 
             // Setup controls auto-hide timer
@@ -102,13 +213,24 @@ public partial class SmartVideoPlayer : IAsyncDisposable
                     InvokeAsync(StateHasChanged);
                 }
             };
+
+            StateHasChanged();
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         _controlsTimer?.Dispose();
+        _loadingTimeoutTimer?.Dispose();
         _dotNetRef?.Dispose();
+
+        // Cleanup Blob URL to free memory (from authenticated video loading)
+        try
+        {
+            await JS.InvokeVoidAsync("VideoInterop.revokeBlobUrl", VideoElementId);
+        }
+        catch { /* Ignore cleanup errors */ }
+
         await JS.InvokeVoidAsync("VideoInterop.dispose", VideoElementId);
     }
 
@@ -165,7 +287,12 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     [JSInvokable]
     public void OnMetadataLoaded(VideoMetadata metadata)
     {
+        // Video loaded successfully - cancel timeout
+        StopLoadingTimeout();
+        IsLoadingTimedOut = false;
         Duration = metadata.Duration;
+        Console.WriteLine($"[SmartVideoPlayer] Metadata loaded: Duration={metadata.Duration}s, Size={metadata.VideoWidth}x{metadata.VideoHeight}");
+        DebugInfo += $"\nDuration: {metadata.Duration:F2}s\nResolution: {metadata.VideoWidth}x{metadata.VideoHeight}";
         StateHasChanged();
     }
 
@@ -208,7 +335,12 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     [JSInvokable]
     public void OnError(string message)
     {
+        StopLoadingTimeout();
+        IsBuffering = false;
         ErrorMessage = message;
+        Console.WriteLine($"[SmartVideoPlayer] ERROR: {message}");
+        Console.WriteLine($"[SmartVideoPlayer] VideoSource: {VideoSource}");
+        DebugInfo += $"\nError: {message}";
         OnErrorOccurred.InvokeAsync(message);
         StateHasChanged();
     }
@@ -295,9 +427,19 @@ public partial class SmartVideoPlayer : IAsyncDisposable
 
     private async Task RetryLoad()
     {
+        // Reset all error states
         ErrorMessage = null;
+        DebugInfo = $"Source: {VideoSource}\nRetrying...";
+        IsLoadingTimedOut = false;
+        IsBuffering = true;
+
+        // Restart loading timeout
+        StartLoadingTimeout();
+
         StateHasChanged();
         await Task.Delay(100);
+
+        Console.WriteLine($"[SmartVideoPlayer] Retrying video load: {VideoSource}");
         await JS.InvokeVoidAsync("eval", $"document.getElementById('{VideoElementId}').load()");
     }
 
@@ -448,6 +590,39 @@ public partial class SmartVideoPlayer : IAsyncDisposable
 
     private double ProgressPercentage => Duration > 0 ? (CurrentTime / Duration) * 100 : 0;
 
+    /// <summary>
+    /// Start loading timeout timer - if video doesn't load in LoadingTimeoutSeconds, show error
+    /// </summary>
+    private void StartLoadingTimeout()
+    {
+        StopLoadingTimeout();
+        _loadingTimeoutTimer = new System.Timers.Timer(LoadingTimeoutSeconds * 1000);
+        _loadingTimeoutTimer.AutoReset = false;
+        _loadingTimeoutTimer.Elapsed += (s, e) =>
+        {
+            Console.WriteLine($"[SmartVideoPlayer] Loading timeout ({LoadingTimeoutSeconds}s) - video failed to load");
+            IsLoadingTimedOut = true;
+            IsBuffering = false;
+            DebugInfo += $"\nTimeout: Video did not load within {LoadingTimeoutSeconds}s";
+            InvokeAsync(StateHasChanged);
+        };
+        _loadingTimeoutTimer.Start();
+        Console.WriteLine($"[SmartVideoPlayer] Loading timeout started: {LoadingTimeoutSeconds}s");
+    }
+
+    /// <summary>
+    /// Stop loading timeout timer (video loaded successfully or error occurred)
+    /// </summary>
+    private void StopLoadingTimeout()
+    {
+        if (_loadingTimeoutTimer != null)
+        {
+            _loadingTimeoutTimer.Stop();
+            _loadingTimeoutTimer.Dispose();
+            _loadingTimeoutTimer = null;
+        }
+    }
+
     private void StartControlsHideTimer()
     {
         ShowControls = true;
@@ -469,6 +644,22 @@ public partial class SmartVideoPlayer : IAsyncDisposable
 
     public record VideoMetadata(double Duration, int VideoWidth, int VideoHeight);
     public record VolumeState(double Volume, bool Muted);
+
+    /// <summary>
+    /// Result from authenticated video loading via Blob URL.
+    /// Returned by VideoInterop.loadAuthenticatedVideo JS function.
+    /// </summary>
+    public class VideoLoadResult
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public int StatusCode { get; set; }
+        public bool IsAuthError { get; set; }
+        public bool IsNetworkError { get; set; }
+        public string? BlobUrl { get; set; }
+        public long Size { get; set; }
+        public string? ContentType { get; set; }
+    }
 
     public class SubtitleTrack
     {

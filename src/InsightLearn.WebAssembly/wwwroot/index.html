@@ -475,6 +475,8 @@
     <link rel="stylesheet" href="css/linkedin-learning-animations.css" media="print" onload="this.media='all'" />
     <!-- Learning Space v3 MUST load AFTER linkedin-learning-components to override sidebar styles -->
     <link rel="stylesheet" href="css/learning-space-v3.css" media="print" onload="this.media='all'" />
+    <!-- AI Chat Modern - ChatGPT/Udemy Style (v2.2.0) -->
+    <link rel="stylesheet" href="css/ai-chat-modern.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/pricing.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/account-subscription.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/instructor-earnings.css" media="print" onload="this.media='all'" />
@@ -699,18 +701,37 @@
     <!-- HTTP Client Helper for cross-origin requests -->
     <script src="js/httpClient.js"></script>
 
+    <!-- ===== CROSS-BROWSER VIDEO LIBRARIES (v2.2.0-dev) ===== -->
+    <!-- These libraries enable video playback across all modern browsers -->
+
+    <!-- mpegts.js - MPEG-TS video playback support -->
+    <!-- Required for playing MPEG Transport Stream (.ts) videos in browser -->
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+
+    <!-- hls.js - HLS (HTTP Live Streaming) support -->
+    <!-- Required for .m3u8 playlists (Apple HLS format, widely used for streaming) -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+
+    <!-- dash.js - MPEG-DASH support -->
+    <!-- Required for .mpd manifests (DASH format, open standard for adaptive streaming) -->
+    <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+
+    <!-- flv.js - FLV video playback support -->
+    <!-- Required for Flash Video (.flv) format playback without Flash plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
+
+    <!-- Video Player JS Interop - MUST load AFTER libraries, BEFORE Blazor (v2.2.0-dev) -->
+    <!-- Cache-busting version added 2025-12-19 for cross-browser video support -->
+    <script src="js/videoPlayer.js?v=20251219-xbrowser"></script>
+    <script src="js/videoInterop-v2.js?v=20251219-xbrowser"></script>
+
+    <!-- Blazor WebAssembly - loads AFTER video interop scripts -->
     <script src="_framework/blazor.webassembly.js"></script>
     <!-- Sticky Header Enhancement - Dynamic shadow effect -->
     <!-- DISABLED: JavaScript interferes with CSS position:sticky - Use pure CSS instead -->
     <!-- <script src="js/sticky-header-enhancement.js"></script> -->
     <script src="js/cookie-consent-wall.js"></script>
     <script src="js/new-home-2025.js"></script>
-
-    <!-- Video Player JS Interop (Student Learning Space v2.1.0) -->
-    <script src="js/videoPlayer.js"></script>
-
-    <!-- SmartVideoPlayer JS Interop (v2.2.0-dev) -->
-    <script src="js/videoInterop.js"></script>
 
     <!-- Session Timeout - User Activity Tracking (v2.1.0-dev) -->
     <script src="js/sessionTimeout.js"></script>

@@ -296,7 +296,17 @@ window.VideoInterop = {
 
     _onError: function (video, dotNetRef, e) {
         const error = video.error;
-        const errorMessage = error ? this._getErrorMessage(error.code) : 'Unknown error';
+        const errorCode = error ? error.code : 0;
+
+        // If mpegts.js is handling this video, ignore "format not supported" errors
+        // because mpegts.js uses MediaSource Extensions, not native video format support
+        if ((video._mpegtsPlayer || video._usingMpegTs) && errorCode === 4) {
+            console.log('[VideoInterop] Ignoring format error - mpegts.js is handling playback');
+            return; // Don't report error - mpegts.js will handle it
+        }
+
+        const errorMessage = error ? this._getErrorMessage(errorCode) : 'Unknown error';
+        console.error('[VideoInterop] Video error:', errorCode, errorMessage);
         this._invokeCallback(dotNetRef, 'OnError', errorMessage);
     },
 
@@ -376,11 +386,41 @@ window.VideoInterop = {
                 };
             }
 
+            // Get Content-Type from response headers
+            const contentType = response.headers.get('Content-Type') || '';
+            console.log('[VideoInterop] Content-Type from headers:', contentType);
+
             // Create Blob from response
             const blob = await response.blob();
             console.log('[VideoInterop] Blob created:', blob.size, 'bytes, type:', blob.type);
 
-            // Create Blob URL
+            // Detect video format and use appropriate player library
+            const formatInfo = this._detectVideoFormat(contentType, blob.type, videoUrl);
+            console.log('[VideoInterop] Format detected:', formatInfo);
+
+            // Use specialized player based on format
+            switch (formatInfo.format) {
+                case 'mpegts':
+                    console.log('[VideoInterop] MPEG-TS format detected, using mpegts.js player');
+                    return await this._loadWithMpegTs(elementId, video, blob, response.status);
+
+                case 'hls':
+                    console.log('[VideoInterop] HLS format detected, using hls.js player');
+                    return await this._loadWithHls(elementId, video, videoUrl, token, response.status);
+
+                case 'dash':
+                    console.log('[VideoInterop] DASH format detected, using dash.js player');
+                    return await this._loadWithDash(elementId, video, videoUrl, token, response.status);
+
+                case 'flv':
+                    console.log('[VideoInterop] FLV format detected, using flv.js player');
+                    return await this._loadWithFlv(elementId, video, blob, response.status);
+
+                default:
+                    console.log('[VideoInterop] Standard HTML5 format, using native player');
+            }
+
+            // Standard HTML5 video (MP4, WebM, OGG, etc.)
             const blobUrl = URL.createObjectURL(blob);
             console.log('[VideoInterop] Blob URL created:', blobUrl.substring(0, 50) + '...');
 
@@ -406,6 +446,444 @@ window.VideoInterop = {
                 message: error.message || 'Network error',
                 statusCode: 0,
                 isNetworkError: true
+            };
+        }
+    },
+
+    /**
+     * Detect video format from content type, blob type, and URL
+     * @param {string} contentType - Content-Type header
+     * @param {string} blobType - Blob MIME type
+     * @param {string} url - Video URL
+     * @returns {object} Format info with format name and library
+     */
+    _detectVideoFormat: function (contentType, blobType, url) {
+        const ct = (contentType || '').toLowerCase();
+        const bt = (blobType || '').toLowerCase();
+        const urlLower = (url || '').toLowerCase();
+
+        // MPEG-TS detection
+        if (ct.includes('mp2t') || bt.includes('mp2t') || ct.includes('mpeg-ts') ||
+            urlLower.endsWith('.ts') || urlLower.includes('.ts?')) {
+            return { format: 'mpegts', library: 'mpegts.js' };
+        }
+
+        // HLS detection (.m3u8)
+        if (ct.includes('mpegurl') || ct.includes('x-mpegurl') ||
+            urlLower.endsWith('.m3u8') || urlLower.includes('.m3u8?') ||
+            ct.includes('application/vnd.apple.mpegurl')) {
+            return { format: 'hls', library: 'hls.js' };
+        }
+
+        // DASH detection (.mpd)
+        if (ct.includes('dash+xml') || urlLower.endsWith('.mpd') || urlLower.includes('.mpd?')) {
+            return { format: 'dash', library: 'dash.js' };
+        }
+
+        // FLV detection
+        if (ct.includes('video/x-flv') || bt.includes('video/x-flv') ||
+            urlLower.endsWith('.flv') || urlLower.includes('.flv?')) {
+            return { format: 'flv', library: 'flv.js' };
+        }
+
+        // Standard HTML5 formats (MP4, WebM, OGG)
+        if (ct.includes('video/mp4') || bt.includes('video/mp4')) {
+            return { format: 'mp4', library: 'native' };
+        }
+        if (ct.includes('video/webm') || bt.includes('video/webm')) {
+            return { format: 'webm', library: 'native' };
+        }
+        if (ct.includes('video/ogg') || bt.includes('video/ogg')) {
+            return { format: 'ogg', library: 'native' };
+        }
+
+        // Default to native player
+        return { format: 'unknown', library: 'native' };
+    },
+
+    /**
+     * Load MPEG-TS video using mpegts.js library
+     * @param {string} elementId - The video element ID
+     * @param {HTMLVideoElement} video - The video element
+     * @param {Blob} blob - The video blob
+     * @param {number} statusCode - HTTP status code
+     * @returns {Promise<object>} Result with success status
+     */
+    _loadWithMpegTs: async function (elementId, video, blob, statusCode) {
+        // Check if mpegts.js is available
+        if (typeof mpegts === 'undefined') {
+            console.error('[VideoInterop] mpegts.js library not loaded!');
+            return {
+                success: false,
+                message: 'MPEG-TS player library not available. Please refresh the page.',
+                statusCode: statusCode,
+                contentType: blob.type
+            };
+        }
+
+        // Check browser support
+        if (!mpegts.isSupported()) {
+            console.error('[VideoInterop] mpegts.js: Browser not supported');
+            return {
+                success: false,
+                message: 'Your browser does not support MPEG-TS video playback',
+                statusCode: statusCode,
+                contentType: blob.type
+            };
+        }
+
+        try {
+            // Mark video as using mpegts.js (before player creation for error handling)
+            video._usingMpegTs = true;
+
+            // Cleanup any existing mpegts player
+            if (video._mpegtsPlayer) {
+                console.log('[VideoInterop] Destroying existing mpegts player');
+                video._mpegtsPlayer.destroy();
+                video._mpegtsPlayer = null;
+            }
+
+            // Clear any existing src (prevents HTML5 video errors)
+            video.src = '';
+            video.removeAttribute('src');
+
+            // Create blob URL for mpegts.js
+            const blobUrl = URL.createObjectURL(blob);
+            video._blobUrl = blobUrl;
+
+            // Create mpegts.js player
+            const player = mpegts.createPlayer({
+                type: 'mpegts',
+                isLive: false,
+                url: blobUrl
+            }, {
+                enableWorker: true,
+                enableStashBuffer: true,
+                stashInitialSize: 128 * 1024, // 128KB initial buffer
+                autoCleanupSourceBuffer: true,
+                autoCleanupMaxBackwardDuration: 60,
+                autoCleanupMinBackwardDuration: 30
+            });
+
+            // Attach to video element
+            player.attachMediaElement(video);
+
+            // Store player reference for cleanup
+            video._mpegtsPlayer = player;
+
+            // Load the video
+            player.load();
+
+            // Handle player events
+            player.on(mpegts.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+                console.error('[VideoInterop] mpegts.js error:', errorType, errorDetail, errorInfo);
+            });
+
+            player.on(mpegts.Events.LOADING_COMPLETE, () => {
+                console.log('[VideoInterop] mpegts.js loading complete');
+            });
+
+            player.on(mpegts.Events.MEDIA_INFO, (mediaInfo) => {
+                console.log('[VideoInterop] mpegts.js media info:', mediaInfo);
+            });
+
+            console.log('[VideoInterop] mpegts.js player attached successfully');
+
+            return {
+                success: true,
+                message: 'MPEG-TS video loaded with mpegts.js player',
+                statusCode: statusCode,
+                blobUrl: blobUrl,
+                size: blob.size,
+                contentType: blob.type,
+                playerType: 'mpegts'
+            };
+
+        } catch (error) {
+            console.error('[VideoInterop] mpegts.js initialization error:', error);
+            return {
+                success: false,
+                message: `MPEG-TS player error: ${error.message}`,
+                statusCode: statusCode,
+                contentType: blob.type
+            };
+        }
+    },
+
+    /**
+     * Load HLS video using hls.js library
+     * @param {string} elementId - The video element ID
+     * @param {HTMLVideoElement} video - The video element
+     * @param {string} videoUrl - The HLS manifest URL
+     * @param {string} token - JWT Bearer token
+     * @param {number} statusCode - HTTP status code
+     * @returns {Promise<object>} Result with success status
+     */
+    _loadWithHls: async function (elementId, video, videoUrl, token, statusCode) {
+        // Check if hls.js is available
+        if (typeof Hls === 'undefined') {
+            console.error('[VideoInterop] hls.js library not loaded!');
+            return {
+                success: false,
+                message: 'HLS player library not available. Please refresh the page.',
+                statusCode: statusCode
+            };
+        }
+
+        // Check if browser supports HLS natively (Safari)
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            console.log('[VideoInterop] Native HLS support detected, using native player');
+            video.src = videoUrl;
+            return {
+                success: true,
+                message: 'HLS video loaded with native player',
+                statusCode: statusCode,
+                playerType: 'native-hls'
+            };
+        }
+
+        // Check hls.js browser support
+        if (!Hls.isSupported()) {
+            console.error('[VideoInterop] hls.js: Browser not supported');
+            return {
+                success: false,
+                message: 'Your browser does not support HLS video playback',
+                statusCode: statusCode
+            };
+        }
+
+        try {
+            // Cleanup any existing HLS player
+            if (video._hlsPlayer) {
+                console.log('[VideoInterop] Destroying existing HLS player');
+                video._hlsPlayer.destroy();
+                video._hlsPlayer = null;
+            }
+
+            // Create hls.js player with auth headers
+            const hls = new Hls({
+                xhrSetup: function (xhr, url) {
+                    if (token) {
+                        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                    }
+                },
+                enableWorker: true,
+                lowLatencyMode: false
+            });
+
+            // Store player reference
+            video._hlsPlayer = hls;
+            video._usingHls = true;
+
+            // Load source and attach to video
+            hls.loadSource(videoUrl);
+            hls.attachMedia(video);
+
+            // Handle events
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                console.log('[VideoInterop] HLS manifest parsed successfully');
+            });
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    console.error('[VideoInterop] HLS fatal error:', data.type, data.details);
+                } else {
+                    console.warn('[VideoInterop] HLS non-fatal error:', data.type, data.details);
+                }
+            });
+
+            console.log('[VideoInterop] hls.js player attached successfully');
+
+            return {
+                success: true,
+                message: 'HLS video loaded with hls.js player',
+                statusCode: statusCode,
+                playerType: 'hls'
+            };
+
+        } catch (error) {
+            console.error('[VideoInterop] hls.js initialization error:', error);
+            return {
+                success: false,
+                message: `HLS player error: ${error.message}`,
+                statusCode: statusCode
+            };
+        }
+    },
+
+    /**
+     * Load DASH video using dash.js library
+     * @param {string} elementId - The video element ID
+     * @param {HTMLVideoElement} video - The video element
+     * @param {string} videoUrl - The DASH manifest URL
+     * @param {string} token - JWT Bearer token
+     * @param {number} statusCode - HTTP status code
+     * @returns {Promise<object>} Result with success status
+     */
+    _loadWithDash: async function (elementId, video, videoUrl, token, statusCode) {
+        // Check if dash.js is available
+        if (typeof dashjs === 'undefined') {
+            console.error('[VideoInterop] dash.js library not loaded!');
+            return {
+                success: false,
+                message: 'DASH player library not available. Please refresh the page.',
+                statusCode: statusCode
+            };
+        }
+
+        try {
+            // Cleanup any existing DASH player
+            if (video._dashPlayer) {
+                console.log('[VideoInterop] Destroying existing DASH player');
+                video._dashPlayer.reset();
+                video._dashPlayer = null;
+            }
+
+            // Create dash.js player
+            const player = dashjs.MediaPlayer().create();
+
+            // Configure auth headers if token provided
+            if (token) {
+                player.extend('RequestModifier', function () {
+                    return {
+                        modifyRequestHeader: function (xhr) {
+                            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                            return xhr;
+                        }
+                    };
+                }, true);
+            }
+
+            // Store player reference
+            video._dashPlayer = player;
+            video._usingDash = true;
+
+            // Initialize and load
+            player.initialize(video, videoUrl, false);
+
+            // Handle events
+            player.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, () => {
+                console.log('[VideoInterop] DASH manifest loaded successfully');
+            });
+
+            player.on(dashjs.MediaPlayer.events.ERROR, (e) => {
+                console.error('[VideoInterop] DASH error:', e.error);
+            });
+
+            console.log('[VideoInterop] dash.js player attached successfully');
+
+            return {
+                success: true,
+                message: 'DASH video loaded with dash.js player',
+                statusCode: statusCode,
+                playerType: 'dash'
+            };
+
+        } catch (error) {
+            console.error('[VideoInterop] dash.js initialization error:', error);
+            return {
+                success: false,
+                message: `DASH player error: ${error.message}`,
+                statusCode: statusCode
+            };
+        }
+    },
+
+    /**
+     * Load FLV video using flv.js library
+     * @param {string} elementId - The video element ID
+     * @param {HTMLVideoElement} video - The video element
+     * @param {Blob} blob - The video blob
+     * @param {number} statusCode - HTTP status code
+     * @returns {Promise<object>} Result with success status
+     */
+    _loadWithFlv: async function (elementId, video, blob, statusCode) {
+        // Check if flv.js is available
+        if (typeof flvjs === 'undefined') {
+            console.error('[VideoInterop] flv.js library not loaded!');
+            return {
+                success: false,
+                message: 'FLV player library not available. Please refresh the page.',
+                statusCode: statusCode,
+                contentType: blob.type
+            };
+        }
+
+        // Check browser support
+        if (!flvjs.isSupported()) {
+            console.error('[VideoInterop] flv.js: Browser not supported');
+            return {
+                success: false,
+                message: 'Your browser does not support FLV video playback',
+                statusCode: statusCode,
+                contentType: blob.type
+            };
+        }
+
+        try {
+            // Cleanup any existing FLV player
+            if (video._flvPlayer) {
+                console.log('[VideoInterop] Destroying existing FLV player');
+                video._flvPlayer.destroy();
+                video._flvPlayer = null;
+            }
+
+            // Clear any existing src
+            video.src = '';
+            video.removeAttribute('src');
+
+            // Create blob URL
+            const blobUrl = URL.createObjectURL(blob);
+            video._blobUrl = blobUrl;
+
+            // Create flv.js player
+            const player = flvjs.createPlayer({
+                type: 'flv',
+                url: blobUrl,
+                isLive: false
+            }, {
+                enableWorker: true,
+                enableStashBuffer: true
+            });
+
+            // Attach to video element
+            player.attachMediaElement(video);
+
+            // Store player reference
+            video._flvPlayer = player;
+            video._usingFlv = true;
+
+            // Load the video
+            player.load();
+
+            // Handle events
+            player.on(flvjs.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+                console.error('[VideoInterop] flv.js error:', errorType, errorDetail, errorInfo);
+            });
+
+            player.on(flvjs.Events.LOADING_COMPLETE, () => {
+                console.log('[VideoInterop] flv.js loading complete');
+            });
+
+            console.log('[VideoInterop] flv.js player attached successfully');
+
+            return {
+                success: true,
+                message: 'FLV video loaded with flv.js player',
+                statusCode: statusCode,
+                blobUrl: blobUrl,
+                size: blob.size,
+                contentType: blob.type,
+                playerType: 'flv'
+            };
+
+        } catch (error) {
+            console.error('[VideoInterop] flv.js initialization error:', error);
+            return {
+                success: false,
+                message: `FLV player error: ${error.message}`,
+                statusCode: statusCode,
+                contentType: blob.type
             };
         }
     },

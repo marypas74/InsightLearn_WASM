@@ -4705,6 +4705,15 @@ body:has(.learning-layout) .main-layout {
     animation: pulse-dot 2s infinite;
 }
 
+.ll-status.offline .ll-status-dot {
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.ll-status.offline {
+    color: #ef4444;
+}
+
 @keyframes pulse-dot {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.2); opacity: 0.8; }
@@ -4932,9 +4941,10 @@ body:has(.learning-layout) .main-layout {
     color: white;
 }
 
+/* User avatar: Dark style to match user bubble */
 .ll-user-avatar {
-    background: #e5e7eb;
-    color: #64748b;
+    background: #374151;
+    color: #ffffff;
 }
 
 .ll-message-bubble {
@@ -4943,16 +4953,20 @@ body:has(.learning-layout) .main-layout {
     position: relative;
 }
 
+/* User messages: ChatGPT/Udemy style - dark background */
 .ll-chat-message.user .ll-message-bubble {
-    background: #0073b1;
-    color: white;
+    background: #1a1a1a;
+    color: #ffffff;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* AI messages: ChatGPT style - light gray background */
 .ll-chat-message.assistant .ll-message-bubble {
-    background: #f1f5f9;
+    background: #f7f7f8;
     color: #1e293b;
     border-bottom-left-radius: 4px;
+    border: 1px solid #e5e7eb;
 }
 
 .ll-message-text {
@@ -5111,6 +5125,50 @@ body:has(.learning-layout) .main-layout {
 
 .ll-context-indicator strong {
     font-weight: 600;
+}
+
+/* Suggestion Chips - ChatGPT/Udemy Style (v2.2.0-dev) */
+.ll-suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fafbfc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.ll-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ll-chip:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.ll-chip:active {
+    transform: translateY(0);
+    background: #e5e7eb;
+}
+
+.ll-chip i {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.ll-chip:hover i {
+    color: #374151;
 }
 
 /* Chat Input Area */

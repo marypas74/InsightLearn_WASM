@@ -1,198 +1,276 @@
-@* AI Chat Panel - LinkedIn Learning Style AI Assistant
+@* AI Chat Panel - ChatGPT/WhatsApp Style AI Assistant
    Part of Student Learning Space v2.2.0
-   Contextual AI chatbot for video lessons with quick actions *@
+   Modern Tailwind CSS design - Professional chat interface *@
 
-<div class="ll-ai-chat-panel @(IsLoading ? "loading" : "")">
-    @* Chat Header - LinkedIn Learning Style *@
-    <div class="ll-chat-header">
-        <div class="ll-chat-header-info">
-            <div class="ll-ai-avatar">
-                <i class="fas fa-brain"></i>
+<div class="flex flex-col h-full bg-gray-50 @(IsLoading ? "opacity-75" : "")">
+    @* Chat Header - Sticky top *@
+    <div class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
             </div>
-            <div class="ll-chat-header-text">
-                <h4>AI Learning Assistant</h4>
-                <span class="ll-status @(IsAvailable ? "online" : "offline")">
-                    <span class="ll-status-dot"></span>
-                    @(IsAvailable ? "Ready to help" : "Connecting...")
+            <div>
+                <h4 class="text-sm font-semibold text-gray-900">AI Assistant</h4>
+                <span class="flex items-center gap-1 text-xs @(IsAvailable ? "text-green-600" : "text-gray-400")">
+                    <span class="w-2 h-2 rounded-full @(IsAvailable ? "bg-green-500 animate-pulse" : "bg-gray-400")"></span>
+                    @(IsAvailable ? "Online" : "Connecting...")
                 </span>
             </div>
         </div>
-        <div class="ll-chat-header-actions">
-            @if (Messages.Count > 0)
-            {
-                <button class="ll-header-btn" @onclick="ClearConversation" title="Start new conversation">
-                    <i class="fas fa-redo-alt"></i>
-                </button>
-            }
-        </div>
+        @if (Messages.Count > 0)
+        {
+            <button @onclick="ClearConversation"
+                    class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+                    title="New conversation">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 4v16m8-8H4"/>
+                </svg>
+            </button>
+        }
     </div>
 
-    @* Quick Actions Bar - LinkedIn Learning Style *@
-    @if (!IsLoading && IsAvailable)
-    {
-        <div class="ll-quick-actions-bar">
-            <span class="ll-quick-actions-label">Quick actions:</span>
-            <div class="ll-quick-actions">
-                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("summarize"))" title="Summarize current section">
-                    <i class="fas fa-compress-alt"></i>
-                    <span>Summarize</span>
-                </button>
-                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("explain"))" title="Explain key concepts">
-                    <i class="fas fa-lightbulb"></i>
-                    <span>Explain</span>
-                </button>
-                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("quiz"))" title="Test my knowledge">
-                    <i class="fas fa-question-circle"></i>
-                    <span>Quiz Me</span>
-                </button>
-                <button class="ll-quick-action-btn" @onclick="@(() => AskQuickAction("examples"))" title="Show examples">
-                    <i class="fas fa-code"></i>
-                    <span>Examples</span>
-                </button>
-            </div>
-        </div>
-    }
-
-    @* Suggested Questions - Empty State *@
-    @if (Messages.Count == 0 && !IsLoading)
-    {
-        <div class="ll-suggested-questions">
-            <div class="ll-suggestions-header">
-                <i class="fas fa-magic"></i>
-                <span>Try asking:</span>
-            </div>
-            <div class="ll-suggestions-list">
-                @foreach (var question in SuggestedQuestions)
-                {
-                    <button class="ll-suggestion-btn" @onclick="@(() => AskSuggestedQuestion(question))">
-                        <i class="fas fa-chevron-right"></i>
-                        @question
-                    </button>
-                }
-            </div>
-        </div>
-    }
-
-    @* Chat Messages - LinkedIn Learning Style *@
-    <div class="ll-chat-messages" @ref="messagesContainer">
+    @* Messages Container - Scrollable *@
+    <div class="flex-1 overflow-y-auto p-4 space-y-4" @ref="messagesContainer">
         @if (Messages.Count == 0 && !IsLoading)
         {
-            <div class="ll-empty-chat">
-                <div class="ll-empty-icon">
-                    <i class="fas fa-robot"></i>
+            @* Welcome State - ChatGPT Style *@
+            <div class="flex flex-col items-center justify-center h-full text-center px-4 py-8">
+                <div class="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-600">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
                 </div>
-                <h5>How can I help you learn?</h5>
-                <p>Ask questions about this lesson and I'll help you understand the content better.</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">How can I help you today?</h3>
+                <p class="text-sm text-gray-500 mb-6">Ask questions about this lesson to better understand the content.</p>
+
+                @* Suggested Questions Grid *@
+                <div class="grid grid-cols-1 gap-2 w-full max-w-sm">
+                    @foreach (var question in SuggestedQuestions)
+                    {
+                        <button @onclick="@(() => AskSuggestedQuestion(question))"
+                                class="flex items-center gap-2 p-3 text-left text-sm text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-purple-300 hover:shadow-sm transition-all">
+                            <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 12h8M12 8v8"/>
+                                </svg>
+                            </span>
+                            <span class="line-clamp-2">@question</span>
+                        </button>
+                    }
+                </div>
             </div>
         }
         else
         {
+            @* Message List *@
             @foreach (var message in Messages)
             {
-                <div class="ll-chat-message @(message.IsUser ? "user" : "assistant")">
+                <div class="flex @(message.IsUser ? "justify-end" : "justify-start") gap-2">
                     @if (!message.IsUser)
                     {
-                        <div class="ll-message-avatar">
-                            <i class="fas fa-brain"></i>
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                            </svg>
                         </div>
                     }
-                    <div class="ll-message-bubble">
-                        <div class="ll-message-text">@((MarkupString)FormatMessage(message.Content))</div>
-                        <div class="ll-message-footer">
+                    <div class="max-w-[80%] flex flex-col @(message.IsUser ? "items-end" : "items-start")">
+                        <div class="@(message.IsUser
+                                     ? "bg-blue-600 text-white rounded-l-xl rounded-br-xl"
+                                     : "bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200")
+                                    p-3 shadow-sm text-sm leading-relaxed">
+                            @((MarkupString)FormatMessage(message.Content))
+                        </div>
+                        <div class="flex items-center gap-2 mt-1 px-1">
                             @if (message.VideoTimestamp.HasValue)
                             {
-                                <button class="ll-timestamp-link" @onclick="@(() => SeekToTimestamp(message.VideoTimestamp.Value))">
-                                    <i class="fas fa-play-circle"></i>
+                                <button @onclick="@(() => SeekToTimestamp(message.VideoTimestamp.Value))"
+                                        class="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 transition-colors">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
                                     @FormatTimestamp(message.VideoTimestamp.Value)
                                 </button>
                             }
-                            <span class="ll-message-time">@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                            <span class="text-xs text-gray-400">@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
                             @if (!message.IsUser)
                             {
-                                <div class="ll-message-actions">
-                                    <button class="ll-msg-action-btn" @onclick="@(() => CopyMessage(message.Content))" title="Copy response">
-                                        <i class="fas @(copiedMessageId == message.GetHashCode() ? "fa-check" : "fa-copy")"></i>
-                                    </button>
-                                    <button class="ll-msg-action-btn" @onclick="@(() => RegenerateResponse(message))" title="Regenerate response">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </div>
+                                <button @onclick="@(() => CopyMessage(message.Content))"
+                                        class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                                        title="Copy">
+                                    @if (copiedMessageId == message.GetHashCode())
+                                    {
+                                        <svg class="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 6L9 17l-5-5"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                            <path d="M5 15V5a2 2 0 012-2h10"/>
+                                        </svg>
+                                    }
+                                </button>
+                                <button @onclick="@(() => RegenerateResponse(message))"
+                                        class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                                        title="Regenerate">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 4v6h6M23 20v-6h-6"/>
+                                        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+                                    </svg>
+                                </button>
                             }
                         </div>
                     </div>
                     @if (message.IsUser)
                     {
-                        <div class="ll-user-avatar">
-                            <i class="fas fa-user"></i>
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
                         </div>
                     }
                 </div>
             }
 
+            @* Typing Indicator *@
             @if (IsTyping)
             {
-                <div class="ll-chat-message assistant typing">
-                    <div class="ll-message-avatar">
-                        <i class="fas fa-brain"></i>
+                <div class="flex justify-start gap-2">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                        </svg>
                     </div>
-                    <div class="ll-message-bubble">
-                        <div class="ll-typing-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+                    <div class="bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200 p-3 shadow-sm">
+                        <div class="flex items-center gap-1">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms;"></span>
                         </div>
-                        <span class="ll-typing-text">AI is thinking...</span>
                     </div>
                 </div>
             }
         }
     </div>
 
-    @* Context Indicator - LinkedIn Learning Style *@
-    @if (CurrentVideoTimestamp > 0)
+    @* Quick Action Chips - Only show when there are messages *@
+    @if (IsAvailable && !IsTyping && Messages.Count > 0)
     {
-        <div class="ll-context-indicator">
-            <i class="fas fa-video"></i>
-            <span>Answering based on video at <strong>@FormatTimestamp(CurrentVideoTimestamp)</strong></span>
+        <div class="flex gap-2 px-4 py-2 overflow-x-auto border-t border-gray-100 bg-white">
+            <button @onclick="@(() => AskQuickAction("summarize"))"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-purple-100 hover:text-purple-700 whitespace-nowrap transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 6h16M4 12h10M4 18h14"/>
+                </svg>
+                Summarize
+            </button>
+            <button @onclick="@(() => AskQuickAction("explain"))"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-purple-100 hover:text-purple-700 whitespace-nowrap transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/>
+                </svg>
+                Explain
+            </button>
+            <button @onclick="@(() => AskQuickAction("examples"))"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-purple-100 hover:text-purple-700 whitespace-nowrap transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"/>
+                    <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                Example
+            </button>
+            <button @onclick="@(() => AskQuickAction("quiz"))"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-full hover:bg-purple-100 hover:text-purple-700 whitespace-nowrap transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+                Quiz me
+            </button>
         </div>
     }
 
-    @* Chat Input - LinkedIn Learning Style *@
-    <div class="ll-chat-input-area">
-        <div class="ll-input-wrapper">
+    @* Context Indicator *@
+    @if (CurrentVideoTimestamp > 0)
+    {
+        <div class="flex items-center gap-2 px-4 py-2 bg-purple-50 border-t border-purple-100 text-sm text-purple-700">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span>Context: Video at <strong>@FormatTimestamp(CurrentVideoTimestamp)</strong></span>
+        </div>
+    }
+
+    @* Input Area - ChatGPT Style *@
+    <div class="p-4 bg-white border-t border-gray-200">
+        <div class="flex items-end gap-2 bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all">
             <textarea @bind="CurrentMessage"
                       @bind:event="oninput"
                       @onkeydown="HandleKeyDown"
-                      placeholder="Ask anything about this lesson..."
+                      placeholder="Message AI Assistant..."
                       rows="1"
                       maxlength="2000"
-                      disabled="@(!IsAvailable || IsTyping)"></textarea>
-            <button class="ll-btn-send @(string.IsNullOrWhiteSpace(CurrentMessage) ? "" : "active")"
-                    @onclick="SendMessage"
+                      disabled="@(!IsAvailable || IsTyping)"
+                      class="flex-1 bg-transparent px-4 py-3 text-sm text-gray-900 placeholder-gray-500 border-0 resize-none focus:outline-none focus:ring-0 min-h-[44px] max-h-32"></textarea>
+            <button @onclick="SendMessage"
                     disabled="@(string.IsNullOrWhiteSpace(CurrentMessage) || !IsAvailable || IsTyping)"
+                    class="flex-shrink-0 p-2 m-1 rounded-xl transition-all
+                           @(string.IsNullOrWhiteSpace(CurrentMessage)
+                             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                             : "bg-purple-600 text-white hover:bg-purple-700 shadow-sm")"
                     title="Send message">
-                <i class="fas fa-paper-plane"></i>
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
             </button>
         </div>
-        <div class="ll-input-footer">
-            <span class="ll-input-hint">
-                <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
+        <div class="flex items-center justify-between mt-2 px-1">
+            <span class="text-xs text-gray-400">
+                Press <kbd class="px-1.5 py-0.5 text-xs font-mono bg-gray-100 rounded border border-gray-200">Enter</kbd> to send
             </span>
-            <span class="ll-char-count @(CurrentMessage?.Length > 1800 ? "warning" : "")">
+            <span class="text-xs @(CurrentMessage?.Length > 1800 ? "text-orange-500 font-medium" : "text-gray-400")">
                 @(CurrentMessage?.Length ?? 0)/2000
             </span>
         </div>
     </div>
 
-    @* Error Message - LinkedIn Learning Style *@
+    @* Error Toast *@
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
-        <div class="ll-chat-error">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>@ErrorMessage</span>
-            <button class="ll-error-dismiss" @onclick="DismissError">
-                <i class="fas fa-times"></i>
+        <div class="absolute bottom-20 left-4 right-4 flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl shadow-lg animate-slide-up">
+            <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+            </div>
+            <span class="flex-1 text-sm text-red-800">@ErrorMessage</span>
+            <button @onclick="DismissError"
+                    class="flex-shrink-0 p-1 rounded-lg hover:bg-red-100 text-red-500 hover:text-red-700 transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
             </button>
         </div>
     }
 </div>
+
+<style>
+    @@keyframes slide-up {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
+    }
+</style>
