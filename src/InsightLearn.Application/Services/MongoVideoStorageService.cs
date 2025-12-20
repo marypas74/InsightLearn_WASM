@@ -281,16 +281,30 @@ public class MongoVideoStorageService : IMongoVideoStorageService
                 throw new FileNotFoundException($"Video file not found: {fileId}");
             }
 
+            // Get content type from metadata, or auto-detect from file header
+            var metadataContentType = file.Metadata.Contains("contentType")
+                ? file.Metadata["contentType"].AsString
+                : "unknown";
+
+            _logger.LogInformation("[VIDEO] Metadata contentType for {FileId}: {ContentType}", fileId, metadataContentType);
+
+            // ALWAYS auto-detect from magic bytes (metadata is often wrong)
+            var detectedType = await DetectContentTypeFromFileAsync(objectId);
+            _logger.LogInformation("[VIDEO] Auto-detected contentType for {FileId}: {DetectedType}", fileId, detectedType);
+
+            // Use detected type (more reliable than metadata)
+            var contentType = detectedType;
+
             return new VideoMetadata
             {
                 FileId = file.Id.ToString(),
                 FileName = file.Filename,
                 FileSize = file.Metadata.Contains("originalSize") ? file.Metadata["originalSize"].AsInt64 : file.Length,
                 CompressedSize = file.Length,
-                ContentType = file.Metadata.Contains("contentType") ? file.Metadata["contentType"].AsString : "video/mp4",
+                ContentType = contentType,
                 UploadDate = file.UploadDateTime,
                 LessonId = file.Metadata.Contains("lessonId") ? Guid.Parse(file.Metadata["lessonId"].AsString) : Guid.Empty,
-                Format = file.Metadata.Contains("format") ? file.Metadata["format"].AsString : "mp4"
+                Format = file.Metadata.Contains("format") ? file.Metadata["format"].AsString : GetFormatFromContentType(contentType)
             };
         }
         catch (Exception ex)
@@ -298,5 +312,83 @@ public class MongoVideoStorageService : IMongoVideoStorageService
             _logger.LogError(ex, "Failed to get video metadata: {FileId}", fileId);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Auto-detect video content type from file header magic bytes.
+    /// Supports: MP4, MPEG-TS, WebM, OGG
+    /// </summary>
+    private async Task<string> DetectContentTypeFromFileAsync(ObjectId objectId)
+    {
+        try
+        {
+            // Read first 32 bytes for format detection
+            var stream = await _gridFsBucket.OpenDownloadStreamAsync(objectId);
+            var header = new byte[32];
+            var bytesRead = await stream.ReadAsync(header, 0, 32);
+            await stream.DisposeAsync();
+
+            if (bytesRead < 4)
+                return "video/mp4"; // Default if file too small
+
+            // MPEG-TS: starts with 0x47 sync byte (repeated pattern)
+            if (header[0] == 0x47)
+            {
+                _logger.LogInformation("[VIDEO] Detected MPEG-TS format (0x47 sync byte), first bytes: {Bytes}",
+                    BitConverter.ToString(header, 0, 8));
+                return "video/MP2T";
+            }
+
+            // WebM/Matroska: starts with 0x1A 0x45 0xDF 0xA3 (EBML header)
+            if (header[0] == 0x1A && header[1] == 0x45 && header[2] == 0xDF && header[3] == 0xA3)
+            {
+                _logger.LogDebug("[VIDEO] Detected WebM/Matroska format");
+                return "video/webm";
+            }
+
+            // OGG: starts with "OggS"
+            if (header[0] == 'O' && header[1] == 'g' && header[2] == 'g' && header[3] == 'S')
+            {
+                _logger.LogDebug("[VIDEO] Detected OGG format");
+                return "video/ogg";
+            }
+
+            // MP4/MOV: look for "ftyp" atom (usually at byte 4-7)
+            // Format: [4-byte size][4-byte type='ftyp'][brand]
+            if (bytesRead >= 8 && header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p')
+            {
+                _logger.LogDebug("[VIDEO] Detected MP4/MOV format (ftyp atom)");
+                return "video/mp4";
+            }
+
+            // QuickTime MOV: sometimes has different header
+            if (bytesRead >= 8 && header[4] == 'm' && header[5] == 'o' && header[6] == 'o' && header[7] == 'v')
+            {
+                _logger.LogDebug("[VIDEO] Detected QuickTime MOV format");
+                return "video/quicktime";
+            }
+
+            _logger.LogInformation("[VIDEO] Could not detect format, defaulting to video/mp4. First 16 bytes: {Header}",
+                BitConverter.ToString(header, 0, Math.Min(bytesRead, 16)));
+            return "video/mp4";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[VIDEO] Failed to auto-detect content type, defaulting to video/mp4");
+            return "video/mp4";
+        }
+    }
+
+    private static string GetFormatFromContentType(string contentType)
+    {
+        return contentType switch
+        {
+            "video/mp4" => "mp4",
+            "video/MP2T" => "ts",
+            "video/webm" => "webm",
+            "video/ogg" => "ogg",
+            "video/quicktime" => "mov",
+            _ => "mp4"
+        };
     }
 }
