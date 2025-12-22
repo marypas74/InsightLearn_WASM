@@ -107,6 +107,34 @@ kubectl apply -f k8s/deployments/
 
 **REGOLA FONDAMENTALE**: Prima di deployare un nuovo pod, verificare se ci sono pod pending dello stesso deployment.
 
+#### 🏷️ CRITICO: Versioning Immagini Docker per Deploy
+
+**⚠️ OBBLIGATORIO AD OGNI BUILD ⚠️**
+
+**REGOLA IMPERATIVA**: Ad ogni nuova build, **CAMBIARE SEMPRE IL TAG DELL'IMMAGINE** per forzare Kubernetes a scaricare la nuova versione.
+
+```bash
+# ❌ SBAGLIATO - Kubernetes potrebbe usare la cache
+podman build -t localhost/insightlearn/wasm:2.2.0-dev .
+kubectl set image deployment/insightlearn-wasm -n insightlearn wasm=localhost/insightlearn/wasm:2.2.0-dev
+# Se il tag è identico al precedente, K8s NON aggiorna i pod!
+
+# ✅ CORRETTO - Usare tag univoco con timestamp o build number
+podman build -t localhost/insightlearn/wasm:2.2.0-dev-$(date +%Y%m%d%H%M) .
+# Oppure incrementare versione: 2.2.0-dev → 2.2.1-dev
+
+# ✅ ALTERNATIVA - Forzare rollout restart dopo set image
+kubectl set image deployment/insightlearn-wasm -n insightlearn wasm=localhost/insightlearn/wasm:2.2.0-dev
+kubectl rollout restart deployment/insightlearn-wasm -n insightlearn
+```
+
+**Pattern Consigliati per Tag**:
+- `2.2.0-dev-20251222` (versione + data)
+- `2.2.0-dev-build123` (versione + build number)
+- `2.2.1-dev` (incremento versione patch)
+
+**Motivo**: Se usi lo stesso tag (es. `2.2.0-dev`), Kubernetes vede che l'immagine "è già presente" e NON ricrea i pod con la nuova build. Devi usare un tag diverso O forzare un `rollout restart`.
+
 ```bash
 # 1. CHECK: Verificare pod pending prima di ogni build
 kubectl get pods -n insightlearn -l app=<nome-app> | grep -E "(Pending|ContainerCreating|ImagePullBackOff)"
