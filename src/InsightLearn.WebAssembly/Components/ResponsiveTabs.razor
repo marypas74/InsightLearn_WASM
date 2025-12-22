@@ -1,0 +1,173 @@
+@*
+    ResponsiveTabs Component
+    v2.2.2-dev - Responsive Design System
+
+    Renders tabs differently based on device type:
+    - Desktop (>= 1024px): Standard horizontal tabs with underline indicator
+    - Tablet (768-1023px): Scrollable compact tabs with icons
+    - Mobile (< 768px): Fixed bottom navigation or scrollable horizontal tabs
+*@
+
+@using InsightLearn.WebAssembly.Services
+
+<div class="responsive-tabs @GetDeviceClass()">
+    @if (DeviceType == DeviceType.Mobile)
+    {
+        <!-- Mobile: Scrollable tabs or fixed bottom navigation -->
+        <div class="tabs-mobile @(FixedBottom ? "tabs-mobile-fixed" : "")">
+            <div class="tabs-mobile-scroll">
+                @foreach (var tab in Tabs)
+                {
+                    <button type="button"
+                            class="tab-item-mobile @(tab.Id == ActiveTabId ? "active" : "") @(tab.IsDisabled ? "disabled" : "")"
+                            disabled="@tab.IsDisabled"
+                            title="@(tab.Tooltip ?? tab.Label)"
+                            @onclick="() => SelectTab(tab.Id)">
+                        @if (!string.IsNullOrEmpty(tab.Icon))
+                        {
+                            <i class="@tab.Icon"></i>
+                        }
+                        <span class="tab-label-mobile">@tab.Label</span>
+                        @if (tab.Badge > 0)
+                        {
+                            <span class="tab-badge">@tab.Badge</span>
+                        }
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    else if (DeviceType == DeviceType.Tablet)
+    {
+        <!-- Tablet: Compact scrollable tabs -->
+        <div class="tabs-tablet">
+            <div class="tabs-tablet-container">
+                @foreach (var tab in Tabs)
+                {
+                    <button type="button"
+                            class="tab-item-tablet @(tab.Id == ActiveTabId ? "active" : "") @(tab.IsDisabled ? "disabled" : "")"
+                            disabled="@tab.IsDisabled"
+                            title="@(tab.Tooltip ?? tab.Label)"
+                            @onclick="() => SelectTab(tab.Id)">
+                        @if (!string.IsNullOrEmpty(tab.Icon))
+                        {
+                            <i class="@tab.Icon"></i>
+                        }
+                        <span class="tab-text">@tab.Label</span>
+                        @if (tab.Badge > 0)
+                        {
+                            <span class="tab-badge">@tab.Badge</span>
+                        }
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Desktop: Standard horizontal tabs with animated indicator -->
+        <div class="tabs-desktop">
+            <div class="tabs-desktop-container" @ref="tabsContainerRef">
+                @foreach (var tab in Tabs)
+                {
+                    <button type="button"
+                            class="tab-item-desktop @(tab.Id == ActiveTabId ? "active" : "") @(tab.IsDisabled ? "disabled" : "")"
+                            disabled="@tab.IsDisabled"
+                            title="@(tab.Tooltip ?? tab.Label)"
+                            data-tab-id="@tab.Id"
+                            @onclick="() => SelectTab(tab.Id)">
+                        @if (!string.IsNullOrEmpty(tab.Icon))
+                        {
+                            <i class="tab-icon @tab.Icon"></i>
+                        }
+                        <span>@tab.Label</span>
+                        @if (tab.Badge > 0)
+                        {
+                            <span class="tab-badge">@tab.Badge</span>
+                        }
+                    </button>
+                }
+            </div>
+            <div class="tabs-indicator" style="@GetIndicatorStyle()"></div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of tab definitions to render
+    /// </summary>
+    [Parameter]
+    public List<TabDefinition> Tabs { get; set; } = new();
+
+    /// <summary>
+    /// Currently active tab ID
+    /// </summary>
+    [Parameter]
+    public string ActiveTabId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when a tab is selected
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnTabSelected { get; set; }
+
+    /// <summary>
+    /// Whether mobile tabs should be fixed at the bottom
+    /// </summary>
+    [Parameter]
+    public bool FixedBottom { get; set; } = false;
+
+    /// <summary>
+    /// Device type from cascading parameter (from MainLayout)
+    /// </summary>
+    [CascadingParameter(Name = "DeviceType")]
+    public DeviceType DeviceType { get; set; } = DeviceType.Desktop;
+
+    private ElementReference tabsContainerRef;
+    private Dictionary<string, int> tabPositions = new();
+
+    private string GetDeviceClass()
+    {
+        return DeviceType switch
+        {
+            DeviceType.Mobile => "responsive-tabs-mobile",
+            DeviceType.Tablet => "responsive-tabs-tablet",
+            _ => "responsive-tabs-desktop"
+        };
+    }
+
+    private async Task SelectTab(string tabId)
+    {
+        if (tabId != ActiveTabId)
+        {
+            ActiveTabId = tabId;
+            await OnTabSelected.InvokeAsync(tabId);
+        }
+    }
+
+    private string GetIndicatorStyle()
+    {
+        // For desktop mode, calculate indicator position
+        var activeIndex = Tabs.FindIndex(t => t.Id == ActiveTabId);
+        if (activeIndex < 0) return "display: none;";
+
+        // Approximate width per tab (will be refined with JS interop if needed)
+        var tabCount = Tabs.Count;
+        if (tabCount == 0) return "display: none;";
+
+        var widthPercent = 100.0 / tabCount;
+        var leftPercent = activeIndex * widthPercent;
+
+        return $"left: {leftPercent:F2}%; width: {widthPercent:F2}%;";
+    }
+
+    protected override void OnParametersSet()
+    {
+        // If no active tab is set, default to first tab
+        if (string.IsNullOrEmpty(ActiveTabId) && Tabs.Count > 0)
+        {
+            ActiveTabId = Tabs[0].Id;
+        }
+    }
+}

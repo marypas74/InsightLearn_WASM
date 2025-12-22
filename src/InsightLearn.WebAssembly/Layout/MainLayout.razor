@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDeviceDetectionService DeviceDetection
+@implements IAsyncDisposable
 
 <!-- Skip to main content link for accessibility -->
 <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -467,7 +469,12 @@
     <!-- Main Content Area -->
     <main class="main-content" role="main" id="main-content" style="padding-top: 80px !important;">
         <div class="content-container">
-            @Body
+            <!-- CascadingValue for device type - v2.2.2-dev responsive design -->
+            <CascadingValue Value="@_deviceType" Name="DeviceType">
+                <CascadingValue Value="@_deviceInfo" Name="DeviceInfo">
+                    @Body
+                </CascadingValue>
+            </CascadingValue>
         </div>
     </main>
 
@@ -577,6 +584,81 @@
     private bool isCategoriesOpen = false;
     private int cartItemCount = 0;
     private string searchQuery = string.Empty;
+
+    // Device Detection State (v2.2.2-dev - Responsive Design)
+    private DeviceInfo? _deviceInfo;
+    private DeviceType _deviceType = DeviceType.Desktop;
+    private bool _deviceDetectionInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_deviceDetectionInitialized)
+        {
+            try
+            {
+                _deviceInfo = await DeviceDetection.GetDeviceInfoAsync();
+                _deviceType = _deviceInfo.DeviceType;
+
+                // Subscribe to viewport changes for real-time responsiveness
+                DeviceDetection.ViewportChanged += OnViewportChanged;
+                DeviceDetection.OrientationChanged += OnOrientationChanged;
+
+                _deviceDetectionInitialized = true;
+                StateHasChanged();
+
+                Console.WriteLine($"[MainLayout] Device detected: {_deviceType}, Viewport: {_deviceInfo.ViewportWidth}x{_deviceInfo.ViewportHeight}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MainLayout] DeviceDetection error: {ex.Message}");
+                // Fallback to desktop
+                _deviceType = DeviceType.Desktop;
+            }
+        }
+    }
+
+    private void OnViewportChanged(object? sender, ViewportChangedEventArgs e)
+    {
+        // Update device type based on new viewport width
+        var newDeviceType = e.NewWidth switch
+        {
+            < 768 => DeviceType.Mobile,
+            < 1024 => DeviceType.Tablet,
+            _ => DeviceType.Desktop
+        };
+
+        if (newDeviceType != _deviceType)
+        {
+            _deviceType = newDeviceType;
+            if (_deviceInfo != null)
+            {
+                _deviceInfo.ViewportWidth = e.NewWidth;
+                _deviceInfo.ViewportHeight = e.NewHeight;
+                _deviceInfo.DeviceType = newDeviceType;
+            }
+            InvokeAsync(StateHasChanged);
+            Console.WriteLine($"[MainLayout] Viewport changed: {e.NewWidth}x{e.NewHeight}, DeviceType: {_deviceType}");
+        }
+    }
+
+    private void OnOrientationChanged(object? sender, OrientationChangedEventArgs e)
+    {
+        if (_deviceInfo != null)
+        {
+            _deviceInfo.Orientation = e.NewOrientation;
+        }
+        InvokeAsync(StateHasChanged);
+        Console.WriteLine($"[MainLayout] Orientation changed: {e.NewOrientation}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_deviceDetectionInitialized)
+        {
+            DeviceDetection.ViewportChanged -= OnViewportChanged;
+            DeviceDetection.OrientationChanged -= OnOrientationChanged;
+        }
+    }
 
     private async Task Logout()
     {

@@ -3,6 +3,7 @@
 @attribute [Authorize]
 @using InsightLearn.WebAssembly.Components
 @using InsightLearn.WebAssembly.Components.LearningSpace
+@using InsightLearn.WebAssembly.Services
 @using InsightLearn.Shared.DTOs
 @using Microsoft.AspNetCore.Authorization
 @inject ICourseService CourseService
@@ -10,6 +11,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IToastService ToastService
+@inject IDeviceDetectionService DeviceDetection
 
 @*
    ============================================================================
@@ -599,6 +601,10 @@ else if (lesson != null && course != null)
 @code {
     [Parameter] public Guid CourseId { get; set; }
     [Parameter] public Guid LessonId { get; set; }
+
+    // Device Detection - v2.2.2-dev Responsive Design
+    [CascadingParameter(Name = "DeviceType")]
+    public DeviceType DeviceType { get; set; } = DeviceType.Desktop;
 
     // Component references
     private SmartVideoPlayer? smartVideoPlayerRef;

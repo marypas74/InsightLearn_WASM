@@ -2,17 +2,62 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+## 🚨🚨🚨 REGOLA PRIMARIA - VERSIONING OBBLIGATORIO 🚨🚨🚨
+
+### ⛔ PRIMA DI OGNI BUILD DEVI INCREMENTARE LA VERSIONE ⛔
+
+**OBBLIGATORIO**: Ad ogni nuova build, **INCREMENTARE SEMPRE** la versione in `Directory.Build.props`:
+
+```xml
+<!-- Directory.Build.props - INCREMENTARE PRIMA DI OGNI BUILD! -->
+<VersionPrefix>2.2.1</VersionPrefix>  <!-- 2.2.0 → 2.2.1 → 2.2.2 → 2.3.0 -->
+```
+
+### Procedura OBBLIGATORIA per ogni build:
+
+```bash
+# 1. PRIMA DI TUTTO: Incrementare VersionPrefix in Directory.Build.props
+#    Esempio: 2.2.0 → 2.2.1 (patch), 2.2.1 → 2.3.0 (minor), 2.3.0 → 3.0.0 (major)
+
+# 2. Build con la NUOVA versione
+podman build -f Dockerfile.wasm -t localhost/insightlearn/wasm:2.2.1-dev .
+
+# 3. Export e import in K3s
+podman save localhost/insightlearn/wasm:2.2.1-dev -o /tmp/wasm.tar
+echo 'PASSWORD' | sudo -S /usr/local/bin/k3s ctr images import /tmp/wasm.tar
+
+# 4. Deploy con kubectl set image (USA LA NUOVA VERSIONE!)
+kubectl set image deployment/insightlearn-wasm-blazor-webassembly -n insightlearn \
+    wasm-blazor=localhost/insightlearn/wasm:2.2.1-dev
+
+# 5. Verifica rollout
+kubectl rollout status deployment/insightlearn-wasm-blazor-webassembly -n insightlearn
+```
+
+### ❌ ERRORI DA NON FARE MAI:
+
+- **NON** usare la stessa versione di prima (K8s NON aggiorna i pod!)
+- **NON** fare build senza incrementare `Directory.Build.props`
+- **NON** usare tag generici come `:latest`
+
+### MOTIVO:
+Se usi lo stesso tag, Kubernetes vede l'immagine "già presente" e **NON AGGIORNA I POD**.
+Senza versione incrementale si crea **CAOS nel rollout** e i pod vecchi continuano a girare.
+
+---
+
 ## Overview
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `2.2.0-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `2.2.2-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
-**Latest Release**: 📱 Mobile Responsive & Performance v2.2.0-dev (2025-12-22) - Cross-platform device detection (DeviceDetectionService + JS interop), mobile-optimizations.css (viewport fix, touch targets 44px), GDPR popup compact per mobile (AI avatar nascosto), nginx performance tuning (sendfile, tcp_nopush, open_file_cache), defer scripts per video libraries. Previous: Multi-Language Subtitle Generation, Subtitle Translation GridFS Fix, LinkedIn Learning UI Style.
+**Latest Release**: 📱 Responsive Tabs & Device Detection v2.2.2-dev (2025-12-22) - ResponsiveTabs component con CascadingValue DeviceType, MainLayout integrato con DeviceDetectionService (viewport/orientation events), adaptive tabs per mobile/tablet/desktop, CSS responsive tabs (~270 lines), Learn.razor con DeviceType CascadingParameter. Previous: Mobile Responsive & Performance v2.2.1-dev.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -20,7 +65,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **SEO Strategy**: [SEO-COMPETITIVE-ANALYSIS-2025-12-12.md](docs/SEO-COMPETITIVE-ANALYSIS-2025-12-12.md) - Piano 12 mesi per Top 10
 
-✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.0-dev`.
+✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.1-dev`.
 
 ### 🔒 Security Status (v2.2.0 - CVE-FREE)
 
@@ -106,34 +151,6 @@ kubectl apply -f k8s/deployments/
 #### 🔄 Build & Deploy Policy - Pending Check
 
 **REGOLA FONDAMENTALE**: Prima di deployare un nuovo pod, verificare se ci sono pod pending dello stesso deployment.
-
-#### 🏷️ CRITICO: Versioning Immagini Docker per Deploy
-
-**⚠️ OBBLIGATORIO AD OGNI BUILD ⚠️**
-
-**REGOLA IMPERATIVA**: Ad ogni nuova build, **CAMBIARE SEMPRE IL TAG DELL'IMMAGINE** per forzare Kubernetes a scaricare la nuova versione.
-
-```bash
-# ❌ SBAGLIATO - Kubernetes potrebbe usare la cache
-podman build -t localhost/insightlearn/wasm:2.2.0-dev .
-kubectl set image deployment/insightlearn-wasm -n insightlearn wasm=localhost/insightlearn/wasm:2.2.0-dev
-# Se il tag è identico al precedente, K8s NON aggiorna i pod!
-
-# ✅ CORRETTO - Usare tag univoco con timestamp o build number
-podman build -t localhost/insightlearn/wasm:2.2.0-dev-$(date +%Y%m%d%H%M) .
-# Oppure incrementare versione: 2.2.0-dev → 2.2.1-dev
-
-# ✅ ALTERNATIVA - Forzare rollout restart dopo set image
-kubectl set image deployment/insightlearn-wasm -n insightlearn wasm=localhost/insightlearn/wasm:2.2.0-dev
-kubectl rollout restart deployment/insightlearn-wasm -n insightlearn
-```
-
-**Pattern Consigliati per Tag**:
-- `2.2.0-dev-20251222` (versione + data)
-- `2.2.0-dev-build123` (versione + build number)
-- `2.2.1-dev` (incremento versione patch)
-
-**Motivo**: Se usi lo stesso tag (es. `2.2.0-dev`), Kubernetes vede che l'immagine "è già presente" e NON ricrea i pod con la nuova build. Devi usare un tag diverso O forzare un `rollout restart`.
 
 ```bash
 # 1. CHECK: Verificare pod pending prima di ogni build
