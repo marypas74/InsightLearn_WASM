@@ -2,23 +2,316 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>All Courses - InsightLearn | 500+ Expert-Led Online Courses</title>
-    <meta name="description" content="Browse 500+ online courses in web development, programming, data science, business, and design. Learn from industry experts with lifetime access." />
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/courses" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>All Online Courses - InsightLearn | 500+ Expert-Led Courses in Programming, Business & Design</title>
+    <meta name="description" content="Browse 500+ online courses in web development, Python, JavaScript, data science, business, and design. Expert instructors, lifetime access, certificates. Start learning today with InsightLearn." />
+    <meta name="keywords" content="online courses, programming courses, web development courses, data science courses, python courses, javascript courses, business courses, design courses, online learning, InsightLearn" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://www.insightlearn.cloud/courses" />
+    <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/courses" />
+    <link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/courses?lang=it" />
+    <link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/courses" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.insightlearn.cloud/courses" />
+    <meta property="og:title" content="All Online Courses - InsightLearn | 500+ Expert-Led Courses" />
+    <meta property="og:description" content="Browse 500+ online courses in programming, web development, data science, business, and design. Start learning today!" />
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-courses.jpg" />
+    <meta property="og:site_name" content="InsightLearn" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Browse 500+ Online Courses - InsightLearn" />
+    <meta name="twitter:description" content="Learn programming, web development, data science & more from expert instructors." />
+
+    <!-- JSON-LD: CollectionPage -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"CollectionPage","name":"All Courses","url":"https://wasm.insightlearn.cloud/courses","description":"Browse 500+ expert-led online courses"}
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "All Online Courses",
+        "url": "https://www.insightlearn.cloud/courses",
+        "description": "Browse 500+ expert-led online courses in programming, web development, data science, business, and design.",
+        "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": 500,
+            "itemListOrder": "https://schema.org/ItemListOrderDescending"
+        },
+        "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://www.insightlearn.cloud/"
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "All Courses",
+                    "item": "https://www.insightlearn.cloud/courses"
+                }
+            ]
+        }
+    }
     </script>
+
+    <!-- JSON-LD: Course Catalog -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "InsightLearn Course Catalog",
+        "description": "Complete list of courses available on InsightLearn",
+        "numberOfItems": 500,
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "item": {
+                    "@type": "Course",
+                    "name": "Web Development Masterclass 2025",
+                    "description": "Complete web development bootcamp: HTML, CSS, JavaScript, React, Node.js",
+                    "provider": {"@type": "Organization", "name": "InsightLearn"},
+                    "url": "https://www.insightlearn.cloud/course/web-development-masterclass",
+                    "educationalLevel": "All Levels",
+                    "offers": {"@type": "Offer", "price": "49.99", "priceCurrency": "EUR"},
+                    "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "2450"}
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "item": {
+                    "@type": "Course",
+                    "name": "Python Programming Complete Course",
+                    "description": "Learn Python from zero to hero with real-world projects",
+                    "provider": {"@type": "Organization", "name": "InsightLearn"},
+                    "url": "https://www.insightlearn.cloud/course/python-complete",
+                    "educationalLevel": "Beginner",
+                    "offers": {"@type": "Offer", "price": "39.99", "priceCurrency": "EUR"},
+                    "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "1890"}
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "item": {
+                    "@type": "Course",
+                    "name": "Data Science & Machine Learning",
+                    "description": "Master data science with Python, Pandas, Scikit-learn, TensorFlow",
+                    "provider": {"@type": "Organization", "name": "InsightLearn"},
+                    "url": "https://www.insightlearn.cloud/course/data-science-ml",
+                    "educationalLevel": "Intermediate",
+                    "offers": {"@type": "Offer", "price": "59.99", "priceCurrency": "EUR"},
+                    "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.7", "reviewCount": "1245"}
+                }
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1c1d1f; background: #f7f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        header { background: linear-gradient(135deg, #a435f0 0%, #8710d8 100%); color: white; padding: 50px 20px; }
+        h1 { font-size: 2.25rem; margin-bottom: 12px; }
+        .subtitle { font-size: 1.1rem; opacity: 0.9; }
+        .breadcrumb { font-size: 0.9rem; margin-bottom: 20px; opacity: 0.8; }
+        .breadcrumb a { color: white; }
+        .filters { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
+        .filter-btn { background: #f7f9fa; border: 1px solid #e5e7eb; padding: 8px 16px; border-radius: 20px; text-decoration: none; color: #1c1d1f; font-size: 0.9rem; }
+        .filter-btn:hover, .filter-btn.active { background: #a435f0; color: white; border-color: #a435f0; }
+        h2 { font-size: 1.5rem; margin: 30px 0 20px; color: #1c1d1f; }
+        .courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+        .course-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; }
+        .course-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .course-thumb { width: 100%; height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; }
+        .course-content { padding: 20px; }
+        .course-content h3 { font-size: 1.1rem; margin-bottom: 8px; color: #1c1d1f; }
+        .course-meta { font-size: 0.85rem; color: #6b7280; margin-bottom: 8px; }
+        .course-rating { color: #f59e0b; margin-bottom: 12px; }
+        .course-price { font-size: 1.25rem; font-weight: bold; color: #1c1d1f; }
+        .course-price .original { text-decoration: line-through; color: #9ca3af; font-size: 0.9rem; margin-left: 8px; font-weight: normal; }
+        .categories-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 40px; }
+        .category-link { background: white; padding: 20px; border-radius: 8px; text-decoration: none; color: #1c1d1f; display: flex; align-items: center; gap: 12px; transition: box-shadow 0.2s; }
+        .category-link:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .category-icon { font-size: 1.5rem; }
+        .category-info h3 { font-size: 1rem; margin-bottom: 4px; }
+        .category-info span { font-size: 0.85rem; color: #6b7280; }
+        footer { text-align: center; padding: 40px 20px; color: #6b7280; border-top: 1px solid #e5e7eb; margin-top: 40px; }
+        footer a { color: #6b7280; margin: 0 12px; }
+        @media (max-width: 768px) { h1 { font-size: 1.5rem; } .filters { justify-content: center; } }
+    </style>
 </head>
 <body>
-    <h1>All Courses</h1>
-    <p>Browse 500+ expert-led courses in programming, business, design, and more</p>
-    <h2>Popular Categories</h2>
-    <ul>
-        <li><a href="/courses?category=web-development">Web Development (120 courses)</a></li>
-        <li><a href="/courses?category=data-science">Data Science & AI (85 courses)</a></li>
-        <li><a href="/courses?category=programming">Programming Languages (150 courses)</a></li>
-        <li><a href="/courses?category=business">Business & Management (90 courses)</a></li>
-        <li><a href="/courses?category=design">Design & Creative (75 courses)</a></li>
-    </ul>
+    <header>
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="/">Home</a> → <span>All Courses</span>
+            </nav>
+            <h1>Browse All Online Courses</h1>
+            <p class="subtitle">500+ expert-led courses in programming, business, design, and more. Start learning today!</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="filters">
+            <a href="/courses" class="filter-btn active">All Courses</a>
+            <a href="/courses?category=web-development" class="filter-btn">Web Development</a>
+            <a href="/courses?category=programming" class="filter-btn">Programming</a>
+            <a href="/courses?category=data-science" class="filter-btn">Data Science</a>
+            <a href="/courses?category=business" class="filter-btn">Business</a>
+            <a href="/courses?category=design" class="filter-btn">Design</a>
+            <a href="/courses?price=free" class="filter-btn">Free Courses</a>
+        </div>
+
+        <h2>Course Categories</h2>
+        <div class="categories-list">
+            <a href="/courses?category=web-development" class="category-link">
+                <span class="category-icon">💻</span>
+                <div class="category-info">
+                    <h3>Web Development</h3>
+                    <span>120+ courses</span>
+                </div>
+            </a>
+            <a href="/courses?category=programming" class="category-link">
+                <span class="category-icon">⌨️</span>
+                <div class="category-info">
+                    <h3>Programming Languages</h3>
+                    <span>150+ courses</span>
+                </div>
+            </a>
+            <a href="/courses?category=data-science" class="category-link">
+                <span class="category-icon">📊</span>
+                <div class="category-info">
+                    <h3>Data Science & AI</h3>
+                    <span>85+ courses</span>
+                </div>
+            </a>
+            <a href="/courses?category=business" class="category-link">
+                <span class="category-icon">📈</span>
+                <div class="category-info">
+                    <h3>Business & Management</h3>
+                    <span>90+ courses</span>
+                </div>
+            </a>
+            <a href="/courses?category=design" class="category-link">
+                <span class="category-icon">🎨</span>
+                <div class="category-info">
+                    <h3>Design & Creative</h3>
+                    <span>75+ courses</span>
+                </div>
+            </a>
+            <a href="/courses?category=it-software" class="category-link">
+                <span class="category-icon">☁️</span>
+                <div class="category-info">
+                    <h3>Cloud & DevOps</h3>
+                    <span>60+ courses</span>
+                </div>
+            </a>
+        </div>
+
+        <h2>Popular Courses</h2>
+        <div class="courses-grid">
+            <div class="course-card">
+                <div class="course-thumb">💻</div>
+                <div class="course-content">
+                    <h3>Web Development Masterclass 2025</h3>
+                    <p class="course-meta">By Dr. Sarah Johnson · 60 hours · All Levels</p>
+                    <p class="course-rating">★★★★★ 4.8 (2,450 reviews)</p>
+                    <p class="course-price">€49.99 <span class="original">€199.99</span></p>
+                </div>
+            </div>
+            <div class="course-card">
+                <div class="course-thumb">🐍</div>
+                <div class="course-content">
+                    <h3>Python Programming: Zero to Hero</h3>
+                    <p class="course-meta">By Prof. Michael Chen · 45 hours · Beginner</p>
+                    <p class="course-rating">★★★★★ 4.9 (1,890 reviews)</p>
+                    <p class="course-price">€39.99 <span class="original">€149.99</span></p>
+                </div>
+            </div>
+            <div class="course-card">
+                <div class="course-thumb">📊</div>
+                <div class="course-content">
+                    <h3>Data Science & Machine Learning</h3>
+                    <p class="course-meta">By Dr. Emily Parker · 55 hours · Intermediate</p>
+                    <p class="course-rating">★★★★☆ 4.7 (1,245 reviews)</p>
+                    <p class="course-price">€59.99 <span class="original">€249.99</span></p>
+                </div>
+            </div>
+            <div class="course-card">
+                <div class="course-thumb">⚛️</div>
+                <div class="course-content">
+                    <h3>React & Next.js Full Course 2025</h3>
+                    <p class="course-meta">By Alex Thompson · 40 hours · Intermediate</p>
+                    <p class="course-rating">★★★★★ 4.8 (980 reviews)</p>
+                    <p class="course-price">€44.99 <span class="original">€179.99</span></p>
+                </div>
+            </div>
+            <div class="course-card">
+                <div class="course-thumb">☁️</div>
+                <div class="course-content">
+                    <h3>AWS Solutions Architect Certification</h3>
+                    <p class="course-meta">By James Wilson · 50 hours · Intermediate</p>
+                    <p class="course-rating">★★★★☆ 4.6 (756 reviews)</p>
+                    <p class="course-price">€54.99 <span class="original">€199.99</span></p>
+                </div>
+            </div>
+            <div class="course-card">
+                <div class="course-thumb">🎨</div>
+                <div class="course-content">
+                    <h3>UI/UX Design Masterclass</h3>
+                    <p class="course-meta">By Maria Garcia · 35 hours · Beginner</p>
+                    <p class="course-rating">★★★★☆ 4.7 (623 reviews)</p>
+                    <p class="course-price">€49.99 <span class="original">€179.99</span></p>
+                </div>
+            </div>
+        </div>
+
+        <h2>Courses by Skill Level</h2>
+        <div class="categories-list">
+            <a href="/courses?level=beginner" class="category-link">
+                <span class="category-icon">🌱</span>
+                <div class="category-info">
+                    <h3>Beginner Courses</h3>
+                    <span>Perfect for getting started</span>
+                </div>
+            </a>
+            <a href="/courses?level=intermediate" class="category-link">
+                <span class="category-icon">📚</span>
+                <div class="category-info">
+                    <h3>Intermediate Courses</h3>
+                    <span>Build on your foundations</span>
+                </div>
+            </a>
+            <a href="/courses?level=advanced" class="category-link">
+                <span class="category-icon">🚀</span>
+                <div class="category-info">
+                    <h3>Advanced Courses</h3>
+                    <span>Master advanced topics</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <p>
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
+            <a href="/instructors">Become an Instructor</a>
+            <a href="/faq">FAQ</a>
+            <a href="/contact">Contact</a>
+        </p>
+        <p>
+            <a href="/privacy-policy">Privacy Policy</a>
+            <a href="/terms-of-service">Terms of Service</a>
+        </p>
+        <p style="margin-top: 20px;">© 2025 InsightLearn. All rights reserved.</p>
+    </footer>
 </body>
 </html>

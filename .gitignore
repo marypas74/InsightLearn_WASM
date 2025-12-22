@@ -100,10 +100,77 @@ coverage/
 k8s/privkey.pem
 *.pem
 
+# ============================================================
+# SECURITY: Sensitive Files (CVE Prevention)
+# Audit Date: 2024-12-22
+# ============================================================
+
+# Git credentials (CRITICAL - GitHub PAT tokens)
+.git-credentials
+.git-credentials-*
+
 # Kubernetes secrets (CRITICAL - never commit secrets to git)
 k8s/01-secrets.yaml
 k8s/*-secrets.yaml
+k8s/secrets/*.yaml
+!k8s/secrets/templates/*.yaml
+!k8s/secrets/README.md
 secret-backup-*.yaml
+*-backup.yaml
+*.enc.yaml.dec
+generated-secrets.env
+insightlearn-secrets.yaml
+
+# SSH and TLS keys
+*.key
+*.pem
+*.crt
+!docker/certs/*.crt
+id_rsa*
+id_ed25519*
+known_hosts
+
+# Environment files with secrets
+.env
+.env.*
+!.env.example
+*.secrets
+*.secret
+
+# Kubernetes kubeconfig
+kubeconfig
+.kube/
+
+# HashiCorp Vault tokens
+.vault-token
+vault-token*
+
+# SOPS age keys (encrypted secrets management)
+age.key
+*.age
+!*.enc.yaml
+
+# AWS credentials
+.aws/
+aws-credentials
+
+# Google Cloud credentials
+*.json.credentials
+*-credentials.json
+service-account*.json
+
+# Database dumps with sensitive data
+*.sql.gz
+*.dump
+*.bak
+
+# Log files that may contain secrets
+*.log
+logs/
+
+# IDE settings that may cache secrets
+.idea/
+.vscode/settings.json
 
 # Build artifacts
 publish/

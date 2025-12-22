@@ -19,7 +19,7 @@
     100% { transform: rotate(360deg); }
 }
 
-/* Full-Screen Blocking Overlay */
+/* Full-Screen Blocking Overlay - OPTIMIZED for performance */
 .cookie-wall-overlay {
     position: fixed;
     top: 0;
@@ -28,19 +28,19 @@
     bottom: 0;
     width: 100vw;
     height: 100vh;
+    /* OPTIMIZED: Solid gradient without blur for better performance */
     background: linear-gradient(135deg,
-        rgba(102, 126, 234, 0.95) 0%,
-        rgba(118, 75, 162, 0.95) 50%,
-        rgba(240, 147, 251, 0.95) 100%);
-    backdrop-filter: blur(10px);
+        rgba(102, 126, 234, 0.98) 0%,
+        rgba(118, 75, 162, 0.98) 50%,
+        rgba(240, 147, 251, 0.98) 100%);
+    /* REMOVED: backdrop-filter: blur(10px) - expensive on mobile */
     z-index: 999999;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.4s ease-out;
+    animation: fadeIn 0.2s ease-out; /* Faster animation */
     overflow-y: auto;
     padding: 20px;
-    /* Prevent any interaction with content behind */
     pointer-events: all;
 }
 
@@ -100,6 +100,27 @@
     overflow: hidden;
 }
 
+/* ===== COMPACT MODE - Single Column (No AI Avatar) ===== */
+/* PERFORMANCE OPTIMIZED: Removes AI avatar section entirely for faster load */
+.cookie-wall-modal-compact {
+    max-width: 700px;  /* Narrower modal without AI section */
+}
+
+.cookie-modal-content-single {
+    display: block !important;  /* Override grid for single column */
+    grid-template-columns: none !important;
+    min-height: auto;
+}
+
+.cookie-modal-content-single .ai-avatar-section {
+    display: none !important;  /* Force hide AI section */
+}
+
+.cookie-modal-content-single .cookie-content-section {
+    width: 100%;
+    border-radius: 32px;  /* Full rounded corners */
+}
+
 /* AI Avatar Section (LEFT) */
 .ai-avatar-section {
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -113,13 +134,12 @@
     overflow: hidden;
 }
 
-/* Futuristic AI Hologram */
+/* Futuristic AI Hologram - OPTIMIZED: Removed float animation */
 .ai-hologram {
     position: relative;
     width: 200px;
     height: 200px;
-    animation: float 6s ease-in-out infinite;
-    will-change: transform;
+    /* REMOVED: animation: float 6s - reduces GPU usage */
 }
 
 @keyframes float {
@@ -127,7 +147,7 @@
     50% { transform: translateY(-20px); }
 }
 
-/* Logo Container (replaces AI Face) */
+/* Logo Container (replaces AI Face) - OPTIMIZED */
 .logo-container {
     position: absolute;
     top: 50%;
@@ -137,33 +157,19 @@
     height: 180px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    box-shadow: 0 0 60px rgba(102, 126, 234, 0.8),
-                inset 0 0 30px rgba(255, 255, 255, 0.3);
-    animation: pulse-glow 3s ease-in-out infinite;
-    will-change: box-shadow;
+    box-shadow: 0 0 40px rgba(102, 126, 234, 0.6);
+    /* REMOVED: animation pulse-glow and backdrop-filter for performance */
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(10px);
 }
 
 .insightlearn-logo {
     width: 140px;
     height: 140px;
     object-fit: contain;
-    filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.5));
-    animation: logo-pulse 3s ease-in-out infinite;
-}
-
-@keyframes logo-pulse {
-    0%, 100% {
-        transform: scale(1);
-        filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.5));
-    }
-    50% {
-        transform: scale(1.05);
-        filter: drop-shadow(0 8px 30px rgba(255, 255, 255, 0.8));
-    }
+    filter: drop-shadow(0 4px 15px rgba(255, 255, 255, 0.4));
+    /* REMOVED: animation logo-pulse - static is better for performance */
 }
 
 /* AI Face Container (kept for backwards compatibility) */
@@ -232,56 +238,21 @@
     50% { width: 50px; }
 }
 
-/* Particle Effects */
+/* Particle Effects - OPTIMIZED: Hidden for performance */
 .ai-particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+    display: none; /* Hidden - particles cause GPU strain */
 }
 
 .particle {
-    position: absolute;
-    bottom: 0;
-    width: 3px;
-    height: 3px;
-    background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
-    border-radius: 50%;
-    box-shadow: 0 0 8px currentColor;
-    animation: particle-float 8s linear infinite;
-    will-change: transform, opacity;
+    display: none;
 }
 
-@keyframes particle-float {
-    0% { transform: translateY(0) scale(1); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-200px) scale(0); opacity: 0; }
-}
-
-/* Scanning Line Effect */
+/* Scanning Line Effect - OPTIMIZED: Disabled */
 .ai-scan-line {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(102, 126, 234, 0.8) 50%,
-        transparent 100%);
-    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
-    animation: scan 3s linear infinite;
-    will-change: top;
+    display: none; /* Disabled - continuous animation is expensive */
 }
 
-@keyframes scan {
-    0% { top: 0; }
-    100% { top: 100%; }
-}
-
-/* AI Glow Background */
+/* AI Glow Background - OPTIMIZED: Static instead of animated */
 .ai-glow {
     position: absolute;
     top: 50%;
@@ -290,32 +261,21 @@
     width: 300px;
     height: 300px;
     background: radial-gradient(circle,
-        rgba(102, 126, 234, 0.3) 0%,
+        rgba(102, 126, 234, 0.2) 0%,
         transparent 70%);
-    animation: glow-pulse 4s ease-in-out infinite;
+    /* REMOVED: animation glow-pulse for performance */
     pointer-events: none;
 }
 
-@keyframes glow-pulse {
-    0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-}
-
-/* AI Name */
+/* AI Name - OPTIMIZED: Static color */
 .ai-name {
     font-size: 32px;
     font-weight: 700;
-    color: #fff;
+    color: #667eea;
     margin-top: 32px;
     letter-spacing: 4px;
-    text-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
-    animation: color-shift 6s ease-in-out infinite;
-}
-
-@keyframes color-shift {
-    0%, 100% { color: #667eea; }
-    33% { color: #764ba2; }
-    66% { color: #f093fb; }
+    text-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+    /* REMOVED: animation color-shift for performance */
 }
 
 /* AI Subtitle */
@@ -365,7 +325,7 @@
     }
 }
 
-/* Header Section */
+/* Header Section - OPTIMIZED */
 .cookie-wall-header {
     padding: 48px 48px 32px 48px;
     text-align: center;
@@ -375,25 +335,7 @@
     overflow: hidden;
 }
 
-.cookie-wall-header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: ripple 15s infinite linear;
-}
-
-@keyframes ripple {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
+/* REMOVED: .cookie-wall-header::before ripple animation for performance */
 
 .cookie-icon-wrapper {
     position: relative;
@@ -404,17 +346,8 @@
 .cookie-icon {
     font-size: 80px;
     display: inline-block;
-    animation: bounce 2s infinite ease-in-out;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
-}
-
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-15px) rotate(10deg);
-    }
+    /* REMOVED: bounce animation for performance - static icon */
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
 }
 
 .cookie-wall-title {

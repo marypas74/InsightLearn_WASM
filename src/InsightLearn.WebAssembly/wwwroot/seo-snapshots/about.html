@@ -1,25 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>About InsightLearn - AI-Powered Online Learning Platform</title>
-    <meta name="description" content="InsightLearn is an AI-powered online learning platform offering 500+ expert-led courses in programming, business, and design. Learn new skills with lifetime access and certificates." />
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/about" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | InsightLearn - AI-Powered Online Learning Platform</title>
+    <meta name="description" content="Learn about InsightLearn's mission to democratize education through AI-powered learning. 500+ expert-led courses, 50,000+ students, founded in 2024. Meet our team and story.">
+    <meta name="keywords" content="InsightLearn, about us, online learning platform, AI education, e-learning company, EdTech, online courses platform">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="https://www.insightlearn.cloud/about">
+    <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/about">
+    <link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/about?lang=it">
+    <link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/about">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.insightlearn.cloud/about">
+    <meta property="og:title" content="About Us | InsightLearn - AI-Powered Learning">
+    <meta property="og:description" content="Learn about InsightLearn's mission to democratize education through AI-powered learning.">
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-about.webp">
+    <meta property="og:site_name" content="InsightLearn">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="About InsightLearn | Our Mission & Story">
+    <meta name="twitter:description" content="Democratizing education through AI-powered learning. 500+ courses, 50,000+ students.">
+
+    <!-- JSON-LD: AboutPage with Organization -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"AboutPage","name":"About InsightLearn","url":"https://wasm.insightlearn.cloud/about"}
+    {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        "name": "About InsightLearn",
+        "description": "Learn about InsightLearn's mission to democratize education through AI-powered learning",
+        "url": "https://www.insightlearn.cloud/about",
+        "mainEntity": {
+            "@type": "EducationalOrganization",
+            "name": "InsightLearn",
+            "url": "https://www.insightlearn.cloud",
+            "logo": "https://www.insightlearn.cloud/images/logo.png",
+            "description": "AI-powered online learning platform offering 500+ expert-led courses in programming, business, and design",
+            "foundingDate": "2024",
+            "areaServed": "Worldwide",
+            "numberOfEmployees": {
+                "@type": "QuantitativeValue",
+                "minValue": 10,
+                "maxValue": 50
+            },
+            "slogan": "Learn Smarter, Grow Faster",
+            "knowsAbout": ["Online Education", "AI Learning", "Web Development", "Data Science", "Business Skills"],
+            "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer service",
+                "email": "support@insightlearn.cloud",
+                "availableLanguage": ["English", "Italian"]
+            }
+        }
+    }
     </script>
+
+    <!-- JSON-LD: BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://www.insightlearn.cloud/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "About Us",
+                "item": "https://www.insightlearn.cloud/about"
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1c1d1f; background: #f7f9fa; }
+        .header { background: #fff; border-bottom: 1px solid #d1d7dc; padding: 1rem 2rem; }
+        .header-content { max-width: 1340px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #a435f0; text-decoration: none; }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: #1c1d1f; text-decoration: none; font-weight: 500; }
+        .hero { background: linear-gradient(135deg, #1c1d1f 0%, #3c3b37 100%); color: #fff; padding: 5rem 2rem; text-align: center; }
+        .hero h1 { font-size: 2.75rem; margin-bottom: 1rem; }
+        .hero p { font-size: 1.25rem; opacity: 0.9; max-width: 700px; margin: 0 auto; }
+        .breadcrumb { font-size: 0.9rem; margin-bottom: 1rem; opacity: 0.7; }
+        .breadcrumb a { color: #fff; }
+        .main { max-width: 1000px; margin: 0 auto; padding: 4rem 2rem; }
+        .section { margin-bottom: 4rem; }
+        .section h2 { font-size: 2rem; margin-bottom: 1.5rem; color: #1c1d1f; }
+        .section p { font-size: 1.1rem; color: #6a6f73; margin-bottom: 1rem; }
+        .mission-box { background: linear-gradient(135deg, #a435f0 0%, #6c28d9 100%); color: #fff; padding: 3rem; border-radius: 16px; margin-bottom: 3rem; }
+        .mission-box h2 { color: #fff; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin: 3rem 0; }
+        .stat-card { text-align: center; background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat-number { font-size: 2.5rem; font-weight: 700; color: #a435f0; }
+        .stat-label { color: #6a6f73; margin-top: 0.5rem; }
+        .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .value-card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .value-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        .value-card h3 { margin-bottom: 0.75rem; color: #1c1d1f; }
+        .value-card p { color: #6a6f73; font-size: 0.95rem; }
+        .team-section { background: #fff; padding: 3rem; border-radius: 16px; }
+        .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 2rem; }
+        .team-member { text-align: center; }
+        .team-avatar { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #fff; }
+        .team-name { font-weight: 600; margin-bottom: 0.25rem; }
+        .team-role { color: #6a6f73; font-size: 0.9rem; }
+        .footer { background: #1c1d1f; color: #fff; padding: 2rem; margin-top: 4rem; text-align: center; }
+        @media (max-width: 968px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .values-grid, .team-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2rem; }
+        }
+    </style>
 </head>
 <body>
-    <h1>About InsightLearn</h1>
-    <p>AI-powered online learning platform with 500+ expert-led courses</p>
-    <h2>Our Mission</h2>
-    <p>To make quality education accessible to everyone through technology and AI-powered learning tools.</p>
-    <h2>Why Choose Us</h2>
-    <ul>
-        <li>500+ Expert-Led Courses</li>
-        <li>AI Learning Assistant</li>
-        <li>Lifetime Access</li>
-        <li>Certificates of Completion</li>
-    </ul>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">InsightLearn</a>
+            <nav class="nav-links">
+                <a href="/courses">Courses</a>
+                <a href="/categories">Categories</a>
+                <a href="/about">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <nav class="breadcrumb">
+            <a href="/">Home</a> → <span>About Us</span>
+        </nav>
+        <h1>About InsightLearn</h1>
+        <p>Empowering learners worldwide with AI-powered education and expert-led courses</p>
+    </section>
+
+    <main class="main">
+        <div class="mission-box section">
+            <h2>Our Mission</h2>
+            <p>To democratize education by making high-quality, expert-led learning accessible to everyone, everywhere. We leverage AI technology to create personalized learning experiences that help students achieve their career goals faster.</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">Expert-Led Courses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">50,000+</div>
+                <div class="stat-label">Active Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">100+</div>
+                <div class="stat-label">Expert Instructors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">95%</div>
+                <div class="stat-label">Student Satisfaction</div>
+            </div>
+        </div>
+
+        <section class="section">
+            <h2>Our Story</h2>
+            <p>Founded in 2024, InsightLearn was born from a simple observation: traditional online learning platforms weren't keeping pace with rapidly evolving technology skills. We set out to create something different – a platform that combines expert instruction with AI-powered learning tools to help students not just learn, but truly master new skills.</p>
+            <p>Today, we serve students in over 150 countries, offering courses in web development, data science, cloud computing, business, and design. Our AI learning assistant helps students get personalized support 24/7, while our expert instructors bring real-world experience to every lesson.</p>
+        </section>
+
+        <section class="section">
+            <h2>Our Values</h2>
+            <div class="values-grid">
+                <div class="value-card">
+                    <div class="value-icon">🎯</div>
+                    <h3>Quality First</h3>
+                    <p>Every course is carefully curated and taught by industry experts with real-world experience.</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🌍</div>
+                    <h3>Accessibility</h3>
+                    <p>Education should be available to everyone, regardless of location or background.</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🤖</div>
+                    <h3>Innovation</h3>
+                    <p>We leverage AI and cutting-edge technology to enhance the learning experience.</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">🤝</div>
+                    <h3>Community</h3>
+                    <p>Learning is better together. We foster a supportive community of learners and instructors.</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">📈</div>
+                    <h3>Results-Driven</h3>
+                    <p>Our courses are designed to deliver real, measurable career outcomes for students.</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-icon">💡</div>
+                    <h3>Continuous Learning</h3>
+                    <p>We're always improving our platform and content based on student feedback.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="team-section section">
+            <h2>Our Leadership Team</h2>
+            <div class="team-grid">
+                <div class="team-member">
+                    <div class="team-avatar">👨‍💼</div>
+                    <div class="team-name">Marco Rossi</div>
+                    <div class="team-role">CEO & Co-Founder</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-avatar">👩‍💻</div>
+                    <div class="team-name">Dr. Sarah Chen</div>
+                    <div class="team-role">CTO & Co-Founder</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-avatar">👨‍🎓</div>
+                    <div class="team-name">Prof. David Miller</div>
+                    <div class="team-role">Chief Learning Officer</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Join Us</h2>
+            <p>Whether you're looking to learn new skills, share your expertise as an instructor, or join our team, we'd love to hear from you. Together, we're building the future of online education.</p>
+            <p>Ready to start learning? <a href="/courses" style="color: #a435f0; font-weight: 600;">Browse our courses</a> or <a href="/contact" style="color: #a435f0; font-weight: 600;">contact us</a> to learn more.</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2025 InsightLearn. All rights reserved. | <a href="/privacy-policy" style="color: #a435f0;">Privacy Policy</a> | <a href="/terms-of-service" style="color: #a435f0;">Terms of Service</a></p>
+    </footer>
 </body>
 </html>

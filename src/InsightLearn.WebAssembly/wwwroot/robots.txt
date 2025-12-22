@@ -53,13 +53,13 @@ Allow: /accessibility
 # SITEMAPS - Multiple for better indexing
 # ============================================
 # Static sitemap (main pages, categories, skills)
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml
+Sitemap: https://www.insightlearn.cloud/sitemap.xml
 
 # Dynamic sitemap (all published courses - updated automatically)
-Sitemap: https://wasm.insightlearn.cloud/sitemap-courses.xml
+Sitemap: https://www.insightlearn.cloud/sitemap-courses.xml
 
 # Sitemap index (references all sitemaps)
-Sitemap: https://wasm.insightlearn.cloud/sitemap-index.xml
+Sitemap: https://www.insightlearn.cloud/sitemap-index.xml
 
 # Specific bot configurations
 User-agent: Googlebot

@@ -6,38 +6,13 @@
 @implements IDisposable
 
 <!-- Full-screen blocking overlay - hidden via CSS if consent exists -->
+<!-- OPTIMIZED: AI avatar section removed for better performance -->
 <div class="cookie-wall-overlay @(showWall ? "" : "hidden")" @onclick:preventDefault="true">
         <div class="cookie-wall-container">
             <!-- Vibrant modal card -->
-            <div class="cookie-wall-modal" @onclick:stopPropagation="true">
-                <div class="cookie-modal-content">
-                    <!-- LEFT: InsightLearn Logo Section -->
-                    <div class="ai-avatar-section" aria-label="InsightLearn branding">
-                        <div class="ai-avatar-container">
-                            <!-- InsightLearn Logo -->
-                            <div class="ai-hologram">
-                                <div class="logo-container">
-                                    <img src="images/insightlearn-logo.png" alt="InsightLearn.cloud Logo" class="insightlearn-logo" style="max-width: 180px; height: auto;" />
-                                </div>
-                                <div class="ai-particles">
-                                    @for (int i = 0; i < 10; i++)
-                                    {
-                                        <div class="particle" style="left: @(10 + i * 8)%; animation-delay: @(i * 0.8)s;"></div>
-                                    }
-                                </div>
-                                <div class="ai-glow"></div>
-                                <div class="ai-scan-line"></div>
-                            </div>
-                        </div>
-                        <h3 class="ai-name">InsightLearn.cloud</h3>
-                        <p class="ai-subtitle">Online Learning Platform</p>
-                        <div class="ai-message">
-                            <p>"Welcome to InsightLearn! We use cookies to personalize your learning experience and improve our platform."</p>
-                            <p class="ai-message-secondary">"Your privacy matters! Let us explain how cookies help us serve you better."</p>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT: Cookie Content Section -->
+            <div class="cookie-wall-modal cookie-wall-modal-compact" @onclick:stopPropagation="true">
+                <div class="cookie-modal-content cookie-modal-content-single">
+                    <!-- Cookie Content Section (full width now) -->
                     <div class="cookie-content-section">
                         <div class="cookie-wall-header">
                             <div class="cookie-icon-wrapper">
@@ -427,94 +402,78 @@
             _isInitialized = true;
 
             // Hide static GDPR wall from index.html (Blazor component takes over)
+            // OPTIMIZED: Single JS call instead of separate eval
             try
             {
                 await JSRuntime.InvokeVoidAsync("eval", @"
                     const staticWall = document.getElementById('static-cookie-wall');
-                    if (staticWall) {
-                        staticWall.style.display = 'none';
-                        console.log('[COOKIE-WALL] Static wall hidden - Blazor component taking over');
-                    }
+                    if (staticWall) staticWall.style.display = 'none';
                 ");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[COOKIE-WALL] Warning: Could not hide static wall: {ex.Message}");
-            }
+            catch { /* Ignore if static wall doesn't exist */ }
 
-            await CheckConsent();
-            Console.WriteLine($"[COOKIE-WALL] After CheckConsent - showWall={showWall}");
+            await CheckConsentOptimized();
             StateHasChanged();
         }
     }
 
-    private async Task CheckConsent()
+    // OPTIMIZED: Fast consent check without unnecessary delays
+    private async Task CheckConsentOptimized()
     {
         try
         {
-            // Check if we're on an auth-related page
+            // Quick path check - skip wall on auth pages
             var currentPath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
             if (currentPath.StartsWith("login") || currentPath.StartsWith("register") ||
                 currentPath.StartsWith("forgot-password") || currentPath.StartsWith("reset-password"))
             {
-                Console.WriteLine("[COOKIE-WALL] On auth page - not showing wall");
                 showWall = false;
                 return;
             }
 
-            Console.WriteLine("[COOKIE-WALL] CheckConsent - Calling JS hasValidConsent()");
             var hasConsent = await JSRuntime.InvokeAsync<bool>("cookieConsentWall.hasValidConsent");
-            Console.WriteLine($"[COOKIE-WALL] JS returned hasConsent={hasConsent}");
 
             if (!hasConsent)
             {
-                // Check authentication state before showing wall
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var isAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
-
-                // Delay showing the wall if user just authenticated to avoid interfering with navigation
-                if (isAuthenticated)
-                {
-                    Console.WriteLine("[COOKIE-WALL] User is authenticated - delaying wall display");
-                    await Task.Delay(1000); // Give navigation time to complete
-                }
-
-                // No valid consent - show blocking wall
-                Console.WriteLine("[COOKIE-WALL] No consent - showing wall");
+                // Show wall immediately without delays
                 showWall = true;
-
-                // Only block interaction after a delay to avoid interfering with navigation
-                await Task.Delay(500);
-                if (showWall) // Check again in case it was hidden during the delay
-                {
-                    await JSRuntime.InvokeVoidAsync("cookieConsentWall.blockInteraction");
-                    Console.WriteLine("[COOKIE-WALL] blockInteraction() called");
-                }
+                // Non-blocking: schedule interaction blocking
+                _ = Task.Run(async () => {
+                    await Task.Delay(100); // Minimal delay for render
+                    try { await JSRuntime.InvokeVoidAsync("cookieConsentWall.blockInteraction"); }
+                    catch { /* Ignore */ }
+                });
             }
             else
             {
-                // Has valid consent - hide wall
-                Console.WriteLine("[COOKIE-WALL] Has consent - hiding wall");
                 showWall = false;
-                // Load existing preferences
-                var preferences = await JSRuntime.InvokeAsync<CookiePreferences>("cookieConsentWall.getPreferences");
-                Console.WriteLine($"[COOKIE-WALL] Preferences loaded: Analytics={preferences?.Analytics}, Marketing={preferences?.Marketing}");
-                if (preferences != null)
-                {
-                    analyticsEnabled = preferences.Analytics;
-                    marketingEnabled = preferences.Marketing;
-                    functionalEnabled = preferences.Functional;
-                }
+                // Load preferences in background (non-blocking)
+                _ = LoadPreferencesAsync();
             }
         }
-        catch (Exception ex)
+        catch
         {
-            // If error checking consent, show wall to be safe
-            Console.WriteLine($"[COOKIE-WALL] ERROR checking consent: {ex.Message}");
-            Console.WriteLine($"[COOKIE-WALL] Stack trace: {ex.StackTrace}");
-            showWall = true;
+            showWall = true; // Safe default
         }
     }
+
+    private async Task LoadPreferencesAsync()
+    {
+        try
+        {
+            var preferences = await JSRuntime.InvokeAsync<CookiePreferences>("cookieConsentWall.getPreferences");
+            if (preferences != null)
+            {
+                analyticsEnabled = preferences.Analytics;
+                marketingEnabled = preferences.Marketing;
+                functionalEnabled = preferences.Functional;
+            }
+        }
+        catch { /* Ignore preference loading errors */ }
+    }
+
+    // Legacy method - kept for compatibility but redirects to optimized version
+    private async Task CheckConsent() => await CheckConsentOptimized();
 
     private async Task AcceptAll()
     {

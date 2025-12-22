@@ -7,23 +7,23 @@
     <!-- HOMEPAGE - Highest Priority with hreflang -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/</loc>
-        <xhtml:link rel="alternate" hreflang="en" href="https://wasm.insightlearn.cloud/" />
-        <xhtml:link rel="alternate" hreflang="it" href="https://wasm.insightlearn.cloud/?lang=it" />
-        <xhtml:link rel="alternate" hreflang="x-default" href="https://wasm.insightlearn.cloud/" />
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/?lang=it" />
+        <xhtml:link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/" />
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
         <image:image>
-            <image:loc>https://wasm.insightlearn.cloud/images/hero-banner.webp</image:loc>
+            <image:loc>https://www.insightlearn.cloud/images/hero-banner.webp</image:loc>
             <image:title>InsightLearn - Professional Online Learning Platform</image:title>
             <image:caption>Access 500+ expert-led courses in programming, business, design, and more</image:caption>
         </image:image>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/home</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/home</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
@@ -32,48 +32,48 @@
     <!-- CORE PUBLIC PAGES - High Priority -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses</loc>
-        <xhtml:link rel="alternate" hreflang="en" href="https://wasm.insightlearn.cloud/courses" />
-        <xhtml:link rel="alternate" hreflang="it" href="https://wasm.insightlearn.cloud/courses?lang=it" />
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses</loc>
+        <xhtml:link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/courses" />
+        <xhtml:link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/courses?lang=it" />
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/categories</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/categories</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/search</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/search</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <!-- ============================================ -->
-    <!-- CONTENT MARKETING PAGES - NEW 2025-12-13 -->
+    <!-- CONTENT MARKETING PAGES - NEW 2025-12-22 -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/blog</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/blog</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/resources</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/resources</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/learn-hub</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/learn-hub</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
@@ -83,57 +83,57 @@
     <!-- These help target long-tail keywords -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=web-development</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=web-development</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=data-science</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=data-science</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=business</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=business</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=design</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=design</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=programming</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=programming</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=marketing</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=marketing</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=it-software</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=it-software</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?category=personal-development</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?category=personal-development</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
@@ -142,85 +142,85 @@
     <!-- INFORMATIONAL PAGES - Medium Priority -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/about</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/about</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/contact</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/contact</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/contact-us</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/contact-us</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/support-contact</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/support-contact</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/faq</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/faq</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/help-center</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/help-center</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/support</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/support</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/pricing</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/pricing</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/instructors</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/instructors</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/become-instructor</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/become-instructor</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/teach</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/teach</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/enterprise</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/enterprise</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
@@ -229,64 +229,64 @@
     <!-- SKILL-BASED LANDING PAGES - For Long-tail Keywords -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=python</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=python</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=javascript</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=javascript</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=react</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=react</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=machine-learning</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=machine-learning</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=sql</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=sql</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=ui-ux-design</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=ui-ux-design</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=node-js</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=node-js</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=aws</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=aws</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?skill=docker</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?skill=docker</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.7</priority>
     </url>
@@ -295,22 +295,22 @@
     <!-- LEVEL-BASED LANDING PAGES -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?level=beginner</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?level=beginner</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?level=intermediate</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?level=intermediate</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?level=advanced</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?level=advanced</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.6</priority>
     </url>
@@ -319,8 +319,8 @@
     <!-- FREE COURSES PAGE - High conversion potential -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses?price=free</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/courses?price=free</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
@@ -329,36 +329,36 @@
     <!-- LEGAL/POLICY PAGES - Important for Trust Signals -->
     <!-- ============================================ -->
     <url>
-        <loc>https://wasm.insightlearn.cloud/privacy-policy</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/privacy-policy</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/cookie-policy</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/cookie-policy</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/terms-of-service</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/terms-of-service</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/refund-policy</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/refund-policy</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
 
     <url>
-        <loc>https://wasm.insightlearn.cloud/accessibility</loc>
-        <lastmod>2025-12-13</lastmod>
+        <loc>https://www.insightlearn.cloud/accessibility</loc>
+        <lastmod>2025-12-22</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>

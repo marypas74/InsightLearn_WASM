@@ -3,31 +3,435 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>InsightLearn - Online Learning Platform | 500+ Courses</title>
-    <meta name="description" content="Learn coding, business, design and creative skills with InsightLearn. Access 500+ expert-led courses, interactive lessons, and AI-powered learning tools. Start your learning journey today!" />
-    <meta name="keywords" content="online courses, e-learning, programming, web development, business skills, design courses, AI learning, video tutorials, InsightLearn" />
+    <title>InsightLearn - Online Learning Platform | 500+ Expert-Led Courses</title>
+    <meta name="description" content="Transform your career with InsightLearn. Access 500+ expert-led online courses in programming, web development, data science, business, and design. AI-powered learning tools, interactive lessons, certificates of completion. Start free today!" />
+    <meta name="keywords" content="online courses, e-learning, programming courses, web development, data science, machine learning, business skills, design courses, AI learning, video tutorials, InsightLearn, online education, coding bootcamp, professional development" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/" />
+    <link rel="canonical" href="https://www.insightlearn.cloud/" />
+    <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/" />
+    <link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/?lang=it" />
+    <link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://wasm.insightlearn.cloud/" />
-    <meta property="og:title" content="InsightLearn - Online Learning Platform" />
-    <meta property="og:description" content="Access 500+ expert-led courses in programming, business, and design." />
+    <meta property="og:url" content="https://www.insightlearn.cloud/" />
+    <meta property="og:title" content="InsightLearn - Online Learning Platform | 500+ Courses" />
+    <meta property="og:description" content="Access 500+ expert-led courses in programming, business, and design. AI-powered learning tools and certificates included." />
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-homepage.jpg" />
+    <meta property="og:site_name" content="InsightLearn" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="InsightLearn - Learn Programming, Business & Design Online" />
+    <meta name="twitter:description" content="500+ expert-led courses with AI assistant. Start learning today!" />
+    <meta name="twitter:image" content="https://www.insightlearn.cloud/images/og-homepage.jpg" />
+
+    <!-- JSON-LD: Organization -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"Organization","name":"InsightLearn","url":"https://wasm.insightlearn.cloud","logo":"https://wasm.insightlearn.cloud/icon-192.png","description":"Online learning platform with 500+ expert-led courses"}
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "InsightLearn",
+        "url": "https://www.insightlearn.cloud",
+        "logo": "https://www.insightlearn.cloud/icon-192.png",
+        "description": "Professional online learning platform with 500+ expert-led courses in programming, business, and design.",
+        "foundingDate": "2024",
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "support@insightlearn.cloud",
+            "availableLanguage": ["English", "Italian"]
+        },
+        "sameAs": []
+    }
     </script>
+
+    <!-- JSON-LD: WebSite with SearchAction -->
     <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"WebSite","name":"InsightLearn","url":"https://wasm.insightlearn.cloud","potentialAction":{"@type":"SearchAction","target":"https://wasm.insightlearn.cloud/search?q={search_term_string}","query-input":"required name=search_term_string"}}
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "InsightLearn",
+        "url": "https://www.insightlearn.cloud",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://www.insightlearn.cloud/search?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+        }
+    }
     </script>
+
+    <!-- JSON-LD: EducationalOrganization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "EducationalOrganization",
+        "name": "InsightLearn",
+        "url": "https://www.insightlearn.cloud",
+        "description": "AI-powered online learning platform offering professional courses in technology, business, and creative fields.",
+        "areaServed": "Worldwide",
+        "availableLanguage": ["English", "Italian"]
+    }
+    </script>
+
+    <!-- JSON-LD: BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://www.insightlearn.cloud/"
+            }
+        ]
+    }
+    </script>
+
+    <!-- JSON-LD: ItemList (Featured Courses) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Featured Courses on InsightLearn",
+        "description": "Top-rated online courses in programming, web development, and data science",
+        "numberOfItems": 6,
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "item": {
+                    "@type": "Course",
+                    "name": "Web Development Masterclass 2025",
+                    "description": "Complete web development bootcamp covering HTML, CSS, JavaScript, React, Node.js, and MongoDB. Build 20+ real projects.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn",
+                        "sameAs": "https://www.insightlearn.cloud"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/web-development-masterclass",
+                    "hasCourseInstance": {
+                        "@type": "CourseInstance",
+                        "courseMode": "Online",
+                        "courseWorkload": "PT60H"
+                    },
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "49.99",
+                        "priceCurrency": "EUR",
+                        "availability": "https://schema.org/InStock",
+                        "validFrom": "2025-01-01"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "reviewCount": "2450",
+                        "bestRating": "5",
+                        "worstRating": "1"
+                    }
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "item": {
+                    "@type": "Course",
+                    "name": "Python Programming: From Zero to Hero",
+                    "description": "Learn Python from scratch. Cover fundamentals, OOP, data structures, web scraping, automation, and data analysis.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/python-complete",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "39.99",
+                        "priceCurrency": "EUR"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.9",
+                        "reviewCount": "1890"
+                    }
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "item": {
+                    "@type": "Course",
+                    "name": "Data Science & Machine Learning Bootcamp",
+                    "description": "Master data science with Python, Pandas, NumPy, Scikit-learn, TensorFlow, and real-world ML projects.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/data-science-ml",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "59.99",
+                        "priceCurrency": "EUR"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.7",
+                        "reviewCount": "1245"
+                    }
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "item": {
+                    "@type": "Course",
+                    "name": "React & Next.js Full Course 2025",
+                    "description": "Build modern web apps with React 18, Next.js 14, TypeScript, Tailwind CSS, and deploy to Vercel.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/react-nextjs",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "44.99",
+                        "priceCurrency": "EUR"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.8",
+                        "reviewCount": "980"
+                    }
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 5,
+                "item": {
+                    "@type": "Course",
+                    "name": "AWS Certified Solutions Architect",
+                    "description": "Prepare for AWS Solutions Architect Associate exam. Cover EC2, S3, VPC, Lambda, and cloud architecture.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/aws-solutions-architect",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "54.99",
+                        "priceCurrency": "EUR"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.6",
+                        "reviewCount": "756"
+                    }
+                }
+            },
+            {
+                "@type": "ListItem",
+                "position": 6,
+                "item": {
+                    "@type": "Course",
+                    "name": "UI/UX Design Masterclass",
+                    "description": "Learn user interface and experience design with Figma, design systems, prototyping, and user research.",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "InsightLearn"
+                    },
+                    "url": "https://www.insightlearn.cloud/course/ui-ux-design",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "49.99",
+                        "priceCurrency": "EUR"
+                    },
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": "4.7",
+                        "reviewCount": "623"
+                    }
+                }
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1c1d1f; background: #f7f9fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        header { background: linear-gradient(135deg, #a435f0 0%, #8710d8 100%); color: white; padding: 60px 20px; text-align: center; }
+        h1 { font-size: 2.5rem; margin-bottom: 16px; }
+        .tagline { font-size: 1.25rem; opacity: 0.9; margin-bottom: 24px; }
+        .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-block; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s; }
+        .btn-primary { background: white; color: #a435f0; }
+        .btn-secondary { background: transparent; border: 2px solid white; color: white; }
+        .btn:hover { transform: translateY(-2px); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; margin: 40px 0; text-align: center; }
+        .stat-item h3 { font-size: 2rem; color: #a435f0; }
+        .stat-item p { color: #6b7280; }
+        h2 { font-size: 1.75rem; margin: 40px 0 24px; color: #1c1d1f; }
+        .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .category-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .category-card h3 { color: #1c1d1f; margin-bottom: 8px; }
+        .category-card p { color: #6b7280; font-size: 0.9rem; margin-bottom: 12px; }
+        .category-card a { color: #a435f0; text-decoration: none; font-weight: 500; }
+        .features { background: white; padding: 40px; border-radius: 12px; margin: 40px 0; }
+        .features ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+        .features li { padding: 12px 0; padding-left: 28px; position: relative; }
+        .features li::before { content: "✓"; position: absolute; left: 0; color: #10b981; font-weight: bold; }
+        footer { text-align: center; padding: 40px 20px; color: #6b7280; border-top: 1px solid #e5e7eb; margin-top: 40px; }
+        footer a { color: #6b7280; margin: 0 12px; }
+        @media (max-width: 768px) { h1 { font-size: 1.75rem; } .tagline { font-size: 1rem; } }
+    </style>
 </head>
 <body>
-    <h1>InsightLearn - Online Learning Platform</h1>
-    <p>Master new skills with 500+ expert-led courses</p>
-    <h2>Featured Courses</h2>
-    <ul>
-        <li>Web Development Masterclass</li>
-        <li>Python Programming Complete Course</li>
-        <li>Data Science with AI/ML</li>
-    </ul>
-    <p><a href="/courses">Browse All Courses</a> | <a href="/register">Create Free Account</a></p>
+    <header>
+        <h1>InsightLearn - Online Learning Platform</h1>
+        <p class="tagline">Transform your career with 500+ expert-led courses in programming, business, and design</p>
+        <div class="cta-buttons">
+            <a href="/courses" class="btn btn-primary">Browse All Courses</a>
+            <a href="/register" class="btn btn-secondary">Start Free Trial</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-item">
+                <h3>500+</h3>
+                <p>Expert-Led Courses</p>
+            </div>
+            <div class="stat-item">
+                <h3>50,000+</h3>
+                <p>Active Students</p>
+            </div>
+            <div class="stat-item">
+                <h3>4.8★</h3>
+                <p>Average Rating</p>
+            </div>
+            <div class="stat-item">
+                <h3>100+</h3>
+                <p>Expert Instructors</p>
+            </div>
+        </div>
+
+        <h2>Popular Course Categories</h2>
+        <div class="categories">
+            <div class="category-card">
+                <h3>Web Development</h3>
+                <p>HTML, CSS, JavaScript, React, Node.js, and full-stack development courses for all skill levels.</p>
+                <a href="/courses?category=web-development">Browse 120+ courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Data Science & AI</h3>
+                <p>Python, machine learning, deep learning, data analysis, and artificial intelligence courses.</p>
+                <a href="/courses?category=data-science">Browse 85+ courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Programming Languages</h3>
+                <p>Python, JavaScript, Java, C++, Go, Rust, and more programming language courses.</p>
+                <a href="/courses?category=programming">Browse 150+ courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Business & Management</h3>
+                <p>Project management, leadership, marketing, finance, and entrepreneurship courses.</p>
+                <a href="/courses?category=business">Browse 90+ courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Design & Creative</h3>
+                <p>UI/UX design, graphic design, Figma, Adobe Creative Suite, and 3D modeling courses.</p>
+                <a href="/courses?category=design">Browse 75+ courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Cloud & DevOps</h3>
+                <p>AWS, Azure, Google Cloud, Docker, Kubernetes, and CI/CD pipeline courses.</p>
+                <a href="/courses?category=it-software">Browse 60+ courses →</a>
+            </div>
+        </div>
+
+        <h2>Featured Courses</h2>
+        <div class="categories">
+            <div class="category-card">
+                <h3>Web Development Masterclass 2025</h3>
+                <p>★ 4.8 (2,450 reviews) · 60 hours · All levels</p>
+                <p>Complete bootcamp: HTML, CSS, JavaScript, React, Node.js. Build 20+ projects.</p>
+                <a href="/course/web-development-masterclass">View Course - €49.99 →</a>
+            </div>
+            <div class="category-card">
+                <h3>Python Programming: Zero to Hero</h3>
+                <p>★ 4.9 (1,890 reviews) · 45 hours · Beginner</p>
+                <p>Learn Python fundamentals, OOP, data structures, automation, and web scraping.</p>
+                <a href="/course/python-complete">View Course - €39.99 →</a>
+            </div>
+            <div class="category-card">
+                <h3>Data Science & ML Bootcamp</h3>
+                <p>★ 4.7 (1,245 reviews) · 55 hours · Intermediate</p>
+                <p>Master data science with Python, Pandas, Scikit-learn, and TensorFlow.</p>
+                <a href="/course/data-science-ml">View Course - €59.99 →</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <h2>Why Choose InsightLearn?</h2>
+            <ul>
+                <li>500+ expert-led video courses with hands-on projects</li>
+                <li>AI-powered learning assistant available 24/7</li>
+                <li>Interactive exercises, quizzes, and coding challenges</li>
+                <li>Certificates of completion for your LinkedIn profile</li>
+                <li>30-day money-back guarantee on all courses</li>
+                <li>Lifetime access to purchased courses</li>
+                <li>Mobile-friendly platform - learn on any device</li>
+                <li>Active community forum and instructor Q&A</li>
+                <li>New courses added weekly across all categories</li>
+                <li>Corporate training and team plans available</li>
+            </ul>
+        </div>
+
+        <h2>Learn In-Demand Skills</h2>
+        <div class="categories">
+            <div class="category-card">
+                <h3>Python</h3>
+                <p>The most popular programming language for data science, automation, and web development.</p>
+                <a href="/courses?skill=python">Browse Python courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>JavaScript</h3>
+                <p>Essential for web development. Learn React, Node.js, and full-stack JavaScript.</p>
+                <a href="/courses?skill=javascript">Browse JavaScript courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>Machine Learning</h3>
+                <p>Build AI models with TensorFlow, PyTorch, and scikit-learn.</p>
+                <a href="/courses?skill=machine-learning">Browse ML courses →</a>
+            </div>
+            <div class="category-card">
+                <h3>AWS Cloud</h3>
+                <p>Prepare for AWS certifications and cloud architecture skills.</p>
+                <a href="/courses?skill=aws">Browse AWS courses →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>
+            <a href="/about">About Us</a>
+            <a href="/courses">All Courses</a>
+            <a href="/instructors">Become an Instructor</a>
+            <a href="/faq">FAQ</a>
+            <a href="/contact">Contact</a>
+        </p>
+        <p>
+            <a href="/privacy-policy">Privacy Policy</a>
+            <a href="/terms-of-service">Terms of Service</a>
+            <a href="/cookie-policy">Cookie Policy</a>
+        </p>
+        <p style="margin-top: 20px;">© 2025 InsightLearn. All rights reserved. | support@insightlearn.cloud</p>
+    </footer>
 </body>
 </html>

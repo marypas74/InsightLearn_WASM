@@ -4483,14 +4483,17 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ---
 
-## 🔍 SEO Optimization (v2.1.0-dev) - ✅ MAJOR UPDATE 2025-12-13
+## 🔍 SEO Optimization (v2.2.2-dev) - ✅ MAJOR UPDATE 2025-12-22
 
-**Status**: ✅ **DEPLOYED** - 2025-12-13 (Major SEO Overhaul)
+**Status**: ✅ **DEPLOYED** - 2025-12-22 (SEO Snapshots Enriched, Canonical URLs Fixed)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing (key: `ebd57a262cfe8ff8de852eba65288c19`)
-**Google Search Console**: Ready for sitemap submission
+**IndexNow Script**: ✅ **NEW** - `scripts/submit-indexnow.sh` for batch URL submission
+**Google Search Console**: Ready for sitemap submission (use www.insightlearn.cloud)
+**Canonical Domain**: **www.insightlearn.cloud** (NOT wasm.insightlearn.cloud)
 **Sitemap URLs**: **47+ URLs** (expanded from 7 - 2025-12-13)
 **SEO Components**: 3 Blazor components (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **JSON-LD Schemas**: 8 types (Organization, WebSite, EducationalOrganization, FAQPage, Course, ContactPage, WebPage, AboutPage)
+**GDPR Module**: ✅ **OPTIMIZED** - Compact mode CSS for faster load (no AI avatar section)
 
 ### SEO-Optimized Pages (2025-12-13 Update)
 
@@ -4517,30 +4520,35 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 
 ### Public URLs
 
-- **Sitemap**: https://wasm.insightlearn.cloud/sitemap.xml
-- **Robots.txt**: https://wasm.insightlearn.cloud/robots.txt
-- **IndexNow Key**: https://wasm.insightlearn.cloud/ebd57a262cfe8ff8de852eba65288c19.txt
+- **Sitemap**: https://www.insightlearn.cloud/sitemap.xml
+- **Robots.txt**: https://www.insightlearn.cloud/robots.txt
+- **IndexNow Key**: https://www.insightlearn.cloud/ebd57a262cfe8ff8de852eba65288c19.txt
 
 ### IndexNow Instant Indexing (Bing/Yandex)
 
 **Status**: ✅ URLs submitted via IndexNow for fast indexing
 **Key**: `ebd57a262cfe8ff8de852eba65288c19`
 **Supported Engines**: Bing, Yandex, Seznam, Naver
+**Script**: `scripts/submit-indexnow.sh` (NEW 2025-12-22)
 
 ```bash
-# Submit new URLs manually
+# Submit URLs using the script (recommended)
+./scripts/submit-indexnow.sh --all      # Submit all known pages
+./scripts/submit-indexnow.sh --sitemap  # Parse sitemap and submit
+./scripts/submit-indexnow.sh --main     # Submit only main pages
+
+# Or manually via curl
 curl -X POST "https://api.indexnow.org/indexnow" \
   -H "Content-Type: application/json" \
   -d '{
-    "host": "wasm.insightlearn.cloud",
+    "host": "www.insightlearn.cloud",
     "key": "ebd57a262cfe8ff8de852eba65288c19",
     "urlList": [
-      "https://wasm.insightlearn.cloud/",
-      "https://wasm.insightlearn.cloud/faq",
-      "https://wasm.insightlearn.cloud/help-center",
-      "https://wasm.insightlearn.cloud/contact",
-      "https://wasm.insightlearn.cloud/instructors",
-      "https://wasm.insightlearn.cloud/become-instructor"
+      "https://www.insightlearn.cloud/",
+      "https://www.insightlearn.cloud/courses",
+      "https://www.insightlearn.cloud/faq",
+      "https://www.insightlearn.cloud/contact",
+      "https://www.insightlearn.cloud/about"
     ]
   }'
 ```
@@ -4548,7 +4556,7 @@ curl -X POST "https://api.indexnow.org/indexnow" \
 ### Google Search Console Setup
 
 1. Go to: https://search.google.com/search-console/sitemaps
-2. Add sitemap URL: `https://wasm.insightlearn.cloud/sitemap.xml`
+2. Add sitemap URL: `https://www.insightlearn.cloud/sitemap.xml`
 3. Click "Submit"
 
 ### Sitemap Structure (47+ URLs)
@@ -4622,15 +4630,20 @@ location = / {
 }
 ```
 
-**SEO Snapshot Files**:
+**SEO Snapshot Files** (Updated 2025-12-22):
 
 | File | Purpose | JSON-LD Schemas |
 |------|---------|-----------------|
 | `wwwroot/seo-snapshots/index.html` | Homepage (11KB) | Organization, WebSite, ItemList, WebPage |
 | `wwwroot/seo-snapshots/courses.html` | Courses page (9KB) | CollectionPage, Course, BreadcrumbList |
-| `wwwroot/seo-snapshots/about.html` | About page (6KB) | AboutPage, Organization, BreadcrumbList |
-| `wwwroot/seo-snapshots/faq.html` | FAQ page (10KB) | FAQPage (9 Q&A items), BreadcrumbList |
+| `wwwroot/seo-snapshots/about.html` | About page (8KB) | AboutPage, EducationalOrganization, BreadcrumbList - **Enriched 2025-12-22** |
+| `wwwroot/seo-snapshots/faq.html` | FAQ page (15KB) | FAQPage (12 Q&A items), BreadcrumbList - **Enriched 2025-12-22** |
 | `wwwroot/seo-snapshots/contact.html` | Contact page (6KB) | ContactPage, ContactPoint, BreadcrumbList |
+| `wwwroot/seo-snapshots/blog.html` | Blog page (10KB) | Blog, BlogPosting (3 articles), BreadcrumbList |
+| `wwwroot/seo-snapshots/search.html` | Search page (9KB) | SearchResultsPage, SearchAction, BreadcrumbList |
+| `wwwroot/seo-snapshots/categories.html` | Categories page (11KB) | CollectionPage, ItemList (8 categories), BreadcrumbList |
+
+**All snapshots use canonical domain**: `https://www.insightlearn.cloud/` (NOT wasm.insightlearn.cloud)
 
 **Adding New Snapshots**:
 1. Create HTML file in `src/InsightLearn.WebAssembly/wwwroot/seo-snapshots/`

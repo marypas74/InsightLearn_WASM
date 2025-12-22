@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Courses | InsightLearn - Find Your Perfect Course</title>
+    <meta name="description" content="Search through 1000+ online courses on InsightLearn. Find courses in Web Development, Data Science, Cloud Computing, and more. Filter by skill level, price, and rating.">
+    <meta name="keywords" content="search courses, find courses, online learning search, course finder, web development courses, data science courses">
+    <link rel="canonical" href="https://www.insightlearn.cloud/search">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Search Courses | InsightLearn">
+    <meta property="og:description" content="Search and find your perfect course from 1000+ options. Filter by category, skill level, price, and ratings.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.insightlearn.cloud/search">
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-search.webp">
+    <meta property="og:site_name" content="InsightLearn">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Search Courses | InsightLearn">
+    <meta name="twitter:description" content="Search and find your perfect course from 1000+ options.">
+
+    <!-- Alternate languages -->
+    <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/search">
+    <link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/search?lang=it">
+    <link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/search">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SearchResultsPage",
+        "name": "Course Search",
+        "description": "Search through 1000+ online courses on InsightLearn",
+        "url": "https://www.insightlearn.cloud/search",
+        "mainEntity": {
+            "@type": "WebSite",
+            "name": "InsightLearn",
+            "url": "https://www.insightlearn.cloud",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://www.insightlearn.cloud/search?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+            }
+        }
+    }
+    </script>
+
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://www.insightlearn.cloud/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Search",
+                "item": "https://www.insightlearn.cloud/search"
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1c1d1f; background: #f7f9fa; }
+        .header { background: #fff; border-bottom: 1px solid #d1d7dc; padding: 1rem 2rem; }
+        .header-content { max-width: 1340px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #a435f0; text-decoration: none; }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: #1c1d1f; text-decoration: none; font-weight: 500; }
+        .search-hero { background: linear-gradient(135deg, #1c1d1f 0%, #3c3b37 100%); padding: 3rem 2rem; }
+        .search-hero-content { max-width: 800px; margin: 0 auto; }
+        .search-hero h1 { color: #fff; font-size: 2rem; margin-bottom: 1.5rem; text-align: center; }
+        .search-box { display: flex; gap: 0.5rem; }
+        .search-input { flex: 1; padding: 1rem 1.5rem; font-size: 1rem; border: none; border-radius: 4px; outline: none; }
+        .search-button { padding: 1rem 2rem; background: #a435f0; color: #fff; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .search-button:hover { background: #8710d8; }
+        .main { max-width: 1340px; margin: 0 auto; padding: 2rem; display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
+        .filters { background: #fff; padding: 1.5rem; border-radius: 8px; height: fit-content; }
+        .filters h3 { font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #d1d7dc; }
+        .filter-group { margin-bottom: 1.5rem; }
+        .filter-group h4 { font-size: 0.9rem; margin-bottom: 0.75rem; color: #1c1d1f; }
+        .filter-option { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #3c3b37; }
+        .filter-option input { accent-color: #a435f0; }
+        .results { }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .results-count { font-size: 1rem; color: #6a6f73; }
+        .sort-select { padding: 0.5rem 1rem; border: 1px solid #d1d7dc; border-radius: 4px; font-size: 0.9rem; }
+        .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        .course-card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; }
+        .course-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .course-thumb { width: 100%; height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .course-info { padding: 1rem; }
+        .course-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #1c1d1f; }
+        .course-instructor { font-size: 0.85rem; color: #6a6f73; margin-bottom: 0.5rem; }
+        .course-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .rating { color: #f69c08; font-weight: 600; }
+        .reviews { color: #6a6f73; }
+        .course-price { font-size: 1.1rem; font-weight: 700; color: #1c1d1f; }
+        .popular-searches { margin-top: 2rem; text-align: center; }
+        .popular-searches h3 { font-size: 1.1rem; margin-bottom: 1rem; color: #1c1d1f; }
+        .search-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+        .search-tag { background: #fff; border: 1px solid #d1d7dc; border-radius: 100px; padding: 0.5rem 1rem; font-size: 0.85rem; color: #1c1d1f; text-decoration: none; }
+        .search-tag:hover { background: #a435f0; color: #fff; border-color: #a435f0; }
+        .footer { background: #1c1d1f; color: #fff; padding: 2rem; margin-top: 4rem; text-align: center; }
+        @media (max-width: 968px) {
+            .main { grid-template-columns: 1fr; }
+            .filters { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">InsightLearn</a>
+            <nav class="nav-links">
+                <a href="/courses">Courses</a>
+                <a href="/categories">Categories</a>
+                <a href="/instructors">Teach</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="search-hero">
+        <div class="search-hero-content">
+            <h1>Find Your Perfect Course</h1>
+            <form class="search-box" action="/search" method="get">
+                <input type="text" name="q" class="search-input" placeholder="Search for courses, topics, or instructors..." aria-label="Search courses">
+                <button type="submit" class="search-button">Search</button>
+            </form>
+        </div>
+    </section>
+
+    <main class="main">
+        <aside class="filters">
+            <h3>Filters</h3>
+
+            <div class="filter-group">
+                <h4>Category</h4>
+                <label class="filter-option"><input type="checkbox" name="cat" value="web-dev"> Web Development</label>
+                <label class="filter-option"><input type="checkbox" name="cat" value="data-science"> Data Science</label>
+                <label class="filter-option"><input type="checkbox" name="cat" value="cloud"> Cloud Computing</label>
+                <label class="filter-option"><input type="checkbox" name="cat" value="mobile"> Mobile Development</label>
+                <label class="filter-option"><input type="checkbox" name="cat" value="security"> Cybersecurity</label>
+                <label class="filter-option"><input type="checkbox" name="cat" value="design"> UI/UX Design</label>
+            </div>
+
+            <div class="filter-group">
+                <h4>Skill Level</h4>
+                <label class="filter-option"><input type="checkbox" name="level" value="beginner"> Beginner</label>
+                <label class="filter-option"><input type="checkbox" name="level" value="intermediate"> Intermediate</label>
+                <label class="filter-option"><input type="checkbox" name="level" value="advanced"> Advanced</label>
+            </div>
+
+            <div class="filter-group">
+                <h4>Rating</h4>
+                <label class="filter-option"><input type="checkbox" name="rating" value="4.5"> 4.5 & up ★★★★☆</label>
+                <label class="filter-option"><input type="checkbox" name="rating" value="4.0"> 4.0 & up ★★★★</label>
+                <label class="filter-option"><input type="checkbox" name="rating" value="3.5"> 3.5 & up ★★★☆</label>
+            </div>
+
+            <div class="filter-group">
+                <h4>Price</h4>
+                <label class="filter-option"><input type="checkbox" name="price" value="free"> Free</label>
+                <label class="filter-option"><input type="checkbox" name="price" value="paid"> Paid</label>
+            </div>
+
+            <div class="filter-group">
+                <h4>Duration</h4>
+                <label class="filter-option"><input type="checkbox" name="duration" value="short"> 0-2 hours</label>
+                <label class="filter-option"><input type="checkbox" name="duration" value="medium"> 3-6 hours</label>
+                <label class="filter-option"><input type="checkbox" name="duration" value="long"> 7+ hours</label>
+            </div>
+        </aside>
+
+        <section class="results">
+            <div class="results-header">
+                <span class="results-count">Showing 1,000+ courses</span>
+                <select class="sort-select" aria-label="Sort results">
+                    <option value="relevance">Most Relevant</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Newest</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                </select>
+            </div>
+
+            <div class="course-grid">
+                <article class="course-card">
+                    <div class="course-thumb" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                    <div class="course-info">
+                        <h2 class="course-title">Web Development Masterclass 2025</h2>
+                        <p class="course-instructor">by Dr. Sarah Chen</p>
+                        <div class="course-meta">
+                            <span class="rating">★ 4.8</span>
+                            <span class="reviews">(12,450 reviews)</span>
+                        </div>
+                        <p class="course-price">€49.99</p>
+                    </div>
+                </article>
+
+                <article class="course-card">
+                    <div class="course-thumb" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                    <div class="course-info">
+                        <h2 class="course-title">Python for Data Science</h2>
+                        <p class="course-instructor">by Prof. Michael Torres</p>
+                        <div class="course-meta">
+                            <span class="rating">★ 4.9</span>
+                            <span class="reviews">(8,920 reviews)</span>
+                        </div>
+                        <p class="course-price">€59.99</p>
+                    </div>
+                </article>
+
+                <article class="course-card">
+                    <div class="course-thumb" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                    <div class="course-info">
+                        <h2 class="course-title">AWS Solutions Architect</h2>
+                        <p class="course-instructor">by James Wilson</p>
+                        <div class="course-meta">
+                            <span class="rating">★ 4.7</span>
+                            <span class="reviews">(6,780 reviews)</span>
+                        </div>
+                        <p class="course-price">€79.99</p>
+                    </div>
+                </article>
+
+                <article class="course-card">
+                    <div class="course-thumb" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"></div>
+                    <div class="course-info">
+                        <h2 class="course-title">React Complete Guide</h2>
+                        <p class="course-instructor">by Emma Rodriguez</p>
+                        <div class="course-meta">
+                            <span class="rating">★ 4.8</span>
+                            <span class="reviews">(15,230 reviews)</span>
+                        </div>
+                        <p class="course-price">€54.99</p>
+                    </div>
+                </article>
+            </div>
+
+            <section class="popular-searches">
+                <h3>Popular Searches</h3>
+                <div class="search-tags">
+                    <a href="/search?q=python" class="search-tag">Python</a>
+                    <a href="/search?q=javascript" class="search-tag">JavaScript</a>
+                    <a href="/search?q=react" class="search-tag">React</a>
+                    <a href="/search?q=aws" class="search-tag">AWS</a>
+                    <a href="/search?q=machine+learning" class="search-tag">Machine Learning</a>
+                    <a href="/search?q=docker" class="search-tag">Docker</a>
+                    <a href="/search?q=kubernetes" class="search-tag">Kubernetes</a>
+                    <a href="/search?q=sql" class="search-tag">SQL</a>
+                    <a href="/search?q=figma" class="search-tag">Figma</a>
+                    <a href="/search?q=typescript" class="search-tag">TypeScript</a>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 InsightLearn. All rights reserved.</p>
+    </footer>
+</body>
+</html>

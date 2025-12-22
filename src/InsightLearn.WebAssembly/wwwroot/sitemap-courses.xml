@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+    <!-- Featured Courses -->
+    <url>
+        <loc>https://www.insightlearn.cloud/course/web-development-masterclass</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/web-development.webp</image:loc>
+            <image:title>Web Development Masterclass - Complete Bootcamp 2025</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/python-data-science</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/python-data-science.webp</image:loc>
+            <image:title>Python for Data Science and Machine Learning</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/react-complete-guide</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/react-guide.webp</image:loc>
+            <image:title>React - The Complete Guide 2025</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/aws-certified-solutions-architect</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/aws-architect.webp</image:loc>
+            <image:title>AWS Certified Solutions Architect Associate</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/machine-learning-az</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/machine-learning.webp</image:loc>
+            <image:title>Machine Learning A-Z: AI, Python &amp; R</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/javascript-complete-course</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/javascript.webp</image:loc>
+            <image:title>The Complete JavaScript Course 2025</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/docker-kubernetes</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/docker-kubernetes.webp</image:loc>
+            <image:title>Docker &amp; Kubernetes: The Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/ui-ux-design-bootcamp</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/ui-ux-design.webp</image:loc>
+            <image:title>UI/UX Design Bootcamp</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/nodejs-express-mongodb</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/nodejs.webp</image:loc>
+            <image:title>Node.js, Express &amp; MongoDB - Complete Bootcamp</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/cybersecurity-fundamentals</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/cybersecurity.webp</image:loc>
+            <image:title>Cybersecurity Fundamentals</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/sql-database-mastery</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/sql-database.webp</image:loc>
+            <image:title>SQL &amp; Database Mastery</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/angular-complete-guide</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/angular.webp</image:loc>
+            <image:title>Angular - The Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/java-programming-masterclass</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/java.webp</image:loc>
+            <image:title>Java Programming Masterclass</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/git-github-complete</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/git-github.webp</image:loc>
+            <image:title>Git &amp; GitHub - Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/typescript-complete</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/typescript.webp</image:loc>
+            <image:title>TypeScript - The Complete Developer's Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/flutter-dart-complete</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/flutter.webp</image:loc>
+            <image:title>Flutter &amp; Dart - Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/blazor-webassembly</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/blazor.webp</image:loc>
+            <image:title>Blazor WebAssembly - Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/devops-complete-guide</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/devops.webp</image:loc>
+            <image:title>DevOps - Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/golang-complete</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/golang.webp</image:loc>
+            <image:title>Go (Golang) - The Complete Guide</image:title>
+        </image:image>
+    </url>
+
+    <url>
+        <loc>https://www.insightlearn.cloud/course/rust-programming</loc>
+        <lastmod>2025-12-22</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+        <image:image>
+            <image:loc>https://www.insightlearn.cloud/images/courses/rust.webp</image:loc>
+            <image:title>Rust Programming - Complete Guide</image:title>
+        </image:image>
+    </url>
+
+</urlset>

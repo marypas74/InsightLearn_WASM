@@ -49,10 +49,18 @@
 
     <!-- ==========================================================================
          GOOGLE SEARCH CONSOLE VERIFICATION
-         Replace VERIFICATION_CODE with your GSC verification code
-         Setup: https://search.google.com/search-console > Add property
+
+         IMPORTANT: Replace with your actual verification code from Google Search Console
+         Steps to get verification code:
+         1. Go to: https://search.google.com/search-console
+         2. Click "Add property" and enter: https://www.insightlearn.cloud
+         3. Choose "HTML tag" verification method
+         4. Copy the content value (e.g., "abc123xyz...")
+         5. Replace the value below and redeploy
+
+         Current status: PENDING VERIFICATION
          ========================================================================== -->
-    <meta name="google-site-verification" content="VERIFICATION_CODE" />
+    <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE_HERE" />
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="Learn coding, business, design and creative skills with InsightLearn. Access 500+ expert-led courses, interactive lessons, and AI-powered learning tools. Start your learning journey today!" />
@@ -60,6 +68,11 @@
     <meta name="author" content="InsightLearn" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://www.insightlearn.cloud/" />
+
+    <!-- Alternate URLs for international versions -->
+    <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/" />
+    <link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/?lang=it" />
+    <link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />

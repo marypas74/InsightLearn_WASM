@@ -620,12 +620,20 @@
     private void OnViewportChanged(object? sender, ViewportChangedEventArgs e)
     {
         // Update device type based on new viewport width
-        var newDeviceType = e.NewWidth switch
+        // Using if/else instead of switch pattern to avoid Razor parser issues with '<' operator
+        DeviceType newDeviceType;
+        if (e.NewWidth < 768)
         {
-            < 768 => DeviceType.Mobile,
-            < 1024 => DeviceType.Tablet,
-            _ => DeviceType.Desktop
-        };
+            newDeviceType = DeviceType.Mobile;
+        }
+        else if (e.NewWidth < 1024)
+        {
+            newDeviceType = DeviceType.Tablet;
+        }
+        else
+        {
+            newDeviceType = DeviceType.Desktop;
+        }
 
         if (newDeviceType != _deviceType)
         {
