@@ -901,7 +901,7 @@ Professional student learning environment with AI-powered features inspired by L
      - `k3spool/data` → K3s containerd data (compression 2.01x)
      - `k3spool/server` → K3s server config/certs (compression 14.59x)
      - `k3spool/storage` → Persistent volumes (compression 1.53x)
-   - **Storage Status**: 13.9GB used / **236GB available** (5% capacity, was 10% before expansion)
+   - **Storage Status**: 26.4GB used / **223GB available** (10% capacity, updated 2025-12-20)
    - **Autoload**: Systemd service `zfs-import-k3spool.service` (enabled at boot)
    - **Version**: OpenZFS 2.4.99-1 (compilato da sorgente per kernel 6.12.0)
    - **Comandi ZFS**:
@@ -1000,6 +1000,39 @@ Professional student learning environment with AI-powered features inspired by L
      grubby --default-kernel
      uname -r  # kernel attualmente in esecuzione
      ```
+
+3quinquies. **🧹 Podman Cleanup Automatico** (✅ Implementato 2025-12-20)
+   - **Problema Risolto**: Immagini Podman/Buildah accumulavano ~130GB in `/home/.local/share/containers`
+   - **Spazio Recuperato**: **132GB** (da 98% → 56% su /home)
+   - **Script**: [scripts/podman-cleanup.sh](scripts/podman-cleanup.sh)
+   - **Timer Systemd**: `podman-cleanup.timer` (ogni ora)
+   - **Service**: `podman-cleanup.service`
+   - **Log**: `/var/log/podman-cleanup.log`
+   - **Funzionalità**:
+     - ✅ Rimuove buildah working containers
+     - ✅ Rimuove immagini dangling (`<none>:<none>`)
+     - ✅ Rimuove container stopped
+     - ✅ Report disk usage prima/dopo
+   - **Comandi**:
+     ```bash
+     # Stato timer
+     systemctl status podman-cleanup.timer
+
+     # Prossima esecuzione
+     systemctl list-timers podman-cleanup.timer
+
+     # Esecuzione manuale
+     /home/mpasqui/insightlearn_WASM/InsightLearn_WASM/scripts/podman-cleanup.sh
+
+     # Log
+     tail -f /var/log/podman-cleanup.log
+     ```
+   - **Stato Partizioni** (post-cleanup 2025-12-20):
+     | Partizione | Dimensione | Usato | Libero | Uso% |
+     |------------|------------|-------|--------|------|
+     | `/` (root) | 70GB | 58GB | 13GB | 83% |
+     | `/home` | 313GB | 173GB | **141GB** | **56%** |
+     | `/boot` | 960MB | 645MB | 316MB | 68% |
 
 4. **MongoDB CreateContainerConfigError** (✅ Risolto v1.6.0)
    - **Problema**: Pod falliva con "couldn't find key mongodb-password in Secret"
@@ -3237,6 +3270,7 @@ kubectl apply -f k8s/15-jenkins-deployment-lightweight.yaml
 | [scripts/manage-subtitle-job.sh](/scripts/manage-subtitle-job.sh) | Gestione job sottotitoli (deploy/run/status/logs) |
 | [k8s/19-subtitle-generation-job.yaml](/k8s/19-subtitle-generation-job.yaml) | Job generazione sottotitoli IT (video > 5 min) |
 | [k8s/20-multi-language-subtitle-job.yaml](/k8s/20-multi-language-subtitle-job.yaml) | **NEW**: Job multi-lingua (10 lingue × 2 track kinds × ALL video) |
+| [scripts/podman-cleanup.sh](/scripts/podman-cleanup.sh) | **NEW**: Pulizia automatica Podman/Buildah (timer orario) |
 
 ⚠️ **Rocky Linux**: Gli script assumono Docker, sostituire con `podman` manualmente.
 

@@ -15,6 +15,11 @@ METRICS_FILE="/var/lib/node_exporter/textfile_collector/geoip_metrics.prom"
 TEMP_FILE="/tmp/geoip_metrics_temp.prom"
 LOG_FILE="/tmp/geoip-collector.log"
 
+# Ensure kubectl can access K3s when running as root
+if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+fi
+
 # Country code to full name mapping (ISO 3166-1 alpha-2)
 declare -A COUNTRY_NAMES=(
     ["IT"]="Italy"
@@ -67,7 +72,9 @@ declare -A COUNTRY_NAMES=(
 )
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$msg"
+    echo "$msg" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 # Get the WASM pod name
@@ -127,6 +134,7 @@ collect_metrics() {
         echo "# HELP node_api_requests_by_country API requests by client country (Cloudflare)"
         echo "# TYPE node_api_requests_by_country gauge"
         echo "# Generated: $(date -Iseconds)"
+        echo "# Source: Real Cloudflare CF-IPCountry header data"
 
         # Sort by count (descending) and output metrics
         for code in "${!COUNTRY_COUNTS[@]}"; do

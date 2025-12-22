@@ -463,7 +463,7 @@
         },
         "targets": [
           {
-            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"insightlearn-wasm.*\", condition=\"true\"})",
+            "expr": "sum(kube_pod_status_ready{namespace=\"insightlearn\", pod=~\"insightlearn-wasm-blazor.*\", condition=\"true\"})",
             "instant": true,
             "refId": "A"
           }
