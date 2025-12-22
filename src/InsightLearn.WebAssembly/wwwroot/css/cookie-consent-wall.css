@@ -958,10 +958,10 @@
     transform: translateY(-2px);
 }
 
-/* Responsive Design */
+/* Responsive Design - TABLET */
 @media (max-width: 768px) {
     .cookie-wall-overlay {
-        padding: 16px;
+        padding: 12px;
     }
 
     .cookie-wall-container {
@@ -969,7 +969,7 @@
     }
 
     .cookie-wall-modal {
-        border-radius: 24px;
+        border-radius: 16px;
         max-height: 95vh;
     }
 
@@ -980,33 +980,9 @@
         min-height: auto;
     }
 
+    /* HIDE AI section on tablet/mobile - too big */
     .ai-avatar-section {
-        border-radius: 24px 24px 0 0;
-        padding: 32px 24px;
-        min-height: auto;
-    }
-
-    .ai-hologram {
-        width: 150px;
-        height: 150px;
-    }
-
-    .ai-face {
-        width: 90px;
-        height: 90px;
-    }
-
-    .ai-name {
-        font-size: 24px;
-        margin-top: 24px;
-    }
-
-    .ai-message {
-        margin-top: 16px;
-    }
-
-    .ai-message p {
-        font-size: 14px;
+        display: none !important;
     }
 
     .cookie-content-section {
@@ -1014,44 +990,54 @@
     }
 
     .cookie-wall-header {
-        padding: 32px 24px 24px 24px;
+        padding: 20px 16px 16px 16px;
     }
 
     .cookie-icon {
-        font-size: 64px;
+        font-size: 48px;
     }
 
     .cookie-wall-title {
-        font-size: 32px;
+        font-size: 22px;
+        margin-bottom: 8px;
     }
 
     .cookie-wall-subtitle {
-        font-size: 16px;
+        font-size: 14px;
+        line-height: 1.4;
     }
 
     .cookie-wall-body {
-        padding: 24px;
+        padding: 16px;
+    }
+
+    .cookie-description {
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 16px;
     }
 
     .cookie-features-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 8px;
+        margin-top: 16px;
     }
 
     .cookie-feature {
-        padding: 16px 12px;
+        padding: 12px 8px;
+        border-radius: 12px;
     }
 
     .feature-icon {
-        font-size: 28px;
+        font-size: 24px;
     }
 
     .feature-text {
-        font-size: 13px;
+        font-size: 11px;
     }
 
     .cookie-category {
-        padding: 20px;
+        padding: 16px;
     }
 
     .category-header {
@@ -1060,39 +1046,191 @@
     }
 
     .cookie-wall-footer {
-        padding: 24px;
+        padding: 16px;
+    }
+
+    .cookie-links {
+        margin-bottom: 12px;
+        font-size: 12px;
     }
 
     .cookie-actions {
         flex-direction: column;
-        gap: 12px;
+        gap: 8px;
     }
 
     .cookie-actions button {
         width: 100%;
         min-width: auto;
-    }
-}
-
-@media (max-width: 480px) {
-    .cookie-wall-title {
-        font-size: 28px;
-    }
-
-    .cookie-wall-subtitle {
+        padding: 12px 16px;
         font-size: 14px;
     }
 
+    .btn-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 14px !important;
+        margin-right: 6px;
+    }
+}
+
+/* MOBILE SMALL - Ultra compact */
+@media (max-width: 480px) {
+    .cookie-wall-overlay {
+        padding: 8px;
+        align-items: flex-end; /* Align to bottom like a sheet */
+    }
+
+    .cookie-wall-modal {
+        border-radius: 16px 16px 0 0;
+        max-height: 85vh;
+    }
+
+    .cookie-wall-header {
+        padding: 16px 12px 12px 12px;
+    }
+
+    .cookie-icon-wrapper {
+        margin-bottom: 12px;
+    }
+
+    .cookie-icon {
+        font-size: 36px;
+    }
+
+    .cookie-wall-title {
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .cookie-wall-subtitle {
+        font-size: 12px;
+    }
+
+    .cookie-wall-body {
+        padding: 12px;
+    }
+
+    .cookie-description {
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+
     .cookie-features-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-top: 12px;
+    }
+
+    .cookie-feature {
+        padding: 10px 6px;
+        border-radius: 8px;
+    }
+
+    .feature-icon {
+        font-size: 20px;
+    }
+
+    .feature-text {
+        font-size: 10px;
+    }
+
+    .cookie-wall-footer {
+        padding: 12px;
+    }
+
+    .cookie-links {
+        margin-bottom: 10px;
+        font-size: 11px;
+    }
+
+    .link-separator {
+        margin: 0 6px;
+    }
+
+    .cookie-actions {
+        gap: 6px;
+    }
+
+    .cookie-actions button {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .btn-icon {
+        width: 20px;
+        height: 20px;
+        font-size: 12px !important;
+        margin-right: 4px;
     }
 
     .category-icon {
-        font-size: 28px;
+        font-size: 24px;
     }
 
     .category-title {
+        font-size: 14px;
+    }
+
+    .category-description {
+        font-size: 12px;
+    }
+}
+
+/* VERY SMALL MOBILE (iPhone SE, etc) */
+@media (max-width: 375px) {
+    .cookie-wall-modal {
+        max-height: 90vh;
+    }
+
+    .cookie-wall-header {
+        padding: 12px 10px 10px 10px;
+    }
+
+    .cookie-icon {
+        font-size: 28px;
+    }
+
+    .cookie-wall-title {
         font-size: 16px;
+    }
+
+    .cookie-wall-subtitle {
+        font-size: 11px;
+    }
+
+    .cookie-wall-body {
+        padding: 10px;
+    }
+
+    .cookie-description {
+        font-size: 11px;
+    }
+
+    .cookie-features-grid {
+        gap: 4px;
+    }
+
+    .cookie-feature {
+        padding: 8px 4px;
+    }
+
+    .feature-icon {
+        font-size: 18px;
+    }
+
+    .feature-text {
+        font-size: 9px;
+    }
+
+    .cookie-wall-footer {
+        padding: 10px;
+    }
+
+    .cookie-actions button {
+        padding: 8px 10px;
+        font-size: 12px;
     }
 }
 

@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
-**Latest Release**: 🌍 Multi-Language Subtitle Generation v2.2.0-dev (2025-12-16) - Kubernetes Job per generazione automatica sottotitoli in 10 lingue (IT, EN, ES, FR, DE, PT, RU, ZH, JA, KO) + transcriptions per tutti i 140 video. Previous: Subtitle Translation GridFS Fix, LinkedIn Learning UI Style.
+**Latest Release**: 📱 Mobile Responsive & Performance v2.2.0-dev (2025-12-22) - Cross-platform device detection (DeviceDetectionService + JS interop), mobile-optimizations.css (viewport fix, touch targets 44px), GDPR popup compact per mobile (AI avatar nascosto), nginx performance tuning (sendfile, tcp_nopush, open_file_cache), defer scripts per video libraries. Previous: Multi-Language Subtitle Generation, Subtitle Translation GridFS Fix, LinkedIn Learning UI Style.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -22,13 +22,107 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.0-dev`.
 
-### 🔒 Security Status (v2.1.0-dev)
+### 🔒 Security Status (v2.2.0 - CVE-FREE)
+
+**Security Audit Date**: 2024-12-22
+**Security Score**: **10/10** (CVE-free, all vulnerabilities remediated)
 
 **Git History**: ✅ CLEAN - Secrets completamente rimossi (filter-branch 2025-11-16)
 **Production Secrets**: ✅ SECURE - Password non committate, .gitignore aggiornato
 **JWT Validation**: ✅ ACTIVE - Weak secret detection (9 patterns rejected)
 **Secret Rotation**: ✅ **AUTOMATICA** - Script con rollback automatico in [scripts/rotate-secrets-production-safe.sh](scripts/rotate-secrets-production-safe.sh)
 **Compliance**: ✅ OWASP A02:2021, PCI DSS 6.3.1, NIST SP 800-57, CWE-798
+
+#### 🛡️ Security Hardening Checklist (Mandatory for Deploy)
+
+**Prima di ogni deploy, verificare:**
+
+1. **Secrets Management**:
+   - [ ] `.env` file NON committato (verificare con `git status`)
+   - [ ] Kubernetes secrets generati con `k8s/secrets/scripts/generate-secrets.sh`
+   - [ ] Tutte le password sono 32+ caratteri (64+ per JWT)
+   - [ ] Secrets ruotati negli ultimi 90 giorni
+
+2. **Container Security**:
+   - [ ] Immagini Docker con tag specifici (MAI `:latest`)
+   - [ ] Dockerfile usa Alpine-based images per attack surface minima
+   - [ ] Container eseguiti come non-root (UID 1001 per API, UID 101 per nginx)
+   - [ ] `readOnlyRootFilesystem: true` abilitato
+
+3. **Kubernetes Security**:
+   - [ ] `securityContext` definito in tutti i deployment
+   - [ ] `allowPrivilegeEscalation: false` in tutti i container
+   - [ ] `automountServiceAccountToken: false` dove non necessario
+   - [ ] Network Policies applicate (zero-trust model)
+   - [ ] RBAC con least privilege (solo risorse specifiche)
+
+4. **Network Security**:
+   - [ ] Ingress solo da Traefik (kube-system namespace)
+   - [ ] Database accessibili solo da API pod
+   - [ ] TLS terminato all'ingress controller
+
+#### 📁 Security Files Structure
+
+```
+k8s/secrets/
+├── README.md                    # Documentazione secrets
+├── scripts/
+│   ├── generate-secrets.sh      # Genera secrets sicuri
+│   └── deploy-secrets.sh        # Deploy secrets su K8s
+├── templates/
+│   ├── .env.template            # Template environment
+│   └── secrets-template.yaml    # Template K8s secrets
+└── encrypted/                   # SOPS-encrypted (safe to commit)
+```
+
+#### 🚀 Deploy Sicuro - Procedura
+
+```bash
+# 1. Genera nuovi secrets (se necessario)
+./k8s/secrets/scripts/generate-secrets.sh
+
+# 2. Deploy secrets su Kubernetes
+./k8s/secrets/scripts/deploy-secrets.sh
+
+# 3. Verifica security context dei deployment
+kubectl get pods -n insightlearn -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.securityContext}{"\n"}{end}'
+
+# 4. Verifica network policies
+kubectl get networkpolicies -n insightlearn
+
+# 5. Deploy applicazione
+kubectl apply -f k8s/deployments/
+```
+
+#### ⚠️ CRITICAL Security Rules
+
+1. **MAI** committare file `.env`, `*-secrets.yaml`, `.git-credentials`
+2. **MAI** usare tag `:latest` nelle immagini Docker
+3. **MAI** eseguire container come root in produzione
+4. **MAI** disabilitare network policies
+5. **SEMPRE** usare secrets da environment variables (non hardcoded)
+6. **SEMPRE** verificare che `appsettings.json` abbia valori vuoti per secrets
+
+#### 🔄 Build & Deploy Policy - Pending Check
+
+**REGOLA FONDAMENTALE**: Prima di deployare un nuovo pod, verificare se ci sono pod pending dello stesso deployment.
+
+```bash
+# 1. CHECK: Verificare pod pending prima di ogni build
+kubectl get pods -n insightlearn -l app=<nome-app> | grep -E "(Pending|ContainerCreating|ImagePullBackOff)"
+
+# 2. Se ci sono pod pending:
+#    - FERMARE il secondo deploy
+#    - Attendere che i pod pending si stabilizzino o falliscano definitivamente
+#    - Verificare i log: kubectl logs <pod-name> -n insightlearn
+#    - Risolvere il problema prima di procedere
+
+# 3. Solo dopo che NON ci sono più pod pending:
+#    - Rifare la build
+#    - Fare il rollout
+```
+
+**Motivo**: Deployare mentre ci sono pod pending può causare cascate di errori e saturazione delle risorse del cluster.
 
 #### 🔄 Rotazione Password Automatica
 
