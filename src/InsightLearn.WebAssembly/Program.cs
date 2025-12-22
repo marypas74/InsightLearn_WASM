@@ -111,6 +111,10 @@ builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAICo
 // Uses OllamaTranscriptionService - calls backend API for transcripts and Ollama for translations
 builder.Services.AddScoped<InsightLearn.WebAssembly.Services.LearningSpace.IAiTranscriptionService, InsightLearn.WebAssembly.Services.LearningSpace.OllamaTranscriptionService>();
 
+// Device Detection Service (v2.2.0) - Cross-platform responsive optimizations
+// Detects device type (mobile/tablet/desktop), browser, OS, touch capability
+builder.Services.AddScoped<IDeviceDetectionService, DeviceDetectionService>();
+
 Log.Information("InsightLearn WebAssembly application starting...");
 Log.Information("Base Address: {BaseAddress}", builder.HostEnvironment.BaseAddress);
 
