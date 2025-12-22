@@ -190,16 +190,16 @@ pipeline {
                         echo "Found schemas:"
                         echo "${SCHEMAS}"
 
-                        ORGANIZATION=$(echo "${SCHEMAS}" | grep -c "Organization" || echo 0)
-                        WEBSITE=$(echo "${SCHEMAS}" | grep -c "WebSite" || echo 0)
-                        EDUCATIONAL=$(echo "${SCHEMAS}" | grep -c "EducationalOrganization" || echo 0)
+                        ORGANIZATION=$(echo "${SCHEMAS}" | grep "Organization" | wc -l)
+                        WEBSITE=$(echo "${SCHEMAS}" | grep "WebSite" | wc -l)
+                        EDUCATIONAL=$(echo "${SCHEMAS}" | grep "EducationalOrganization" | wc -l)
 
                         echo ""
                         echo "Checking Courses page schemas..."
                         COURSES=$(curl -s -A "${USER_AGENT_GOOGLEBOT}" ${SITE_URL}/courses)
-                        COURSE_SCHEMAS=$(echo "${COURSES}" | grep -c '"@type": "Course"' || echo 0)
-                        AGGREGATE_RATING=$(echo "${COURSES}" | grep -c '"aggregateRating"' || echo 0)
-                        OFFERS=$(echo "${COURSES}" | grep -c '"offers"' || echo 0)
+                        COURSE_SCHEMAS=$(echo "${COURSES}" | grep '"@type": "Course"' | wc -l)
+                        AGGREGATE_RATING=$(echo "${COURSES}" | grep '"aggregateRating"' | wc -l)
+                        OFFERS=$(echo "${COURSES}" | grep '"offers"' | wc -l)
 
                         echo "Course schemas: ${COURSE_SCHEMAS}"
                         echo "With aggregateRating: ${AGGREGATE_RATING}"
