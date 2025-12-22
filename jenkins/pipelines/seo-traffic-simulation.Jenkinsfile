@@ -111,7 +111,7 @@ pipeline {
             steps {
                 script {
                     echo "👥 Simulating organic user traffic (engagement signals)..."
-                    sh '''
+                    sh '''#!/bin/bash
                         KEY_PAGES=(
                             "${SITE_URL}/"
                             "${SITE_URL}/courses"
