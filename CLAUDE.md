@@ -47,17 +47,59 @@ Senza versione incrementale si crea **CAOS nel rollout** e i pod vecchi continua
 
 ---
 
+## 🛑🛑🛑 REGOLA IMPERATIVA - CONFERMA UTENTE OBBLIGATORIA 🛑🛑🛑
+
+### ⚠️ PRIMA DI OGNI BUILD O ROLLOUT: CHIEDERE CONFERMA ALL'UTENTE ⚠️
+
+**OBBLIGATORIO**: Prima di eseguire qualsiasi operazione di build o deploy, **DEVI SEMPRE** chiedere conferma all'utente.
+
+### Procedura IMPERATIVA:
+
+1. **PRIMA della build**: Mostrare all'utente un riepilogo delle modifiche effettuate
+2. **CHIEDERE ESPLICITAMENTE**: "Vuoi procedere con la build e il deploy, oppure preferisci fare ulteriori verifiche?"
+3. **ATTENDERE RISPOSTA**: Non procedere MAI automaticamente senza conferma esplicita
+4. **SE L'UTENTE VUOLE VERIFICARE**: Permettere di controllare le modifiche prima di procedere
+
+### Esempio di messaggio da mostrare:
+
+```
+📋 RIEPILOGO MODIFICHE:
+- File X modificato: [descrizione breve]
+- File Y modificato: [descrizione breve]
+- Versione: X.X.X-dev
+
+🔄 PROSSIMI PASSI:
+1. Build immagine Docker
+2. Import in K3s
+3. Deploy su Kubernetes
+
+❓ Vuoi procedere con la build e il deploy, oppure preferisci fare ulteriori verifiche prima?
+```
+
+### ❌ COMPORTAMENTI VIETATI:
+
+- **NON** avviare build senza conferma esplicita dell'utente
+- **NON** eseguire rollout automatici
+- **NON** assumere che l'utente voglia procedere
+- **NON** saltare la fase di riepilogo modifiche
+
+### MOTIVO:
+L'utente deve SEMPRE avere il controllo completo sul processo di build e deploy.
+Questo previene deploy accidentali e permette verifiche intermedie quando necessario.
+
+---
+
 ## Overview
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `2.2.2-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `2.2.5-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
-**Latest Release**: 📱 Responsive Tabs & Device Detection v2.2.2-dev (2025-12-22) - ResponsiveTabs component con CascadingValue DeviceType, MainLayout integrato con DeviceDetectionService (viewport/orientation events), adaptive tabs per mobile/tablet/desktop, CSS responsive tabs (~270 lines), Learn.razor con DeviceType CascadingParameter. Previous: Mobile Responsive & Performance v2.2.1-dev.
+**Latest Release**: 🍪 GDPR Responsive v2.2.5-dev (2025-12-23) - Cookie consent wall con design responsive per tutti i device (mobile/tablet/desktop/landscape), ripristinato layout two-column con AI avatar, 6 media queries per breakpoints (1200px, 1024px, 768px, 480px, 360px, landscape), touch-friendly buttons (min 44px). Previous: Responsive Tabs & Device Detection v2.2.2-dev.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
