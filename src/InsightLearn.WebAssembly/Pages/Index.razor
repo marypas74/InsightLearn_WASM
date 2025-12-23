@@ -4,431 +4,554 @@
 @using InsightLearn.WebAssembly.Components.SEO
 
 <SeoMetaTags
-    Title="InsightLearn - Online Courses for Professional Skills | Learn Programming, Business, Design"
-    Description="Transform your career with InsightLearn. Access 1200+ expert-led online courses in programming, data science, business, and design. Join 50,000+ students worldwide. Start your free trial today!"
-    Keywords="online courses, e-learning platform, learn programming, web development courses, data science training, business courses, design courses, career development, professional skills, coding bootcamp, online certification, video courses"
+    Title="InsightLearn - Dedicated Cloud Infrastructure for Learning Platforms | Enterprise IaaS"
+    Description="Deploy your learning platform on dedicated, isolated cloud infrastructure. Data sovereignty, custom scalability, SOC2/GDPR/HIPAA compliant. Enterprise-grade performance with 99.99% SLA."
+    Keywords="dedicated cloud infrastructure, enterprise LMS hosting, data sovereignty, private cloud LMS, isolated deployment, SOC2 compliant, GDPR, learning platform infrastructure, managed kubernetes, enterprise IaaS"
     PageType="WebSite"
-    Author="InsightLearn"
+    Author="InsightLearn Infrastructure"
     CanonicalUrl="https://www.insightlearn.cloud/" />
 
 <BreadcrumbSchema Items="@breadcrumbs" />
 
-<!-- Homepage Schema JSON-LD -->
+<!-- Homepage Schema JSON-LD - Enterprise IaaS -->
 <HeadContent>
     <script type="application/ld+json">
     {
         "@@context": "https://schema.org",
-        "@@type": "WebPage",
-        "name": "InsightLearn - Professional Online Learning Platform",
-        "description": "Transform your career with expert-led online courses in programming, data science, business, and design. Join 50,000+ students worldwide.",
+        "@@type": "Product",
+        "name": "InsightLearn Dedicated Cloud Infrastructure",
+        "category": "Cloud Infrastructure Services",
+        "description": "Enterprise-grade dedicated cloud infrastructure for learning platforms. Data sovereignty, isolated environments, and custom scalability.",
         "url": "https://www.insightlearn.cloud/",
-        "mainEntity": {
-            "@@type": "ItemList",
-            "name": "Featured Courses",
-            "description": "Our most popular professional development courses",
-            "numberOfItems": 6,
-            "itemListElement": [
-                {
-                    "@@type": "ListItem",
-                    "position": 1,
-                    "item": {
-                        "@@type": "Course",
-                        "name": "Complete Web Development Bootcamp 2025",
-                        "description": "Master HTML, CSS, JavaScript, React, Node.js",
-                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
-                        "educationalLevel": "Beginner"
-                    }
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 2,
-                    "item": {
-                        "@@type": "Course",
-                        "name": "Data Science & Machine Learning Masterclass",
-                        "description": "Learn Python, statistics, ML algorithms, and AI",
-                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
-                        "educationalLevel": "Intermediate"
-                    }
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 3,
-                    "item": {
-                        "@@type": "Course",
-                        "name": "UI/UX Design: From Concept to Prototype",
-                        "description": "Master Figma, user research, wireframing",
-                        "provider": {"@@type": "Organization", "name": "InsightLearn"},
-                        "educationalLevel": "AllLevels"
-                    }
-                }
-            ]
+        "brand": {
+            "@@type": "Organization",
+            "name": "InsightLearn",
+            "url": "https://www.insightlearn.cloud"
         },
-        "speakable": {
-            "@@type": "SpeakableSpecification",
-            "cssSelector": [".hero-title", ".hero-subtitle", ".section-title"]
-        }
+        "offers": {
+            "@@type": "AggregateOffer",
+            "priceCurrency": "EUR",
+            "priceSpecification": {
+                "@@type": "PriceSpecification",
+                "priceCurrency": "EUR",
+                "valueAddedTaxIncluded": false
+            },
+            "availability": "https://schema.org/InStock",
+            "seller": {
+                "@@type": "Organization",
+                "name": "InsightLearn"
+            }
+        },
+        "additionalProperty": [
+            {"@@type": "PropertyValue", "name": "Uptime SLA", "value": "99.99%"},
+            {"@@type": "PropertyValue", "name": "Data Centers", "value": "25+ Regions"},
+            {"@@type": "PropertyValue", "name": "Compliance", "value": "SOC2, GDPR, HIPAA, ISO 27001"}
+        ]
     }
     </script>
 </HeadContent>
 
-<div class="new-home-page">
-    <!-- Hero Section -->
-    <section class="hero-section">
+<div class="b2b-home-page">
+    <!-- Hero Section - Dedicated Infrastructure Focus -->
+    <section class="hero-section hero-b2b">
         <div class="hero-container">
             <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-icon">🔒</span>
+                    <span class="badge-text">Dedicated Infrastructure</span>
+                </div>
                 <h1 class="hero-title">
-                    Transform Your Future with
-                    <span class="hero-highlight">Expert Learning</span>
+                    Your Private Cloud for
+                    <span class="hero-highlight">Learning Platforms</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Join thousands of learners mastering new skills through world-class courses.
-                    Start your journey to success today.
+                    Deploy your LMS on isolated, enterprise-grade infrastructure.
+                    Data sovereignty, dedicated resources, and compliance built-in.
                 </p>
                 <div class="hero-cta">
-                    <a href="/courses" class="btn btn-primary">Explore Courses</a>
-                    <a href="/about" class="btn btn-secondary">Learn More</a>
+                    <a href="/contact-sales" class="btn btn-primary btn-cta">
+                        <i class="fas fa-drafting-compass"></i>
+                        Request Architecture Review
+                    </a>
+                    <a href="/solutions/infrastructure" class="btn btn-secondary btn-cta">
+                        <i class="fas fa-server"></i>
+                        View Configurations
+                    </a>
                 </div>
-                <div class="hero-stats">
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="50000">0</span>
-                        <span class="stat-label">Active Students</span>
+                <div class="hero-trust-indicators">
+                    <div class="trust-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>SOC2 Type II</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="500">0</span>
-                        <span class="stat-label">Expert Instructors</span>
+                    <div class="trust-item">
+                        <i class="fas fa-globe-europe"></i>
+                        <span>Data Sovereignty</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="1200">0</span>
-                        <span class="stat-label">Courses Available</span>
+                    <div class="trust-item">
+                        <i class="fas fa-server"></i>
+                        <span>99.99% Uptime SLA</span>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fas fa-hospital"></i>
+                        <span>HIPAA Ready</span>
                     </div>
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="hero-card card-1">
-                    <div class="card-icon">📊</div>
-                    <div class="card-text">Data Science</div>
+                <!-- Infrastructure Specs Visual Cards -->
+                <div class="infra-specs-grid">
+                    <div class="infra-spec-card">
+                        <div class="infra-spec-icon region">
+                            <i class="fas fa-globe-europe"></i>
+                        </div>
+                        <div class="infra-spec-content">
+                            <div class="infra-spec-label">Region</div>
+                            <div class="infra-spec-value">EU West 1</div>
+                        </div>
+                    </div>
+                    <div class="infra-spec-card">
+                        <div class="infra-spec-icon hardware">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div class="infra-spec-content">
+                            <div class="infra-spec-label">Resources</div>
+                            <div class="infra-spec-value">32 vCPU / 128GB</div>
+                        </div>
+                    </div>
+                    <div class="infra-spec-card">
+                        <div class="infra-spec-icon compliance">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="infra-spec-content">
+                            <div class="infra-spec-label">Compliance</div>
+                            <div class="infra-spec-value">SOC2 / GDPR</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="hero-card card-2">
-                    <div class="card-icon">💻</div>
-                    <div class="card-text">Web Development</div>
+                <!-- Floating Architecture Cards -->
+                <div class="arch-card card-api">
+                    <i class="fas fa-server"></i>
+                    <span>Dedicated Nodes</span>
                 </div>
-                <div class="hero-card card-3">
-                    <div class="card-icon">🎨</div>
-                    <div class="card-text">Design</div>
+                <div class="arch-card card-analytics">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Isolated VPC</span>
                 </div>
-                <div class="hero-card card-4">
-                    <div class="card-icon">🚀</div>
-                    <div class="card-text">Business</div>
-                </div>
-                <div class="live-indicator">
-                    <span class="live-dot"></span>
-                    <span class="live-text"><span id="liveStudents">2,847</span> learning now</span>
+                <div class="arch-card card-video">
+                    <i class="fas fa-database"></i>
+                    <span>Private Storage</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section">
+    <!-- Infrastructure Stats -->
+    <section class="stats-section stats-b2b">
         <div class="stats-container">
             <div class="stat-box">
-                <div class="stat-icon">🎓</div>
-                <div class="stat-value" data-target="95">0%</div>
-                <div class="stat-description">Course Completion Rate</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon">⭐</div>
-                <div class="stat-value" data-target="4.8">0</div>
-                <div class="stat-description">Average Course Rating</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon">💼</div>
-                <div class="stat-value" data-target="87">0%</div>
-                <div class="stat-description">Career Advancement</div>
+                <div class="stat-icon">🏢</div>
+                <div class="stat-value" data-target="150">0+</div>
+                <div class="stat-description">Enterprise Deployments</div>
             </div>
             <div class="stat-box">
                 <div class="stat-icon">🌍</div>
-                <div class="stat-value" data-target="150">0+</div>
-                <div class="stat-description">Countries Worldwide</div>
+                <div class="stat-value" data-target="25">0+</div>
+                <div class="stat-description">Data Center Regions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">📡</div>
+                <div class="stat-value" data-target="99.99">0%</div>
+                <div class="stat-description">Uptime SLA</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">2M+</div>
+                <div class="stat-description">Learners on Our Infrastructure</div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section class="how-it-works-section">
+    <!-- Infrastructure Capabilities -->
+    <section class="capabilities-section">
         <div class="section-container">
             <div class="section-header">
-                <h2 class="section-title">How InsightLearn Works</h2>
-                <p class="section-subtitle">Your journey to mastery in three simple steps</p>
+                <span class="section-eyebrow">Platform Capabilities</span>
+                <h2 class="section-title">Everything You Need to Build Your Academy</h2>
+                <p class="section-subtitle">Enterprise-grade infrastructure designed for scale, security, and customization</p>
             </div>
-            <div class="steps-grid">
-                <div class="step-card">
-                    <div class="step-number">01</div>
-                    <div class="step-icon">🔍</div>
-                    <h3 class="step-title">Choose Your Path</h3>
-                    <p class="step-description">
-                        Browse our extensive catalog of courses across technology, business, design, and more.
-                        Find the perfect course that matches your goals and skill level.
-                    </p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">02</div>
-                    <div class="step-icon">📚</div>
-                    <h3 class="step-title">Learn at Your Pace</h3>
-                    <p class="step-description">
-                        Access high-quality video lessons, interactive exercises, and downloadable resources.
-                        Learn on your schedule with lifetime access to course materials.
-                    </p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">03</div>
-                    <div class="step-icon">🏆</div>
-                    <h3 class="step-title">Earn & Achieve</h3>
-                    <p class="step-description">
-                        Complete projects, earn certificates, and showcase your new skills.
-                        Join a community of learners and advance your career.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Featured Courses Section -->
-    <section class="featured-courses-section">
-        <div class="section-container">
-            <div class="section-header">
-                <h2 class="section-title">Featured Courses</h2>
-                <p class="section-subtitle">Start learning with our most popular courses</p>
-            </div>
-            <div class="courses-grid">
-                @foreach (var course in featuredCourses)
+            <div class="capabilities-grid">
+                @foreach (var capability in capabilities)
                 {
-                    <div class="course-card">
-                        <div class="course-badge">@course.Badge</div>
-                        <div class="course-image">
-                            <div class="course-category-tag">@course.Category</div>
+                    <div class="capability-card">
+                        <div class="capability-icon" style="background: @capability.IconBg;">
+                            <i class="@capability.Icon"></i>
                         </div>
-                        <div class="course-content">
-                            <h3 class="course-title">@course.Title</h3>
-                            <p class="course-description">@course.Description</p>
-                            <div class="course-meta">
-                                <div class="course-rating">
-                                    <span class="rating-stars">⭐⭐⭐⭐⭐</span>
-                                    <span class="rating-value">@course.Rating</span>
-                                    <span class="rating-count">(@course.Students)</span>
-                                </div>
-                                <div class="course-level">@course.Level</div>
-                            </div>
-                            <div class="course-footer">
-                                <div class="course-price">
-                                    <span class="price-current">@course.Price</span>
-                                    @if (!string.IsNullOrEmpty(course.OriginalPrice))
-                                    {
-                                        <span class="price-original">@course.OriginalPrice</span>
-                                    }
-                                </div>
-                                <a href="/courses/@course.Id" class="course-cta">Enroll Now</a>
-                            </div>
-                        </div>
+                        <h3 class="capability-title">@capability.Title</h3>
+                        <p class="capability-description">@capability.Description</p>
+                        <ul class="capability-features">
+                            @foreach (var feature in capability.Features)
+                            {
+                                <li><i class="fas fa-check"></i> @feature</li>
+                            }
+                        </ul>
                     </div>
                 }
             </div>
-            <div class="section-cta">
-                <a href="/courses" class="btn btn-primary">View All Courses</a>
+        </div>
+    </section>
+
+    <!-- How It Works - Integration Flow -->
+    <section class="integration-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-eyebrow">Integration</span>
+                <h2 class="section-title">From Zero to Production in Days</h2>
+                <p class="section-subtitle">Get your custom academy live with our straightforward integration process</p>
+            </div>
+            <div class="integration-flow">
+                <div class="integration-step">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <div class="step-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <h3 class="step-title">Get API Keys</h3>
+                        <p class="step-description">
+                            Sign up for a free developer account and generate your API keys in seconds.
+                        </p>
+                    </div>
+                </div>
+                <div class="integration-connector"></div>
+                <div class="integration-step">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <div class="step-icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <h3 class="step-title">Configure Your Brand</h3>
+                        <p class="step-description">
+                            Set up your custom domain, branding, and white-label configuration via API or dashboard.
+                        </p>
+                    </div>
+                </div>
+                <div class="integration-connector"></div>
+                <div class="integration-step">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <div class="step-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3 class="step-title">Integrate & Build</h3>
+                        <p class="step-description">
+                            Use our SDKs (JavaScript, Python, .NET) or REST API to integrate with your existing systems.
+                        </p>
+                    </div>
+                </div>
+                <div class="integration-connector"></div>
+                <div class="integration-step">
+                    <div class="step-number">04</div>
+                    <div class="step-content">
+                        <div class="step-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3 class="step-title">Launch & Scale</h3>
+                        <p class="step-description">
+                            Go live with confidence. Our infrastructure auto-scales to handle millions of users.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Testimonials Section -->
-    <section class="testimonials-section">
+    <!-- Use Cases / Solutions -->
+    <section class="solutions-section">
         <div class="section-container">
             <div class="section-header">
-                <h2 class="section-title">Success Stories</h2>
-                <p class="section-subtitle">Hear from learners who transformed their careers</p>
+                <span class="section-eyebrow">Solutions</span>
+                <h2 class="section-title">Built for Every Industry</h2>
+                <p class="section-subtitle">See how leading organizations use our infrastructure</p>
+            </div>
+            <div class="solutions-grid">
+                @foreach (var solution in solutions)
+                {
+                    <div class="solution-card">
+                        <div class="solution-icon">@solution.Icon</div>
+                        <h3 class="solution-title">@solution.Title</h3>
+                        <p class="solution-description">@solution.Description</p>
+                        <a href="@solution.Link" class="solution-link">
+                            Learn More <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Developer Experience -->
+    <section class="developer-section">
+        <div class="section-container">
+            <div class="dev-content">
+                <div class="dev-text">
+                    <span class="section-eyebrow">Developer Experience</span>
+                    <h2 class="section-title">Built by Developers, for Developers</h2>
+                    <p class="section-description">
+                        Comprehensive documentation, SDKs in your favorite languages, and a responsive developer community.
+                    </p>
+                    <ul class="dev-features">
+                        <li>
+                            <i class="fas fa-book-open"></i>
+                            <span>Interactive API documentation with Swagger/OpenAPI</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-code"></i>
+                            <span>SDKs for JavaScript, Python, .NET, Go, and Ruby</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-terminal"></i>
+                            <span>CLI tools for automation and CI/CD integration</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-webhook"></i>
+                            <span>Webhooks for real-time event notifications</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-comments"></i>
+                            <span>Active Discord community and dedicated support</span>
+                        </li>
+                    </ul>
+                    <div class="dev-cta">
+                        <a href="/developers/docs" class="btn btn-primary">
+                            <i class="fas fa-book"></i> API Documentation
+                        </a>
+                        <a href="/developers/quickstart" class="btn btn-outline-dark">
+                            <i class="fas fa-play"></i> Quickstart Guide
+                        </a>
+                    </div>
+                </div>
+                <div class="dev-visual">
+                    <div class="sdk-cards">
+                        <div class="sdk-card">
+                            <i class="fab fa-js-square"></i>
+                            <span>JavaScript</span>
+                        </div>
+                        <div class="sdk-card">
+                            <i class="fab fa-python"></i>
+                            <span>Python</span>
+                        </div>
+                        <div class="sdk-card">
+                            <i class="fab fa-microsoft"></i>
+                            <span>.NET</span>
+                        </div>
+                        <div class="sdk-card">
+                            <i class="fab fa-golang"></i>
+                            <span>Go</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof - Enterprise Testimonials -->
+    <section class="testimonials-section testimonials-b2b">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-eyebrow">Trusted by Industry Leaders</span>
+                <h2 class="section-title">What Our Clients Say</h2>
             </div>
             <div class="testimonials-grid">
-                @foreach (var story in successStories)
+                @foreach (var testimonial in enterpriseTestimonials)
                 {
-                    <div class="testimonial-card">
-                        <div class="testimonial-quote">"</div>
-                        <p class="testimonial-text">@story.Quote</p>
+                    <div class="testimonial-card testimonial-enterprise">
+                        <div class="testimonial-content">
+                            <div class="testimonial-quote">"</div>
+                            <p class="testimonial-text">@testimonial.Quote</p>
+                        </div>
                         <div class="testimonial-author">
-                            <div class="author-avatar">@story.InitialAvatar</div>
+                            <div class="author-avatar">@testimonial.InitialAvatar</div>
                             <div class="author-info">
-                                <div class="author-name">@story.Name</div>
-                                <div class="author-title">@story.Title</div>
+                                <div class="author-name">@testimonial.Name</div>
+                                <div class="author-title">@testimonial.Title</div>
+                                <div class="author-company">@testimonial.Company</div>
                             </div>
                         </div>
-                        <div class="testimonial-achievement">@story.Achievement</div>
                     </div>
                 }
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="cta-container">
-            <div class="cta-content">
-                <h2 class="cta-title">Ready to Start Your Learning Journey?</h2>
+    <!-- Infrastructure CTA -->
+    <section class="pricing-cta-section">
+        <div class="pricing-cta-container">
+            <div class="pricing-cta-content">
+                <h2 class="cta-title">Ready to Deploy Your Private Learning Cloud?</h2>
                 <p class="cta-subtitle">
-                    Join thousands of learners worldwide and unlock your potential today.
-                    Get started with a free trial.
+                    Get a custom architecture review from our infrastructure experts. No commitment required.
                 </p>
-                <div class="cta-buttons">
-                    <a href="/register" class="btn btn-primary btn-large">Start Free Trial</a>
-                    <a href="/courses" class="btn btn-secondary btn-large">Browse Courses</a>
+                <div class="pricing-tiers-preview">
+                    <div class="tier-card tier-free">
+                        <div class="tier-name">Starter Node</div>
+                        <div class="tier-price">8 vCPU</div>
+                        <div class="tier-description">Single-region deployment</div>
+                    </div>
+                    <div class="tier-card tier-pro">
+                        <div class="tier-badge">Most Deployed</div>
+                        <div class="tier-name">HA Cluster</div>
+                        <div class="tier-price">32 vCPU</div>
+                        <div class="tier-description">Multi-zone high availability</div>
+                    </div>
+                    <div class="tier-card tier-enterprise">
+                        <div class="tier-name">Private Cloud</div>
+                        <div class="tier-price">Custom</div>
+                        <div class="tier-description">Dedicated infrastructure</div>
+                    </div>
                 </div>
-                <p class="cta-note">No credit card required • Cancel anytime • 30-day money-back guarantee</p>
+                <div class="cta-buttons">
+                    <a href="/solutions/infrastructure" class="btn btn-primary btn-large">View Configurations</a>
+                    <a href="/contact-sales" class="btn btn-outline-light btn-large">Request Architecture Review</a>
+                </div>
             </div>
         </div>
     </section>
-
-    <!-- Footer removed - using MainLayout footer instead for consistency -->
 </div>
 
 @code {
-    private List<FeaturedCourseModel> featuredCourses = new();
-    private List<SuccessStoryModel> successStories = new();
-
     private List<BreadcrumbSchema.BreadcrumbItem> breadcrumbs = new()
     {
         new BreadcrumbSchema.BreadcrumbItem { Name = "Home", Url = "/" }
     };
 
+    private List<CapabilityModel> capabilities = new();
+    private List<SolutionModel> solutions = new();
+    private List<EnterpriseTestimonialModel> enterpriseTestimonials = new();
+
     protected override void OnInitialized()
     {
-        featuredCourses = new List<FeaturedCourseModel>
+        capabilities = new List<CapabilityModel>
         {
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "1",
-                Title = "Complete Web Development Bootcamp 2025",
-                Description = "Master HTML, CSS, JavaScript, React, Node.js, and more. Build real-world projects and launch your career as a web developer.",
-                Category = "Development",
-                Level = "Beginner",
-                Rating = "4.9",
-                Students = "52,341",
-                Price = "$49.99",
-                OriginalPrice = "$199.99",
-                Badge = "Bestseller"
+                Title = "Multi-Tenancy",
+                Description = "Create isolated environments for each of your clients with separate branding, users, and content.",
+                Icon = "fas fa-building",
+                IconBg = "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                Features = new[] { "Isolated data per tenant", "Custom domains", "Role-based access", "Tenant-level analytics" }
             },
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "2",
-                Title = "Data Science & Machine Learning Masterclass",
-                Description = "Learn Python, statistics, ML algorithms, and AI. Work with real datasets and build production-ready models.",
-                Category = "Data Science",
-                Level = "Intermediate",
-                Rating = "4.8",
-                Students = "38,912",
-                Price = "$59.99",
-                OriginalPrice = "$249.99",
-                Badge = "Trending"
+                Title = "White-Label Ready",
+                Description = "Your brand, our technology. Complete customization of logos, colors, emails, and user experience.",
+                Icon = "fas fa-palette",
+                IconBg = "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                Features = new[] { "Custom branding", "Branded emails", "Remove InsightLearn marks", "Custom CSS/JS injection" }
             },
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "3",
-                Title = "UI/UX Design: From Concept to Prototype",
-                Description = "Master Figma, user research, wireframing, and prototyping. Create stunning designs that users love.",
-                Category = "Design",
-                Level = "All Levels",
-                Rating = "4.9",
-                Students = "29,478",
-                Price = "$44.99",
-                OriginalPrice = "$179.99",
-                Badge = "New"
+                Title = "Infinite Scalability",
+                Description = "Handle 10 to 10 million users without changing a line of code. Auto-scaling infrastructure.",
+                Icon = "fas fa-expand-arrows-alt",
+                IconBg = "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                Features = new[] { "Auto-scaling pods", "Global CDN", "Load balancing", "Zero-downtime deploys" }
             },
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "4",
-                Title = "AWS Certified Solutions Architect",
-                Description = "Complete AWS certification prep. Learn cloud computing, architecture, security, and pass the exam with confidence.",
-                Category = "Cloud Computing",
-                Level = "Advanced",
-                Rating = "4.7",
-                Students = "21,567",
-                Price = "$69.99",
-                OriginalPrice = "$299.99",
-                Badge = "Hot"
+                Title = "API-First Architecture",
+                Description = "RESTful and GraphQL APIs for complete integration flexibility. Build any frontend experience.",
+                Icon = "fas fa-plug",
+                IconBg = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                Features = new[] { "REST & GraphQL", "Webhooks", "OAuth 2.0 / OIDC", "Rate limiting & quotas" }
             },
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "5",
-                Title = "Digital Marketing Complete Course",
-                Description = "Master SEO, social media, content marketing, analytics, and PPC. Grow your business or start a new career.",
-                Category = "Marketing",
-                Level = "Beginner",
-                Rating = "4.8",
-                Students = "44,892",
-                Price = "$39.99",
-                OriginalPrice = "$159.99",
-                Badge = "Popular"
+                Title = "Enterprise Security",
+                Description = "Bank-grade security with SSO, SAML, encryption at rest, and comprehensive audit logs.",
+                Icon = "fas fa-shield-alt",
+                IconBg = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                Features = new[] { "SSO / SAML / LDAP", "SOC 2 Type II", "GDPR compliant", "Audit logging" }
             },
-            new FeaturedCourseModel
+            new CapabilityModel
             {
-                Id = "6",
-                Title = "Python Programming: Zero to Hero",
-                Description = "Learn Python from scratch. Build projects, automate tasks, and prepare for data science or web development.",
-                Category = "Programming",
-                Level = "Beginner",
-                Rating = "4.9",
-                Students = "67,234",
-                Price = "$34.99",
-                OriginalPrice = "$149.99",
-                Badge = "Bestseller"
+                Title = "AI-Powered Features",
+                Description = "Built-in AI for auto-transcription, content analysis, personalized recommendations, and chatbot.",
+                Icon = "fas fa-brain",
+                IconBg = "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+                Features = new[] { "Auto-transcription", "AI summaries", "Smart recommendations", "Chatbot assistant" }
             }
         };
 
-        successStories = new List<SuccessStoryModel>
+        solutions = new List<SolutionModel>
         {
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "Sarah Johnson",
-                Title = "Full Stack Developer at Google",
-                Quote = "InsightLearn transformed my career completely. I went from knowing nothing about coding to landing my dream job at Google in just 8 months. The instructors are world-class and the projects are incredibly practical.",
-                Achievement = "Career switch in 8 months",
-                InitialAvatar = "SJ"
+                Title = "Corporate Training",
+                Description = "Deploy company-wide training programs with compliance tracking and certifications.",
+                Icon = "🏢",
+                Link = "/solutions/corporate-training"
             },
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "Michael Chen",
-                Title = "Data Scientist at Microsoft",
-                Quote = "The Data Science course gave me the exact skills I needed. The real-world projects and mentor support made all the difference. I got three job offers after completing the program.",
-                Achievement = "3x salary increase",
-                InitialAvatar = "MC"
+                Title = "EdTech Startups",
+                Description = "Launch your e-learning startup faster with our ready-to-use infrastructure.",
+                Icon = "🚀",
+                Link = "/solutions/edtech"
             },
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "Emily Rodriguez",
-                Title = "UX Designer at Airbnb",
-                Quote = "Best investment in my career! The UI/UX course taught me not just design tools, but how to think like a designer. The portfolio projects I built helped me stand out in interviews.",
-                Achievement = "Hired at dream company",
-                InitialAvatar = "ER"
+                Title = "Professional Associations",
+                Description = "Offer continuing education and certifications to your members.",
+                Icon = "🎓",
+                Link = "/solutions/associations"
             },
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "David Kim",
-                Title = "Cloud Architect at Amazon",
-                Quote = "I passed my AWS certification on the first try thanks to InsightLearn. The hands-on labs and practice exams were invaluable. Now I'm leading cloud migration projects at Amazon.",
-                Achievement = "AWS certified in 3 months",
-                InitialAvatar = "DK"
+                Title = "Healthcare Training",
+                Description = "HIPAA-compliant training for medical and healthcare professionals.",
+                Icon = "🏥",
+                Link = "/solutions/healthcare"
             },
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "Lisa Anderson",
-                Title = "Digital Marketing Manager",
-                Quote = "This platform helped me launch my own marketing agency. The courses are comprehensive, up-to-date, and taught by industry experts. I've already 10x'd my investment.",
-                Achievement = "Started own business",
-                InitialAvatar = "LA"
+                Title = "Financial Services",
+                Description = "Regulatory compliance training with audit trails and certifications.",
+                Icon = "🏦",
+                Link = "/solutions/finance"
             },
-            new SuccessStoryModel
+            new SolutionModel
             {
-                Name = "James Wilson",
-                Title = "Python Developer at Tesla",
-                Quote = "The Python course was exactly what I needed to transition from mechanical engineering to software. The community support and career guidance were outstanding.",
-                Achievement = "Career pivot success",
-                InitialAvatar = "JW"
+                Title = "Channel Partner Enablement",
+                Description = "Train and certify your partner network at scale.",
+                Icon = "🤝",
+                Link = "/solutions/partner-enablement"
+            }
+        };
+
+        enterpriseTestimonials = new List<EnterpriseTestimonialModel>
+        {
+            new EnterpriseTestimonialModel
+            {
+                Name = "Marcus Thompson",
+                Title = "VP of Engineering",
+                Company = "TechCorp Industries",
+                Quote = "We migrated from building our own LMS to InsightLearn's API. Reduced our engineering overhead by 80% and launched 3 months ahead of schedule.",
+                InitialAvatar = "MT"
+            },
+            new EnterpriseTestimonialModel
+            {
+                Name = "Sarah Chen",
+                Title = "Director of Learning",
+                Company = "Global Finance Inc.",
+                Quote = "The multi-tenancy feature allowed us to create separate academies for each of our 12 regional offices while maintaining central control. Compliance tracking is seamless.",
+                InitialAvatar = "SC"
+            },
+            new EnterpriseTestimonialModel
+            {
+                Name = "James Rodriguez",
+                Title = "CTO",
+                Company = "EduStart.io",
+                Quote = "As a startup, we couldn't afford to build video infrastructure from scratch. InsightLearn's API let us launch in weeks, not months. We're now serving 500K learners.",
+                InitialAvatar = "JR"
             }
         };
     }
@@ -437,30 +560,33 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("initNewHomePage");
+            await JS.InvokeVoidAsync("initB2BHomePage");
         }
     }
 
-    public class FeaturedCourseModel
+    public class CapabilityModel
     {
-        public string Id { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string Level { get; set; } = string.Empty;
-        public string Rating { get; set; } = string.Empty;
-        public string Students { get; set; } = string.Empty;
-        public string Price { get; set; } = string.Empty;
-        public string OriginalPrice { get; set; } = string.Empty;
-        public string Badge { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string IconBg { get; set; } = string.Empty;
+        public string[] Features { get; set; } = Array.Empty<string>();
     }
 
-    public class SuccessStoryModel
+    public class SolutionModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Link { get; set; } = string.Empty;
+    }
+
+    public class EnterpriseTestimonialModel
     {
         public string Name { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
+        public string Company { get; set; } = string.Empty;
         public string Quote { get; set; } = string.Empty;
-        public string Achievement { get; set; } = string.Empty;
         public string InitialAvatar { get; set; } = string.Empty;
     }
 }

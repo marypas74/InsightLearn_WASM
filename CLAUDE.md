@@ -93,13 +93,14 @@ Questo previene deploy accidentali e permette verifiche intermedie quando necess
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `2.2.5-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `2.2.9-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
+**Business Model**: **B2B/IaaS** - E-Learning Infrastructure Platform (pivot from B2C 2025-12-23)
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
-**Latest Release**: 🍪 GDPR Responsive v2.2.5-dev (2025-12-23) - Cookie consent wall con design responsive per tutti i device (mobile/tablet/desktop/landscape), ripristinato layout two-column con AI avatar, 6 media queries per breakpoints (1200px, 1024px, 768px, 480px, 360px, landscape), touch-friendly buttons (min 44px). Previous: Responsive Tabs & Device Detection v2.2.2-dev.
+**Latest Release**: 🏢 B2B/IaaS Pivot v2.2.9-dev (2025-12-23) - Complete business model transformation from B2C (selling courses) to B2B/IaaS (selling e-learning infrastructure). New enterprise-focused UI with SOC2/GDPR/HIPAA compliance messaging, 99.99% SLA, white-label solutions, API-first architecture, multi-tenant support. Previous: GDPR Responsive v2.2.5-dev.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -107,7 +108,63 @@ Questo previene deploy accidentali e permette verifiche intermedie quando necess
 **SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **SEO Strategy**: [SEO-COMPETITIVE-ANALYSIS-2025-12-12.md](docs/SEO-COMPETITIVE-ANALYSIS-2025-12-12.md) - Piano 12 mesi per Top 10
 
-✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.1-dev`.
+✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.9-dev`.
+
+### 🏢 B2B/IaaS Business Model Pivot (v2.2.9-dev - 2025-12-23)
+
+**Status**: ✅ **DEPLOYED** - Complete transformation from B2C to B2B/IaaS
+**Date**: 2025-12-23
+**Previous Model**: B2C - Selling courses directly to students
+**New Model**: B2B/IaaS - Selling e-learning infrastructure to enterprises
+
+#### Value Proposition (New)
+
+InsightLearn is now positioned as an **Enterprise E-Learning Infrastructure Platform**:
+
+- **White-Label Solutions**: Fully customizable LMS for corporate training
+- **API-First Architecture**: RESTful APIs for seamless integration
+- **Multi-Tenant Support**: Isolated environments per client organization
+- **Enterprise Compliance**: SOC2, GDPR, HIPAA ready
+- **99.99% SLA**: High availability with global CDN
+- **Scalability**: Supports 10K+ concurrent users per tenant
+
+#### Target Customers
+
+| Segment | Description | Use Case |
+|---------|-------------|----------|
+| **Corporate Training** | Large enterprises | Employee onboarding, compliance training |
+| **EdTech Startups** | Course platform builders | White-label LMS infrastructure |
+| **Universities** | Higher education | Online degree programs |
+| **Government** | Public sector | Workforce development programs |
+
+#### Files Modified for B2B Pivot
+
+| File | Changes |
+|------|---------|
+| `Pages/Index.razor` | B2B homepage with infrastructure messaging, enterprise features grid |
+| `Layout/MainLayout.razor` | B2B header navigation, enterprise footer, mobile menu |
+| `Layout/NavMenu.razor` | B2B sidebar with Solutions, Pricing, Enterprise, Developers sections |
+| `Pages/About.razor` | Enterprise-focused company description |
+| `Pages/Contact.razor` | Enterprise sales contact form |
+| `Pages/FAQ.razor` | B2B-focused FAQ content |
+| `Pages/Pricing.razor` | Enterprise pricing tiers |
+| `Pages/Login.razor` | Developer portal login |
+| `Pages/Register.razor` | Enterprise account registration |
+| `wwwroot/css/enterprise-b2b.css` | **NEW** - B2B design system |
+| `wwwroot/css/mobile-ux-fixes.css` | **NEW** - Mobile UX improvements |
+
+#### Messaging Changes
+
+**Old (B2C)**: "Learn new skills with expert instructors"
+**New (B2B)**: "Enterprise E-Learning Infrastructure" / "Build, Scale, and Deploy Custom Learning Experiences"
+
+**Key Features Highlighted**:
+- API Documentation & SDKs
+- Multi-tenant Architecture
+- Custom Branding (White-label)
+- Enterprise SSO (SAML, OAuth)
+- Advanced Analytics & Reporting
+- Dedicated Support & SLA
 
 ### 🔒 Security Status (v2.2.0 - CVE-FREE)
 

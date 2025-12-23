@@ -4,9 +4,10 @@
 <!-- Sidebar Header with Brand -->
 <div class="sidebar-header">
     <a href="/" class="sidebar-brand">
-        <span class="brand-icon">📚</span>
+        <span class="brand-icon">🔧</span>
         InsightLearn<span class="text-muted">.cloud</span>
     </a>
+    <span class="brand-tagline">Infrastructure Platform</span>
 </div>
 
 <!-- Sidebar Navigation -->
@@ -24,20 +25,117 @@
             </li>
 
             <li class="nav-item">
-                <NavLink class="nav-link" href="/courses">
+                <NavLink class="nav-link" href="/solutions">
                     <span class="nav-icon">
-                        <i class="fas fa-play-circle"></i>
+                        <i class="fas fa-cubes"></i>
                     </span>
-                    Browse Courses
+                    Solutions
                 </NavLink>
             </li>
 
             <li class="nav-item">
-                <NavLink class="nav-link" href="/categories">
+                <NavLink class="nav-link" href="/pricing">
                     <span class="nav-icon">
-                        <i class="fas fa-th-large"></i>
+                        <i class="fas fa-tags"></i>
                     </span>
-                    Categories
+                    Pricing
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/enterprise">
+                    <span class="nav-icon">
+                        <i class="fas fa-building"></i>
+                    </span>
+                    Enterprise
+                </NavLink>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Developer Section -->
+    <div class="nav-section">
+        <h3 class="nav-section-title">
+            <i class="fas fa-code"></i> Developers
+        </h3>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/developers/docs">
+                    <span class="nav-icon">
+                        <i class="fas fa-book"></i>
+                    </span>
+                    API Documentation
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/developers/quickstart">
+                    <span class="nav-icon">
+                        <i class="fas fa-rocket"></i>
+                    </span>
+                    Quickstart Guide
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/developers/sdks">
+                    <span class="nav-icon">
+                        <i class="fas fa-cube"></i>
+                    </span>
+                    SDKs & Libraries
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/developers/api-reference">
+                    <span class="nav-icon">
+                        <i class="fas fa-file-code"></i>
+                    </span>
+                    API Reference
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/developers/changelog">
+                    <span class="nav-icon">
+                        <i class="fas fa-history"></i>
+                    </span>
+                    Changelog
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/status">
+                    <span class="nav-icon status-indicator">
+                        <i class="fas fa-circle"></i>
+                    </span>
+                    System Status
+                </NavLink>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Resources Section -->
+    <div class="nav-section">
+        <h3 class="nav-section-title">
+            <i class="fas fa-lightbulb"></i> Resources
+        </h3>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/blog">
+                    <span class="nav-icon">
+                        <i class="fas fa-rss"></i>
+                    </span>
+                    Blog
+                </NavLink>
+            </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/case-studies">
+                    <span class="nav-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </span>
+                    Case Studies
                 </NavLink>
             </li>
 
@@ -49,18 +147,29 @@
                     Help Center
                 </NavLink>
             </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/contact-sales">
+                    <span class="nav-icon">
+                        <i class="fas fa-headset"></i>
+                    </span>
+                    Contact Sales
+                </NavLink>
+            </li>
         </ul>
     </div>
 
     <!-- Authentication Section -->
     <AuthorizeView>
         <Authorized>
-            <!-- User Section -->
+            <!-- Developer Console Section -->
             <div class="nav-section">
-                <h3 class="nav-section-title">My Learning</h3>
+                <h3 class="nav-section-title">
+                    <i class="fas fa-terminal"></i> Console
+                </h3>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/dashboard">
+                        <NavLink class="nav-link" href="/console/dashboard">
                             <span class="nav-icon">
                                 <i class="fas fa-tachometer-alt"></i>
                             </span>
@@ -69,25 +178,61 @@
                     </li>
 
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/my-courses">
+                        <NavLink class="nav-link" href="/console/api-keys">
                             <span class="nav-icon">
-                                <i class="fas fa-graduation-cap"></i>
+                                <i class="fas fa-key"></i>
                             </span>
-                            My Courses
+                            API Keys
                         </NavLink>
                     </li>
 
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/profile">
+                        <NavLink class="nav-link" href="/console/tenants">
                             <span class="nav-icon">
-                                <i class="fas fa-user"></i>
+                                <i class="fas fa-server"></i>
                             </span>
-                            Profile
+                            Tenants
                         </NavLink>
                     </li>
 
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/settings">
+                        <NavLink class="nav-link" href="/console/analytics">
+                            <span class="nav-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </span>
+                            Analytics
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/console/webhooks">
+                            <span class="nav-icon">
+                                <i class="fas fa-plug"></i>
+                            </span>
+                            Webhooks
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/console/logs">
+                            <span class="nav-icon">
+                                <i class="fas fa-list-alt"></i>
+                            </span>
+                            Request Logs
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/console/billing">
+                            <span class="nav-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </span>
+                            Billing & Usage
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/console/settings">
                             <span class="nav-icon">
                                 <i class="fas fa-cog"></i>
                             </span>
@@ -97,55 +242,29 @@
                 </ul>
             </div>
 
-            <!-- Instructor Section -->
-            <AuthorizeView Roles="Instructor">
-                <Authorized Context="instructorContext">
-                    <div class="nav-section">
-                    <h3 class="nav-section-title">Instructor</h3>
-                    <ul class="nav-list">
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/dashboard/instructor">
-                                <span class="nav-icon">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                </span>
-                                Instructor Dashboard
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/instructor/courses">
-                                <span class="nav-icon">
-                                    <i class="fas fa-book"></i>
-                                </span>
-                                My Courses
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/instructor/courses/create">
-                                <span class="nav-icon">
-                                    <i class="fas fa-plus-circle"></i>
-                                </span>
-                                Create Course
-                            </NavLink>
-                        </li>
-                    </ul>
-                    </div>
-                </Authorized>
-            </AuthorizeView>
-
             <!-- Admin Section -->
             <AuthorizeView Roles="Admin">
                 <Authorized Context="adminContext">
                     <div class="nav-section">
-                    <h3 class="nav-section-title">Administration</h3>
+                    <h3 class="nav-section-title">
+                        <i class="fas fa-shield-alt"></i> Platform Admin
+                    </h3>
                     <ul class="nav-list">
                         <li class="nav-item">
                             <NavLink class="nav-link" href="/admin">
                                 <span class="nav-icon">
-                                    <i class="fas fa-shield-alt"></i>
+                                    <i class="fas fa-tachometer-alt"></i>
                                 </span>
                                 Admin Dashboard
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/admin/tenants">
+                                <span class="nav-icon">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                                All Tenants
                             </NavLink>
                         </li>
 
@@ -159,56 +278,20 @@
                         </li>
 
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="/admin/instructors">
-                                <span class="nav-icon">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                </span>
-                                Instructors
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/admin/courses">
-                                <span class="nav-icon">
-                                    <i class="fas fa-book"></i>
-                                </span>
-                                Course Management
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/admin/categories">
-                                <span class="nav-icon">
-                                    <i class="fas fa-folder"></i>
-                                </span>
-                                Categories
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="/admin/payments">
-                                <span class="nav-icon">
-                                    <i class="fas fa-credit-card"></i>
-                                </span>
-                                Payments
-                            </NavLink>
-                        </li>
-
-                        <li class="nav-item">
                             <NavLink class="nav-link" href="/admin/analytics">
                                 <span class="nav-icon">
-                                    <i class="fas fa-chart-line"></i>
+                                    <i class="fas fa-chart-bar"></i>
                                 </span>
-                                Analytics
+                                Platform Analytics
                             </NavLink>
                         </li>
 
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="/admin/reports">
+                            <NavLink class="nav-link" href="/admin/billing">
                                 <span class="nav-icon">
-                                    <i class="fas fa-file-alt"></i>
+                                    <i class="fas fa-file-invoice-dollar"></i>
                                 </span>
-                                Reports
+                                Revenue & Billing
                             </NavLink>
                         </li>
 
@@ -226,16 +309,16 @@
                                 <span class="nav-icon">
                                     <i class="fas fa-clipboard-list"></i>
                                 </span>
-                                Access Logs
+                                Audit Logs
                             </NavLink>
                         </li>
 
                         <li class="nav-item">
                             <NavLink class="nav-link" href="/admin/settings">
                                 <span class="nav-icon">
-                                    <i class="fas fa-cog"></i>
+                                    <i class="fas fa-cogs"></i>
                                 </span>
-                                System Settings
+                                Platform Settings
                             </NavLink>
                         </li>
                     </ul>
@@ -245,23 +328,23 @@
         </Authorized>
         <NotAuthorized>
             <!-- Guest Section -->
-            <div class="nav-section">
+            <div class="nav-section nav-auth-section">
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/login">
+                        <NavLink class="nav-link nav-link-primary" href="/login">
                             <span class="nav-icon">
                                 <i class="fas fa-sign-in-alt"></i>
                             </span>
-                            Login
+                            Developer Login
                         </NavLink>
                     </li>
 
                     <li class="nav-item">
-                        <NavLink class="nav-link" href="/register">
+                        <NavLink class="nav-link nav-link-cta" href="/contact-sales">
                             <span class="nav-icon">
-                                <i class="fas fa-user-plus"></i>
+                                <i class="fas fa-drafting-compass"></i>
                             </span>
-                            Register
+                            Request Demo
                         </NavLink>
                     </li>
                 </ul>
@@ -289,6 +372,20 @@
                     Terms
                 </NavLink>
             </li>
+
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/security">
+                    <span class="nav-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </span>
+                    Security
+                </NavLink>
+            </li>
         </ul>
+        <div class="nav-footer-badge">
+            <span class="badge badge-green">
+                <i class="fas fa-circle"></i> All Systems Operational
+            </span>
+        </div>
     </div>
 </nav>

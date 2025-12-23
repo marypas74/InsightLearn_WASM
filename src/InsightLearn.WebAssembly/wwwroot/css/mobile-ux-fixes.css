@@ -1,0 +1,1423 @@
+/*
+ * ============================================
+ * MOBILE UX CRITICAL FIXES - B2B/IaaS Platform
+ * Version: 2.3.0 | Date: 2025-12-23
+ * ============================================
+ *
+ * This file addresses critical mobile UX issues:
+ * 1. Auth buttons floating white box issue
+ * 2. Text contrast on colored backgrounds
+ * 3. Hero section readability
+ * 4. Stats labels visibility
+ * 5. Content padding/spacing
+ * 6. B2B Navigation (Solutions, Developers, Pricing)
+ * 7. Developer Console mobile experience
+ * ============================================
+ */
+
+/* ============================================
+   1. AUTH BUTTONS - REMOVE WHITE BOX ON MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Remove the white box container from auth buttons on mobile */
+    .auth-buttons {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        gap: 8px;
+    }
+
+    /* Compact login button - text only */
+    .auth-buttons .btn-outline {
+        background: transparent;
+        color: var(--text-primary, #1c1d1f);
+        border: none;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 600;
+        min-height: 40px;
+    }
+
+    .auth-buttons .btn-outline:hover,
+    .auth-buttons .btn-outline:active {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--primary-color, #dc2626);
+    }
+
+    /* Compact sign up button - primary CTA */
+    .auth-buttons .btn-primary {
+        background: var(--primary-color, #dc2626);
+        color: white;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        min-height: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+    }
+
+    .auth-buttons .btn-primary:hover,
+    .auth-buttons .btn-primary:active {
+        background: var(--primary-hover, #b91c1c);
+        transform: scale(0.98);
+    }
+
+    /* Hide icons in auth buttons on mobile to save space */
+    .auth-buttons .btn i {
+        display: none !important;
+    }
+}
+
+/* Extra small screens - stack auth buttons or hide login */
+@media (max-width: 380px) {
+    .auth-buttons {
+        gap: 4px;
+    }
+
+    .auth-buttons .btn-outline {
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+
+    .auth-buttons .btn-primary {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+/* ============================================
+   2. TEXT CONTRAST ON COLORED BACKGROUNDS
+   ============================================ */
+
+/* Global rule: Force white text on dark/colored backgrounds */
+.hero-section,
+.hero-section *,
+[class*="bg-primary"],
+[class*="bg-gradient"],
+.gradient-bg,
+section[style*="background: linear-gradient"],
+section[style*="background-color: #6"],
+section[style*="background-color: #7"],
+section[style*="background-color: #8"],
+section[style*="background-color: #9"] {
+    --text-on-dark: #ffffff;
+    --text-muted-on-dark: rgba(255, 255, 255, 0.9);
+}
+
+/* Hero Section - Ensure ALL text is readable */
+.hero-section {
+    color: #ffffff;
+}
+
+.hero-section .hero-title,
+.hero-section h1,
+.hero-section h2,
+.hero-section h3 {
+    color: #ffffff !important;
+}
+
+.hero-section .hero-subtitle,
+.hero-section p {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Stats in hero section - CRITICAL FIX */
+.hero-section .stat-item {
+    color: #ffffff;
+}
+
+.hero-section .stat-number {
+    color: #ffffff !important;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.hero-section .stat-label {
+    color: rgba(255, 255, 255, 0.95) !important;
+    opacity: 1 !important; /* Override the 0.9 opacity that makes text invisible */
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   3. STATS SECTION - IMPROVED VISIBILITY
+   ============================================ */
+
+/* Stats on colored backgrounds */
+.hero-stats .stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        width: 100%;
+    }
+
+    .hero-stats .stat-item {
+        padding: 12px 8px;
+        text-align: center;
+        align-items: center;
+    }
+
+    .hero-stats .stat-number {
+        font-size: 1.5rem !important;
+    }
+
+    .hero-stats .stat-label {
+        font-size: 0.7rem !important;
+        line-height: 1.3;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-stats {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .hero-stats .stat-item {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 12px 16px;
+    }
+
+    .hero-stats .stat-number {
+        font-size: 1.75rem !important;
+    }
+
+    .hero-stats .stat-label {
+        font-size: 0.85rem !important;
+    }
+}
+
+/* ============================================
+   4. CONTENT PADDING & SPACING
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Main content area - Add breathing room */
+    .main-content {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Content container inside main */
+    .content-container {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Section containers - Horizontal padding */
+    .hero-container,
+    .section-container,
+    .stats-container,
+    .steps-grid,
+    .features-grid,
+    .courses-grid {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Ensure no content touches edges */
+    .new-home-page > section {
+        padding-left: 0;
+        padding-right: 0;
+        overflow-x: hidden;
+    }
+
+    .new-home-page > section > * {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-container,
+    .section-container,
+    .stats-container {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+}
+
+/* ============================================
+   5. BUTTON SIZES - MOBILE OPTIMIZATION
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Hero CTA buttons - More reasonable size */
+    .hero-cta {
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .hero-cta .btn {
+        width: 100%;
+        max-width: 300px;
+        padding: 14px 24px !important;
+        font-size: 1rem !important;
+        justify-content: center;
+    }
+
+    .hero-cta .btn-primary {
+        order: 1; /* Primary button first */
+    }
+
+    .hero-cta .btn-secondary {
+        order: 2;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    /* Reduce btn-large on mobile */
+    .btn-large {
+        padding: 14px 24px !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* ============================================
+   6. HERO SECTION - MOBILE LAYOUT
+   ============================================ */
+
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: auto;
+        padding: 80px 0 60px; /* Account for fixed header */
+    }
+
+    .hero-container {
+        grid-template-columns: 1fr !important;
+        gap: 32px;
+        text-align: center;
+    }
+
+    .hero-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-title {
+        font-size: clamp(1.75rem, 6vw, 2.5rem) !important;
+        line-height: 1.2;
+        margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem !important;
+        margin-bottom: 24px;
+        max-width: 100%;
+    }
+
+    /* Hero visual cards - simplified on mobile */
+    .hero-visual {
+        display: none; /* Hide floating cards on mobile for cleaner look */
+    }
+
+    .hero-cta {
+        align-items: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 70px 0 40px;
+    }
+
+    .hero-title {
+        font-size: 1.5rem !important;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* ============================================
+   7. STEP CARDS & FEATURE CARDS
+   ============================================ */
+
+@media (max-width: 768px) {
+    .steps-grid,
+    .features-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    .step-card,
+    .feature-card {
+        padding: 20px;
+    }
+
+    .step-number {
+        font-size: 2rem;
+    }
+
+    .step-title,
+    .feature-title {
+        font-size: 1.1rem;
+    }
+
+    .step-description,
+    .feature-description {
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+}
+
+/* ============================================
+   8. STATS BOXES - MOBILE OPTIMIZATION
+   ============================================ */
+
+@media (max-width: 768px) {
+    .stats-section {
+        padding: 40px 0;
+    }
+
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px;
+    }
+
+    .stat-box {
+        padding: 20px 16px;
+    }
+
+    .stat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .stat-description {
+        font-size: 0.75rem;
+        line-height: 1.3;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-container {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stat-box {
+        flex-direction: row;
+        gap: 16px;
+        text-align: left;
+    }
+
+    .stat-icon {
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   9. FOOTER - MOBILE OPTIMIZATION
+   ============================================ */
+
+@media (max-width: 768px) {
+    .main-footer {
+        padding: 40px 16px 24px !important;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr !important;
+        gap: 32px;
+    }
+
+    .footer-section {
+        text-align: center;
+    }
+
+    .footer-social {
+        justify-content: center;
+    }
+
+    .footer-bottom-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .footer-badges {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+/* ============================================
+   10. PREVENT HORIZONTAL SCROLL
+   ============================================ */
+
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+.new-home-page,
+.main-layout,
+.main-content {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+/* ============================================
+   11. TOUCH-FRIENDLY INTERACTIONS
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Ensure all interactive elements have proper touch targets */
+    button,
+    a,
+    .btn,
+    input[type="submit"],
+    input[type="button"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Remove hover effects that don't work well on touch */
+    .btn:hover,
+    .card:hover,
+    .hero-card:hover {
+        transform: none;
+    }
+
+    /* Active state for touch feedback */
+    .btn:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+}
+
+/* ============================================
+   12. HAMBURGER MENU MOBILE INTEGRATION
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Ensure hamburger menu is visible */
+    .mobile-menu-toggle {
+        display: flex !important;
+        order: 99; /* Push to end */
+    }
+
+    /* Hide categories dropdown on mobile - use hamburger menu instead */
+    .categories-dropdown,
+    .categories-trigger {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   13. SECTION TITLES - MOBILE READABILITY
+   ============================================ */
+
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 1.5rem !important;
+        line-height: 1.3;
+        margin-bottom: 8px;
+    }
+
+    .section-subtitle {
+        font-size: 0.9rem !important;
+        margin-bottom: 24px;
+    }
+
+    .section-header {
+        margin-bottom: 32px;
+        text-align: center;
+    }
+}
+
+/* ============================================
+   14. LIVE INDICATOR - MOBILE POSITION
+   ============================================ */
+
+@media (max-width: 768px) {
+    .live-indicator {
+        position: static;
+        transform: none;
+        margin: 24px auto 0;
+        width: fit-content;
+    }
+}
+
+/* ============================================
+   15. REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .hero-card {
+        animation: none;
+    }
+}
+
+/* ============================================
+   16. MOBILE MENU PANEL (v2.2.5)
+   ============================================ */
+
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none; /* Hidden on desktop */
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary, #1c1d1f);
+    font-size: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.mobile-menu-toggle:hover,
+.mobile-menu-toggle:focus {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex !important;
+    }
+}
+
+/* Mobile Menu Backdrop */
+.mobile-menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* Mobile Menu Panel */
+.mobile-menu-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 85%;
+    max-width: 320px;
+    height: 100vh;
+    height: 100dvh;
+    background: #ffffff;
+    z-index: 99999;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.mobile-menu-panel.open {
+    right: 0;
+}
+
+/* Mobile Menu Header */
+.mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e4e8eb;
+    background: #f7f9fa;
+}
+
+.mobile-menu-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1c1d1f;
+}
+
+.mobile-menu-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: #6b7280;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mobile-menu-close:hover,
+.mobile-menu-close:focus {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1c1d1f;
+}
+
+/* Mobile Menu Content */
+.mobile-menu-content {
+    flex: 1;
+    padding: 16px 0;
+    overflow-y: auto;
+}
+
+/* Mobile Search */
+.mobile-search-form {
+    display: flex;
+    padding: 0 16px 16px;
+    gap: 8px;
+}
+
+.mobile-search-input {
+    flex: 1;
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid #e4e8eb;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #f7f9fa;
+    transition: all 0.2s ease;
+}
+
+.mobile-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #a435f0);
+    background: #ffffff;
+}
+
+.mobile-search-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color, #a435f0);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.mobile-search-btn:hover {
+    background: var(--primary-hover, #8710d8);
+}
+
+/* Mobile Navigation Links */
+.mobile-nav-section {
+    padding: 8px 0;
+    border-bottom: 1px solid #f2f3f5;
+}
+
+.mobile-nav-section:last-child {
+    border-bottom: none;
+}
+
+.mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    color: #1c1d1f;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link:focus {
+    background: #f7f9fa;
+    color: var(--primary-color, #a435f0);
+    text-decoration: none;
+}
+
+.mobile-nav-link i {
+    width: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 16px;
+}
+
+.mobile-nav-link:hover i,
+.mobile-nav-link:focus i {
+    color: var(--primary-color, #a435f0);
+}
+
+/* Mobile User Section */
+.mobile-user-section {
+    background: #f7f9fa;
+}
+
+.mobile-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e4e8eb;
+}
+
+.mobile-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color, #a435f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+}
+
+.mobile-user-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1c1d1f;
+}
+
+/* Mobile Auth Section */
+.mobile-auth-section {
+    padding: 16px 20px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mobile-auth-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.mobile-login-btn {
+    background: transparent;
+    border: 2px solid #e4e8eb;
+    color: #1c1d1f;
+}
+
+.mobile-login-btn:hover {
+    border-color: var(--primary-color, #a435f0);
+    color: var(--primary-color, #a435f0);
+    text-decoration: none;
+}
+
+.mobile-signup-btn {
+    background: var(--primary-color, #a435f0);
+    border: none;
+    color: white;
+}
+
+.mobile-signup-btn:hover {
+    background: var(--primary-hover, #8710d8);
+    color: white;
+    text-decoration: none;
+}
+
+/* Mobile Logout Button */
+.mobile-logout-btn {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    color: #dc2626 !important;
+}
+
+.mobile-logout-btn:hover {
+    background: #fef2f2;
+}
+
+.mobile-logout-btn i {
+    color: #dc2626 !important;
+}
+
+/* ============================================
+   17. GDPR COOKIE CONSENT - BOTTOM BAR (v2.2.9)
+   Converts from full-screen blocking modal to discrete bottom bar
+   ============================================ */
+
+/* Override the full-screen overlay to be a bottom bar */
+.cookie-wall-overlay {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+/* Remove backdrop blur and dark overlay */
+.cookie-wall-overlay::before {
+    display: none !important;
+}
+
+.cookie-wall-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+}
+
+/* Modal becomes a bottom bar */
+.cookie-wall-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
+    animation: slideUpBar 0.3s ease-out !important;
+    overflow: visible !important;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+
+@keyframes slideUpBar {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Content layout for bottom bar - Compact Mode */
+.cookie-modal-content {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 16px 24px !important;
+    gap: 20px !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+}
+
+/* HIDE the AI Avatar section in bottom bar mode - it's too large */
+.ai-avatar-section {
+    display: none !important;
+}
+
+/* Cookie content takes full width */
+.cookie-content-section {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 20px !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+/* Compact header */
+.cookie-wall-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.cookie-icon-wrapper {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.cookie-icon {
+    font-size: 28px !important;
+}
+
+.cookie-wall-title {
+    font-size: 16px !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    color: #fff !important;
+}
+
+.cookie-wall-subtitle {
+    display: none !important; /* Hide in compact mode */
+}
+
+/* Hide the body content in compact mode */
+.cookie-wall-body {
+    display: none !important;
+}
+
+/* Footer with horizontal buttons */
+.cookie-wall-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-top: none !important;
+    background: transparent !important;
+}
+
+.cookie-links {
+    display: none !important; /* Hide in compact bottom bar */
+}
+
+/* Horizontal buttons layout */
+.cookie-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+}
+
+/* Compact button styles */
+.cookie-actions button {
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 40px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Reject button - subtle */
+.btn-cookie-reject {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #9ca3af !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.btn-cookie-reject:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+}
+
+/* Settings button */
+.btn-cookie-settings {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.btn-cookie-settings:hover {
+    background: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Accept button - prominent */
+.btn-cookie-accept {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-cookie-accept:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Hide button icons in compact mode */
+.cookie-actions .btn-icon {
+    display: none !important;
+}
+
+/* ============================================
+   17.1 GDPR BOTTOM BAR - TABLET (768px - 1024px)
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .cookie-modal-content {
+        padding: 14px 20px !important;
+        gap: 16px !important;
+    }
+
+    .cookie-content-section {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .cookie-wall-header {
+        justify-content: center !important;
+    }
+
+    .cookie-wall-footer {
+        justify-content: center !important;
+    }
+}
+
+/* ============================================
+   17.2 GDPR BOTTOM BAR - MOBILE (max 768px)
+   ============================================ */
+
+@media (max-width: 768px) {
+    .cookie-wall-modal {
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    .cookie-modal-content {
+        padding: 12px 16px !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    .cookie-content-section {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .cookie-wall-header {
+        flex-direction: row !important;
+        justify-content: center !important;
+        gap: 10px !important;
+    }
+
+    .cookie-icon-wrapper {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+    }
+
+    .cookie-icon {
+        font-size: 24px !important;
+    }
+
+    .cookie-wall-title {
+        font-size: 14px !important;
+    }
+
+    .cookie-actions {
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 8px !important;
+    }
+
+    .cookie-actions button {
+        padding: 10px 14px !important;
+        font-size: 12px !important;
+        flex: 1 !important;
+        justify-content: center !important;
+        min-height: 44px !important; /* Touch-friendly */
+    }
+}
+
+/* ============================================
+   17.3 GDPR BOTTOM BAR - SMALL MOBILE (max 480px)
+   ============================================ */
+
+@media (max-width: 480px) {
+    .cookie-modal-content {
+        padding: 10px 12px !important;
+    }
+
+    .cookie-wall-title {
+        font-size: 13px !important;
+    }
+
+    .cookie-actions button {
+        padding: 10px 10px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* ============================================
+   17.4 GDPR BOTTOM BAR - VERY SMALL MOBILE (max 360px)
+   ============================================ */
+
+@media (max-width: 360px) {
+    .cookie-actions {
+        flex-wrap: wrap !important;
+    }
+
+    .cookie-actions button {
+        flex: 1 1 calc(50% - 4px) !important;
+        min-width: calc(50% - 4px) !important;
+    }
+
+    .btn-cookie-settings {
+        order: 3 !important;
+        flex: 1 1 100% !important;
+    }
+}
+
+/* ============================================
+   17.5 GDPR BOTTOM BAR - LANDSCAPE MOBILE
+   ============================================ */
+
+@media (max-width: 900px) and (orientation: landscape) {
+    .cookie-wall-modal {
+        max-height: 30vh !important;
+    }
+
+    .cookie-modal-content {
+        flex-direction: row !important;
+        padding: 10px 20px !important;
+    }
+
+    .cookie-content-section {
+        flex-direction: row !important;
+    }
+
+    .cookie-wall-header {
+        flex: 1 !important;
+    }
+
+    .cookie-wall-footer {
+        flex-shrink: 0 !important;
+    }
+}
+
+/* ============================================
+   17.6 GDPR DETAILED SETTINGS - Modal View
+   When detailed settings is shown, use full modal
+   ============================================ */
+
+/* When detailed settings is shown, revert to modal-like appearance */
+.cookie-wall-overlay:has(.cookie-settings-content) {
+    background: rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(4px) !important;
+    align-items: center !important;
+    top: 0 !important;
+    height: 100vh !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-wall-modal {
+    max-width: 600px !important;
+    max-height: 80vh !important;
+    border-radius: 16px !important;
+    margin: 20px !important;
+    overflow-y: auto !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-modal-content {
+    flex-direction: column !important;
+    padding: 24px !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-content-section {
+    flex-direction: column !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-wall-header {
+    flex-direction: column !important;
+    text-align: center !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-wall-subtitle {
+    display: block !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-wall-body {
+    display: block !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-links {
+    display: flex !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-wall-footer {
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding-top: 16px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .cookie-actions {
+    flex-wrap: wrap !important;
+}
+
+.cookie-wall-overlay:has(.cookie-settings-content) .btn-icon {
+    display: inline !important;
+}
+
+/* ============================================
+   17.7 GDPR HIGH CONTRAST & ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-contrast: high) {
+    .cookie-wall-modal {
+        border: 2px solid #fff !important;
+    }
+
+    .cookie-actions button {
+        border-width: 2px !important;
+    }
+
+    .btn-cookie-accept {
+        background: #10b981 !important;
+        border: 2px solid #fff !important;
+    }
+}
+
+/* ============================================
+   18. HERO SECTION - INFRASTRUCTURE VISUAL CARDS (v2.2.9)
+   Replaces the YAML code block with clean visual cards
+   ============================================ */
+
+/* Infrastructure Specs Grid - replaces code-preview */
+.infra-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.infra-spec-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.infra-spec-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(164, 53, 240, 0.5);
+    box-shadow: 0 8px 30px rgba(164, 53, 240, 0.2);
+}
+
+.infra-spec-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 24px;
+}
+
+.infra-spec-icon.region {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #fff;
+}
+
+.infra-spec-icon.hardware {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: #fff;
+}
+
+.infra-spec-icon.compliance {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.infra-spec-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+}
+
+.infra-spec-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+}
+
+/* Mobile responsive for infra cards */
+@media (max-width: 768px) {
+    .infra-specs-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        max-width: 100%;
+    }
+
+    .infra-spec-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        text-align: left;
+    }
+
+    .infra-spec-icon {
+        margin: 0;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+    }
+
+    .infra-spec-content {
+        flex: 1;
+    }
+}
+
+/* Hide the old code-preview when using new visual cards */
+.hero-visual .code-preview {
+    display: none !important;
+}

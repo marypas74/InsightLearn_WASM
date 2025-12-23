@@ -1199,42 +1199,188 @@ button.auth-submit-btn,
     .auth-container {
         background: var(--gray-800);
     }
-    
+
     .auth-content {
         background: var(--gray-800);
     }
-    
+
     .auth-card {
         background: var(--gray-700);
         border-color: var(--gray-600);
     }
-    
+
     .auth-card-header h1 {
         color: var(--white);
     }
-    
+
     .form-label {
         color: var(--white);
     }
-    
+
     .form-input {
         background: var(--gray-600);
         border-color: var(--gray-500);
         color: var(--white);
     }
-    
-    .google-signin-btn {
+
+    .google-signin-btn,
+    .sso-signin-btn {
         background: var(--gray-600);
         border-color: var(--gray-500);
         color: var(--white);
     }
-    
+
     .auth-divider span {
         background: var(--gray-700);
         color: var(--gray-300);
     }
-    
+
     .auth-signup p {
         color: var(--gray-300);
+    }
+}
+
+/* ===== ENTERPRISE SSO BUTTON (Microsoft Entra ID / Azure AD) ===== */
+
+/* SSO Sign-In Button - Enterprise B2B Style */
+.sso-signin-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 2px solid #0078D4;
+    border-radius: var(--border-radius);
+    background: linear-gradient(135deg, #0078D4 0%, #106EBE 100%);
+    color: var(--white);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-bottom: var(--space-6);
+    position: relative;
+    overflow: hidden;
+    min-height: 52px;
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+}
+
+.sso-signin-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #106EBE 0%, #005A9E 100%);
+    border-color: #005A9E;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 120, 212, 0.4);
+}
+
+.sso-signin-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+}
+
+.sso-signin-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 1px 4px rgba(0, 120, 212, 0.2);
+}
+
+.sso-signin-btn.loading {
+    background: linear-gradient(135deg, #666 0%, #555 100%);
+    border-color: #666;
+    cursor: wait;
+}
+
+.sso-signin-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+/* Microsoft Icon Styling */
+.microsoft-icon,
+svg.microsoft-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    vertical-align: middle !important;
+}
+
+/* SSO Spinner */
+.sso-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid var(--white);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Focus state for accessibility */
+.sso-signin-btn:focus {
+    outline: 3px solid #0078D4;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--white), 0 0 0 5px rgba(0, 120, 212, 0.3);
+}
+
+.sso-signin-btn:focus-visible {
+    outline: 3px solid #0078D4;
+    outline-offset: 2px;
+}
+
+/* Mobile Responsive for SSO Button */
+@media (max-width: 480px) {
+    .sso-signin-btn {
+        padding: var(--space-4);
+        font-size: var(--font-size-base);
+        min-height: 56px;
+        gap: var(--space-4);
+        border-radius: var(--border-radius-lg);
+    }
+
+    .sso-signin-btn:hover:not(:disabled) {
+        transform: none;
+    }
+
+    .microsoft-icon {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    .sso-spinner {
+        width: 22px;
+        height: 22px;
+        border-width: 3px;
+    }
+}
+
+/* High Contrast Mode for SSO Button */
+@media (prefers-contrast: high) {
+    .sso-signin-btn {
+        border-width: 3px;
+    }
+}
+
+/* Reduced Motion for SSO Button */
+@media (prefers-reduced-motion: reduce) {
+    .sso-signin-btn::after {
+        animation: none;
+    }
+
+    .sso-signin-btn:hover {
+        transform: none;
+    }
+
+    .sso-spinner {
+        animation-duration: 2s;
     }
 }

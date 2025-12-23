@@ -4,11 +4,11 @@
 @using InsightLearn.WebAssembly.Components.SEO
 
 <SeoMetaTags
-    Title="Contact Us - Get Support | InsightLearn"
-    Description="Contact InsightLearn support team. Get help with courses, payments, technical issues, or business inquiries. We typically respond within 24 hours."
-    Keywords="contact InsightLearn, support, help, customer service, e-learning support, course help, technical support"
+    Title="Contact Sales - Enterprise Infrastructure | InsightLearn"
+    Description="Contact InsightLearn for enterprise learning infrastructure solutions. Request architecture reviews, get pricing for dedicated deployments, or speak with our Solutions Architects."
+    Keywords="contact InsightLearn, enterprise sales, infrastructure pricing, dedicated cloud, solutions architect, architecture review, enterprise support"
     PageType="ContactPage"
-    Author="InsightLearn Team" />
+    Author="InsightLearn Infrastructure Team" />
 
 <BreadcrumbSchema Items="@breadcrumbs" />
 
@@ -16,9 +16,9 @@
     <!-- Hero Section -->
     <section class="contact-hero">
         <div class="container">
-            <h1>Get in Touch</h1>
+            <h1>Contact Our Solutions Team</h1>
             <p class="hero-subtitle">
-                We're here to help! Our support team typically responds within 24 hours.
+                Speak with our Solutions Architects about your dedicated infrastructure requirements.
             </p>
         </div>
     </section>
@@ -29,32 +29,32 @@
             <div class="methods-grid">
                 <div class="method-card">
                     <div class="method-icon">
-                        <i class="fas fa-envelope"></i>
+                        <i class="fas fa-briefcase"></i>
                     </div>
-                    <h3>Email Support</h3>
-                    <p>For general inquiries and support</p>
-                    <a href="mailto:support@insightlearn.cloud" class="method-link">
-                        support@insightlearn.cloud
+                    <h3>Enterprise Sales</h3>
+                    <p>For new infrastructure deployments</p>
+                    <a href="mailto:sales@insightlearn.cloud" class="method-link">
+                        sales@insightlearn.cloud
                     </a>
                 </div>
                 <div class="method-card">
                     <div class="method-icon">
-                        <i class="fas fa-comments"></i>
+                        <i class="fas fa-drafting-compass"></i>
                     </div>
-                    <h3>Live Chat</h3>
-                    <p>Chat with our AI assistant 24/7</p>
+                    <h3>Architecture Review</h3>
+                    <p>Get a custom deployment design</p>
                     <button class="btn btn-primary" onclick="openChatWidget()">
-                        Start Chat
+                        Schedule Call
                     </button>
                 </div>
                 <div class="method-card">
                     <div class="method-icon">
-                        <i class="fas fa-question-circle"></i>
+                        <i class="fas fa-headset"></i>
                     </div>
-                    <h3>Help Center</h3>
-                    <p>Browse our FAQ and guides</p>
-                    <a href="/faq" class="method-link">
-                        Visit FAQ
+                    <h3>Technical Support</h3>
+                    <p>24/7 NOC for existing customers</p>
+                    <a href="mailto:support@insightlearn.cloud" class="method-link">
+                        support@insightlearn.cloud
                     </a>
                 </div>
             </div>
@@ -66,8 +66,8 @@
         <div class="container">
             <div class="form-grid">
                 <div class="form-content">
-                    <h2>Send Us a Message</h2>
-                    <p>Fill out the form below and we'll get back to you as soon as possible.</p>
+                    <h2>Request an Architecture Review</h2>
+                    <p>Tell us about your requirements and a Solutions Architect will contact you within 24 hours.</p>
 
                     <EditForm Model="@contactModel" OnValidSubmit="HandleSubmit" class="contact-form">
                         <DataAnnotationsValidator />
@@ -92,17 +92,17 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="subject">Subject *</label>
+                            <label for="subject">Inquiry Type *</label>
                             <InputSelect id="subject" @bind-Value="contactModel.Subject" class="form-control">
-                                <option value="">Select a topic...</option>
-                                <option value="general">General Inquiry</option>
+                                <option value="">Select inquiry type...</option>
+                                <option value="architecture">Architecture Review</option>
+                                <option value="pricing">Custom Pricing</option>
+                                <option value="poc">Proof of Concept</option>
+                                <option value="compliance">Compliance Requirements</option>
+                                <option value="migration">Platform Migration</option>
                                 <option value="support">Technical Support</option>
-                                <option value="billing">Billing & Payments</option>
-                                <option value="course">Course Related</option>
-                                <option value="instructor">Instructor Application</option>
-                                <option value="enterprise">Enterprise / Business</option>
-                                <option value="partnership">Partnership Opportunity</option>
-                                <option value="feedback">Feedback & Suggestions</option>
+                                <option value="partnership">Partnership / Reseller</option>
+                                <option value="other">Other</option>
                             </InputSelect>
                             <ValidationMessage For="@(() => contactModel.Subject)" />
                         </div>
@@ -130,7 +130,7 @@
                         {
                             <div class="alert alert-success">
                                 <i class="fas fa-check-circle"></i>
-                                Thank you for your message! We'll get back to you within 24 hours.
+                                Thank you for your inquiry! A Solutions Architect will contact you within 24 hours.
                             </div>
                         }
                     </EditForm>
@@ -140,37 +140,37 @@
                     <div class="info-card">
                         <h3>Contact Information</h3>
                         <div class="info-item">
-                            <i class="fas fa-envelope"></i>
+                            <i class="fas fa-briefcase"></i>
                             <div>
-                                <strong>Email</strong>
-                                <p>support@insightlearn.cloud</p>
+                                <strong>Enterprise Sales</strong>
+                                <p>sales@insightlearn.cloud</p>
                             </div>
                         </div>
                         <div class="info-item">
-                            <i class="fas fa-clock"></i>
+                            <i class="fas fa-headset"></i>
                             <div>
-                                <strong>Response Time</strong>
-                                <p>Within 24 hours (business days)</p>
+                                <strong>Technical Support</strong>
+                                <p>24/7 NOC available for customers</p>
                             </div>
                         </div>
                         <div class="info-item">
                             <i class="fas fa-globe"></i>
                             <div>
-                                <strong>Support Languages</strong>
-                                <p>English, Italian</p>
+                                <strong>Global Coverage</strong>
+                                <p>25+ Data Center Regions</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="info-card">
-                        <h3>Quick Links</h3>
+                        <h3>Resources</h3>
                         <ul class="quick-links">
-                            <li><a href="/faq"><i class="fas fa-question-circle"></i> FAQ & Help Center</a></li>
+                            <li><a href="/faq"><i class="fas fa-question-circle"></i> Infrastructure FAQ</a></li>
                             <li><a href="/about"><i class="fas fa-info-circle"></i> About InsightLearn</a></li>
-                            <li><a href="/courses"><i class="fas fa-graduation-cap"></i> Browse Courses</a></li>
-                            <li><a href="/instructors"><i class="fas fa-chalkboard-teacher"></i> Become an Instructor</a></li>
-                            <li><a href="/enterprise"><i class="fas fa-building"></i> Enterprise Solutions</a></li>
-                            <li><a href="/privacy-policy"><i class="fas fa-shield-alt"></i> Privacy Policy</a></li>
+                            <li><a href="/solutions/infrastructure"><i class="fas fa-server"></i> View Configurations</a></li>
+                            <li><a href="/pricing"><i class="fas fa-tags"></i> Pricing & SLAs</a></li>
+                            <li><a href="/security"><i class="fas fa-shield-alt"></i> Security & Compliance</a></li>
+                            <li><a href="/privacy-policy"><i class="fas fa-lock"></i> Privacy Policy</a></li>
                         </ul>
                     </div>
                 </div>
@@ -185,21 +185,36 @@
     {
         "@@context": "https://schema.org",
         "@@type": "ContactPage",
-        "name": "Contact InsightLearn",
-        "description": "Contact InsightLearn support team for help with courses, payments, or technical issues",
+        "name": "Contact InsightLearn Infrastructure",
+        "description": "Contact InsightLearn for enterprise learning infrastructure solutions, architecture reviews, and dedicated cloud deployments",
         "url": "https://www.insightlearn.cloud/contact",
         "mainEntity": {
             "@@type": "Organization",
-            "name": "InsightLearn",
-            "email": "support@insightlearn.cloud",
+            "name": "InsightLearn Infrastructure",
+            "email": "sales@insightlearn.cloud",
             "url": "https://www.insightlearn.cloud",
-            "contactPoint": {
-                "@@type": "ContactPoint",
-                "contactType": "customer support",
-                "email": "support@insightlearn.cloud",
-                "availableLanguage": ["English", "Italian"],
-                "areaServed": "Worldwide"
-            }
+            "contactPoint": [
+                {
+                    "@@type": "ContactPoint",
+                    "contactType": "sales",
+                    "email": "sales@insightlearn.cloud",
+                    "availableLanguage": ["English", "Italian"],
+                    "areaServed": "Worldwide"
+                },
+                {
+                    "@@type": "ContactPoint",
+                    "contactType": "technical support",
+                    "email": "support@insightlearn.cloud",
+                    "availableLanguage": ["English", "Italian"],
+                    "areaServed": "Worldwide",
+                    "hoursAvailable": {
+                        "@@type": "OpeningHoursSpecification",
+                        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                        "opens": "00:00",
+                        "closes": "23:59"
+                    }
+                }
+            ]
         }
     }
     </script>

@@ -1,210 +1,748 @@
 @page "/pricing"
-@using InsightLearn.Core.Entities
-@using InsightLearn.WebAssembly.Services.Subscription
-@inject ISubscriptionService SubscriptionService
+@page "/solutions"
+@page "/solutions/infrastructure"
+@using InsightLearn.WebAssembly.Components.SEO
 @inject NavigationManager Navigation
-@inject ILogger<Pricing> Logger
 
-<PageTitle>Subscription Plans - InsightLearn</PageTitle>
+<SeoMetaTags
+    Title="Infrastructure Solutions - Dedicated Cloud Deployments | InsightLearn"
+    Description="Enterprise-grade dedicated infrastructure for learning platforms. Data sovereignty, isolated environments, custom scalability. SOC2, GDPR, HIPAA compliant deployments."
+    Keywords="dedicated infrastructure, enterprise LMS, data sovereignty, private cloud, isolated deployment, SOC2 compliant, GDPR, learning platform infrastructure"
+    PageType="Product"
+    Author="InsightLearn Infrastructure Team" />
 
-<div class="pricing-container">
-    <div class="pricing-header">
-        <h1>Choose Your Learning Plan</h1>
-        <p class="subtitle">Unlimited access to all courses with monthly or yearly subscription</p>
-    </div>
+<PageTitle>Infrastructure Solutions - InsightLearn</PageTitle>
 
-    @if (isLoading)
-    {
-        <div class="loading-container">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading plans...</span>
+<div class="infrastructure-container">
+    <!-- Hero Section -->
+    <section class="infrastructure-hero">
+        <div class="container">
+            <span class="hero-badge">Enterprise Infrastructure</span>
+            <h1>Dedicated Cloud Infrastructure</h1>
+            <p class="hero-subtitle">
+                Deploy your learning platform on isolated, enterprise-grade infrastructure
+                sized to your organization's compliance, performance, and scalability requirements.
+            </p>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-value">99.99%</span>
+                    <span class="stat-label">Uptime SLA</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">150+</span>
+                    <span class="stat-label">Enterprise Deployments</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">SOC2</span>
+                    <span class="stat-label">Type II Certified</span>
+                </div>
             </div>
-            <p>Loading subscription plans...</p>
         </div>
-    }
-    else if (hasError)
-    {
-        <div class="alert alert-danger" role="alert">
-            <h4 class="alert-heading">Error Loading Plans</h4>
-            <p>@errorMessage</p>
-            <button class="btn btn-primary" @onclick="LoadPlansAsync">Retry</button>
-        </div>
-    }
-    else if (subscriptionPlans.Count == 0)
-    {
-        <div class="alert alert-info" role="alert">
-            No subscription plans available at the moment. Please check back later.
-        </div>
-    }
-    else
-    {
-        <div class="billing-toggle">
-            <button class="btn @(selectedBillingInterval == "month" ? "btn-primary" : "btn-outline-primary")"
-                    @onclick="SelectMonthlyBilling">
-                Monthly
-            </button>
-            <button class="btn @(selectedBillingInterval == "year" ? "btn-primary" : "btn-outline-primary")"
-                    @onclick="SelectYearlyBilling">
-                Yearly
-                <span class="badge bg-success ms-2">Save 20%</span>
-            </button>
-        </div>
+    </section>
 
-        <div class="pricing-cards">
-            @foreach (var plan in subscriptionPlans.Where(p => p.IsActive))
-            {
-                <div class="pricing-card @(plan.IsFeatured ? "featured" : "")">
-                    @if (plan.IsFeatured)
-                    {
-                        <div class="featured-badge">Most Popular</div>
-                    }
+    <!-- Deployment Toggle -->
+    <section class="deployment-options">
+        <div class="container">
+            <div class="deployment-toggle">
+                <button class="btn @(selectedDeployment == "single" ? "btn-primary" : "btn-outline-primary")"
+                        @onclick='() => SelectDeployment("single")'>
+                    <i class="fas fa-server"></i>
+                    Single Region
+                </button>
+                <button class="btn @(selectedDeployment == "multi" ? "btn-primary" : "btn-outline-primary")"
+                        @onclick='() => SelectDeployment("multi")'>
+                    <i class="fas fa-globe"></i>
+                    Multi-Region
+                    <span class="badge bg-info ms-2">HA</span>
+                </button>
+                <button class="btn @(selectedDeployment == "hybrid" ? "btn-primary" : "btn-outline-primary")"
+                        @onclick='() => SelectDeployment("hybrid")'>
+                    <i class="fas fa-building"></i>
+                    Hybrid / On-Premise
+                </button>
+            </div>
+        </div>
+    </section>
 
-                    <div class="plan-header">
-                        <h3>@plan.Name</h3>
-                        <p class="plan-description">@plan.Description</p>
+    <!-- Infrastructure Configurations -->
+    <section class="infrastructure-configs">
+        <div class="container">
+            <div class="configs-grid">
+                <!-- Starter Node -->
+                <div class="config-card">
+                    <div class="config-header">
+                        <span class="config-tier">Starter</span>
+                        <h3>Dedicated Node</h3>
+                        <p class="config-description">
+                            Single-tenant deployment for teams and departments up to 500 concurrent users
+                        </p>
                     </div>
 
-                    <div class="plan-price">
-                        <span class="currency">€</span>
-                        <span class="amount">
-                            @(selectedBillingInterval == "month" ? plan.PriceMonthly : (plan.PriceYearly ?? plan.PriceMonthly * 12) / 12)
-                        </span>
-                        <span class="period">/month</span>
-                    </div>
-
-                    @if (selectedBillingInterval == "year" && plan.PriceYearly.HasValue)
-                    {
-                        <div class="yearly-total">
-                            €@plan.PriceYearly billed annually
+                    <div class="config-specs">
+                        <div class="spec-item">
+                            <i class="fas fa-microchip"></i>
+                            <span>8 vCPU</span>
                         </div>
-                    }
+                        <div class="spec-item">
+                            <i class="fas fa-memory"></i>
+                            <span>32 GB RAM</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-hdd"></i>
+                            <span>500 GB NVMe SSD</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-users"></i>
+                            <span>Up to 500 Users</span>
+                        </div>
+                    </div>
 
-                    <ul class="plan-features">
-                        @if (!string.IsNullOrEmpty(plan.Features))
-                        {
-                            @foreach (var feature in plan.Features.Split('\n'))
-                            {
-                                <li>
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                    @feature
-                                </li>
-                            }
-                        }
+                    <ul class="config-features">
+                        <li><i class="fas fa-check text-success"></i> Dedicated compute resources</li>
+                        <li><i class="fas fa-check text-success"></i> Network isolation (VPC)</li>
+                        <li><i class="fas fa-check text-success"></i> Daily automated backups</li>
+                        <li><i class="fas fa-check text-success"></i> SSL/TLS encryption</li>
+                        <li><i class="fas fa-check text-success"></i> 99.5% Uptime SLA</li>
+                        <li><i class="fas fa-check text-success"></i> Email support (24h response)</li>
                     </ul>
 
-                    <button class="btn @(plan.IsFeatured ? "btn-primary" : "btn-outline-primary") btn-subscribe"
-                            @onclick="() => SubscribeToPlan(plan.Id)"
-                            disabled="@isSubscribing">
-                        @if (isSubscribing && selectedPlanId == plan.Id)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                            <span>Processing...</span>
-                        }
-                        else
-                        {
-                            <span>Get Started</span>
-                        }
+                    <div class="config-pricing">
+                        <span class="price-label">Starting from</span>
+                        <div class="price-value">Custom Quote</div>
+                        <span class="price-note">Based on deployment region</span>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-config" @onclick="RequestQuote">
+                        <i class="fas fa-file-invoice"></i>
+                        Request Quote
                     </button>
                 </div>
-            }
-        </div>
 
-        <div class="pricing-faq">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-item">
-                <h4>Can I cancel anytime?</h4>
-                <p>Yes, you can cancel your subscription at any time from your account settings.</p>
-            </div>
-            <div class="faq-item">
-                <h4>What payment methods do you accept?</h4>
-                <p>We accept all major credit cards through our secure payment processor Stripe.</p>
-            </div>
-            <div class="faq-item">
-                <h4>Do you offer refunds?</h4>
-                <p>We offer a 7-day money-back guarantee if you're not satisfied with our service.</p>
+                <!-- Professional Cluster -->
+                <div class="config-card featured">
+                    <div class="featured-badge">Most Deployed</div>
+                    <div class="config-header">
+                        <span class="config-tier">Professional</span>
+                        <h3>HA Cluster</h3>
+                        <p class="config-description">
+                            High-availability cluster for organizations with 500-5,000 concurrent users
+                        </p>
+                    </div>
+
+                    <div class="config-specs">
+                        <div class="spec-item">
+                            <i class="fas fa-microchip"></i>
+                            <span>32 vCPU (4x8)</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-memory"></i>
+                            <span>128 GB RAM</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-hdd"></i>
+                            <span>2 TB NVMe SSD</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-users"></i>
+                            <span>Up to 5,000 Users</span>
+                        </div>
+                    </div>
+
+                    <ul class="config-features">
+                        <li><i class="fas fa-check text-success"></i> Multi-node Kubernetes cluster</li>
+                        <li><i class="fas fa-check text-success"></i> Automatic failover & load balancing</li>
+                        <li><i class="fas fa-check text-success"></i> Cross-zone replication</li>
+                        <li><i class="fas fa-check text-success"></i> Point-in-time recovery (30 days)</li>
+                        <li><i class="fas fa-check text-success"></i> 99.9% Uptime SLA</li>
+                        <li><i class="fas fa-check text-success"></i> Priority support (4h response)</li>
+                        <li><i class="fas fa-check text-success"></i> Quarterly architecture reviews</li>
+                    </ul>
+
+                    <div class="config-pricing">
+                        <span class="price-label">Starting from</span>
+                        <div class="price-value">Custom Quote</div>
+                        <span class="price-note">Annual contract required</span>
+                    </div>
+
+                    <button class="btn btn-primary btn-config" @onclick="RequestArchitectureReview">
+                        <i class="fas fa-drafting-compass"></i>
+                        Request Architecture Review
+                    </button>
+                </div>
+
+                <!-- Enterprise Private Cloud -->
+                <div class="config-card">
+                    <div class="config-header">
+                        <span class="config-tier">Enterprise</span>
+                        <h3>Private Cloud</h3>
+                        <p class="config-description">
+                            Fully isolated private cloud for large organizations with 5,000+ concurrent users
+                        </p>
+                    </div>
+
+                    <div class="config-specs">
+                        <div class="spec-item">
+                            <i class="fas fa-microchip"></i>
+                            <span>Custom vCPU</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-memory"></i>
+                            <span>Custom RAM</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-hdd"></i>
+                            <span>Custom Storage</span>
+                        </div>
+                        <div class="spec-item">
+                            <i class="fas fa-users"></i>
+                            <span>Unlimited Users</span>
+                        </div>
+                    </div>
+
+                    <ul class="config-features">
+                        <li><i class="fas fa-check text-success"></i> Dedicated private cloud environment</li>
+                        <li><i class="fas fa-check text-success"></i> Custom network topology</li>
+                        <li><i class="fas fa-check text-success"></i> Multi-region geo-replication</li>
+                        <li><i class="fas fa-check text-success"></i> Bring Your Own Key (BYOK) encryption</li>
+                        <li><i class="fas fa-check text-success"></i> 99.99% Uptime SLA</li>
+                        <li><i class="fas fa-check text-success"></i> Dedicated support team (1h response)</li>
+                        <li><i class="fas fa-check text-success"></i> On-site deployment support</li>
+                        <li><i class="fas fa-check text-success"></i> Custom SLA & compliance audit</li>
+                    </ul>
+
+                    <div class="config-pricing">
+                        <span class="price-label">Pricing</span>
+                        <div class="price-value">Enterprise Agreement</div>
+                        <span class="price-note">Multi-year terms available</span>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-config" @onclick="ContactEnterprise">
+                        <i class="fas fa-handshake"></i>
+                        Contact Enterprise Sales
+                    </button>
+                </div>
             </div>
         </div>
-    }
+    </section>
+
+    <!-- Compliance & Security -->
+    <section class="compliance-section">
+        <div class="container">
+            <h2>Enterprise-Grade Security & Compliance</h2>
+            <p class="section-subtitle">
+                All deployments include comprehensive security controls and compliance certifications
+            </p>
+            <div class="compliance-grid">
+                <div class="compliance-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <h4>SOC2 Type II</h4>
+                    <p>Annual audit certification</p>
+                </div>
+                <div class="compliance-item">
+                    <i class="fas fa-user-shield"></i>
+                    <h4>GDPR Compliant</h4>
+                    <p>EU data residency options</p>
+                </div>
+                <div class="compliance-item">
+                    <i class="fas fa-hospital"></i>
+                    <h4>HIPAA Ready</h4>
+                    <p>Healthcare deployments</p>
+                </div>
+                <div class="compliance-item">
+                    <i class="fas fa-lock"></i>
+                    <h4>ISO 27001</h4>
+                    <p>Information security management</p>
+                </div>
+                <div class="compliance-item">
+                    <i class="fas fa-globe-europe"></i>
+                    <h4>Data Sovereignty</h4>
+                    <p>Regional data residency</p>
+                </div>
+                <div class="compliance-item">
+                    <i class="fas fa-key"></i>
+                    <h4>Encryption at Rest</h4>
+                    <p>AES-256 encryption</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Infrastructure FAQ -->
+    <section class="infrastructure-faq">
+        <div class="container">
+            <h2>Infrastructure Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4><i class="fas fa-file-contract"></i> What are the contract terms?</h4>
+                    <p>
+                        Starter deployments require a minimum 12-month commitment. Professional and Enterprise
+                        tiers offer multi-year agreements with volume discounts. All contracts include
+                        onboarding, training, and migration support.
+                    </p>
+                </div>
+                <div class="faq-item">
+                    <h4><i class="fas fa-map-marker-alt"></i> Where can I deploy?</h4>
+                    <p>
+                        We offer deployment in 25+ regions across AWS, Azure, and GCP. For data sovereignty
+                        requirements, we support EU-only, US-only, or specific country deployments.
+                        Hybrid and on-premise options available for Enterprise tier.
+                    </p>
+                </div>
+                <div class="faq-item">
+                    <h4><i class="fas fa-sync-alt"></i> What is your DR strategy?</h4>
+                    <p>
+                        Professional tier includes cross-zone replication with automatic failover (RPO: 1 hour, RTO: 4 hours).
+                        Enterprise tier offers multi-region active-active configuration (RPO: 5 minutes, RTO: 15 minutes)
+                        with customizable backup retention.
+                    </p>
+                </div>
+                <div class="faq-item">
+                    <h4><i class="fas fa-chart-line"></i> How do SLAs work?</h4>
+                    <p>
+                        Each tier includes a contractual uptime SLA with service credits for violations.
+                        Starter: 99.5% (up to 10% credit), Professional: 99.9% (up to 25% credit),
+                        Enterprise: 99.99% (up to 50% credit). Custom SLAs available for Enterprise agreements.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="infrastructure-cta">
+        <div class="container">
+            <h2>Ready to Deploy Your Learning Infrastructure?</h2>
+            <p>
+                Our infrastructure architects will design a deployment tailored to your
+                organization's scale, compliance, and performance requirements.
+            </p>
+            <div class="cta-buttons">
+                <a href="/contact-sales" class="btn btn-primary btn-lg">
+                    <i class="fas fa-drafting-compass"></i>
+                    Request Architecture Review
+                </a>
+                <a href="/developers/docs" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-book"></i>
+                    Technical Documentation
+                </a>
+            </div>
+        </div>
+    </section>
 </div>
 
+<style>
+    .infrastructure-container {
+        min-height: 100vh;
+    }
+
+    .infrastructure-hero {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        color: white;
+        padding: 100px 0 80px;
+        text-align: center;
+    }
+
+    .hero-badge {
+        display: inline-block;
+        background: rgba(164, 53, 240, 0.2);
+        color: #a435f0;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(164, 53, 240, 0.3);
+    }
+
+    .infrastructure-hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+    }
+
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 4rem;
+        margin-top: 3rem;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #a435f0;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .deployment-options {
+        background: var(--gray-50, #f7f9fa);
+        padding: 2rem 0;
+    }
+
+    .deployment-toggle {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .deployment-toggle .btn {
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .infrastructure-configs {
+        padding: 80px 0;
+    }
+
+    .configs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .config-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        position: relative;
+        transition: transform 0.3s, box-shadow 0.3s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .config-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .config-card.featured {
+        border: 2px solid #a435f0;
+        transform: scale(1.02);
+    }
+
+    .config-card.featured:hover {
+        transform: scale(1.02) translateY(-4px);
+    }
+
+    .featured-badge {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #a435f0, #6b21a8);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .config-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .config-tier {
+        display: inline-block;
+        background: var(--gray-100, #f2f3f5);
+        color: var(--gray-700);
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+
+    .config-header h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--gray-900);
+    }
+
+    .config-description {
+        color: var(--gray-600);
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .config-specs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--gray-50, #f7f9fa);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .spec-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--gray-700);
+    }
+
+    .spec-item i {
+        color: #a435f0;
+        width: 20px;
+    }
+
+    .config-features {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1.5rem;
+        flex: 1;
+    }
+
+    .config-features li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        font-size: 0.9rem;
+        color: var(--gray-700);
+    }
+
+    .config-features li i {
+        margin-top: 2px;
+    }
+
+    .config-pricing {
+        text-align: center;
+        padding: 1.5rem 0;
+        border-top: 1px solid var(--gray-200);
+        margin-bottom: 1rem;
+    }
+
+    .price-label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+
+    .price-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .price-note {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+    }
+
+    .btn-config {
+        width: 100%;
+        padding: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
+    .compliance-section {
+        background: var(--gray-900, #1c1d1f);
+        color: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .compliance-section h2 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-subtitle {
+        opacity: 0.8;
+        margin-bottom: 3rem;
+    }
+
+    .compliance-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .compliance-item {
+        text-align: center;
+    }
+
+    .compliance-item i {
+        font-size: 2.5rem;
+        color: #a435f0;
+        margin-bottom: 1rem;
+    }
+
+    .compliance-item h4 {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .compliance-item p {
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+
+    .infrastructure-faq {
+        padding: 80px 0;
+        background: var(--gray-50, #f7f9fa);
+    }
+
+    .infrastructure-faq h2 {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .faq-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .faq-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .faq-item h4 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        color: var(--gray-900);
+    }
+
+    .faq-item h4 i {
+        color: #a435f0;
+    }
+
+    .faq-item p {
+        color: var(--gray-600);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .infrastructure-cta {
+        background: linear-gradient(135deg, #a435f0 0%, #6b21a8 100%);
+        color: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .infrastructure-cta h2 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .infrastructure-cta p {
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-outline-light {
+        border: 2px solid white;
+        color: white;
+        background: transparent;
+    }
+
+    .btn-outline-light:hover {
+        background: white;
+        color: #a435f0;
+    }
+
+    @@media (max-width: 768px) {
+        .infrastructure-hero h1 {
+            font-size: 2rem;
+        }
+
+        .hero-stats {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .configs-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .config-card.featured {
+            transform: none;
+        }
+
+        .compliance-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
 @code {
-    private List<SubscriptionPlan> subscriptionPlans = new();
-    private string selectedBillingInterval = "month";
-    private bool isLoading = true;
-    private bool hasError = false;
-    private string errorMessage = string.Empty;
-    private bool isSubscribing = false;
-    private Guid? selectedPlanId = null;
+    private string selectedDeployment = "single";
 
-    protected override async Task OnInitializedAsync()
+    private void SelectDeployment(string deployment)
     {
-        await LoadPlansAsync();
+        selectedDeployment = deployment;
     }
 
-    private async Task LoadPlansAsync()
+    private void RequestQuote()
     {
-        try
-        {
-            isLoading = true;
-            hasError = false;
-            errorMessage = string.Empty;
-
-            subscriptionPlans = await SubscriptionService.GetSubscriptionPlansAsync();
-
-            isLoading = false;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading subscription plans");
-            isLoading = false;
-            hasError = true;
-            errorMessage = "Failed to load subscription plans. Please try again.";
-        }
+        Navigation.NavigateTo("/contact-sales?type=quote&tier=starter");
     }
 
-    private void SelectBillingInterval(string interval)
+    private void RequestArchitectureReview()
     {
-        selectedBillingInterval = interval;
+        Navigation.NavigateTo("/contact-sales?type=architecture-review&tier=professional");
     }
 
-    private void SelectMonthlyBilling()
+    private void ContactEnterprise()
     {
-        SelectBillingInterval("month");
-    }
-
-    private void SelectYearlyBilling()
-    {
-        SelectBillingInterval("year");
-    }
-
-    private async Task SubscribeToPlan(Guid planId)
-    {
-        try
-        {
-            isSubscribing = true;
-            selectedPlanId = planId;
-
-            var response = await SubscriptionService.SubscribeAsync(planId, selectedBillingInterval);
-
-            if (response.Success)
-            {
-                // Redirect to subscription management or success page
-                Navigation.NavigateTo("/account/subscription");
-            }
-            else
-            {
-                Logger.LogError($"Subscription failed: {response.Message}");
-                // TODO: Show error toast/notification
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error subscribing to plan");
-        }
-        finally
-        {
-            isSubscribing = false;
-            selectedPlanId = null;
-        }
+        Navigation.NavigateTo("/contact-sales?type=enterprise");
     }
 }

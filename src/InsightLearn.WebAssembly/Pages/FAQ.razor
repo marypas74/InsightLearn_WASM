@@ -4,11 +4,11 @@
 @using InsightLearn.WebAssembly.Components.SEO
 
 <SeoMetaTags
-    Title="FAQ - Frequently Asked Questions | InsightLearn Help Center"
-    Description="Find answers to common questions about InsightLearn online courses. Learn about enrollment, payments, certificates, refunds, and how to get started with your learning journey."
-    Keywords="InsightLearn FAQ, online course help, e-learning questions, course enrollment, payment methods, certificates, refund policy, learning platform support"
+    Title="FAQ - Infrastructure & Deployment Questions | InsightLearn Enterprise"
+    Description="Find answers to common questions about InsightLearn dedicated infrastructure. Learn about data sovereignty, deployment options, SLA guarantees, compliance certifications, and enterprise onboarding."
+    Keywords="InsightLearn FAQ, enterprise infrastructure, dedicated cloud, data sovereignty, SLA guarantee, GDPR compliance, SOC2 certification, private cloud deployment, IaaS questions"
     PageType="FAQPage"
-    Author="InsightLearn Support Team" />
+    Author="InsightLearn Infrastructure Team" />
 
 <BreadcrumbSchema Items="@breadcrumbs" />
 
@@ -16,12 +16,12 @@
     <!-- Hero Section -->
     <section class="faq-hero">
         <div class="container">
-            <h1 class="faq-title">Frequently Asked Questions</h1>
+            <h1 class="faq-title">Infrastructure & Deployment FAQ</h1>
             <p class="faq-subtitle">
-                Find answers to common questions about InsightLearn courses, enrollment, and features
+                Find answers to common questions about dedicated infrastructure, data sovereignty, compliance, and enterprise deployments
             </p>
             <div class="faq-search">
-                <input type="text" placeholder="Search for answers..." @bind="searchQuery" @bind:event="oninput" class="search-input" />
+                <input type="text" placeholder="Search infrastructure topics..." @bind="searchQuery" @bind:event="oninput" class="search-input" />
                 <i class="fas fa-search search-icon"></i>
             </div>
         </div>
@@ -32,28 +32,28 @@
         <div class="container">
             <div class="category-grid">
                 <a href="#getting-started" class="category-card">
-                    <i class="fas fa-rocket"></i>
-                    <span>Getting Started</span>
+                    <i class="fas fa-server"></i>
+                    <span>Infrastructure Overview</span>
                 </a>
-                <a href="#courses" class="category-card">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Courses & Learning</span>
+                <a href="#deployment" class="category-card">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Deployment Options</span>
                 </a>
-                <a href="#payments" class="category-card">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Payments & Pricing</span>
+                <a href="#security" class="category-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Security & Compliance</span>
                 </a>
-                <a href="#certificates" class="category-card">
-                    <i class="fas fa-certificate"></i>
-                    <span>Certificates</span>
+                <a href="#data-sovereignty" class="category-card">
+                    <i class="fas fa-database"></i>
+                    <span>Data Sovereignty</span>
                 </a>
-                <a href="#instructors" class="category-card">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <span>For Instructors</span>
+                <a href="#sla" class="category-card">
+                    <i class="fas fa-check-circle"></i>
+                    <span>SLA & Support</span>
                 </a>
                 <a href="#technical" class="category-card">
                     <i class="fas fa-cog"></i>
-                    <span>Technical Support</span>
+                    <span>Technical Specs</span>
                 </a>
             </div>
         </div>
@@ -62,11 +62,11 @@
     <!-- FAQ Sections -->
     <section class="faq-content">
         <div class="container">
-            <!-- Getting Started -->
+            <!-- Infrastructure Overview -->
             <div id="getting-started" class="faq-section">
                 <h2 class="section-title">
-                    <i class="fas fa-rocket"></i>
-                    Getting Started
+                    <i class="fas fa-server"></i>
+                    Infrastructure Overview
                 </h2>
 
                 @foreach (var faq in gettingStartedFaqs.Where(f => MatchesSearch(f)))
@@ -86,14 +86,14 @@
                 }
             </div>
 
-            <!-- Courses & Learning -->
-            <div id="courses" class="faq-section">
+            <!-- Deployment Options -->
+            <div id="deployment" class="faq-section">
                 <h2 class="section-title">
-                    <i class="fas fa-graduation-cap"></i>
-                    Courses & Learning
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Deployment Options
                 </h2>
 
-                @foreach (var faq in coursesFaqs.Where(f => MatchesSearch(f)))
+                @foreach (var faq in deploymentFaqs.Where(f => MatchesSearch(f)))
                 {
                     <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
                         <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
@@ -110,14 +110,14 @@
                 }
             </div>
 
-            <!-- Payments & Pricing -->
-            <div id="payments" class="faq-section">
+            <!-- Security & Compliance -->
+            <div id="security" class="faq-section">
                 <h2 class="section-title">
-                    <i class="fas fa-credit-card"></i>
-                    Payments & Pricing
+                    <i class="fas fa-shield-alt"></i>
+                    Security & Compliance
                 </h2>
 
-                @foreach (var faq in paymentsFaqs.Where(f => MatchesSearch(f)))
+                @foreach (var faq in securityFaqs.Where(f => MatchesSearch(f)))
                 {
                     <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
                         <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
@@ -134,14 +134,14 @@
                 }
             </div>
 
-            <!-- Certificates -->
-            <div id="certificates" class="faq-section">
+            <!-- Data Sovereignty -->
+            <div id="data-sovereignty" class="faq-section">
                 <h2 class="section-title">
-                    <i class="fas fa-certificate"></i>
-                    Certificates & Credentials
+                    <i class="fas fa-database"></i>
+                    Data Sovereignty
                 </h2>
 
-                @foreach (var faq in certificatesFaqs.Where(f => MatchesSearch(f)))
+                @foreach (var faq in dataSovereigntyFaqs.Where(f => MatchesSearch(f)))
                 {
                     <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
                         <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
@@ -158,14 +158,14 @@
                 }
             </div>
 
-            <!-- For Instructors -->
-            <div id="instructors" class="faq-section">
+            <!-- SLA & Support -->
+            <div id="sla" class="faq-section">
                 <h2 class="section-title">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    For Instructors
+                    <i class="fas fa-check-circle"></i>
+                    SLA & Support
                 </h2>
 
-                @foreach (var faq in instructorsFaqs.Where(f => MatchesSearch(f)))
+                @foreach (var faq in slaFaqs.Where(f => MatchesSearch(f)))
                 {
                     <div class="faq-item" @onclick="() => ToggleFaq(faq.Id)">
                         <div class="faq-question @(IsExpanded(faq.Id) ? "expanded" : "")">
@@ -182,11 +182,11 @@
                 }
             </div>
 
-            <!-- Technical Support -->
+            <!-- Technical Specifications -->
             <div id="technical" class="faq-section">
                 <h2 class="section-title">
                     <i class="fas fa-cog"></i>
-                    Technical Support
+                    Technical Specifications
                 </h2>
 
                 @foreach (var faq in technicalFaqs.Where(f => MatchesSearch(f)))
@@ -212,16 +212,16 @@
     <section class="faq-cta">
         <div class="container">
             <div class="cta-content">
-                <h2>Still Have Questions?</h2>
-                <p>Our support team is here to help you 24/7</p>
+                <h2>Need Custom Infrastructure Guidance?</h2>
+                <p>Our Solutions Architects are ready to design your dedicated deployment</p>
                 <div class="cta-buttons">
-                    <a href="/contact" class="btn btn-primary">
-                        <i class="fas fa-envelope"></i>
-                        Contact Support
+                    <a href="/contact-sales" class="btn btn-primary">
+                        <i class="fas fa-drafting-compass"></i>
+                        Request Architecture Review
                     </a>
-                    <a href="/about" class="btn btn-outline">
-                        <i class="fas fa-info-circle"></i>
-                        Learn More About Us
+                    <a href="/solutions/infrastructure" class="btn btn-outline">
+                        <i class="fas fa-server"></i>
+                        View Configurations
                     </a>
                 </div>
             </div>
@@ -519,87 +519,89 @@
         new BreadcrumbSchema.BreadcrumbItem { Name = "FAQ", Url = "/faq" }
     };
 
+    // Infrastructure Overview FAQs
     private List<FaqItem> gettingStartedFaqs = new()
     {
-        new FaqItem("gs1", "What is InsightLearn?",
-            "InsightLearn is a professional online learning platform offering <strong>500+ expert-led courses</strong> in programming, web development, data science, design, business, and more. Our platform features AI-powered learning tools, interactive video lessons, and progress tracking to help you master new skills at your own pace."),
-        new FaqItem("gs2", "How do I create an account?",
-            "Creating an account is free and easy:<ul><li>Click the <a href='/register'>Sign Up</a> button in the top right corner</li><li>Enter your email address and create a password</li><li>Verify your email address</li><li>Complete your profile and start learning!</li></ul>You can also sign up using Google for faster registration."),
-        new FaqItem("gs3", "Is InsightLearn free to use?",
-            "You can <a href='/register'>create a free account</a> to browse our course catalog and access free courses. Premium courses require a one-time purchase or subscription. We also offer a <strong>30-day money-back guarantee</strong> on all paid courses."),
-        new FaqItem("gs4", "What devices can I use to access courses?",
-            "InsightLearn works on any device with a modern web browser:<ul><li><strong>Desktop:</strong> Windows, Mac, Linux</li><li><strong>Mobile:</strong> iOS and Android (responsive web app)</li><li><strong>Tablet:</strong> iPad, Android tablets</li></ul>Your progress syncs automatically across all devices.")
+        new FaqItem("gs1", "What is InsightLearn Infrastructure?",
+            "InsightLearn Infrastructure provides <strong>dedicated cloud environments</strong> for enterprise learning platforms. Unlike shared SaaS solutions, your organization receives isolated compute, storage, and networking resources with guaranteed performance, complete data sovereignty, and enterprise-grade security compliance (SOC2 Type II, GDPR, HIPAA)."),
+        new FaqItem("gs2", "How is this different from SaaS learning platforms?",
+            "Key differences from multi-tenant SaaS:<ul><li><strong>Dedicated Resources:</strong> Your own vCPUs, RAM, and NVMe storage - no 'noisy neighbors'</li><li><strong>Data Isolation:</strong> Complete data sovereignty with optional regional deployment</li><li><strong>Custom Compliance:</strong> HIPAA, FedRAMP, SOC2 certifications available</li><li><strong>Guaranteed SLA:</strong> Up to 99.99% uptime with dedicated support</li><li><strong>No Per-User Pricing:</strong> Fixed infrastructure costs regardless of user count</li></ul>"),
+        new FaqItem("gs3", "What infrastructure configurations are available?",
+            "We offer three primary configurations:<ul><li><strong>Starter Node:</strong> 8 vCPU, 32GB RAM, 500GB NVMe - ideal for up to 5,000 learners</li><li><strong>Professional HA Cluster:</strong> 32 vCPU, 128GB RAM, 2TB NVMe with multi-zone redundancy - for 25,000+ learners</li><li><strong>Enterprise Private Cloud:</strong> Custom configuration with dedicated hardware, hybrid deployment options, and unlimited scalability</li></ul><a href='/solutions/infrastructure'>View detailed configurations</a>"),
+        new FaqItem("gs4", "What's included in the infrastructure?",
+            "Every deployment includes:<ul><li><strong>Compute:</strong> Dedicated vCPUs with burstable performance</li><li><strong>Storage:</strong> NVMe SSD with automated backups</li><li><strong>Networking:</strong> Isolated VPC with private endpoints</li><li><strong>Database:</strong> Managed SQL Server or PostgreSQL</li><li><strong>CDN:</strong> Global content delivery for media files</li><li><strong>Monitoring:</strong> 24/7 infrastructure monitoring with alerting</li></ul>")
     };
 
-    private List<FaqItem> coursesFaqs = new()
+    // Deployment Options FAQs
+    private List<FaqItem> deploymentFaqs = new()
     {
-        new FaqItem("c1", "How do I enroll in a course?",
-            "To enroll in a course:<ol><li>Browse our <a href='/courses'>course catalog</a> or search for a topic</li><li>Click on a course to view details, curriculum, and reviews</li><li>Click 'Enroll Now' or 'Add to Cart'</li><li>Complete the checkout process</li><li>Start learning immediately!</li></ol>"),
-        new FaqItem("c2", "Do I get lifetime access to courses?",
-            "Yes! Once you purchase a course, you have <strong>lifetime access</strong> to all course materials, including:<ul><li>Video lessons</li><li>Downloadable resources</li><li>Future course updates</li><li>Q&A section</li></ul>Learn at your own pace, revisit lessons anytime."),
-        new FaqItem("c3", "Can I download course videos for offline viewing?",
-            "Currently, courses are available for streaming online. Downloadable resources like PDFs, code files, and exercises can be downloaded for offline use. We're working on offline video support for mobile devices."),
-        new FaqItem("c4", "How long do courses take to complete?",
-            "Course duration varies based on the topic and depth. Each course page shows the <strong>estimated completion time</strong>. Most courses range from 5-40 hours of content. Since you have lifetime access, you can learn at your own pace."),
-        new FaqItem("c5", "What if I get stuck on a concept?",
-            "We offer multiple ways to get help:<ul><li><strong>AI Assistant:</strong> Ask questions and get instant explanations</li><li><strong>Q&A Section:</strong> Post questions and get answers from instructors and students</li><li><strong>Community Forums:</strong> Connect with other learners</li><li><strong>Support Team:</strong> <a href='/contact'>Contact us</a> for additional help</li></ul>")
+        new FaqItem("d1", "What deployment options are available?",
+            "We support multiple deployment models:<ul><li><strong>Single-Region:</strong> Deploy in your preferred data center (25+ regions worldwide)</li><li><strong>Multi-Region:</strong> Active-active deployment across 2-4 regions for disaster recovery</li><li><strong>Hybrid:</strong> On-premises Kubernetes cluster with cloud burst capabilities</li><li><strong>Air-Gapped:</strong> Completely isolated deployment for regulated industries</li></ul>"),
+        new FaqItem("d2", "How long does deployment take?",
+            "Typical deployment timelines:<ul><li><strong>Standard Configuration:</strong> 3-5 business days</li><li><strong>Custom Configuration:</strong> 1-2 weeks (includes architecture review)</li><li><strong>Hybrid/Air-Gapped:</strong> 2-4 weeks (includes on-site coordination)</li></ul>Enterprise customers receive a dedicated Solutions Architect for the entire onboarding process."),
+        new FaqItem("d3", "Can I migrate from another LMS provider?",
+            "Yes! We provide comprehensive migration support:<ul><li><strong>Data Migration:</strong> SCORM packages, user data, completion records</li><li><strong>Content Transfer:</strong> Video transcoding, document conversion</li><li><strong>SSO Integration:</strong> Seamless authentication transition</li><li><strong>API Mapping:</strong> Webhook and integration rewiring</li></ul><a href='/contact-sales'>Request a migration assessment</a>"),
+        new FaqItem("d4", "Do you support Kubernetes deployments?",
+            "Absolutely. Our platform is cloud-native and Kubernetes-first:<ul><li><strong>Managed K8s:</strong> We deploy and manage the cluster</li><li><strong>BYOK (Bring Your Own K8s):</strong> Helm charts for your existing cluster</li><li><strong>Supported Distributions:</strong> EKS, AKS, GKE, OpenShift, Rancher, K3s</li><li><strong>GitOps Ready:</strong> ArgoCD/Flux manifests available</li></ul>")
     };
 
-    private List<FaqItem> paymentsFaqs = new()
+    // Security & Compliance FAQs
+    private List<FaqItem> securityFaqs = new()
     {
-        new FaqItem("p1", "What payment methods do you accept?",
-            "We accept a variety of secure payment methods:<ul><li><strong>Credit/Debit Cards:</strong> Visa, MasterCard, American Express, Discover</li><li><strong>PayPal:</strong> Pay with your PayPal balance or linked accounts</li><li><strong>Apple Pay & Google Pay:</strong> Quick mobile payments</li></ul>All transactions are secured with 256-bit SSL encryption."),
-        new FaqItem("p2", "Do you offer refunds?",
-            "Yes! We offer a <strong>30-day money-back guarantee</strong> on all course purchases. If you're not satisfied with a course, <a href='/contact'>contact our support team</a> within 30 days for a full refund. See our <a href='/refund-policy'>Refund Policy</a> for details."),
-        new FaqItem("p3", "Are there any hidden fees?",
-            "No hidden fees! The price you see is the price you pay. Course prices are one-time purchases with lifetime access. We don't charge subscription fees unless you choose a subscription plan."),
-        new FaqItem("p4", "Do you offer discounts for students or teams?",
-            "Yes! We offer:<ul><li><strong>Student Discount:</strong> 20% off with a valid student email</li><li><strong>Team Plans:</strong> Volume discounts for businesses - see <a href='/enterprise'>Enterprise</a></li><li><strong>Seasonal Sales:</strong> Special promotions throughout the year</li></ul>Subscribe to our newsletter for exclusive offers."),
-        new FaqItem("p5", "How do I apply a coupon code?",
-            "To apply a coupon:<ol><li>Add courses to your cart</li><li>Go to the <a href='/cart'>checkout page</a></li><li>Enter your coupon code in the 'Apply Coupon' field</li><li>Click 'Apply' to see the discount</li><li>Complete your purchase</li></ol>")
+        new FaqItem("s1", "What compliance certifications do you support?",
+            "We maintain and support multiple compliance frameworks:<ul><li><strong>SOC 2 Type II:</strong> Annual audit with full report available</li><li><strong>GDPR:</strong> Complete European data protection compliance</li><li><strong>HIPAA:</strong> BAA available for healthcare organizations</li><li><strong>ISO 27001:</strong> Information security management certification</li><li><strong>FedRAMP:</strong> Authorized for federal government deployments</li></ul>Request our compliance documentation at <a href='/contact-sales'>contact sales</a>."),
+        new FaqItem("s2", "How is data encrypted?",
+            "We implement encryption at every layer:<ul><li><strong>At Rest:</strong> AES-256 encryption for all stored data</li><li><strong>In Transit:</strong> TLS 1.3 for all network communications</li><li><strong>Key Management:</strong> Customer-managed keys (BYOK) available</li><li><strong>Database:</strong> Transparent Data Encryption (TDE) enabled</li><li><strong>Backups:</strong> Encrypted with separate key rotation</li></ul>"),
+        new FaqItem("s3", "What authentication methods are supported?",
+            "Enterprise authentication options:<ul><li><strong>SAML 2.0:</strong> Okta, OneLogin, Ping Identity, AD FS</li><li><strong>OAuth 2.0 / OIDC:</strong> Azure AD, Auth0, Keycloak</li><li><strong>LDAP:</strong> Active Directory integration</li><li><strong>MFA:</strong> TOTP, SMS, hardware keys (FIDO2)</li><li><strong>Custom:</strong> API-based authentication for legacy systems</li></ul>"),
+        new FaqItem("s4", "How do you handle security incidents?",
+            "Our security incident response:<ul><li><strong>24/7 SOC:</strong> Security Operations Center monitoring</li><li><strong>Response Time:</strong> Critical incidents: 15 minutes, High: 1 hour</li><li><strong>Communication:</strong> Dedicated security channel (Slack/Teams)</li><li><strong>Post-Incident:</strong> Root cause analysis within 48 hours</li><li><strong>Penetration Testing:</strong> Annual third-party audits</li></ul>")
     };
 
-    private List<FaqItem> certificatesFaqs = new()
+    // Data Sovereignty FAQs
+    private List<FaqItem> dataSovereigntyFaqs = new()
     {
-        new FaqItem("cert1", "Do I get a certificate after completing a course?",
-            "Yes! Upon completing a course (watching all videos and completing any required assessments), you'll receive a <strong>Certificate of Completion</strong>. You can download it as a PDF or share it directly to LinkedIn."),
-        new FaqItem("cert2", "Are InsightLearn certificates recognized by employers?",
-            "InsightLearn certificates demonstrate your commitment to learning and skill development. While they are not accredited degrees, many employers value online learning certifications as proof of practical skills and continuous learning."),
-        new FaqItem("cert3", "How do I share my certificate on LinkedIn?",
-            "After earning a certificate:<ol><li>Go to your <a href='/certificates'>Certificates</a> page</li><li>Click 'Share to LinkedIn'</li><li>A new tab will open with LinkedIn's certification form pre-filled</li><li>Click 'Save' to add it to your profile</li></ol>"),
-        new FaqItem("cert4", "Can I get a physical certificate?",
-            "Currently, we offer digital certificates only. Digital certificates are environmentally friendly, instantly available, and easy to share on professional networks.")
+        new FaqItem("ds1", "Where can my data be stored?",
+            "We offer 25+ data center regions worldwide:<ul><li><strong>Europe:</strong> Frankfurt, Amsterdam, Dublin, Paris, London, Milan</li><li><strong>North America:</strong> US East, US West, Canada Central</li><li><strong>Asia-Pacific:</strong> Singapore, Tokyo, Sydney, Mumbai</li><li><strong>Government:</strong> AWS GovCloud, Azure Government</li></ul>Data residency is contractually guaranteed - your data never leaves the specified region."),
+        new FaqItem("ds2", "Do you comply with data localization laws?",
+            "Yes, we support strict data localization requirements:<ul><li><strong>EU Data Residency:</strong> GDPR-compliant EU-only deployment</li><li><strong>German Data Protection:</strong> C5 attestation available</li><li><strong>Swiss Data Protection:</strong> Swiss-hosted option</li><li><strong>Russian 152-FZ:</strong> Russia-based hosting available</li><li><strong>China PIPL:</strong> Partner data center in mainland China</li></ul>"),
+        new FaqItem("ds3", "Who owns the data on my infrastructure?",
+            "You retain <strong>100% ownership</strong> of all data:<ul><li><strong>Full Export:</strong> Complete data export available anytime (JSON, CSV, SQL)</li><li><strong>No Lock-In:</strong> Standard data formats, no proprietary encoding</li><li><strong>Data Deletion:</strong> Cryptographic erasure upon contract termination</li><li><strong>Audit Access:</strong> Full access logs for your compliance team</li></ul>"),
+        new FaqItem("ds4", "Can I use my own encryption keys?",
+            "Yes, we support Bring Your Own Key (BYOK):<ul><li><strong>AWS KMS:</strong> Customer-managed CMK</li><li><strong>Azure Key Vault:</strong> Customer-controlled keys</li><li><strong>HashiCorp Vault:</strong> Self-managed key storage</li><li><strong>HSM:</strong> Hardware Security Module integration available</li></ul>You maintain full control over encryption key lifecycle.")
     };
 
-    private List<FaqItem> instructorsFaqs = new()
+    // SLA & Support FAQs
+    private List<FaqItem> slaFaqs = new()
     {
-        new FaqItem("i1", "How do I become an instructor on InsightLearn?",
-            "We welcome expert instructors! To apply:<ol><li>Visit our <a href='/instructors'>Become an Instructor</a> page</li><li>Fill out the application form with your expertise and course idea</li><li>Our team will review your application within 5 business days</li><li>If approved, you'll get access to our course creation tools</li></ol>"),
-        new FaqItem("i2", "How much can I earn as an instructor?",
-            "Instructors earn <strong>up to 80% revenue share</strong> on course sales. Earnings depend on course pricing, enrollment numbers, and promotional activities. Top instructors earn six figures annually. Visit our <a href='/instructors'>Instructor page</a> for details."),
-        new FaqItem("i3", "What tools do you provide for course creation?",
-            "We provide comprehensive tools:<ul><li><strong>Course Builder:</strong> Easy-to-use curriculum editor</li><li><strong>Video Hosting:</strong> Unlimited video storage and streaming</li><li><strong>Quiz Builder:</strong> Create assessments and exercises</li><li><strong>Analytics:</strong> Track student progress and engagement</li><li><strong>Support:</strong> Dedicated instructor success team</li></ul>"),
-        new FaqItem("i4", "Can I teach courses in languages other than English?",
-            "Yes! We support courses in multiple languages including English, Italian, Spanish, French, German, and more. Reach learners worldwide in their preferred language.")
+        new FaqItem("sla1", "What SLA guarantees do you offer?",
+            "Tiered SLA based on configuration:<ul><li><strong>Starter Node:</strong> 99.5% uptime (21.9 hours/year downtime max)</li><li><strong>Professional HA:</strong> 99.9% uptime (8.76 hours/year)</li><li><strong>Enterprise:</strong> 99.99% uptime (52.6 minutes/year)</li></ul>SLA credits are automatically applied for any breaches. Full SLA terms available in your contract."),
+        new FaqItem("sla2", "What support channels are available?",
+            "Multi-channel support based on tier:<ul><li><strong>All Tiers:</strong> Email support (24-hour response)</li><li><strong>Professional+:</strong> Dedicated Slack/Teams channel, phone support</li><li><strong>Enterprise:</strong> Named Technical Account Manager (TAM), quarterly business reviews</li></ul>Emergency escalation available for all tiers via dedicated hotline."),
+        new FaqItem("sla3", "What are your response time commitments?",
+            "Response times by severity:<ul><li><strong>Critical (P1):</strong> 15-minute response, 4-hour resolution target</li><li><strong>High (P2):</strong> 1-hour response, 8-hour resolution target</li><li><strong>Medium (P3):</strong> 4-hour response, 2-business-day resolution</li><li><strong>Low (P4):</strong> 1-business-day response, best effort resolution</li></ul>"),
+        new FaqItem("sla4", "How are maintenance windows handled?",
+            "Planned maintenance approach:<ul><li><strong>Notification:</strong> 7+ days advance notice</li><li><strong>Scheduling:</strong> Customer-preferred maintenance windows</li><li><strong>Zero-Downtime:</strong> Rolling updates for HA configurations</li><li><strong>Emergency Patches:</strong> 24-hour notice for critical security patches</li><li><strong>Change Management:</strong> CAB approval for enterprise tier</li></ul>")
     };
 
+    // Technical Specifications FAQs
     private List<FaqItem> technicalFaqs = new()
     {
-        new FaqItem("t1", "What browsers are supported?",
-            "InsightLearn works best on modern browsers:<ul><li>Google Chrome (recommended)</li><li>Mozilla Firefox</li><li>Safari (macOS/iOS)</li><li>Microsoft Edge</li></ul>Please ensure your browser is updated to the latest version for the best experience."),
-        new FaqItem("t2", "Video playback issues - what should I do?",
-            "If you're experiencing video issues:<ol><li>Check your internet connection (minimum 5 Mbps recommended)</li><li>Try lowering the video quality settings</li><li>Clear your browser cache</li><li>Try a different browser</li><li>Disable browser extensions temporarily</li></ol>Still having issues? <a href='/contact'>Contact support</a> for help."),
-        new FaqItem("t3", "How do I reset my password?",
-            "To reset your password:<ol><li>Go to the <a href='/login'>Login page</a></li><li>Click 'Forgot Password'</li><li>Enter your email address</li><li>Check your email for reset instructions</li><li>Click the link and create a new password</li></ol>"),
-        new FaqItem("t4", "Is my personal information secure?",
-            "Absolutely. We take security seriously:<ul><li><strong>SSL Encryption:</strong> All data is encrypted in transit</li><li><strong>Secure Payments:</strong> PCI DSS compliant payment processing</li><li><strong>Privacy:</strong> We never sell your personal data</li><li><strong>GDPR Compliant:</strong> Full compliance with data protection regulations</li></ul>See our <a href='/privacy-policy'>Privacy Policy</a> for details.")
+        new FaqItem("t1", "What are the compute specifications?",
+            "Infrastructure specifications by tier:<ul><li><strong>Starter:</strong> 8 vCPU (Intel Xeon/AMD EPYC), 32GB ECC RAM, 500GB NVMe SSD</li><li><strong>Professional:</strong> 32 vCPU, 128GB RAM, 2TB NVMe, Multi-AZ redundancy</li><li><strong>Enterprise:</strong> Custom sizing, dedicated hosts, bare metal option</li></ul>All configurations include auto-scaling pods for burst capacity."),
+        new FaqItem("t2", "What database options are available?",
+            "Managed database options:<ul><li><strong>SQL Server:</strong> 2019/2022 Enterprise or Standard</li><li><strong>PostgreSQL:</strong> 14/15/16 with extensions (PostGIS, pgvector)</li><li><strong>MongoDB:</strong> For document storage and video metadata</li><li><strong>Redis:</strong> Caching and session management</li><li><strong>Elasticsearch:</strong> Full-text search and analytics</li></ul>High availability with automated failover included."),
+        new FaqItem("t3", "What APIs are available for integration?",
+            "Comprehensive API suite:<ul><li><strong>REST API:</strong> Full CRUD operations, Swagger/OpenAPI documented</li><li><strong>GraphQL:</strong> Flexible queries for custom frontends</li><li><strong>Webhooks:</strong> Real-time event notifications (100+ event types)</li><li><strong>SCIM:</strong> User provisioning and deprovisioning</li><li><strong>xAPI/LTI:</strong> Learning standards compliance</li></ul><a href='/developers/docs'>View API documentation</a>"),
+        new FaqItem("t4", "How is video content delivered?",
+            "Enterprise video delivery stack:<ul><li><strong>Encoding:</strong> HLS/DASH adaptive bitrate (up to 4K)</li><li><strong>Storage:</strong> MongoDB GridFS with global replication</li><li><strong>CDN:</strong> CloudFront/Azure CDN with 200+ edge locations</li><li><strong>DRM:</strong> Widevine, FairPlay, PlayReady supported</li><li><strong>Analytics:</strong> Per-second engagement tracking</li></ul>")
     };
 
     private List<FaqItem> allFaqs => gettingStartedFaqs
-        .Concat(coursesFaqs)
-        .Concat(paymentsFaqs)
-        .Concat(certificatesFaqs)
-        .Concat(instructorsFaqs)
+        .Concat(deploymentFaqs)
+        .Concat(securityFaqs)
+        .Concat(dataSovereigntyFaqs)
+        .Concat(slaFaqs)
         .Concat(technicalFaqs)
         .ToList();
 

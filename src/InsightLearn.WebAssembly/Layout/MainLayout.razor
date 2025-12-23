@@ -20,14 +20,14 @@
                 </a>
             </div>
 
-            <!-- Search Section (desktop only) -->
+            <!-- Search Section (desktop only) - B2B API Platform -->
             <div class="header-search-section desktop-only">
                 <form class="search-form" @onsubmit="HandleSearch">
                     <div class="search-input-wrapper">
                         <input type="search"
                                class="search-input"
-                               placeholder="Search courses, topics, instructors..."
-                               aria-label="Search"
+                               placeholder="Search APIs, documentation, SDKs..."
+                               aria-label="Search documentation"
                                @bind="searchQuery" />
                         <button type="submit" class="search-submit-btn" aria-label="Search">
                             <i class="fas fa-search"></i>
@@ -38,13 +38,22 @@
 
             <!-- Actions Section -->
             <div class="header-actions-section">
-                <!-- Categories Dropdown Backdrop (closes menu when clicked outside) -->
+                <!-- Mobile Menu Toggle Button (v2.2.5) -->
+                <button class="mobile-menu-toggle"
+                        type="button"
+                        @onclick="ToggleMobileMenu"
+                        aria-label="@(isMobileMenuOpen ? "Close menu" : "Open menu")"
+                        aria-expanded="@isMobileMenuOpen">
+                    <i class="fas @(isMobileMenuOpen ? "fa-times" : "fa-bars")" aria-hidden="true"></i>
+                </button>
+
+                <!-- Solutions Dropdown Backdrop (closes menu when clicked outside) - B2B -->
                 @if (isCategoriesOpen)
                 {
                     <div class="categories-backdrop" @onclick="CloseCategories"></div>
                 }
 
-                <!-- Categories Dropdown -->
+                <!-- Solutions Dropdown - B2B API Platform -->
                 <div class="nav-dropdown categories-dropdown">
                     <button class="dropdown-trigger categories-trigger"
                             type="button"
@@ -52,137 +61,76 @@
                             aria-haspopup="true"
                             @onclick="ToggleCategories"
                             @onclick:stopPropagation="true"
-                            aria-label="Browse course categories">
-                        <i class="fas fa-th-large" aria-hidden="true"></i>
-                        <span class="desktop-only">Categories</span>
+                            aria-label="Browse solutions and use cases">
+                        <i class="fas fa-cubes" aria-hidden="true"></i>
+                        <span class="desktop-only">Solutions</span>
                         <i class="fas fa-chevron-down dropdown-arrow @(isCategoriesOpen ? "rotated" : "")" aria-hidden="true"></i>
                     </button>
                     <div class="dropdown-menu categories-menu @(isCategoriesOpen ? "show" : "")" role="menu">
-                        <div class="categories-grid">
-                            @* Row 1: Tech & Development *@
-                            <a href="/categories/development" class="category-item" @onclick="CloseCategories">
+                        <div class="categories-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            @* Row 1: Use Cases *@
+                            <a href="/solutions/corporate-training" class="category-item" @onclick="CloseCategories">
                                 <span class="category-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                                    <i class="fas fa-code"></i>
+                                    <i class="fas fa-building"></i>
                                 </span>
-                                <span class="category-label">Development</span>
+                                <span class="category-label">Corporate Training</span>
                             </a>
-                            <a href="/categories/it-software" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                            <a href="/solutions/universities" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                    <i class="fas fa-university"></i>
+                                </span>
+                                <span class="category-label">Universities</span>
+                            </a>
+                            <a href="/solutions/bootcamps" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
                                     <i class="fas fa-laptop-code"></i>
                                 </span>
-                                <span class="category-label">IT & Software</span>
-                            </a>
-                            <a href="/categories/data-science" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                                    <i class="fas fa-database"></i>
-                                </span>
-                                <span class="category-label">Data Science</span>
-                            </a>
-                            <a href="/categories/cloud-devops" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
-                                    <i class="fas fa-cloud"></i>
-                                </span>
-                                <span class="category-label">Cloud & DevOps</span>
+                                <span class="category-label">Bootcamps</span>
                             </a>
 
-                            @* Row 2: Business & Finance *@
-                            <a href="/categories/business" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                                    <i class="fas fa-briefcase"></i>
-                                </span>
-                                <span class="category-label">Business</span>
-                            </a>
-                            <a href="/categories/finance" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                                    <i class="fas fa-calculator"></i>
-                                </span>
-                                <span class="category-label">Finance</span>
-                            </a>
-                            <a href="/categories/marketing" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                                    <i class="fas fa-bullhorn"></i>
-                                </span>
-                                <span class="category-label">Marketing</span>
-                            </a>
-                            <a href="/categories/entrepreneurship" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
-                                    <i class="fas fa-rocket"></i>
-                                </span>
-                                <span class="category-label">Entrepreneurship</span>
-                            </a>
-
-                            @* Row 3: Creative *@
-                            <a href="/categories/design" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
-                                    <i class="fas fa-palette"></i>
-                                </span>
-                                <span class="category-label">Design</span>
-                            </a>
-                            <a href="/categories/photography" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
-                                    <i class="fas fa-camera"></i>
-                                </span>
-                                <span class="category-label">Photography</span>
-                            </a>
-                            <a href="/categories/video" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);">
-                                    <i class="fas fa-video"></i>
-                                </span>
-                                <span class="category-label">Video & Film</span>
-                            </a>
-                            <a href="/categories/music" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
-                                    <i class="fas fa-music"></i>
-                                </span>
-                                <span class="category-label">Music</span>
-                            </a>
-
-                            @* Row 4: Personal & Lifestyle *@
-                            <a href="/categories/personal-development" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                                    <i class="fas fa-brain"></i>
-                                </span>
-                                <span class="category-label">Personal Growth</span>
-                            </a>
-                            <a href="/categories/health-fitness" class="category-item" @onclick="CloseCategories">
+                            @* Row 2: Industries *@
+                            <a href="/solutions/healthcare" class="category-item" @onclick="CloseCategories">
                                 <span class="category-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
                                     <i class="fas fa-heartbeat"></i>
                                 </span>
-                                <span class="category-label">Health & Fitness</span>
+                                <span class="category-label">Healthcare</span>
                             </a>
-                            <a href="/categories/languages" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                                    <i class="fas fa-language"></i>
+                            <a href="/solutions/fintech" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                    <i class="fas fa-chart-line"></i>
                                 </span>
-                                <span class="category-label">Languages</span>
+                                <span class="category-label">FinTech</span>
                             </a>
-                            <a href="/categories/academics" class="category-item" @onclick="CloseCategories">
-                                <span class="category-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                                    <i class="fas fa-graduation-cap"></i>
+                            <a href="/solutions/government" class="category-item" @onclick="CloseCategories">
+                                <span class="category-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                                    <i class="fas fa-landmark"></i>
                                 </span>
-                                <span class="category-label">Academics</span>
+                                <span class="category-label">Government</span>
                             </a>
                         </div>
                         <div class="categories-footer">
-                            <a href="/categories" class="view-all-link" @onclick="CloseCategories">
+                            <a href="/solutions" class="view-all-link" @onclick="CloseCategories">
                                 <i class="fas fa-th"></i>
-                                <span>View All Categories</span>
+                                <span>View All Solutions</span>
                             </a>
-                            <a href="/courses" class="browse-courses-link" @onclick="CloseCategories">
-                                <i class="fas fa-book-open"></i>
-                                <span>Browse All Courses</span>
+                            <a href="/developers/docs" class="browse-courses-link" @onclick="CloseCategories">
+                                <i class="fas fa-book"></i>
+                                <span>API Documentation</span>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Shopping Cart -->
-                <a href="/cart" class="cart-btn" aria-label="Shopping cart with @cartItemCount items">
-                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
-                    @if (cartItemCount > 0)
-                    {
-                        <span class="cart-badge">@cartItemCount</span>
-                    }
+                <!-- Developer Docs Quick Link - B2B -->
+                <a href="/developers/docs" class="nav-link desktop-only" aria-label="API Documentation">
+                    <i class="fas fa-book" aria-hidden="true"></i>
+                    <span>Docs</span>
+                </a>
+
+                <!-- Pricing Quick Link - B2B -->
+                <a href="/pricing" class="nav-link desktop-only" aria-label="Pricing">
+                    <i class="fas fa-tags" aria-hidden="true"></i>
+                    <span>Pricing</span>
                 </a>
 
                 <AuthorizeView>
@@ -382,62 +330,70 @@
                                         </Authorized>
                                     </AuthorizeView>
 
-                                    @* === INSTRUCTOR SECTION === *@
-                                    <AuthorizeView Roles="Instructor,Admin">
-                                        <Authorized Context="instructorContext">
+                                    @* === TENANT MANAGEMENT SECTION (for enterprise customers) - B2B === *@
+                                    <AuthorizeView Roles="TenantAdmin,Admin">
+                                        <Authorized Context="tenantAdminContext">
                                             <div class="dropdown-section">
                                                 <span class="dropdown-section-title">
-                                                    <i class="fas fa-chalkboard"></i> Instructor
+                                                    <i class="fas fa-building"></i> Tenant Management
                                                 </span>
-                                                <a href="/instructor/dashboard" class="dropdown-item">
+                                                <a href="/tenant/overview" class="dropdown-item">
                                                     <i class="fas fa-home"></i>
-                                                    Instructor Dashboard
+                                                    Tenant Overview
                                                 </a>
-                                                <a href="/instructor/courses" class="dropdown-item">
-                                                    <i class="fas fa-book-open"></i>
-                                                    My Teaching Courses
+                                                <a href="/tenant/users" class="dropdown-item">
+                                                    <i class="fas fa-users"></i>
+                                                    Manage Users
                                                 </a>
-                                                <a href="/instructor/analytics" class="dropdown-item">
-                                                    <i class="fas fa-chart-pie"></i>
-                                                    Course Analytics
+                                                <a href="/tenant/content" class="dropdown-item">
+                                                    <i class="fas fa-folder-open"></i>
+                                                    Content Library
                                                 </a>
-                                                <a href="/instructor/earnings" class="dropdown-item">
-                                                    <i class="fas fa-wallet"></i>
-                                                    Earnings
+                                                <a href="/tenant/branding" class="dropdown-item">
+                                                    <i class="fas fa-palette"></i>
+                                                    White-Label Branding
                                                 </a>
                                             </div>
                                             <hr class="dropdown-divider" />
                                         </Authorized>
                                     </AuthorizeView>
 
-                                    @* === USER SECTION (All logged-in users) === *@
+                                    @* === DEVELOPER CONSOLE SECTION (All logged-in users) - B2B === *@
                                     <div class="dropdown-section">
                                         <span class="dropdown-section-title">
-                                            <i class="fas fa-user-circle"></i> My Account
+                                            <i class="fas fa-terminal"></i> Developer Console
                                         </span>
-                                        <a href="/dashboard" class="dropdown-item">
-                                            <i class="fas fa-home"></i>
-                                            Student Dashboard
+                                        <a href="/console/dashboard" class="dropdown-item">
+                                            <i class="fas fa-tachometer-alt"></i>
+                                            Dashboard
                                         </a>
-                                        <a href="/profile" class="dropdown-item">
-                                            <i class="fas fa-user"></i>
-                                            My Profile
+                                        <a href="/console/api-keys" class="dropdown-item">
+                                            <i class="fas fa-key"></i>
+                                            API Keys
                                         </a>
-                                        <a href="/my-courses" class="dropdown-item">
-                                            <i class="fas fa-book"></i>
-                                            My Courses
+                                        <a href="/console/tenants" class="dropdown-item">
+                                            <i class="fas fa-server"></i>
+                                            Tenants
                                         </a>
-                                        <a href="/certificates" class="dropdown-item">
-                                            <i class="fas fa-certificate"></i>
-                                            My Certificates
+                                        <a href="/console/analytics" class="dropdown-item">
+                                            <i class="fas fa-chart-line"></i>
+                                            Analytics
                                         </a>
-                                        <a href="/notifications" class="dropdown-item">
-                                            <i class="fas fa-bell"></i>
-                                            Notifications
+                                        <a href="/console/webhooks" class="dropdown-item">
+                                            <i class="fas fa-plug"></i>
+                                            Webhooks
                                         </a>
-                                        <a href="/settings" class="dropdown-item">
+                                        <a href="/console/logs" class="dropdown-item">
+                                            <i class="fas fa-list-alt"></i>
+                                            Request Logs
+                                        </a>
+                                        <a href="/console/billing" class="dropdown-item">
+                                            <i class="fas fa-credit-card"></i>
+                                            Billing & Usage
+                                        </a>
+                                        <a href="/console/settings" class="dropdown-item">
                                             <i class="fas fa-cog"></i>
-                                            Account Settings
+                                            Settings
                                         </a>
                                     </div>
                                     <hr class="dropdown-divider" />
@@ -451,13 +407,13 @@
                     </Authorized>
                     <NotAuthorized>
                         <div class="auth-buttons">
-                            <a href="/login" class="btn btn-outline" aria-label="Login to your account">
-                                <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>
-                                Login
+                            <a href="/login" class="btn btn-outline" aria-label="Login to Developer Console">
+                                <i class="fas fa-terminal" style="margin-right: 6px;"></i>
+                                Developer Login
                             </a>
-                            <a href="/register" class="btn btn-primary" aria-label="Create a new account">
-                                <i class="fas fa-user-plus" style="margin-right: 6px;"></i>
-                                Sign Up
+                            <a href="/register" class="btn btn-primary" aria-label="Start your free trial">
+                                <i class="fas fa-rocket" style="margin-right: 6px;"></i>
+                                Start Free Trial
                             </a>
                         </div>
                     </NotAuthorized>
@@ -465,6 +421,138 @@
             </div>
         </div>
     </header>
+
+    <!-- Mobile Menu Overlay (v2.2.5) -->
+    @if (isMobileMenuOpen)
+    {
+        <div class="mobile-menu-backdrop" @onclick="CloseMobileMenu"></div>
+    }
+    <nav class="mobile-menu-panel @(isMobileMenuOpen ? "open" : "")" aria-label="Mobile navigation">
+        <div class="mobile-menu-header">
+            <span class="mobile-menu-title">InsightLearn API</span>
+            <button class="mobile-menu-close" @onclick="CloseMobileMenu" aria-label="Close menu">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="mobile-menu-content">
+            <!-- Mobile Search - B2B -->
+            <form class="mobile-search-form" @onsubmit="HandleMobileSearch">
+                <input type="search"
+                       class="mobile-search-input"
+                       placeholder="Search APIs, docs..."
+                       @bind="searchQuery"
+                       aria-label="Search documentation" />
+                <button type="submit" class="mobile-search-btn" aria-label="Search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
+            </form>
+
+            <!-- Mobile Navigation Links - B2B Platform -->
+            <div class="mobile-nav-section">
+                <span class="mobile-nav-section-title">Platform</span>
+                <a href="/solutions" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-cubes" aria-hidden="true"></i>
+                    <span>Solutions</span>
+                </a>
+                <a href="/pricing" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-tags" aria-hidden="true"></i>
+                    <span>Pricing</span>
+                </a>
+                <a href="/enterprise" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-building" aria-hidden="true"></i>
+                    <span>Enterprise</span>
+                </a>
+            </div>
+
+            <!-- Mobile Developer Links - B2B -->
+            <div class="mobile-nav-section">
+                <span class="mobile-nav-section-title">Developers</span>
+                <a href="/developers/docs" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-book" aria-hidden="true"></i>
+                    <span>API Documentation</span>
+                </a>
+                <a href="/developers/quickstart" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-rocket" aria-hidden="true"></i>
+                    <span>Quickstart Guide</span>
+                </a>
+                <a href="/developers/sdks" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-cube" aria-hidden="true"></i>
+                    <span>SDKs & Libraries</span>
+                </a>
+                <a href="/developers/api-reference" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-file-code" aria-hidden="true"></i>
+                    <span>API Reference</span>
+                </a>
+                <a href="/status" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-circle" style="color: #10b981;" aria-hidden="true"></i>
+                    <span>System Status</span>
+                </a>
+            </div>
+
+            <!-- Mobile Resources - B2B -->
+            <div class="mobile-nav-section">
+                <span class="mobile-nav-section-title">Resources</span>
+                <a href="/blog" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-rss" aria-hidden="true"></i>
+                    <span>Blog</span>
+                </a>
+                <a href="/case-studies" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-briefcase" aria-hidden="true"></i>
+                    <span>Case Studies</span>
+                </a>
+                <a href="/help" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                    <i class="fas fa-question-circle" aria-hidden="true"></i>
+                    <span>Help Center</span>
+                </a>
+            </div>
+
+            <!-- Mobile Auth Section - B2B -->
+            <AuthorizeView>
+                <Authorized>
+                    <div class="mobile-nav-section mobile-user-section">
+                        <div class="mobile-user-info">
+                            <div class="mobile-user-avatar">
+                                <i class="fas fa-user-circle" aria-hidden="true"></i>
+                            </div>
+                            <span class="mobile-user-name">@context.User.Identity?.Name</span>
+                        </div>
+                        <a href="/console/dashboard" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                            <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
+                            <span>Developer Console</span>
+                        </a>
+                        <a href="/console/api-keys" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                            <i class="fas fa-key" aria-hidden="true"></i>
+                            <span>API Keys</span>
+                        </a>
+                        <a href="/console/analytics" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                            <i class="fas fa-chart-line" aria-hidden="true"></i>
+                            <span>Analytics</span>
+                        </a>
+                        <a href="/console/settings" class="mobile-nav-link" @onclick="CloseMobileMenu">
+                            <i class="fas fa-cog" aria-hidden="true"></i>
+                            <span>Settings</span>
+                        </a>
+                        <button @onclick="Logout" class="mobile-nav-link mobile-logout-btn">
+                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="mobile-nav-section mobile-auth-section">
+                        <a href="/login" class="mobile-auth-btn mobile-login-btn" @onclick="CloseMobileMenu">
+                            <i class="fas fa-terminal" aria-hidden="true"></i>
+                            <span>Developer Login</span>
+                        </a>
+                        <a href="/register" class="mobile-auth-btn mobile-signup-btn" @onclick="CloseMobileMenu">
+                            <i class="fas fa-rocket" aria-hidden="true"></i>
+                            <span>Start Free Trial</span>
+                        </a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </nav>
 
     <!-- Main Content Area -->
     <main class="main-content" role="main" id="main-content" style="padding-top: 80px !important;">
@@ -478,19 +566,19 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="main-footer" role="contentinfo" style="background: linear-gradient(180deg, #1a1d23 0%, #0f1115 100%); background-color: #1a1d23; color: #e5e7eb;">
+    <!-- Footer - B2B API Platform -->
+    <footer class="main-footer" role="contentinfo" style="background: linear-gradient(180deg, #0f172a 0%, #020617 100%); background-color: #0f172a; color: #e5e7eb;">
         <div class="footer-container">
             <!-- Main Footer Content -->
             <div class="footer-content">
-                <!-- Company Info -->
+                <!-- Company Info - B2B -->
                 <div class="footer-section footer-brand">
                     <div class="footer-logo">
-                        <img src="images/insightlearn-logo.png" alt="InsightLearn.cloud" class="footer-logo-img" style="max-width: 200px; height: auto;" />
+                        <img src="images/insightlearn-logo.png" alt="InsightLearn.cloud API Platform" class="footer-logo-img" style="max-width: 200px; height: auto;" />
                     </div>
                     <p class="footer-description">
-                        Empowering learners worldwide with quality education and expert-led courses.
-                        Transform your future through continuous learning.
+                        The headless infrastructure for e-learning. Build, scale, and deploy
+                        your custom academy with our enterprise-grade API platform.
                     </p>
                     <div class="footer-social">
                         <a href="https://twitter.com/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="Twitter">
@@ -499,31 +587,44 @@
                         <a href="https://linkedin.com/company/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="LinkedIn">
                             <i class="fab fa-linkedin"></i>
                         </a>
-                        <a href="https://instagram.com/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="Instagram">
-                            <i class="fab fa-instagram"></i>
+                        <a href="https://github.com/insightlearn" target="_blank" rel="noopener" class="social-link" aria-label="GitHub">
+                            <i class="fab fa-github"></i>
                         </a>
                     </div>
                 </div>
 
-                <!-- Platform Links -->
+                <!-- Platform Links - B2B -->
                 <div class="footer-section">
                     <h4 class="footer-heading">Platform</h4>
                     <ul class="footer-links">
-                        <li><a href="/courses" class="footer-link">Browse Courses</a></li>
-                        <li><a href="/categories" class="footer-link">Categories</a></li>
-                        <li><a href="/instructors" class="footer-link">Become an Instructor</a></li>
-                        <li><a href="/enterprise" class="footer-link">Enterprise Solutions</a></li>
+                        <li><a href="/solutions" class="footer-link">Solutions</a></li>
+                        <li><a href="/pricing" class="footer-link">Pricing</a></li>
+                        <li><a href="/enterprise" class="footer-link">Enterprise</a></li>
+                        <li><a href="/case-studies" class="footer-link">Case Studies</a></li>
                     </ul>
                 </div>
 
-                <!-- Support Links -->
+                <!-- Developers Links - B2B -->
+                <div class="footer-section">
+                    <h4 class="footer-heading">Developers</h4>
+                    <ul class="footer-links">
+                        <li><a href="/developers/docs" class="footer-link">API Documentation</a></li>
+                        <li><a href="/developers/quickstart" class="footer-link">Quickstart Guide</a></li>
+                        <li><a href="/developers/sdks" class="footer-link">SDKs & Libraries</a></li>
+                        <li><a href="/developers/api-reference" class="footer-link">API Reference</a></li>
+                        <li><a href="/developers/changelog" class="footer-link">Changelog</a></li>
+                        <li><a href="/status" class="footer-link">System Status</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support Links - B2B -->
                 <div class="footer-section">
                     <h4 class="footer-heading">Support</h4>
                     <ul class="footer-links">
                         <li><a href="/help" class="footer-link">Help Center</a></li>
-                        <li><a href="/contact" class="footer-link">Contact Us</a></li>
-                        <li><a href="/faq" class="footer-link">FAQs</a></li>
+                        <li><a href="/contact-sales" class="footer-link">Contact Sales</a></li>
                         <li><a href="mailto:support@insightlearn.cloud" class="footer-link">support@insightlearn.cloud</a></li>
+                        <li><a href="mailto:enterprise@insightlearn.cloud" class="footer-link">enterprise@insightlearn.cloud</a></li>
                     </ul>
                 </div>
 
@@ -533,13 +634,13 @@
                     <ul class="footer-links">
                         <li><a href="/privacy" class="footer-link">Privacy Policy</a></li>
                         <li><a href="/terms" class="footer-link">Terms of Service</a></li>
-                        <li><a href="/cookie-policy" class="footer-link">Cookie Policy</a></li>
-                        <li><a href="/accessibility" class="footer-link">Accessibility</a></li>
+                        <li><a href="/security" class="footer-link">Security</a></li>
+                        <li><a href="/sla" class="footer-link">SLA</a></li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Footer Bottom -->
+            <!-- Footer Bottom - B2B Trust Indicators -->
             <div class="footer-bottom">
                 <div class="footer-bottom-content">
                     <p class="footer-copyright">
@@ -547,13 +648,13 @@
                     </p>
                     <div class="footer-badges">
                         <span class="footer-badge">
-                            <i class="fas fa-shield-alt"></i> Secure Platform
+                            <i class="fas fa-shield-alt"></i> SOC 2 Certified
                         </span>
                         <span class="footer-badge">
-                            <i class="fas fa-globe"></i> 150+ Countries
+                            <i class="fas fa-lock"></i> GDPR Compliant
                         </span>
                         <span class="footer-badge">
-                            <i class="fas fa-award"></i> Quality Certified
+                            <i class="fas fa-server"></i> 99.9% Uptime SLA
                         </span>
                     </div>
                 </div>
@@ -582,6 +683,7 @@
 
     private bool isUserMenuOpen = false;
     private bool isCategoriesOpen = false;
+    private bool isMobileMenuOpen = false;  // Mobile menu state (v2.2.5)
     private int cartItemCount = 0;
     private string searchQuery = string.Empty;
 
@@ -694,6 +796,34 @@
     private void CloseCategories()
     {
         isCategoriesOpen = false;
+    }
+
+    // Mobile menu toggle (v2.2.5 - Mobile UX Fixes)
+    private void ToggleMobileMenu()
+    {
+        isMobileMenuOpen = !isMobileMenuOpen;
+        // Close other menus when mobile menu opens
+        if (isMobileMenuOpen)
+        {
+            isCategoriesOpen = false;
+            isUserMenuOpen = false;
+        }
+    }
+
+    // Close mobile menu (v2.2.5)
+    private void CloseMobileMenu()
+    {
+        isMobileMenuOpen = false;
+    }
+
+    // Mobile search handler (v2.2.5)
+    private void HandleMobileSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            CloseMobileMenu();
+            Navigation.NavigateTo($"/search?q={Uri.EscapeDataString(searchQuery)}");
+        }
     }
 
     private void HandleSearch()
