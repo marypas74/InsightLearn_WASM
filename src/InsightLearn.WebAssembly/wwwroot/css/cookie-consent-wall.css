@@ -100,25 +100,28 @@
     overflow: hidden;
 }
 
-/* ===== COMPACT MODE - Single Column (No AI Avatar) ===== */
-/* PERFORMANCE OPTIMIZED: Removes AI avatar section entirely for faster load */
-.cookie-wall-modal-compact {
-    max-width: 700px;  /* Narrower modal without AI section */
+/* ===== TWO COLUMN LAYOUT - AI Avatar + Content ===== */
+/* Professional design with branding on left, consent on right */
+
+/* Ensure grid layout works correctly */
+.cookie-modal-content {
+    display: grid !important;
+    grid-template-columns: 35% 65%;
+    gap: 0;
+    min-height: 550px;
 }
 
-.cookie-modal-content-single {
-    display: block !important;  /* Override grid for single column */
-    grid-template-columns: none !important;
-    min-height: auto;
+/* AI Avatar section styling - always visible */
+.ai-avatar-section {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-.cookie-modal-content-single .ai-avatar-section {
-    display: none !important;  /* Force hide AI section */
-}
-
-.cookie-modal-content-single .cookie-content-section {
+/* Cookie content takes remaining space */
+.cookie-content-section {
     width: 100%;
-    border-radius: 32px;  /* Full rounded corners */
+    border-radius: 0 32px 32px 0;
 }
 
 /* AI Avatar Section (LEFT) */

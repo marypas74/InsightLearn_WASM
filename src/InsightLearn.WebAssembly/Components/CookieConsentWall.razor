@@ -6,13 +6,28 @@
 @implements IDisposable
 
 <!-- Full-screen blocking overlay - hidden via CSS if consent exists -->
-<!-- OPTIMIZED: AI avatar section removed for better performance -->
 <div class="cookie-wall-overlay @(showWall ? "" : "hidden")" @onclick:preventDefault="true">
         <div class="cookie-wall-container">
-            <!-- Vibrant modal card -->
-            <div class="cookie-wall-modal cookie-wall-modal-compact" @onclick:stopPropagation="true">
-                <div class="cookie-modal-content cookie-modal-content-single">
-                    <!-- Cookie Content Section (full width now) -->
+            <!-- Vibrant modal card - Two Column Layout -->
+            <div class="cookie-wall-modal" @onclick:stopPropagation="true">
+                <div class="cookie-modal-content">
+                    <!-- AI Avatar Section (LEFT) - Professional branding -->
+                    <div class="ai-avatar-section">
+                        <div class="ai-hologram">
+                            <div class="ai-glow"></div>
+                            <div class="logo-container">
+                                <img src="/images/logo.png" alt="InsightLearn" class="insightlearn-logo" onerror="this.style.display='none'" />
+                            </div>
+                        </div>
+                        <div class="ai-name">InsightLearn</div>
+                        <div class="ai-subtitle">Your Privacy Partner</div>
+                        <div class="ai-message">
+                            <p>We use cookies to provide you with the best learning experience.</p>
+                            <p class="ai-message-secondary">Your data is always protected.</p>
+                        </div>
+                    </div>
+
+                    <!-- Cookie Content Section (RIGHT) -->
                     <div class="cookie-content-section">
                         <div class="cookie-wall-header">
                             <div class="cookie-icon-wrapper">
