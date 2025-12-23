@@ -1851,6 +1851,180 @@ sudo systemctl restart k3s
 - ✅ **Logging Completo**: Tutti gli eventi tracciati in `/var/log/insightlearn-watchdog.log`
 - ✅ **Metriche Prometheus**: Backup status esposto per monitoring Grafana
 
+### 🖥️ InsightLearn Restore GUI (✅ Implementato 2025-12-23)
+
+**Status**: ✅ **OPERATIVO** - Interfaccia web per gestione backup e restore
+**Porta**: 9102
+**URL**: http://localhost:9102
+**Service**: `restore-gui-server.service`
+
+#### 📊 Componenti Restore GUI
+
+| Componente | Status | Configurazione |
+|------------|--------|----------------|
+| **Web Server** | ✅ Attivo | Python3 HTTP Server |
+| **Porta** | 9102 | Bind su 0.0.0.0 |
+| **Backup Directory** | `/k3s-zfs/backups` | ZFS storage |
+| **Systemd Service** | ✅ Enabled | Auto-restart |
+
+#### 🔧 File e Configurazione
+
+| File | Scopo | Location |
+|------|-------|----------|
+| **restore-gui-server.py** | Server Python GUI | `/opt/insightlearn/scripts/restore-gui-server.py` |
+| **restore-gui-server.service** | Systemd unit | `/etc/systemd/system/restore-gui-server.service` |
+| **Backup Directory** | Storage backup | `/k3s-zfs/backups` (symlink: `/var/backups/k3s-cluster`) |
+
+#### 📅 Schedulazioni e Data Retention
+
+**Backup Automatici** (Cron Job):
+- **Schedule**: `0 * * * *` (ogni ora, al minuto 0)
+- **Script**: `/opt/insightlearn/scripts/k3s-backup.sh`
+- **Cron File**: `/etc/cron.d/k3s-backup`
+- **Log**: `/var/log/k3s-backup.log`
+
+**Data Retention Policy**:
+| Tipo | Retention | Pulizia Automatica |
+|------|-----------|-------------------|
+| **Backup Archives** | 7 giorni | `find -mtime +7 -delete` |
+| **ZFS Snapshots** | 14 snapshots | Oltre 14 vengono eliminati |
+| **Directory backup** | 7 giorni | Directories `20*` oltre 7gg |
+
+**Location Storage**:
+- **Primary**: `/k3s-zfs/backups/` (ZFS pool compresso lz4)
+- **Symlink**: `/var/backups/k3s-cluster` → `/k3s-zfs/backups`
+
+**Symlinks Automatici**:
+- `latest-backup.tar.gz` → backup più recente
+- `k3s-cluster-snapshot.tar.gz` → snapshot corrente per restore rapido
+
+**Contenuto Backup**:
+- Kubernetes manifests (YAML export di tutte le risorse)
+- ETCD snapshots
+- Configurazioni K3s
+- Metadata cluster (node status, pod status, ZFS info)
+- Metriche Prometheus export
+
+**Verifica Schedulazione**:
+```bash
+# Verificare cron job attivo
+cat /etc/cron.d/k3s-backup
+
+# Verificare ultimo backup
+ls -lht /k3s-zfs/backups/ | head -5
+
+# Verificare log backup
+tail -50 /var/log/k3s-backup.log
+
+# Forzare backup manuale
+sudo /opt/insightlearn/scripts/k3s-backup.sh
+```
+
+**Calcolo Spazio Disco**:
+```
+Backup orario medio:     ~50-100 MB (compresso)
+Retention 7 giorni:      7 × 24 = 168 backup max
+Spazio max stimato:      ~15-20 GB (con cleanup automatico)
+ZFS compression ratio:   ~1.5x (risparmio ~30%)
+```
+
+#### 🚀 Comandi Gestione Restore GUI
+
+```bash
+# Verificare status servizio
+systemctl status restore-gui-server.service
+
+# Riavviare servizio
+sudo systemctl restart restore-gui-server.service
+
+# Verificare porta in ascolto
+ss -tlnp | grep 9102
+
+# Test connettività
+curl http://localhost:9102/
+
+# Visualizzare log
+journalctl -u restore-gui-server.service -f
+
+# Abilitare al boot (già fatto)
+sudo systemctl enable restore-gui-server.service
+```
+
+#### ⚠️ Troubleshooting Restore GUI
+
+**Problema: Servizio non parte (exit-code 226/NAMESPACE)**
+```bash
+# Causa: Directory /k3s-zfs/backups non esiste
+sudo mkdir -p /k3s-zfs/backups
+sudo chmod 755 /k3s-zfs/backups
+sudo systemctl restart restore-gui-server.service
+```
+
+**Problema: Address already in use (port 9102)**
+```bash
+# Identificare processo che occupa la porta
+sudo ss -tlnp | grep 9102
+# Killare processo zombie
+sudo kill -9 <PID>
+sudo systemctl restart restore-gui-server.service
+```
+
+**Problema: Servizio in crash loop**
+```bash
+# Reset contatore restart
+sudo systemctl reset-failed restore-gui-server.service
+# Verificare log per errori
+journalctl -u restore-gui-server.service -n 50
+```
+
+#### 🔄 Procedura Ripristino dopo Crash Server
+
+1. **Verificare ZFS Pool** (CRITICO):
+   ```bash
+   sudo /usr/local/sbin/zpool status k3spool
+   # Se pool non importato:
+   sudo /usr/local/sbin/zpool import k3spool
+   ```
+
+2. **Verificare Directory Backup**:
+   ```bash
+   ls -la /k3s-zfs/backups/
+   # Se non esiste:
+   sudo mkdir -p /k3s-zfs/backups
+   ```
+
+3. **Avviare Restore GUI**:
+   ```bash
+   sudo systemctl start restore-gui-server.service
+   systemctl status restore-gui-server.service
+   ```
+
+4. **Verificare Accesso Web**:
+   ```bash
+   curl http://localhost:9102/
+   # Atteso: HTML della Restore GUI
+   ```
+
+5. **Verificare tutti i servizi**:
+   ```bash
+   # Restore GUI
+   curl -s http://localhost:9102/ | grep -o '<title>.*</title>'
+   # Expected: <title>InsightLearn - Restore GUI</title>
+
+   # HA Watchdog
+   systemctl status insightlearn-ha-watchdog.timer
+
+   # K3s
+   kubectl get pods -n insightlearn
+   ```
+
+#### 📝 Note Importanti
+
+- **NON installare Bacula**: La porta 9102 è usata dalla Restore GUI, non da Bacula
+- **ZFS Required**: La directory `/k3s-zfs/backups` deve esistere su ZFS pool
+- **Auto-Start**: Il servizio è abilitato al boot (`enabled`)
+- **Security**: Il service file include hardening (PrivateTmp, ProtectSystem, etc.)
+
 ## Build e Deploy
 
 ### Comandi Build Locali

@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-        SITE_URL = 'https://wasm.insightlearn.cloud'
+        SITE_URL = 'https://www.insightlearn.cloud'
         SITEMAP_URL = "${SITE_URL}/sitemap.xml"
         USER_AGENT_GOOGLEBOT = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
         USER_AGENT_ORGANIC = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'

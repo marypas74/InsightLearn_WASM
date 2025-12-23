@@ -11,7 +11,7 @@ pipeline {
     }
 
     environment {
-        SITE_URL = 'https://wasm.insightlearn.cloud'
+        SITE_URL = 'https://www.insightlearn.cloud'
         SLACK_CHANNEL = '#insightlearn-alerts' // Optional: configure Slack notifications
         EMAIL_RECIPIENTS = 'marcello.pasqui@gmail.com'
     }
