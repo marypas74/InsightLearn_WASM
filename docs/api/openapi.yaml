@@ -9,7 +9,7 @@ info:
     Include the token in the Authorization header: `Authorization: Bearer <token>`
 
     ## Base URL
-    - Production: `https://wasm.insightlearn.cloud/api`
+    - Production: `https://www.insightlearn.cloud/api`
     - Development: `http://localhost:8081/api`
 
     ## Rate Limiting
@@ -24,7 +24,7 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://wasm.insightlearn.cloud/api
+  - url: https://www.insightlearn.cloud/api
     description: Production server
   - url: http://localhost:8081/api
     description: Local development

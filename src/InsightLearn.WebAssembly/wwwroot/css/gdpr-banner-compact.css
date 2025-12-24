@@ -1,0 +1,323 @@
+/* ========================================
+   GDPR COOKIE BANNER - UDEMY STYLE HORIZONTAL COMPACT
+   Modern horizontal banner at bottom, non-blocking
+   ======================================== */
+
+/* OVERRIDE: Hide full-screen modal (keep compact mode ONLY) */
+.cookie-wall-overlay {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    height: auto;
+    background: none;
+    backdrop-filter: none;
+    z-index: 999999;
+    display: block;
+    align-items: flex-end;
+    justify-content: center;
+    animation: slideUpBanner 0.3s ease-out;
+    overflow: visible;
+    padding: 0;
+    pointer-events: none;
+}
+
+.cookie-wall-overlay.hidden {
+    display: none !important;
+}
+
+@keyframes slideUpBanner {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* COMPACT BANNER - Udemy horizontal style */
+.cookie-wall-modal {
+    background: #1c1d1f;
+    border-radius: 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    overflow: visible;
+    animation: none;
+    max-height: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    pointer-events: all;
+    border-top: 3px solid #a435f0;
+}
+
+/* HIDE two-column layout (AI avatar section not needed in compact mode) */
+.cookie-modal-content {
+    display: flex !important;
+    flex-direction: row !important;
+    grid-template-columns: unset !important;
+    gap: 0;
+    min-height: auto;
+    width: 100%;
+    align-items: center;
+    padding: 16px 24px;
+}
+
+/* HIDE AI avatar section in compact mode */
+.ai-avatar-section {
+    display: none !important;
+}
+
+/* Cookie content section takes full width */
+.cookie-content-section {
+    width: 100%;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: transparent;
+}
+
+/* HIDE header/footer sections */
+.cookie-wall-header,
+.cookie-wall-footer,
+.cookie-settings-content,
+.cookie-features-grid {
+    display: none !important;
+}
+
+/* Compact body - horizontal layout */
+.cookie-wall-body {
+    padding: 0;
+    overflow: visible;
+    flex: 1;
+    background: transparent;
+    display: flex;
+    align-items: center;
+}
+
+.cookie-simple-info {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Cookie icon - smaller inline */
+.cookie-icon-wrapper {
+    display: inline-flex;
+    margin: 0;
+}
+
+.cookie-icon {
+    font-size: 28px;
+    display: inline-block;
+    filter: none;
+    animation: none;
+}
+
+/* Compact text */
+.cookie-description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #d1d5db;
+    margin: 0;
+    max-width: none;
+}
+
+.cookie-description strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Action buttons - horizontal inline */
+.cookie-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
+.cookie-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    flex: 0 0 auto;
+    min-width: auto;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* Cookie Settings button - subtle */
+.btn-cookie-settings {
+    background: rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+.btn-cookie-settings:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Reject All button - warning style */
+.btn-cookie-reject {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    box-shadow: none;
+}
+
+.btn-cookie-reject:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fecaca;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Accept All button - primary Udemy purple */
+.btn-cookie-accept,
+.btn-cookie-accept-all-settings {
+    background: #a435f0;
+    color: #ffffff;
+    border: none;
+    box-shadow: none;
+}
+
+.btn-cookie-accept:hover,
+.btn-cookie-accept-all-settings:hover {
+    background: #8710d8;
+    color: #ffffff;
+    transform: none;
+    box-shadow: none;
+}
+
+/* HIDE button icons in compact mode */
+.btn-icon {
+    display: none !important;
+}
+
+/* Responsive - Mobile vertical layout */
+@media (max-width: 768px) {
+    .cookie-content-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .cookie-simple-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .cookie-description {
+        font-size: 13px;
+    }
+
+    .cookie-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .cookie-actions button {
+        width: 100%;
+        padding: 12px 16px;
+    }
+}
+
+/* Very small mobile */
+@media (max-width: 480px) {
+    .cookie-modal-content {
+        padding: 12px 16px;
+    }
+
+    .cookie-icon {
+        font-size: 24px;
+    }
+
+    .cookie-description {
+        font-size: 12px;
+    }
+
+    .cookie-actions button {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+}
+
+/* Print - hide banner */
+@media print {
+    .cookie-wall-overlay {
+        display: none !important;
+    }
+}
+
+/* Accessibility - Focus states */
+.cookie-actions button:focus {
+    outline: 3px solid #a435f0;
+    outline-offset: 2px;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .cookie-wall-overlay {
+        animation: none !important;
+    }
+
+    .cookie-actions button {
+        transition: none !important;
+    }
+}
+
+/* ===== POLICY MODAL - Keep unchanged ===== */
+/* Policy modal stays as full-screen overlay when opened via "Cookie Settings" */
+.policy-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.policy-modal-overlay.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

@@ -18,7 +18,7 @@ jobs:
         }
 
         parameters {
-          stringParam('SITE_URL', 'https://wasm.insightlearn.cloud', 'Target URL for testing')
+          stringParam('SITE_URL', 'https://www.insightlearn.cloud', 'Target URL for testing')
           stringParam('EMAIL_RECIPIENTS', 'marcello.pasqui@gmail.com', 'Email addresses for notifications')
         }
 
@@ -52,7 +52,7 @@ jobs:
         }
 
         parameters {
-          stringParam('SITE_URL', 'https://wasm.insightlearn.cloud', 'Target URL for load testing')
+          stringParam('SITE_URL', 'https://www.insightlearn.cloud', 'Target URL for load testing')
           choice('LOAD_LEVEL', ['heavy', 'medium', 'light', 'stress'], 'Load testing intensity level')
           stringParam('EMAIL_RECIPIENTS', 'marcello.pasqui@gmail.com', 'Email addresses for test results')
         }

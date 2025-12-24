@@ -8,7 +8,7 @@
 
 ## 📊 Executive Summary
 
-Verifica completa dell'accessibilità pubblica dei file SEO **sitemap.xml** e **robots.txt** del sito **InsightLearn WASM** (https://wasm.insightlearn.cloud).
+Verifica completa dell'accessibilità pubblica dei file SEO **sitemap.xml** e **robots.txt** del sito **InsightLearn WASM** (https://www.insightlearn.cloud).
 
 **Risultato**: ✅ **TUTTI I TEST SUPERATI**
 
@@ -25,7 +25,7 @@ Verifica completa dell'accessibilità pubblica dei file SEO **sitemap.xml** e **
 
 #### sitemap.xml
 ```bash
-$ curl -I https://wasm.insightlearn.cloud/sitemap.xml
+$ curl -I https://www.insightlearn.cloud/sitemap.xml
 
 HTTP/2 200 ✅
 date: Fri, 05 Dec 2025 15:24:09 GMT
@@ -44,7 +44,7 @@ cf-cache-status: DYNAMIC
 
 #### robots.txt
 ```bash
-$ curl -I https://wasm.insightlearn.cloud/robots.txt
+$ curl -I https://www.insightlearn.cloud/robots.txt
 
 HTTP/2 200 ✅
 date: Fri, 05 Dec 2025 15:24:18 GMT
@@ -68,13 +68,13 @@ cf-cache-status: HIT
 ### TEST #2: Validazione XML sitemap.xml ✅
 
 ```bash
-$ curl -s https://wasm.insightlearn.cloud/sitemap.xml | xmllint --format - | head -20
+$ curl -s https://www.insightlearn.cloud/sitemap.xml | xmllint --format - | head -20
 
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://wasm.insightlearn.cloud/</loc>
+    <loc>https://www.insightlearn.cloud/</loc>
     <lastmod>2025-12-05</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -99,12 +99,12 @@ Google crawler usa uno specifico User-Agent. Verifichiamo che i file siano acces
 #### sitemap.xml con Googlebot User-Agent
 ```bash
 $ curl -A "Googlebot/2.1 (+http://www.google.com/bot.html)" \
-  -s https://wasm.insightlearn.cloud/sitemap.xml | head -10
+  -s https://www.insightlearn.cloud/sitemap.xml | head -10
 
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://wasm.insightlearn.cloud/</loc>
+    <loc>https://www.insightlearn.cloud/</loc>
     <lastmod>2025-12-05</lastmod>
     ...
   </url>
@@ -118,7 +118,7 @@ $ curl -A "Googlebot/2.1 (+http://www.google.com/bot.html)" \
 
 #### robots.txt con Googlebot User-Agent
 ```bash
-$ curl -A "Googlebot/2.1" -s https://wasm.insightlearn.cloud/robots.txt | head -20
+$ curl -A "Googlebot/2.1" -s https://www.insightlearn.cloud/robots.txt | head -20
 
 # InsightLearn LMS Platform - Robots.txt
 # Updated: 2025-12-05
@@ -133,7 +133,7 @@ Disallow: /profile
 **Verifica**:
 - ✅ **Accessibile da Googlebot**
 - ✅ **Direttive robots.txt visibili**
-- ✅ **Sitemap dichiarato**: `Sitemap: https://wasm.insightlearn.cloud/sitemap.xml`
+- ✅ **Sitemap dichiarato**: `Sitemap: https://www.insightlearn.cloud/sitemap.xml`
 
 ---
 
@@ -179,7 +179,7 @@ Allow: /categories
 Allow: /search
 
 # Sitemap location
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml
+Sitemap: https://www.insightlearn.cloud/sitemap.xml
 
 # Specific bot configurations
 User-agent: Googlebot
@@ -255,11 +255,11 @@ I file sono serviti tramite **Cloudflare CDN** con edge locations in:
 
 | Requisito | Status | Dettaglio |
 |-----------|--------|-----------|
-| sitemap.xml accessibile | ✅ | https://wasm.insightlearn.cloud/sitemap.xml |
-| robots.txt accessibile | ✅ | https://wasm.insightlearn.cloud/robots.txt |
+| sitemap.xml accessibile | ✅ | https://www.insightlearn.cloud/sitemap.xml |
+| robots.txt accessibile | ✅ | https://www.insightlearn.cloud/robots.txt |
 | Content-Type corretto | ✅ | application/xml, text/plain |
 | XML valido | ✅ | Nessun errore di sintassi |
-| Sitemap dichiarato in robots.txt | ✅ | Riga 92: `Sitemap: https://wasm.insightlearn.cloud/sitemap.xml` |
+| Sitemap dichiarato in robots.txt | ✅ | Riga 92: `Sitemap: https://www.insightlearn.cloud/sitemap.xml` |
 | HTTPS attivo | ✅ | TLSv1.3 / AES_256_GCM_SHA384 |
 | Nessun redirect | ✅ | HTTP 200 diretto |
 | User-agent Googlebot allowed | ✅ | Nessun blocco |
@@ -277,7 +277,7 @@ I file sono serviti tramite **Cloudflare CDN** con edge locations in:
 1. Vai a: https://search.google.com/search-console
 2. Click "Add Property"
 3. Property type: **URL prefix**
-4. URL: `https://wasm.insightlearn.cloud`
+4. URL: `https://www.insightlearn.cloud`
 5. Verifica ownership:
    - **Metodo 1 (raccomandato)**: DNS TXT record
    - **Metodo 2**: HTML file upload
@@ -286,9 +286,9 @@ I file sono serviti tramite **Cloudflare CDN** con edge locations in:
 ### Step 2: Submit Sitemap
 
 1. Vai a: https://search.google.com/search-console/sitemaps
-2. Select property: `wasm.insightlearn.cloud`
+2. Select property: `www.insightlearn.cloud`
 3. Click "Add new sitemap"
-4. Enter sitemap URL: `https://wasm.insightlearn.cloud/sitemap.xml`
+4. Enter sitemap URL: `https://www.insightlearn.cloud/sitemap.xml`
 5. Click "Submit"
 
 **Risultato Atteso**:
@@ -302,7 +302,7 @@ URLs indexed: 0 (inizialmente), poi 7 dopo 7-14 giorni
 ### Step 3: Verifica robots.txt
 
 1. Vai a: https://search.google.com/search-console/settings/robots-txt
-2. Test: `https://wasm.insightlearn.cloud/robots.txt`
+2. Test: `https://www.insightlearn.cloud/robots.txt`
 3. Verifica che mostri il contenuto corretto
 
 **Risultato Atteso**:
@@ -315,7 +315,7 @@ Errori: 0
 ### Step 4: Test URL Inspection Tool
 
 1. Vai a: https://search.google.com/search-console/inspect
-2. Testa URL: `https://wasm.insightlearn.cloud/`
+2. Testa URL: `https://www.insightlearn.cloud/`
 3. Click "Test Live URL"
 
 **Risultato Atteso**:
@@ -333,9 +333,9 @@ Page has valid HTML: ✅
 3. Ripeti per i 7 URL pubblici
 
 **Priority URLs** (request indexing first):
-1. https://wasm.insightlearn.cloud/ (homepage)
-2. https://wasm.insightlearn.cloud/courses
-3. https://wasm.insightlearn.cloud/categories
+1. https://www.insightlearn.cloud/ (homepage)
+2. https://www.insightlearn.cloud/courses
+3. https://www.insightlearn.cloud/categories
 
 ---
 
@@ -376,8 +376,8 @@ Page has valid HTML: ✅
 **Verifica Status**: ✅ **NON APPLICABILE** (nessun blocco)
 
 ```bash
-$ curl -s https://wasm.insightlearn.cloud/robots.txt | grep -i sitemap
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml ✅
+$ curl -s https://www.insightlearn.cloud/robots.txt | grep -i sitemap
+Sitemap: https://www.insightlearn.cloud/sitemap.xml ✅
 ```
 
 ---
@@ -391,7 +391,7 @@ Sitemap: https://wasm.insightlearn.cloud/sitemap.xml ✅
 
 Test eseguito:
 ```bash
-$ curl -A "Googlebot/2.1" https://wasm.insightlearn.cloud/sitemap.xml
+$ curl -A "Googlebot/2.1" https://www.insightlearn.cloud/sitemap.xml
 HTTP/2 200 ✅ (nessun blocco)
 ```
 
@@ -437,7 +437,7 @@ location = /sitemap.xml {
 
 ### External SEO Tools
 
-1. **Google Search**: `site:wasm.insightlearn.cloud`
+1. **Google Search**: `site:www.insightlearn.cloud`
    - Expected results: 7 pages
 
 2. **Bing Webmaster Tools**: Submit sitemap (opzionale)
@@ -496,7 +496,7 @@ Entrambi i file SEO sono:
 
 🚀 **SUBMIT SITEMAP A GOOGLE SEARCH CONSOLE**
 - URL: https://search.google.com/search-console/sitemaps
-- Sitemap: `https://wasm.insightlearn.cloud/sitemap.xml`
+- Sitemap: `https://www.insightlearn.cloud/sitemap.xml`
 - Tempo stimato: 5 minuti
 - Risultato atteso: Indicizzazione entro 7-14 giorni
 

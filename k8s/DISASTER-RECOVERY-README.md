@@ -28,7 +28,7 @@ sudo ./k8s/check-disaster-recovery-status.sh
 ✓ Latest backup: 87M (2025-11-09 14:05:23)
 ✓ Auto-restore service: enabled
 ✓ Cloudflared service: running
-✓ External access: OK (https://wasm.insightlearn.cloud)
+✓ External access: OK (https://www.insightlearn.cloud)
 ```
 
 ---

@@ -1,7 +1,7 @@
 # InsightLearn API Reference
 
 **Version:** 1.4.22-dev
-**Base URL:** `https://wasm.insightlearn.cloud/api`
+**Base URL:** `https://www.insightlearn.cloud/api`
 
 ## 📚 Table of Contents
 
@@ -30,7 +30,7 @@ Most API endpoints require JWT (JSON Web Token) authentication.
 
 **Login:**
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/auth/login \
+curl -X POST https://www.insightlearn.cloud/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@insightlearn.cloud",
@@ -58,7 +58,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/auth/login \
 Include the token in the `Authorization` header for protected endpoints:
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/users/profile \
+curl https://www.insightlearn.cloud/api/users/profile \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -69,7 +69,7 @@ curl https://wasm.insightlearn.cloud/api/users/profile \
 ### 1. Register a New User
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/auth/register \
+curl -X POST https://www.insightlearn.cloud/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "student@example.com",
@@ -82,13 +82,13 @@ curl -X POST https://wasm.insightlearn.cloud/api/auth/register \
 ### 2. Get All Courses
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/courses
+curl https://www.insightlearn.cloud/api/courses
 ```
 
 ### 3. Chat with AI Chatbot
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/chat/message \
+curl -X POST https://www.insightlearn.cloud/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What programming courses do you offer?",
@@ -114,7 +114,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/chat/message \
 #### Login Example
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/auth/login \
+curl -X POST https://www.insightlearn.cloud/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@insightlearn.cloud",
@@ -157,7 +157,7 @@ Powered by **Ollama phi3:mini** LLM model.
 #### Send Message to Chatbot
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/chat/message \
+curl -X POST https://www.insightlearn.cloud/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Tell me about your web development courses",
@@ -178,7 +178,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/chat/message \
 #### Get Chat History
 
 ```bash
-curl "https://wasm.insightlearn.cloud/api/chat/history?sessionId=session_abc123&limit=50"
+curl "https://www.insightlearn.cloud/api/chat/history?sessionId=session_abc123&limit=50"
 ```
 
 ---
@@ -198,19 +198,19 @@ curl "https://wasm.insightlearn.cloud/api/chat/history?sessionId=session_abc123&
 #### Get All Courses
 
 ```bash
-curl "https://wasm.insightlearn.cloud/api/courses?page=1&pageSize=20"
+curl "https://www.insightlearn.cloud/api/courses?page=1&pageSize=20"
 ```
 
 #### Search Courses
 
 ```bash
-curl "https://wasm.insightlearn.cloud/api/courses/search?q=javascript&level=Beginner"
+curl "https://www.insightlearn.cloud/api/courses/search?q=javascript&level=Beginner"
 ```
 
 #### Create New Course
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/courses \
+curl -X POST https://www.insightlearn.cloud/api/courses \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -237,7 +237,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/courses \
 #### Get All Categories
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/categories
+curl https://www.insightlearn.cloud/api/categories
 ```
 
 ---
@@ -255,7 +255,7 @@ curl https://wasm.insightlearn.cloud/api/categories
 #### Get Current User Profile
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/users/profile \
+curl https://www.insightlearn.cloud/api/users/profile \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -274,7 +274,7 @@ curl https://wasm.insightlearn.cloud/api/users/profile \
 #### Enroll in a Course
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/enrollments \
+curl -X POST https://www.insightlearn.cloud/api/enrollments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -296,13 +296,13 @@ curl -X POST https://wasm.insightlearn.cloud/api/enrollments \
 #### Get Reviews for a Course
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/reviews/course/5
+curl https://www.insightlearn.cloud/api/reviews/course/5
 ```
 
 #### Submit a Review
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/reviews \
+curl -X POST https://www.insightlearn.cloud/api/reviews \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -325,7 +325,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/reviews \
 #### Create Checkout Session
 
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/payments/create-checkout \
+curl -X POST https://www.insightlearn.cloud/api/payments/create-checkout \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -346,7 +346,7 @@ curl -X POST https://wasm.insightlearn.cloud/api/payments/create-checkout \
 #### Get Dashboard Stats
 
 ```bash
-curl https://wasm.insightlearn.cloud/api/dashboard/stats \
+curl https://www.insightlearn.cloud/api/dashboard/stats \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -436,7 +436,7 @@ The chatbot uses **Ollama phi3:mini** model running on:
 - **Database**: SQL Server 2022 (EF Core 8)
 - **Deployment**: Kubernetes (K3s) on Rocky Linux 10
 - **Reverse Proxy**: Nginx + Cloudflare Tunnel
-- **API Base URL**: `https://wasm.insightlearn.cloud/api`
+- **API Base URL**: `https://www.insightlearn.cloud/api`
 - **Frontend**: Blazor WebAssembly
 
 ---
@@ -447,7 +447,7 @@ The chatbot uses **Ollama phi3:mini** model running on:
 
 2. **Cache Headers**: API responses include `Cache-Control: no-cache` headers to prevent stale data.
 
-3. **CORS**: API supports CORS for `https://wasm.insightlearn.cloud` origin.
+3. **CORS**: API supports CORS for `https://www.insightlearn.cloud` origin.
 
 4. **Health Check**: Use `/health` endpoint to verify API availability.
 

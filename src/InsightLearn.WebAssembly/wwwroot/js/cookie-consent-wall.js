@@ -77,6 +77,20 @@ window.cookieConsentWall = {
 
             // Unblock interaction
             this.unblockInteraction();
+
+            // Hide static GDPR wall (if still visible from initial load)
+            const staticWall = document.getElementById('static-cookie-wall');
+            if (staticWall) {
+                staticWall.style.display = 'none';
+                console.log('[COOKIE-WALL-JS] Static wall hidden');
+            }
+
+            // Also hide any Blazor cookie wall overlay
+            const blazorWalls = document.querySelectorAll('.cookie-wall-overlay');
+            blazorWalls.forEach(function(wall) {
+                wall.classList.add('hidden');
+                console.log('[COOKIE-WALL-JS] Blazor wall hidden via class');
+            });
         } catch (e) {
             console.error('[COOKIE-WALL-JS] Error saving consent:', e);
         }

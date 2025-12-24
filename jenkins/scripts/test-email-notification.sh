@@ -24,7 +24,7 @@ This is a test email from Jenkins automated testing system.
 
 Test Date: $(date)
 Jenkins URL: http://localhost:8080
-Site: https://wasm.insightlearn.cloud
+Site: https://www.insightlearn.cloud
 
 Last Test Results:
 - Frontend: ✅ Operational

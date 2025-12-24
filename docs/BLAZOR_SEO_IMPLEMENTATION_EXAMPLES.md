@@ -131,8 +131,8 @@ Replace static meta tags with dynamic placeholders:
     Title="InsightLearn - Online Courses & Professional Learning Platform"
     Description="Access 500+ expert-led online courses in technology, business, design, and more. Learn at your own pace with interactive video lessons."
     Keywords="online courses, e-learning platform, professional development, video tutorials"
-    CanonicalUrl="https://wasm.insightlearn.cloud/"
-    ImageUrl="https://wasm.insightlearn.cloud/images/og-homepage.jpg"
+    CanonicalUrl="https://www.insightlearn.cloud/"
+    ImageUrl="https://www.insightlearn.cloud/images/og-homepage.jpg"
     OgType="website" />
 
 <div class="homepage-content">
@@ -152,7 +152,7 @@ Replace static meta tags with dynamic placeholders:
         Title="@($"{course.Title} - {course.InstructorName} | InsightLearn")"
         Description="@GetCourseMetaDescription()"
         Keywords="@GetCourseKeywords()"
-        CanonicalUrl="@($"https://wasm.insightlearn.cloud/courses/{CourseId}")"
+        CanonicalUrl="@($"https://www.insightlearn.cloud/courses/{CourseId}")"
         ImageUrl="@course.ThumbnailUrl"
         OgType="article" />
 
@@ -223,8 +223,8 @@ Replace static meta tags with dynamic placeholders:
             {
                 type = "Organization",
                 name = "InsightLearn",
-                url = "https://wasm.insightlearn.cloud",
-                logo = "https://wasm.insightlearn.cloud/icon-192.png"
+                url = "https://www.insightlearn.cloud",
+                logo = "https://www.insightlearn.cloud/icon-192.png"
             },
             instructor = new
             {
@@ -247,7 +247,7 @@ Replace static meta tags with dynamic placeholders:
                 price = Course.Price.ToString("F2"),
                 priceCurrency = "EUR",
                 availability = "https://schema.org/InStock",
-                url = $"https://wasm.insightlearn.cloud/courses/{Course.Id}",
+                url = $"https://www.insightlearn.cloud/courses/{Course.Id}",
                 validFrom = Course.CreatedAt.ToString("yyyy-MM-dd")
             },
             aggregateRating = new
@@ -287,8 +287,8 @@ Replace static meta tags with dynamic placeholders:
         "@context": "https://schema.org",
         "@type": "EducationalOrganization",
         "name": "InsightLearn",
-        "url": "https://wasm.insightlearn.cloud",
-        "logo": "https://wasm.insightlearn.cloud/icon-192.png",
+        "url": "https://www.insightlearn.cloud",
+        "logo": "https://www.insightlearn.cloud/icon-192.png",
         "description": "Modern online learning platform offering 500+ courses in technology, business, and design.",
         "sameAs": [
             "https://www.linkedin.com/company/insightlearn"
@@ -306,12 +306,12 @@ Replace static meta tags with dynamic placeholders:
     {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "url": "https://wasm.insightlearn.cloud",
+        "url": "https://www.insightlearn.cloud",
         "potentialAction": {
             "@type": "SearchAction",
             "target": {
                 "@type": "EntryPoint",
-                "urlTemplate": "https://wasm.insightlearn.cloud/search?q={search_term_string}"
+                "urlTemplate": "https://www.insightlearn.cloud/search?q={search_term_string}"
             },
             "query-input": "required name=search_term_string"
         }
@@ -453,7 +453,7 @@ public class SitemapController : ControllerBase
     [Produces("application/xml")]
     public async Task<IActionResult> GetSitemap()
     {
-        var baseUrl = "https://wasm.insightlearn.cloud";
+        var baseUrl = "https://www.insightlearn.cloud";
 
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         XNamespace imageNs = "http://www.google.com/schemas/sitemap-image/1.1";
@@ -676,7 +676,7 @@ public async Task<Course> CreateCourseAsync(CreateCourseDto dto)
 ```bash
 # Test structured data
 https://search.google.com/test/rich-results
-# Enter: https://wasm.insightlearn.cloud/courses/your-course-slug
+# Enter: https://www.insightlearn.cloud/courses/your-course-slug
 ```
 
 ### 2. Mobile-Friendly Test
@@ -687,7 +687,7 @@ https://search.google.com/test/mobile-friendly
 ### 3. PageSpeed Insights
 ```bash
 https://pagespeed.web.dev/
-# Enter: https://wasm.insightlearn.cloud
+# Enter: https://www.insightlearn.cloud
 ```
 
 ### 4. Schema Markup Validator

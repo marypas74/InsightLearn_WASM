@@ -271,7 +271,7 @@ log "=========================================="
 log "Cluster Restore Completed!"
 log "Note: Some pods may take several minutes to become fully ready"
 log "Monitor with: kubectl get pods --all-namespaces -w"
-log "External access: https://wasm.insightlearn.cloud/"
+log "External access: https://www.insightlearn.cloud/"
 log "=========================================="
 
 # Export metrics for Prometheus/Grafana monitoring

@@ -4,7 +4,7 @@
 
 set -e
 
-SITE_URL="${SITE_URL:-https://wasm.insightlearn.cloud}"
+SITE_URL="${SITE_URL:-https://www.insightlearn.cloud}"
 MODE="${1:-light}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="load-test-report-${TIMESTAMP}.txt"

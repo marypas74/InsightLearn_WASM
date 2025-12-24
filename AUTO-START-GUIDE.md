@@ -64,7 +64,7 @@ sudo journalctl -u insightlearn-port-forward -f
 ---
 
 ### 3. **cloudflared-tunnel.service** (Opzionale - Da Configurare)
-Tunnel Cloudflare per esporre il sito su https://wasm.insightlearn.cloud
+Tunnel Cloudflare per esporre il sito su https://www.insightlearn.cloud
 
 **Installazione:**
 ```bash
@@ -116,8 +116,8 @@ curl http://localhost/health
 ```
 
 ### Cloudflare Tunnel (Quando Configurato)
-- https://wasm.insightlearn.cloud
-- https://www.wasm.insightlearn.cloud
+- https://www.insightlearn.cloud
+- https://www.www.insightlearn.cloud
 
 ---
 

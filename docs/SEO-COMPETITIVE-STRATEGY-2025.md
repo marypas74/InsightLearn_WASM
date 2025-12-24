@@ -41,9 +41,9 @@ URL aggiunti:
 **File**: `src/InsightLearn.WebAssembly/wwwroot/robots.txt`
 
 ```
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml
-Sitemap: https://wasm.insightlearn.cloud/sitemap-courses.xml
-Sitemap: https://wasm.insightlearn.cloud/sitemap-index.xml
+Sitemap: https://www.insightlearn.cloud/sitemap.xml
+Sitemap: https://www.insightlearn.cloud/sitemap-courses.xml
+Sitemap: https://www.insightlearn.cloud/sitemap-index.xml
 ```
 
 ### 3. Google Analytics 4 Placeholder
@@ -69,16 +69,16 @@ Sitemap: https://wasm.insightlearn.cloud/sitemap-index.xml
 ### Priorita 1: Google Search Console Setup (CRITICO)
 
 1. **Vai a**: https://search.google.com/search-console/
-2. **Aggiungi proprietà**: `https://wasm.insightlearn.cloud`
+2. **Aggiungi proprietà**: `https://www.insightlearn.cloud`
 3. **Verifica tramite**:
    - Meta tag HTML (già predisposto in index.html)
    - OPPURE file HTML nella root
    - OPPURE DNS TXT record
 4. **Ottieni codice verifica** e sostituisci `VERIFICATION_CODE` in index.html
 5. **Submit sitemaps**:
-   - `https://wasm.insightlearn.cloud/sitemap.xml`
-   - `https://wasm.insightlearn.cloud/sitemap-courses.xml`
-   - `https://wasm.insightlearn.cloud/sitemap-index.xml`
+   - `https://www.insightlearn.cloud/sitemap.xml`
+   - `https://www.insightlearn.cloud/sitemap-courses.xml`
+   - `https://www.insightlearn.cloud/sitemap-index.xml`
 6. **Richiedi indicizzazione** per URL critici:
    - Homepage `/`
    - `/courses`
@@ -154,10 +154,10 @@ La strategia si concentra su 4 pilastri: **Indexing**, **Content**, **Backlinks*
     "@type": "VideoObject",
     "name": "Web Development Introduction",
     "description": "Learn the basics of web development",
-    "thumbnailUrl": "https://wasm.insightlearn.cloud/thumbnails/lesson-1.jpg",
+    "thumbnailUrl": "https://www.insightlearn.cloud/thumbnails/lesson-1.jpg",
     "uploadDate": "2025-01-15",
     "duration": "PT15M30S",
-    "contentUrl": "https://wasm.insightlearn.cloud/api/video/stream/..."
+    "contentUrl": "https://www.insightlearn.cloud/api/video/stream/..."
 }
 ```
 

@@ -1,0 +1,1602 @@
+/* ============================================
+   InsightLearn B2C Landing Page Styles
+   Version: 2.3.0-dev
+   Purpose: Consumer-focused landing page design
+   ============================================ */
+
+/* ============================================
+   B2C Home Page Container
+   ============================================ */
+.b2c-home-page {
+    background: var(--il-bg-secondary, #f8fafc);
+    min-height: 100vh;
+}
+
+/* ============================================
+   Hero Section - B2C Style
+   ============================================ */
+.hero-section.hero-b2c {
+    background: linear-gradient(135deg, #a435f0 0%, #7c3aed 50%, #6366f1 100%) !important;
+    color: #ffffff !important;
+    padding: 80px 0 100px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    min-height: auto !important;
+}
+
+.hero-section.hero-b2c::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.hero-b2c .hero-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-b2c .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+/* Hero Content - Ensure visibility */
+.hero-b2c .hero-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #ffffff !important;
+}
+
+.hero-b2c .hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    color: #ffffff !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.hero-b2c .hero-highlight {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-b2c .hero-subtitle {
+    font-size: 1.25rem;
+    line-height: 1.6;
+    opacity: 0.9;
+    margin-bottom: 32px;
+    max-width: 500px;
+    color: #ffffff !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.hero-b2c .hero-cta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 40px;
+}
+
+.hero-b2c .btn-cta {
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.hero-b2c .btn-cta.btn-primary {
+    background: #ffffff;
+    color: #a435f0;
+}
+
+.hero-b2c .btn-cta.btn-primary:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.hero-b2c .btn-cta.btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-b2c .btn-cta.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.hero-b2c .hero-trust-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.hero-b2c .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.hero-b2c .trust-item i {
+    color: #fbbf24;
+}
+
+/* Course Categories Grid in Hero */
+.course-categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.category-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(10px);
+}
+
+.category-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #ffffff;
+}
+
+.category-icon.data-science {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.category-icon.web-dev {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.category-icon.design {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.category-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.category-count {
+    font-size: 0.875rem;
+    opacity: 0.8;
+    color: #ffffff;
+}
+
+/* Floating Feature Cards */
+.feature-card {
+    position: absolute;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    animation: float 3s ease-in-out infinite;
+}
+
+.feature-card i {
+    color: #a435f0;
+    font-size: 18px;
+}
+
+.feature-card.card-video {
+    top: 20%;
+    right: 5%;
+    animation-delay: 0s;
+}
+
+.feature-card.card-certificate {
+    bottom: 30%;
+    right: 15%;
+    animation-delay: 1s;
+}
+
+.feature-card.card-mobile {
+    bottom: 10%;
+    right: 5%;
+    animation-delay: 2s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ============================================
+   Stats Section - B2C Style
+   ============================================ */
+.stats-section.stats-b2c {
+    background: #ffffff;
+    padding: 60px 0;
+    margin-top: -40px;
+    position: relative;
+    z-index: 2;
+}
+
+.stats-section.stats-b2c .stats-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+}
+
+.stats-b2c .stat-box {
+    text-align: center;
+    padding: 24px;
+}
+
+.stats-b2c .stat-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.stats-b2c .stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #a435f0;
+    margin-bottom: 8px;
+}
+
+.stats-b2c .stat-description {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ============================================
+   Testimonials - B2C Student Style
+   ============================================ */
+.testimonials-section.testimonials-b2c {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 80px 0;
+}
+
+.testimonials-b2c .testimonial-card.testimonial-student {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.testimonials-b2c .testimonial-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+}
+
+.testimonials-b2c .author-rating {
+    color: #fbbf24;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.testimonials-b2c .author-rating i {
+    margin-right: 2px;
+}
+
+/* ============================================
+   CTA Section - B2C Style
+   ============================================ */
+.pricing-cta-section.pricing-cta-b2c {
+    background: linear-gradient(135deg, #a435f0 0%, #7c3aed 100%);
+    padding: 80px 0;
+}
+
+.pricing-cta-b2c .tier-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    color: #ffffff;
+    transition: all 0.3s ease;
+}
+
+.pricing-cta-b2c .tier-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-5px);
+}
+
+.pricing-cta-b2c .tier-card.tier-pro {
+    background: #ffffff;
+    color: #1e293b;
+    transform: scale(1.05);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.pricing-cta-b2c .tier-card.tier-pro:hover {
+    transform: scale(1.08);
+}
+
+.pricing-cta-b2c .tier-badge {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    color: #1e293b;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.pricing-cta-b2c .tier-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.pricing-cta-b2c .tier-price {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.pricing-cta-b2c .tier-description {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+/* ============================================
+   Mobile Responsive - B2C
+   ============================================ */
+@media (max-width: 1024px) {
+    .hero-b2c .hero-container {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .hero-b2c .hero-subtitle {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-b2c .hero-cta {
+        justify-content: center;
+    }
+
+    .hero-b2c .hero-trust-indicators {
+        justify-content: center;
+    }
+
+    .hero-visual {
+        display: none;
+    }
+
+    .stats-section.stats-b2c .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section.hero-b2c {
+        padding: 60px 0 80px;
+    }
+
+    .hero-b2c .hero-title {
+        font-size: 2.25rem;
+    }
+
+    .hero-b2c .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .hero-b2c .hero-cta {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-b2c .btn-cta {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+
+    .hero-b2c .hero-trust-indicators {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stats-section.stats-b2c .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .stats-b2c .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .stats-b2c .stat-description {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-b2c .hero-title {
+        font-size: 1.75rem;
+    }
+
+    .hero-b2c .hero-badge {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .stats-section.stats-b2c .stats-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .stats-b2c .stat-box {
+        padding: 16px 8px;
+    }
+
+    .stats-b2c .stat-icon {
+        font-size: 28px;
+    }
+
+    .stats-b2c .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .stats-b2c .stat-description {
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================
+   Learning Experience Section Override
+   ============================================ */
+.learning-experience-section {
+    background: #ffffff !important;
+}
+
+.learning-features li i {
+    color: #a435f0;
+}
+
+.learning-cta .btn-primary {
+    background: linear-gradient(135deg, #a435f0, #7c3aed);
+    border: none;
+    color: #ffffff;
+}
+
+.learning-cta .btn-primary:hover {
+    background: linear-gradient(135deg, #9333ea, #6d28d9);
+}
+
+.learning-features-cards .sdk-card {
+    background: linear-gradient(135deg, #a435f0 0%, #7c3aed 100%);
+    color: #ffffff;
+}
+
+.learning-features-cards .sdk-card i {
+    font-size: 28px;
+}
+
+/* ============================================
+   B2C Professional Design System v2.3.1
+   Udemy/Coursera Style Sections
+   ============================================ */
+
+/* Design Tokens */
+:root {
+    --b2c-primary: #a435f0;
+    --b2c-primary-dark: #8710d8;
+    --b2c-primary-light: #c77dff;
+    --b2c-secondary: #5624d0;
+    --b2c-accent: #f7c32e;
+    --b2c-success: #1e6f5c;
+    --b2c-text-dark: #1c1d1f;
+    --b2c-text-muted: #6a6f73;
+    --b2c-text-light: #ffffff;
+    --b2c-bg-light: #f7f9fa;
+    --b2c-bg-white: #ffffff;
+    --b2c-border-light: #d1d7dc;
+    --b2c-shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+    --b2c-shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+    --b2c-shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --b2c-radius-sm: 4px;
+    --b2c-radius-md: 8px;
+    --b2c-radius-lg: 16px;
+    --b2c-radius-xl: 24px;
+}
+
+/* ============================================
+   Section Container - Professional Layout
+   ============================================ */
+.section-container {
+    max-width: 1340px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ============================================
+   Section Headers - Udemy Style
+   ============================================ */
+.section-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.section-eyebrow {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--b2c-primary);
+    background: linear-gradient(135deg, rgba(164, 53, 240, 0.1) 0%, rgba(86, 36, 208, 0.1) 100%);
+    padding: 8px 16px;
+    border-radius: 50px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+    margin-bottom: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.section-subtitle {
+    font-size: 1.125rem;
+    color: var(--b2c-text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ============================================
+   Capabilities Section - Why Choose Us
+   ============================================ */
+.capabilities-section {
+    background: var(--b2c-bg-white);
+    padding: 80px 0;
+}
+
+.capabilities-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+}
+
+.capability-card {
+    background: var(--b2c-bg-white);
+    border: 1px solid var(--b2c-border-light);
+    border-radius: var(--b2c-radius-lg);
+    padding: 32px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.capability-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--b2c-primary), var(--b2c-secondary));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.capability-card:hover {
+    border-color: var(--b2c-primary);
+    box-shadow: var(--b2c-shadow-lg);
+    transform: translateY(-8px);
+}
+
+.capability-card:hover::before {
+    transform: scaleX(1);
+}
+
+.capability-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--b2c-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    font-size: 28px;
+    color: #fff;
+}
+
+.capability-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+    margin-bottom: 12px;
+}
+
+.capability-description {
+    font-size: 0.9375rem;
+    color: var(--b2c-text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.capability-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.capability-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.875rem;
+    color: var(--b2c-text-dark);
+    padding: 8px 0;
+    border-top: 1px solid var(--b2c-border-light);
+}
+
+.capability-features li:first-child {
+    border-top: none;
+}
+
+.capability-features li i {
+    color: var(--b2c-success);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   Integration Section - How It Works
+   ============================================ */
+.integration-section {
+    background: linear-gradient(180deg, var(--b2c-bg-light) 0%, var(--b2c-bg-white) 100%);
+    padding: 80px 0;
+}
+
+.integration-flow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.integration-step {
+    flex: 1;
+    max-width: 280px;
+    text-align: center;
+    position: relative;
+    padding: 0 16px;
+}
+
+.step-number {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--b2c-primary), var(--b2c-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 24px;
+    line-height: 1;
+}
+
+.step-content {
+    background: var(--b2c-bg-white);
+    border-radius: var(--b2c-radius-lg);
+    padding: 32px 24px;
+    box-shadow: var(--b2c-shadow-md);
+    border: 1px solid var(--b2c-border-light);
+    transition: all 0.3s ease;
+}
+
+.step-content:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--b2c-shadow-lg);
+    border-color: var(--b2c-primary);
+}
+
+.step-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--b2c-primary), var(--b2c-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: #fff;
+    font-size: 28px;
+    box-shadow: 0 8px 24px rgba(164, 53, 240, 0.3);
+}
+
+.step-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+    margin-bottom: 12px;
+}
+
+.step-description {
+    font-size: 0.9375rem;
+    color: var(--b2c-text-muted);
+    line-height: 1.6;
+}
+
+.integration-connector {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--b2c-primary), var(--b2c-secondary));
+    margin-top: 140px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.integration-connector::after {
+    content: '→';
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--b2c-primary);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* ============================================
+   Solutions Section - Course Categories
+   ============================================ */
+.solutions-section {
+    background: var(--b2c-bg-white);
+    padding: 80px 0;
+}
+
+.solutions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.solution-card {
+    background: var(--b2c-bg-white);
+    border: 2px solid var(--b2c-border-light);
+    border-radius: var(--b2c-radius-lg);
+    padding: 32px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.solution-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--b2c-primary), var(--b2c-accent));
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+.solution-card:hover {
+    border-color: var(--b2c-primary);
+    box-shadow: var(--b2c-shadow-lg);
+    transform: translateY(-6px);
+}
+
+.solution-card:hover::after {
+    transform: scaleX(1);
+}
+
+.solution-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.solution-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+    margin-bottom: 12px;
+}
+
+.solution-description {
+    font-size: 0.9375rem;
+    color: var(--b2c-text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.solution-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--b2c-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.solution-link:hover {
+    color: var(--b2c-primary-dark);
+    gap: 12px;
+}
+
+.solution-link i {
+    transition: transform 0.2s ease;
+}
+
+.solution-link:hover i {
+    transform: translateX(4px);
+}
+
+/* ============================================
+   Developer Section - Learning Experience
+   ============================================ */
+.developer-section.learning-experience-section {
+    background: linear-gradient(135deg, #faf5ff 0%, #f0e6ff 100%) !important;
+    padding: 80px 0;
+}
+
+.dev-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dev-text .section-eyebrow {
+    text-align: left;
+    display: inline-block;
+}
+
+.dev-text .section-title {
+    text-align: left;
+    font-size: 2.25rem;
+}
+
+.section-description {
+    font-size: 1.0625rem;
+    color: var(--b2c-text-muted);
+    line-height: 1.7;
+    margin-bottom: 32px;
+}
+
+.dev-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 32px 0;
+}
+
+.dev-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px 0;
+    font-size: 1rem;
+    color: var(--b2c-text-dark);
+}
+
+.dev-features li i {
+    color: var(--b2c-primary);
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.dev-cta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.dev-cta .btn {
+    padding: 14px 28px;
+    font-weight: 600;
+    border-radius: var(--b2c-radius-md);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.dev-cta .btn-primary {
+    background: linear-gradient(135deg, var(--b2c-primary), var(--b2c-secondary));
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(164, 53, 240, 0.3);
+}
+
+.dev-cta .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(164, 53, 240, 0.4);
+}
+
+.dev-cta .btn-outline-dark {
+    background: transparent;
+    color: var(--b2c-text-dark);
+    border: 2px solid var(--b2c-border-light);
+}
+
+.dev-cta .btn-outline-dark:hover {
+    border-color: var(--b2c-primary);
+    color: var(--b2c-primary);
+    background: rgba(164, 53, 240, 0.05);
+}
+
+/* SDK/Feature Cards in Learning Section */
+.dev-visual {
+    display: flex;
+    justify-content: center;
+}
+
+.sdk-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.sdk-card {
+    background: linear-gradient(135deg, var(--b2c-primary) 0%, var(--b2c-secondary) 100%);
+    border-radius: var(--b2c-radius-lg);
+    padding: 28px 24px;
+    text-align: center;
+    color: #fff;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 24px rgba(164, 53, 240, 0.25);
+}
+
+.sdk-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(164, 53, 240, 0.35);
+}
+
+.sdk-card i {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.sdk-card span {
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+/* ============================================
+   Testimonials Section - Enhanced B2C Style
+   ============================================ */
+.testimonials-section.testimonials-b2c {
+    background: linear-gradient(180deg, #f8f5ff 0%, #ffffff 100%);
+    padding: 80px 0;
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.testimonial-card.testimonial-student {
+    background: var(--b2c-bg-white);
+    border-radius: var(--b2c-radius-xl);
+    padding: 32px;
+    box-shadow: var(--b2c-shadow-md);
+    border: 1px solid rgba(164, 53, 240, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.testimonial-card.testimonial-student:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--b2c-shadow-lg);
+    border-color: var(--b2c-primary);
+}
+
+.testimonial-content {
+    margin-bottom: 24px;
+}
+
+.testimonial-quote {
+    font-size: 3rem;
+    color: var(--b2c-primary);
+    line-height: 1;
+    margin-bottom: 8px;
+    opacity: 0.3;
+}
+
+.testimonial-text {
+    font-size: 1rem;
+    color: var(--b2c-text-dark);
+    line-height: 1.7;
+    font-style: italic;
+}
+
+.testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.author-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--b2c-primary), var(--b2c-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.author-info {
+    flex: 1;
+}
+
+.author-name {
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+    margin-bottom: 2px;
+}
+
+.author-title {
+    font-size: 0.875rem;
+    color: var(--b2c-text-muted);
+    margin-bottom: 4px;
+}
+
+/* ============================================
+   CTA Section - Start Learning
+   ============================================ */
+.pricing-cta-section.pricing-cta-b2c {
+    background: linear-gradient(135deg, var(--b2c-primary) 0%, var(--b2c-secondary) 100%);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.pricing-cta-section.pricing-cta-b2c::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.pricing-cta-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.pricing-cta-content {
+    text-align: center;
+}
+
+.cta-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+}
+
+.cta-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 48px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pricing-tiers-preview {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+}
+
+.tier-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--b2c-radius-lg);
+    padding: 28px 32px;
+    min-width: 180px;
+    transition: all 0.3s ease;
+}
+
+.tier-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.tier-card.tier-pro {
+    background: #fff;
+    border-color: var(--b2c-accent);
+    transform: scale(1.08);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+}
+
+.tier-card.tier-pro:hover {
+    transform: scale(1.1);
+}
+
+.tier-card.tier-pro .tier-name,
+.tier-card.tier-pro .tier-price,
+.tier-card.tier-pro .tier-description {
+    color: var(--b2c-text-dark);
+}
+
+.tier-badge {
+    background: linear-gradient(90deg, var(--b2c-accent), #ffd700);
+    color: var(--b2c-text-dark);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border-radius: 50px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.tier-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.tier-price {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.tier-description {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.cta-buttons .btn {
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--b2c-radius-md);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.cta-buttons .btn-large {
+    min-width: 200px;
+}
+
+.cta-buttons .btn-primary {
+    background: #fff;
+    color: var(--b2c-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.cta-buttons .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.cta-buttons .btn-outline-light {
+    background: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.cta-buttons .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+}
+
+/* ============================================
+   B2C Footer Styles
+   ============================================ */
+.main-footer.b2c-footer {
+    background: #1c1d1f;
+    color: #fff;
+    padding: 64px 0 32px;
+}
+
+.b2c-footer .footer-content {
+    max-width: 1340px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.b2c-footer .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 48px;
+}
+
+.b2c-footer .footer-brand-description {
+    color: #9da4ab;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    margin-bottom: 24px;
+}
+
+.b2c-footer .footer-social {
+    display: flex;
+    gap: 12px;
+}
+
+.b2c-footer .footer-social a {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.b2c-footer .footer-social a:hover {
+    background: var(--b2c-primary);
+    transform: translateY(-2px);
+}
+
+.b2c-footer .footer-column h4 {
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.b2c-footer .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.b2c-footer .footer-links li {
+    margin-bottom: 12px;
+}
+
+.b2c-footer .footer-links a {
+    color: #9da4ab;
+    text-decoration: none;
+    font-size: 0.9375rem;
+    transition: color 0.2s ease;
+}
+
+.b2c-footer .footer-links a:hover {
+    color: #fff;
+}
+
+.b2c-footer .footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.b2c-footer .footer-copyright {
+    color: #9da4ab;
+    font-size: 0.875rem;
+}
+
+.b2c-footer .trust-badges-footer {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.b2c-footer .trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #9da4ab;
+    font-size: 0.8125rem;
+}
+
+.b2c-footer .trust-badge i {
+    color: var(--b2c-success);
+}
+
+/* ============================================
+   Mobile Menu B2C Professional Styles
+   ============================================ */
+.mobile-menu-panel {
+    background: #fff;
+}
+
+.mobile-menu-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--b2c-border-light);
+}
+
+.mobile-menu-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--b2c-text-dark);
+}
+
+.mobile-search {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--b2c-border-light);
+}
+
+.mobile-search input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--b2c-border-light);
+    border-radius: var(--b2c-radius-md);
+    font-size: 1rem;
+    outline: none;
+}
+
+.mobile-search input:focus {
+    border-color: var(--b2c-primary);
+    box-shadow: 0 0 0 3px rgba(164, 53, 240, 0.1);
+}
+
+.mobile-nav-section {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--b2c-border-light);
+}
+
+.mobile-nav-section:last-child {
+    border-bottom: none;
+}
+
+.mobile-nav-section-title {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--b2c-text-muted);
+    padding: 16px 24px 8px;
+}
+
+.mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    color: var(--b2c-text-dark);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.mobile-nav-link:hover {
+    background: rgba(164, 53, 240, 0.05);
+    color: var(--b2c-primary);
+}
+
+.mobile-nav-link i {
+    width: 20px;
+    text-align: center;
+    color: var(--b2c-text-muted);
+}
+
+.mobile-nav-link:hover i {
+    color: var(--b2c-primary);
+}
+
+.mobile-auth-buttons {
+    padding: 24px;
+}
+
+.mobile-auth-buttons .btn {
+    display: block;
+    width: 100%;
+    padding: 14px 24px;
+    text-align: center;
+    border-radius: var(--b2c-radius-md);
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    text-decoration: none;
+}
+
+.mobile-auth-buttons .btn:last-child {
+    margin-bottom: 0;
+}
+
+.mobile-auth-buttons .btn-primary {
+    background: linear-gradient(135deg, var(--b2c-primary), var(--b2c-secondary));
+    color: #fff;
+    border: none;
+}
+
+.mobile-auth-buttons .btn-outline {
+    background: transparent;
+    color: var(--b2c-text-dark);
+    border: 2px solid var(--b2c-border-light);
+}
+
+.mobile-auth-buttons .btn-outline:hover {
+    border-color: var(--b2c-primary);
+    color: var(--b2c-primary);
+}
+
+/* ============================================
+   Responsive - B2C Professional
+   ============================================ */
+@media (max-width: 1024px) {
+    .capabilities-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .solutions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .testimonials-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dev-content {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
+
+    .integration-flow {
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+
+    .integration-connector {
+        display: none;
+    }
+
+    .b2c-footer .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 1.75rem;
+    }
+
+    .section-subtitle {
+        font-size: 1rem;
+    }
+
+    .capabilities-grid,
+    .solutions-grid,
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .integration-step {
+        max-width: 100%;
+    }
+
+    .pricing-tiers-preview {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tier-card.tier-pro {
+        transform: scale(1);
+    }
+
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cta-buttons .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .b2c-footer .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .b2c-footer .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .sdk-cards {
+        grid-template-columns: 1fr;
+    }
+}

@@ -99,7 +99,7 @@ sudo systemctl start insightlearn-startup.service
    ```
 
 3. **Se tutto OK**, accedi a:
-   - https://wasm.insightlearn.cloud (via Cloudflare)
+   - https://www.insightlearn.cloud (via Cloudflare)
    - http://localhost:8080 (WASM locale)
    - http://localhost:8081 (API locale)
 

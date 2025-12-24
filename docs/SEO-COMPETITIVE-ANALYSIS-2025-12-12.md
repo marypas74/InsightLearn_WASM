@@ -66,7 +66,7 @@ Il sito InsightLearn è attualmente in fase di indicizzazione iniziale. La ricer
 ```
 Ricerca: site:insightlearn.cloud
 Risultato: 0 pagine indicizzate
-Ricerca: site:wasm.insightlearn.cloud
+Ricerca: site:www.insightlearn.cloud
 Risultato: 0 pagine indicizzate
 ```
 
@@ -115,12 +115,12 @@ Risultato: 0 pagine indicizzate
 
 1. Verificare Google Search Console
    - URL: https://search.google.com/search-console
-   - Aggiungere proprietà: wasm.insightlearn.cloud
+   - Aggiungere proprietà: www.insightlearn.cloud
    - Verificare con DNS TXT record o meta tag
 
 2. Inviare sitemap manualmente
    - Sitemaps > Add a new sitemap
-   - URL: https://wasm.insightlearn.cloud/sitemap.xml
+   - URL: https://www.insightlearn.cloud/sitemap.xml
 
 3. Richiedere indicizzazione manuale
    - URL Inspection > Inspect URL
@@ -161,7 +161,7 @@ if ($http_user_agent ~* "googlebot|bingbot|yandex") {
 ```xml
 <!-- Pagine corso dinamiche -->
 <url>
-    <loc>https://wasm.insightlearn.cloud/courses/{slug}</loc>
+    <loc>https://www.insightlearn.cloud/courses/{slug}</loc>
     <lastmod>2025-12-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -169,14 +169,14 @@ if ($http_user_agent ~* "googlebot|bingbot|yandex") {
 
 <!-- Pagine categoria -->
 <url>
-    <loc>https://wasm.insightlearn.cloud/categories/{category-slug}</loc>
+    <loc>https://www.insightlearn.cloud/categories/{category-slug}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
 </url>
 
 <!-- Pagine istruttore -->
 <url>
-    <loc>https://wasm.insightlearn.cloud/instructors/{instructor-slug}</loc>
+    <loc>https://www.insightlearn.cloud/instructors/{instructor-slug}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
 </url>
@@ -275,7 +275,7 @@ app.MapGet("/api/seo/sitemap", async (InsightLearnDbContext db) =>
         "provider": {
             "@type": "Organization",
             "name": "InsightLearn",
-            "sameAs": "https://wasm.insightlearn.cloud"
+            "sameAs": "https://www.insightlearn.cloud"
         },
         "instructor": {
             "@type": "Person",
@@ -377,11 +377,11 @@ app.MapGet("/api/seo/sitemap", async (InsightLearnDbContext db) =>
 
 **Lingue Target** (hreflang):
 ```html
-<link rel="alternate" hreflang="it" href="https://wasm.insightlearn.cloud/it/" />
-<link rel="alternate" hreflang="en" href="https://wasm.insightlearn.cloud/en/" />
-<link rel="alternate" hreflang="es" href="https://wasm.insightlearn.cloud/es/" />
-<link rel="alternate" hreflang="de" href="https://wasm.insightlearn.cloud/de/" />
-<link rel="alternate" hreflang="x-default" href="https://wasm.insightlearn.cloud/" />
+<link rel="alternate" hreflang="it" href="https://www.insightlearn.cloud/it/" />
+<link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/en/" />
+<link rel="alternate" hreflang="es" href="https://www.insightlearn.cloud/es/" />
+<link rel="alternate" hreflang="de" href="https://www.insightlearn.cloud/de/" />
+<link rel="alternate" hreflang="x-default" href="https://www.insightlearn.cloud/" />
 ```
 
 #### 4.3 Authority Building

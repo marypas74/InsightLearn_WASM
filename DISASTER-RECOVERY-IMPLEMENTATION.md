@@ -53,7 +53,7 @@ Sistema di **disaster recovery completamente automatico** per cluster K3s Insigh
 - **Tunnel ID**: `4d4a2ce0-9133-4761-9886-90be465abc79`
 - **Config**: `/home/mpasqui/.cloudflared/config.yml`
 - **Connessioni attive**: 4 (fco01, mxp02, mxp06)
-- **External URL**: https://wasm.insightlearn.cloud ✅ **ACCESSIBLE**
+- **External URL**: https://www.insightlearn.cloud ✅ **ACCESSIBLE**
 
 **Auto-start**: Service enabled, si avvia automaticamente al boot e dopo restore
 
@@ -68,7 +68,7 @@ Sistema di **disaster recovery completamente automatico** per cluster K3s Insigh
 ✓ Latest backup: 8,0K (2025-11-09 16:33:00)
 ✓ Auto-restore service: enabled
 ✓ Cloudflared service: running
-✓ External access: OK (https://wasm.insightlearn.cloud)
+✓ External access: OK (https://www.insightlearn.cloud)
 ✓ Hourly backup cron job configured
 ```
 
@@ -131,7 +131,7 @@ k8s/
 ✅ **PASS** - Tunnel operativo
 - Service: `active (running)` since 16:33:00
 - Connections: 4 registered (fco01, mxp02, mxp06)
-- External access: https://wasm.insightlearn.cloud **REACHABLE**
+- External access: https://www.insightlearn.cloud **REACHABLE**
 
 ### Bash Syntax Validation
 ✅ **PASS** - Tutti gli script hanno sintassi bash valida:
@@ -194,7 +194,7 @@ Check cluster health
 | **Latest Backup** | ✅ **Created** | 2025-11-09 16:33:00 (8KB) |
 | **Auto-Restore Service** | ✅ **Enabled** | Will run at next boot |
 | **Cloudflare Service** | ✅ **Running** | 4 connections active |
-| **External Access** | ✅ **OK** | https://wasm.insightlearn.cloud |
+| **External Access** | ✅ **OK** | https://www.insightlearn.cloud |
 | **Cron Service** | ✅ **Active** | crond running |
 | **Logs** | ✅ **Available** | /var/log/k3s-*.log |
 

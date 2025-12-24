@@ -10,7 +10,7 @@ Simulates 50 concurrent users with 200 total requests</description>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>SITE_URL</name>
-          <defaultValue>https://wasm.insightlearn.cloud</defaultValue>
+          <defaultValue>https://www.insightlearn.cloud</defaultValue>
           <description>Target URL for load testing</description>
           <trim>true</trim>
         </hudson.model.StringParameterDefinition>

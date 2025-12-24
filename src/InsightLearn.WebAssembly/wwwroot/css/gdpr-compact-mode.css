@@ -1,0 +1,424 @@
+/* ========================================
+   GDPR Cookie Consent - COMPACT MODE
+   B2B Enterprise Clean Design
+   v2.2.10-dev (2025-12-24)
+
+   Purpose: Hides AI avatar section for cleaner,
+   faster loading GDPR consent wall
+   ======================================== */
+
+/* Override: Single column layout (no AI avatar) */
+.cookie-modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    min-height: auto !important;
+}
+
+/* HIDE the AI Avatar section completely */
+.ai-avatar-section {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Cookie content takes full width */
+.cookie-content-section {
+    width: 100% !important;
+    border-radius: 32px !important;
+    flex: 1;
+}
+
+/* Compact modal size */
+.cookie-wall-modal {
+    max-width: 700px !important;
+    margin: auto;
+    min-height: auto !important;
+}
+
+/* Improved header styling */
+.cookie-wall-header {
+    padding: 32px 40px 24px 40px;
+    text-align: center;
+    background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+    border-radius: 32px 32px 0 0;
+}
+
+.cookie-icon-wrapper {
+    margin-bottom: 16px;
+}
+
+.cookie-icon {
+    font-size: 56px;
+    display: block;
+}
+
+.cookie-wall-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.cookie-wall-subtitle {
+    font-size: 16px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* Body styling */
+.cookie-wall-body {
+    padding: 24px 40px;
+}
+
+.cookie-simple-info {
+    max-width: 100%;
+}
+
+.cookie-description {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4b5563;
+    margin-bottom: 24px;
+}
+
+/* Features grid - 2x2 layout */
+.cookie-features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.cookie-feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.cookie-feature:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.feature-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.feature-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    text-align: center;
+}
+
+/* Footer styling */
+.cookie-wall-footer {
+    padding: 24px 40px 32px 40px;
+    background: #fafafa;
+    border-radius: 0 0 32px 32px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.cookie-links {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.cookie-link {
+    font-size: 13px;
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.cookie-link:hover {
+    color: #667eea;
+    text-decoration: underline;
+}
+
+.link-separator {
+    color: #d1d5db;
+}
+
+/* Button container */
+.cookie-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* All buttons base style */
+.cookie-actions button {
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    min-width: 160px;
+}
+
+/* Button icons */
+.btn-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* Accept button - Primary */
+.btn-cookie-accept,
+.btn-cookie-accept-all-settings {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+}
+
+.btn-cookie-accept:hover,
+.btn-cookie-accept-all-settings:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
+}
+
+/* Reject button - Equal prominence (GDPR compliant) */
+.btn-cookie-reject {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+}
+
+.btn-cookie-reject:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45);
+}
+
+/* Settings button - Secondary */
+.btn-cookie-settings {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.btn-cookie-settings:hover {
+    background: #f9fafb;
+    border-color: #d1d5db !important;
+    transform: translateY(-2px);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Tablet */
+@media (max-width: 768px) {
+    .cookie-wall-modal {
+        max-width: 100% !important;
+        border-radius: 24px !important;
+        margin: 16px;
+    }
+
+    .cookie-wall-header {
+        padding: 24px 24px 20px 24px;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .cookie-icon {
+        font-size: 48px;
+    }
+
+    .cookie-wall-title {
+        font-size: 24px;
+    }
+
+    .cookie-wall-subtitle {
+        font-size: 14px;
+    }
+
+    .cookie-wall-body {
+        padding: 20px 24px;
+    }
+
+    .cookie-description {
+        font-size: 14px;
+    }
+
+    .cookie-features-grid {
+        gap: 12px;
+    }
+
+    .cookie-feature {
+        padding: 16px 12px;
+    }
+
+    .feature-icon {
+        font-size: 28px;
+    }
+
+    .feature-text {
+        font-size: 12px;
+    }
+
+    .cookie-wall-footer {
+        padding: 20px 24px 24px 24px;
+        border-radius: 0 0 24px 24px;
+    }
+
+    .cookie-actions {
+        flex-direction: column;
+    }
+
+    .cookie-actions button {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .cookie-wall-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .cookie-wall-modal {
+        border-radius: 20px 20px 0 0 !important;
+        margin: 0;
+        max-height: 90vh;
+    }
+
+    .cookie-content-section {
+        border-radius: 20px 20px 0 0 !important;
+    }
+
+    .cookie-wall-header {
+        padding: 20px 20px 16px 20px;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .cookie-icon {
+        font-size: 40px;
+    }
+
+    .cookie-wall-title {
+        font-size: 20px;
+    }
+
+    .cookie-wall-subtitle {
+        font-size: 13px;
+    }
+
+    .cookie-wall-body {
+        padding: 16px 20px;
+    }
+
+    .cookie-description {
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .cookie-features-grid {
+        gap: 8px;
+    }
+
+    .cookie-feature {
+        padding: 12px 8px;
+        border-radius: 12px;
+    }
+
+    .feature-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .feature-text {
+        font-size: 11px;
+    }
+
+    .cookie-wall-footer {
+        padding: 16px 20px 20px 20px;
+        border-radius: 0;
+    }
+
+    .cookie-links {
+        margin-bottom: 16px;
+    }
+
+    .cookie-link {
+        font-size: 12px;
+    }
+
+    .cookie-actions button {
+        padding: 12px 20px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+
+    .btn-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+    .cookie-wall-title {
+        font-size: 18px;
+    }
+
+    .cookie-wall-subtitle {
+        font-size: 12px;
+    }
+
+    .cookie-description {
+        font-size: 12px;
+    }
+
+    .cookie-features-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .feature-text {
+        font-size: 10px;
+    }
+}
+
+/* Accessibility: Focus states */
+.cookie-actions button:focus {
+    outline: 3px solid rgba(102, 126, 234, 0.5);
+    outline-offset: 2px;
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .cookie-actions button {
+        transition: none;
+    }
+
+    .cookie-feature {
+        transition: none;
+    }
+
+    .cookie-wall-modal {
+        animation: none;
+    }
+}

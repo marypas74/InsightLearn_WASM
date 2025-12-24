@@ -231,14 +231,14 @@ echo "📤 Uploads:"
 echo "  ✅ Successful: $UPLOADED / $TOTAL_VIDEOS"
 echo ""
 echo "🌐 Test URL:"
-echo "  https://wasm.insightlearn.cloud/courses/$COURSE_ID"
+echo "  https://www.insightlearn.cloud/courses/$COURSE_ID"
 echo ""
 
 # Get first lesson ID for direct link
 FIRST_LESSON=$(curl -s "$API_URL/api/courses/$COURSE_ID" -H "Authorization: Bearer $TOKEN" | jq -r '.Sections[0].Lessons[0].Id // empty')
 if [ -n "$FIRST_LESSON" ]; then
     echo "🎬 Direct video lesson link:"
-    echo "  https://wasm.insightlearn.cloud/learn/$COURSE_ID/$FIRST_LESSON"
+    echo "  https://www.insightlearn.cloud/learn/$COURSE_ID/$FIRST_LESSON"
 fi
 
 echo ""

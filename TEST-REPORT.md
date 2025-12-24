@@ -1,7 +1,7 @@
 # InsightLearn WASM - Complete Test Report
 
 **Test Date**: 2025-11-07 22:55 UTC
-**Site Under Test**: https://wasm.insightlearn.cloud
+**Site Under Test**: https://www.insightlearn.cloud
 **Test Engineer**: Claude Code (Automated Testing)
 **API Version Detected**: 1.4.29
 **Build Version**: 1.4.22-dev (Directory.Build.props)
@@ -74,7 +74,7 @@ The InsightLearn WASM platform is **production-ready** with excellent performanc
 
 ### 2.1 Site Accessibility
 
-**Test**: `curl -I https://wasm.insightlearn.cloud`
+**Test**: `curl -I https://www.insightlearn.cloud`
 
 ✅ **PASS** - Site is accessible and responsive
 
@@ -94,7 +94,7 @@ Server: cloudflare
 
 ### 2.2 HTML Content Analysis
 
-**Test**: `curl -sS https://wasm.insightlearn.cloud | head -50`
+**Test**: `curl -sS https://www.insightlearn.cloud | head -50`
 
 ✅ **PASS** - Valid HTML5 structure
 
@@ -143,7 +143,7 @@ Certificate Status: Valid
 
 ### 3.2 Security Headers
 
-**Test**: `curl -I https://wasm.insightlearn.cloud`
+**Test**: `curl -I https://www.insightlearn.cloud`
 
 ✅ **PASS** - Essential security headers present
 
@@ -425,7 +425,7 @@ etag off;
 ✅ **PASS** - Nginx API proxy eliminates CORS issues
 
 **How it works**:
-1. Frontend requests: `https://wasm.insightlearn.cloud/api/*`
+1. Frontend requests: `https://www.insightlearn.cloud/api/*`
 2. Nginx proxies to: `http://api-service.insightlearn.svc.cluster.local:80/api/*`
 3. Browser sees same-origin request (no CORS headers needed)
 
@@ -441,7 +441,7 @@ location /api/ {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto https;
-    proxy_set_header X-Forwarded-Host wasm.insightlearn.cloud;
+    proxy_set_header X-Forwarded-Host www.insightlearn.cloud;
 
     # Timeouts
     proxy_connect_timeout 30s;
@@ -466,8 +466,8 @@ resolver 10.96.0.10 valid=10s;  # kube-dns IP, 10s cache
 **Test**: OPTIONS preflight request to chatbot endpoint
 
 ```bash
-curl -X OPTIONS https://wasm.insightlearn.cloud/api/chat/message \
-  -H "Origin: https://wasm.insightlearn.cloud" \
+curl -X OPTIONS https://www.insightlearn.cloud/api/chat/message \
+  -H "Origin: https://www.insightlearn.cloud" \
   -H "Access-Control-Request-Method: POST"
 ```
 
@@ -515,7 +515,7 @@ kubectl set env deployment/api-deployment OLLAMA_MODEL=phi3:mini
 kubectl rollout restart deployment api-deployment
 
 # 6. Test chatbot again
-curl -X POST https://wasm.insightlearn.cloud/api/chat/message \
+curl -X POST https://www.insightlearn.cloud/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"message":"Test message","contactEmail":"test@example.com"}'
 ```
@@ -557,7 +557,7 @@ Endpoints are configured in `SystemEndpoints` database table but not implemented
 
 But testing shows:
 ```bash
-$ curl -X POST https://wasm.insightlearn.cloud/api/auth/login -d '{}'
+$ curl -X POST https://www.insightlearn.cloud/api/auth/login -d '{}'
 HTTP Status: 404
 ```
 
@@ -600,12 +600,12 @@ HTTP Status: 404
 3. **Test implementation**:
    ```bash
    # Test registration
-   curl -X POST https://wasm.insightlearn.cloud/api/auth/register \
+   curl -X POST https://www.insightlearn.cloud/api/auth/register \
      -H "Content-Type: application/json" \
      -d '{"email":"newuser@test.com","password":"SecurePass123!","fullName":"Test User"}'
 
    # Test login
-   curl -X POST https://wasm.insightlearn.cloud/api/auth/login \
+   curl -X POST https://www.insightlearn.cloud/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"newuser@test.com","password":"SecurePass123!"}'
    ```
@@ -642,7 +642,7 @@ add_header Content-Security-Policy "
     style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
     img-src 'self' data: https:;
     font-src 'self' https://cdnjs.cloudflare.com;
-    connect-src 'self' https://wasm.insightlearn.cloud;
+    connect-src 'self' https://www.insightlearn.cloud;
     frame-ancestors 'self';
     base-uri 'self';
     form-action 'self';
@@ -885,7 +885,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowInsightLearnDomains", policy =>
     {
-        policy.WithOrigins("https://wasm.insightlearn.cloud")
+        policy.WithOrigins("https://www.insightlearn.cloud")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -947,7 +947,7 @@ app.UseCors("AllowInsightLearnDomains");
 #!/bin/bash
 # smoke-test.sh - Quick validation of InsightLearn WASM deployment
 
-BASE_URL="https://wasm.insightlearn.cloud"
+BASE_URL="https://www.insightlearn.cloud"
 
 echo "=== InsightLearn WASM Smoke Test ==="
 
@@ -1002,7 +1002,7 @@ echo "=== Smoke Test Complete ==="
 #!/bin/bash
 # perf-test.sh - Measure endpoint response times
 
-BASE_URL="https://wasm.insightlearn.cloud"
+BASE_URL="https://www.insightlearn.cloud"
 
 echo "=== Performance Test Results ==="
 
@@ -1036,7 +1036,7 @@ done
 **Report Generated**: 2025-11-07 22:55 UTC
 **Test Duration**: ~5 minutes
 **Tools Used**: curl, kubectl, grep
-**Environment**: Production (https://wasm.insightlearn.cloud)
+**Environment**: Production (https://www.insightlearn.cloud)
 
 ---
 

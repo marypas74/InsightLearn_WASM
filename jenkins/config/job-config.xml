@@ -17,7 +17,7 @@ Executes every hour and sends notifications on failure.</description>
         <hudson.model.StringParameterDefinition>
           <name>SITE_URL</name>
           <description>Site URL to test</description>
-          <defaultValue>https://wasm.insightlearn.cloud</defaultValue>
+          <defaultValue>https://www.insightlearn.cloud</defaultValue>
           <trim>true</trim>
         </hudson.model.StringParameterDefinition>
         <hudson.model.ChoiceParameterDefinition>

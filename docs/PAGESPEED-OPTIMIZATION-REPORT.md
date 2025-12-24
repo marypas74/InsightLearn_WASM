@@ -1,7 +1,7 @@
 # PageSpeed Insights Optimization Report
 
 **Data Analisi**: 2025-12-04
-**URL Testato**: https://wasm.insightlearn.cloud
+**URL Testato**: https://www.insightlearn.cloud
 **Tool**: Google PageSpeed Insights
 **Obiettivo**: Score 100/100 in tutte le categorie
 

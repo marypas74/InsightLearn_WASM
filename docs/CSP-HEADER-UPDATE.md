@@ -13,7 +13,7 @@ add_header Content-Security-Policy "default-src 'self';
     style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
     img-src 'self' data: https:;
     font-src 'self' https://cdnjs.cloudflare.com;
-    connect-src 'self' https://wasm.insightlearn.cloud https://a.nel.cloudflare.com;
+    connect-src 'self' https://www.insightlearn.cloud https://a.nel.cloudflare.com;
     frame-ancestors 'self';
     base-uri 'self';
     form-action 'self';" always;
@@ -28,7 +28,7 @@ add_header Content-Security-Policy "default-src 'self';
 | `style-src` | `'self' 'unsafe-inline' cdnjs` | CSS inline e Font Awesome CDN |
 | `img-src` | `'self' data: https:` | Immagini locali, data URIs, HTTPS esterne |
 | `font-src` | `'self' cdnjs` | Font locali e Font Awesome |
-| `connect-src` | `'self' wasm.insightlearn.cloud cloudflare` | API calls e Cloudflare analytics |
+| `connect-src` | `'self' www.insightlearn.cloud cloudflare` | API calls e Cloudflare analytics |
 | `frame-ancestors` | `'self'` | Previene clickjacking |
 | `base-uri` | `'self'` | Limita tag <base> |
 | `form-action` | `'self'` | Form submissions solo stesso origin |
@@ -112,7 +112,7 @@ kubectl exec $POD_NAME -n insightlearn -- nginx -s reload
 
 ### Verifica Header Applicato:
 ```bash
-curl -I https://wasm.insightlearn.cloud | grep -i content-security-policy
+curl -I https://www.insightlearn.cloud | grep -i content-security-policy
 ```
 
 **Output atteso**:
@@ -122,7 +122,7 @@ content-security-policy: default-src 'self'; script-src 'self' 'unsafe-eval' ...
 
 ### Browser DevTools Check:
 
-1. Apri https://wasm.insightlearn.cloud
+1. Apri https://www.insightlearn.cloud
 2. F12 → Console
 3. **Nessun errore CSP**: ✅ Configurazione corretta
 4. **Errori "CSP violation"**: ❌ Aggiustare policy
@@ -196,4 +196,4 @@ Poi implementa endpoint `/csp-violation-report-endpoint` per logging.
 
 **Prossimo Step**: Applicare configurazione a Kubernetes usando Opzione 1 (raccomandato).
 
-**Dopo applicazione**: Verificare con `curl -I https://wasm.insightlearn.cloud | grep -i csp`
+**Dopo applicazione**: Verificare con `curl -I https://www.insightlearn.cloud | grep -i csp`

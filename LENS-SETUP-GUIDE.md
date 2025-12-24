@@ -244,7 +244,7 @@ Prima di chiudere, verifica:
 
 **InsightLearn Application**:
 - **API**: http://localhost:31081 (NodePort)
-- **Frontend**: https://wasm.insightlearn.cloud
+- **Frontend**: https://www.insightlearn.cloud
 - **Grafana**: http://localhost:3000 (port-forward)
 - **Prometheus**: http://localhost:9091 (NodePort)
 

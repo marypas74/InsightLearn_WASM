@@ -3,7 +3,7 @@
 **Documento**: Google Search Console Configuration
 **Data**: 2025-12-16
 **Versione**: 1.0
-**Sito**: https://wasm.insightlearn.cloud
+**Sito**: https://www.insightlearn.cloud
 
 ---
 
@@ -44,7 +44,7 @@ Google Search Console richiede la verifica che tu sia il proprietario del domini
 ### Step 1.2: Scegli Tipo di Proprietà
 
 **Opzione raccomandata**: URL-prefix property
-- Inserisci: `https://wasm.insightlearn.cloud`
+- Inserisci: `https://www.insightlearn.cloud`
 - Clicca **"Continua"**
 
 ### Step 1.3: Verifica con Meta Tag HTML
@@ -60,7 +60,7 @@ Google Search Console richiede la verifica che tu sia il proprietario del domini
 6. Aspetta 2-3 minuti che il deploy sia completato
 7. Torna su Google Search Console e clicca **"Verifica"**
 
-**Esito atteso**: ✅ "Verifica riuscita - Sei il proprietario di https://wasm.insightlearn.cloud"
+**Esito atteso**: ✅ "Verifica riuscita - Sei il proprietario di https://www.insightlearn.cloud"
 
 ---
 
@@ -70,7 +70,7 @@ La sitemap dinamica è fondamentale per far scoprire a Google tutte le pagine de
 
 ### Step 2.1: Verifica Sitemap Funzionante
 
-1. Apri browser e visita: https://wasm.insightlearn.cloud/api/seo/sitemap.xml
+1. Apri browser e visita: https://www.insightlearn.cloud/api/seo/sitemap.xml
 2. Verifica che il file XML venga visualizzato correttamente
 3. Controlla che contenga:
    - 9 URL statici (homepage, courses, categories, about, faq, contact, pricing, instructors, blog)
@@ -83,13 +83,13 @@ La sitemap dinamica è fondamentale per far scoprire a Google tutte le pagine de
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://wasm.insightlearn.cloud/</loc>
+    <loc>https://www.insightlearn.cloud/</loc>
     <lastmod>2025-12-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://wasm.insightlearn.cloud/courses</loc>
+    <loc>https://www.insightlearn.cloud/courses</loc>
     <lastmod>2025-12-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -122,7 +122,7 @@ Per velocizzare l'indicizzazione delle pagine principali, usa il tool di richies
 Per ogni URL importante, richiedi l'indicizzazione manuale:
 
 1. In Google Search Console, vai su **"Controllo URL"** (URL Inspection)
-2. Inserisci l'URL completo (esempio: `https://wasm.insightlearn.cloud/`)
+2. Inserisci l'URL completo (esempio: `https://www.insightlearn.cloud/`)
 3. Clicca **"Testa URL pubblicato"**
 4. Aspetta il risultato del test (30-60 secondi)
 5. Se il test ha esito positivo, clicca **"Richiedi indicizzazione"** (Request Indexing)
@@ -132,13 +132,13 @@ Per ogni URL importante, richiedi l'indicizzazione manuale:
 
 | URL | Priorità | Motivo |
 |-----|----------|--------|
-| https://wasm.insightlearn.cloud/ | 🔴 ALTA | Homepage - pagina più importante |
-| https://wasm.insightlearn.cloud/courses | 🔴 ALTA | Catalogo corsi - pagina chiave per SEO |
-| https://wasm.insightlearn.cloud/about | 🟡 MEDIA | About page - credibilità del sito |
-| https://wasm.insightlearn.cloud/faq | 🟡 MEDIA | FAQ con FAQPage schema (rich snippets) |
-| https://wasm.insightlearn.cloud/contact | 🟡 MEDIA | Contact page - fiducia utenti |
-| https://wasm.insightlearn.cloud/pricing | 🟢 BASSA | Pricing page - conversioni |
-| https://wasm.insightlearn.cloud/instructors | 🟢 BASSA | Become instructor page |
+| https://www.insightlearn.cloud/ | 🔴 ALTA | Homepage - pagina più importante |
+| https://www.insightlearn.cloud/courses | 🔴 ALTA | Catalogo corsi - pagina chiave per SEO |
+| https://www.insightlearn.cloud/about | 🟡 MEDIA | About page - credibilità del sito |
+| https://www.insightlearn.cloud/faq | 🟡 MEDIA | FAQ con FAQPage schema (rich snippets) |
+| https://www.insightlearn.cloud/contact | 🟡 MEDIA | Contact page - fiducia utenti |
+| https://www.insightlearn.cloud/pricing | 🟢 BASSA | Pricing page - conversioni |
+| https://www.insightlearn.cloud/instructors | 🟢 BASSA | Become instructor page |
 
 **Limite**: Puoi richiedere l'indicizzazione di massimo **10 URL al giorno** per sito.
 
@@ -226,7 +226,7 @@ Dopo 7-14 giorni dall'invio della sitemap, inizierai a vedere dati in Google Sea
 
 **Cause possibili**:
 1. Sitemap non ancora elaborata → Aspetta 7 giorni
-2. Robots.txt blocca il crawling → Verifica https://wasm.insightlearn.cloud/robots.txt
+2. Robots.txt blocca il crawling → Verifica https://www.insightlearn.cloud/robots.txt
 3. Contenuto duplicato → Usa tag canonical
 4. Qualità contenuto bassa → Migliora testo e struttura
 
@@ -251,7 +251,7 @@ Dopo 7-14 giorni dall'invio della sitemap, inizierai a vedere dati in Google Sea
 **Causa**: Percorso sitemap errato o file non servito correttamente.
 
 **Soluzione**:
-1. Verifica URL manualmente: https://wasm.insightlearn.cloud/api/seo/sitemap.xml
+1. Verifica URL manualmente: https://www.insightlearn.cloud/api/seo/sitemap.xml
 2. Controlla che nginx serva il file con Content-Type `application/xml`
 3. Verifica che non ci sia redirect 301/302
 4. Re-invia sitemap con percorso corretto
@@ -290,7 +290,7 @@ Prima di chiudere questo documento, verifica di aver completato tutti gli step:
 
 ### Verifica Iniziale
 - [ ] Account Google Search Console creato
-- [ ] Proprietà `https://wasm.insightlearn.cloud` aggiunta
+- [ ] Proprietà `https://www.insightlearn.cloud` aggiunta
 - [ ] Meta tag verifica inserito in index.html (linea 55)
 - [ ] Deploy completato e sito verificato
 

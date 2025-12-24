@@ -1,7 +1,7 @@
 /* ========================================
    Header Professional Enhancements
    Inspired by Coursera/LinkedIn Learning
-   v2.3.5-dev (2025-12-24)
+   v2.3.6-dev (2025-12-24)
 
    Modern styling, smooth animations,
    professional appearance
@@ -468,8 +468,52 @@
         display: flex !important;
     }
 
+    /* FIXED: Keep auth buttons visible on mobile - compact style */
     .auth-buttons {
-        display: none !important;
+        display: flex !important;
+        padding: 4px !important;
+        gap: 6px !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .auth-buttons .btn {
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+    }
+
+    /* Categories dropdown - responsive sizing */
+    .dropdown-menu.categories-menu {
+        min-width: auto !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 350px !important;
+        left: 50% !important;
+        transform: translateX(-50%) translateY(-10px) !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+    }
+
+    .dropdown-menu.categories-menu.show {
+        transform: translateX(-50%) translateY(0) !important;
+    }
+
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+
+    .category-item {
+        padding: 8px 10px !important;
+    }
+
+    .category-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+    }
+
+    .category-label {
+        font-size: 12px !important;
     }
 }
 

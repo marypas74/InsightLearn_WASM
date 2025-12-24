@@ -97,7 +97,7 @@ nano .env
 Dopo il deployment, i servizi sono accessibili su:
 
 #### Applicazione
-- **Frontend WASM**: http://localhost:8080 (o https://wasm.insightlearn.cloud via Cloudflare)
+- **Frontend WASM**: http://localhost:8080 (o https://www.insightlearn.cloud via Cloudflare)
 - **Backend API**: http://localhost:31081 (NodePort) o http://localhost:8081 (port-forward)
 - **API Health**: http://localhost:31081/health
 - **Swagger**: http://localhost:31081/swagger
@@ -141,7 +141,7 @@ Per esporre l'applicazione su Internet con HTTPS:
 cloudflared tunnel run insightlearn
 ```
 
-**Accesso pubblico**: https://wasm.insightlearn.cloud
+**Accesso pubblico**: https://www.insightlearn.cloud
 
 ## Architettura
 

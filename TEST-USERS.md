@@ -103,7 +103,7 @@ curl -X POST http://localhost:31081/api/auth/login \
 
 ### Metodo 3: Via Cloudflare Tunnel
 ```bash
-curl -X POST https://wasm.insightlearn.cloud/api/auth/login \
+curl -X POST https://www.insightlearn.cloud/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "Email": "admin@insightlearn.cloud",

@@ -25,7 +25,7 @@ echo "==================================="
 echo "Summary of the fix:"
 echo "==================================="
 echo "PROBLEM: Login page was receiving absolute URLs in returnUrl parameter"
-echo "         (e.g., 'https://wasm.insightlearn.cloud/admin/dashboard')"
+echo "         (e.g., 'https://www.insightlearn.cloud/admin/dashboard')"
 echo "         causing navigation loop after successful authentication."
 echo ""
 echo "SOLUTION:"
@@ -50,7 +50,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     git commit -m "fix: Resolve login/dashboard navigation loop by sanitizing returnUrl
 
 PROBLEM: Login page was receiving absolute URLs in returnUrl parameter
-(e.g., 'https://wasm.insightlearn.cloud/admin/dashboard') causing a
+(e.g., 'https://www.insightlearn.cloud/admin/dashboard') causing a
 navigation loop after successful authentication.
 
 SOLUTION:

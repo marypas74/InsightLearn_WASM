@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔍 Testing - Production Site Validation
 
 **Test Date**: 2025-11-08 10:00 UTC
-**Site**: https://wasm.insightlearn.cloud
+**Site**: https://www.insightlearn.cloud
 **Test Engineer**: Automated QA Suite
 **Overall Score**: 75/100 - **GOOD** (Frontend operational, Backend issues)
 
@@ -149,7 +149,7 @@ POST /api/generate → 404 (endpoint not found)
 
 3. **Verify**: Test API health after Ollama is fixed
    ```bash
-   curl https://wasm.insightlearn.cloud/health
+   curl https://www.insightlearn.cloud/health
    ```
 
 #### 📊 Performance Metrics

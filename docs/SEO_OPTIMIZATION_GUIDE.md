@@ -2,7 +2,7 @@
 
 **Generated**: 2025-12-02
 **Platform**: Blazor WebAssembly LMS
-**Target Domain**: wasm.insightlearn.cloud
+**Target Domain**: www.insightlearn.cloud
 
 ---
 
@@ -30,22 +30,22 @@
     <meta name="keywords" content="online courses, e-learning platform, professional development, video tutorials, tech courses, business training, skill development">
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/">
+    <link rel="canonical" href="https://www.insightlearn.cloud/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://wasm.insightlearn.cloud/">
+    <meta property="og:url" content="https://www.insightlearn.cloud/">
     <meta property="og:title" content="InsightLearn - Online Courses & Professional Learning">
     <meta property="og:description" content="Access 500+ expert-led online courses in technology, business, design, and more.">
-    <meta property="og:image" content="https://wasm.insightlearn.cloud/images/og-image-homepage.jpg">
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-image-homepage.jpg">
     <meta property="og:site_name" content="InsightLearn">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://wasm.insightlearn.cloud/">
+    <meta name="twitter:url" content="https://www.insightlearn.cloud/">
     <meta name="twitter:title" content="InsightLearn - Online Courses & Professional Learning">
     <meta name="twitter:description" content="Access 500+ expert-led online courses in technology, business, design, and more.">
-    <meta name="twitter:image" content="https://wasm.insightlearn.cloud/images/twitter-card-homepage.jpg">
+    <meta name="twitter:image" content="https://www.insightlearn.cloud/images/twitter-card-homepage.jpg">
 
     <!-- Additional SEO Tags -->
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -69,14 +69,14 @@
     <meta name="description" content="Explore 500+ online courses across 15+ categories: Web Development, Data Science, Business, Design, and more. Filter by skill level, duration, and price. Start learning today!">
     <meta name="keywords" content="online courses catalog, course library, web development courses, data science training, business courses, design tutorials">
 
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/courses">
+    <link rel="canonical" href="https://www.insightlearn.cloud/courses">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://wasm.insightlearn.cloud/courses">
+    <meta property="og:url" content="https://www.insightlearn.cloud/courses">
     <meta property="og:title" content="Browse All Courses - InsightLearn">
     <meta property="og:description" content="Explore 500+ online courses across 15+ categories. Start learning today!">
-    <meta property="og:image" content="https://wasm.insightlearn.cloud/images/og-courses.jpg">
+    <meta property="og:image" content="https://www.insightlearn.cloud/images/og-courses.jpg">
 
     <!-- Breadcrumb Schema (see Structured Data section) -->
 </head>
@@ -98,11 +98,11 @@
     <meta name="description" content="{Course.ShortDescription} Learn {Course.Title} from expert {Instructor.Name}. {Course.Duration}h video lessons • {Course.StudentCount} students enrolled • {Course.Rating}★ rating.">
     <meta name="keywords" content="{Course.Title}, {Course.Category}, {Instructor.Name}, online course, video tutorial">
 
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/courses/{Course.Id}">
+    <link rel="canonical" href="https://www.insightlearn.cloud/courses/{Course.Id}">
 
     <!-- Open Graph -->
     <meta property="og:type" content="article">
-    <meta property="og:url" content="https://wasm.insightlearn.cloud/courses/{Course.Id}">
+    <meta property="og:url" content="https://www.insightlearn.cloud/courses/{Course.Id}">
     <meta property="og:title" content="{Course.Title} - {Instructor.Name}">
     <meta property="og:description" content="{Course.ShortDescription}">
     <meta property="og:image" content="{Course.ThumbnailUrl}">
@@ -142,7 +142,7 @@
     <meta name="description" content="Browse courses by category: Web Development, Data Science, Business, Design, Marketing, IT & Software, Personal Development, and more. Find your perfect learning path.">
     <meta name="keywords" content="course categories, learning paths, course topics, skill categories, professional development areas">
 
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/categories">
+    <link rel="canonical" href="https://www.insightlearn.cloud/categories">
 </head>
 ```
 
@@ -157,7 +157,7 @@
     <meta name="description" content="Search through 500+ online courses by keyword, instructor, category, or skill level. Advanced filters help you find the perfect course for your learning goals.">
     <meta name="robots" content="noindex, follow">
 
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/search">
+    <link rel="canonical" href="https://www.insightlearn.cloud/search">
 </head>
 ```
 
@@ -173,7 +173,7 @@
     <meta name="description" content="Sign in to InsightLearn to access your courses, track progress, and continue learning.">
     <meta name="robots" content="noindex, nofollow">
 
-    <link rel="canonical" href="https://wasm.insightlearn.cloud/login">
+    <link rel="canonical" href="https://www.insightlearn.cloud/login">
 </head>
 ```
 
@@ -272,8 +272,8 @@
   "provider": {
     "@type": "Organization",
     "name": "InsightLearn",
-    "url": "https://wasm.insightlearn.cloud",
-    "logo": "https://wasm.insightlearn.cloud/icon-192.png"
+    "url": "https://www.insightlearn.cloud",
+    "logo": "https://www.insightlearn.cloud/icon-192.png"
   },
   "instructor": {
     "@type": "Person",
@@ -294,7 +294,7 @@
     "price": "{Course.Price}",
     "priceCurrency": "EUR",
     "availability": "https://schema.org/InStock",
-    "url": "https://wasm.insightlearn.cloud/courses/{Course.Id}",
+    "url": "https://www.insightlearn.cloud/courses/{Course.Id}",
     "validFrom": "{Course.CreatedAt}"
   },
   "aggregateRating": {
@@ -340,13 +340,13 @@
   "provider": {
     "@type": "Organization",
     "name": "InsightLearn",
-    "url": "https://wasm.insightlearn.cloud"
+    "url": "https://www.insightlearn.cloud"
   },
   "instructor": {
     "@type": "Person",
     "name": "John Smith"
   },
-  "image": "https://wasm.insightlearn.cloud/images/courses/react-typescript.jpg",
+  "image": "https://www.insightlearn.cloud/images/courses/react-typescript.jpg",
   "educationalLevel": "Intermediate",
   "offers": {
     "@type": "Offer",
@@ -374,8 +374,8 @@
   "@type": "EducationalOrganization",
   "name": "InsightLearn",
   "alternateName": "InsightLearn LMS",
-  "url": "https://wasm.insightlearn.cloud",
-  "logo": "https://wasm.insightlearn.cloud/icon-192.png",
+  "url": "https://www.insightlearn.cloud",
+  "logo": "https://www.insightlearn.cloud/icon-192.png",
   "description": "InsightLearn is a modern online learning platform offering 500+ courses in technology, business, design, and professional development.",
   "address": {
     "@type": "PostalAddress",
@@ -411,25 +411,25 @@
       "@type": "ListItem",
       "position": 1,
       "name": "Home",
-      "item": "https://wasm.insightlearn.cloud/"
+      "item": "https://www.insightlearn.cloud/"
     },
     {
       "@type": "ListItem",
       "position": 2,
       "name": "Courses",
-      "item": "https://wasm.insightlearn.cloud/courses"
+      "item": "https://www.insightlearn.cloud/courses"
     },
     {
       "@type": "ListItem",
       "position": 3,
       "name": "{Course.Category}",
-      "item": "https://wasm.insightlearn.cloud/courses?category={CategoryId}"
+      "item": "https://www.insightlearn.cloud/courses?category={CategoryId}"
     },
     {
       "@type": "ListItem",
       "position": 4,
       "name": "{Course.Title}",
-      "item": "https://wasm.insightlearn.cloud/courses/{CourseId}"
+      "item": "https://www.insightlearn.cloud/courses/{CourseId}"
     }
   ]
 }
@@ -445,12 +445,12 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "url": "https://wasm.insightlearn.cloud",
+  "url": "https://www.insightlearn.cloud",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {
       "@type": "EntryPoint",
-      "urlTemplate": "https://wasm.insightlearn.cloud/search?q={search_term_string}"
+      "urlTemplate": "https://www.insightlearn.cloud/search?q={search_term_string}"
     },
     "query-input": "required name=search_term_string"
   }
@@ -548,7 +548,7 @@
 1. **hreflang Tags**
    - If you expand to multiple languages
    ```html
-   <link rel="alternate" hreflang="en" href="https://wasm.insightlearn.cloud/courses/123" />
+   <link rel="alternate" hreflang="en" href="https://www.insightlearn.cloud/courses/123" />
    <link rel="alternate" hreflang="es" href="https://es.insightlearn.cloud/courses/123" />
    ```
 

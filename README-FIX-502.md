@@ -70,7 +70,7 @@ Dovresti vedere una risposta JSON con un token JWT.
 
 ## 🌐 Test Login Web
 
-1. Vai a: https://wasm.insightlearn.cloud/login
+1. Vai a: https://www.insightlearn.cloud/login
 2. Inserisci:
    - Email: `admin@insightlearn.cloud`
    - Password: `Admin@InsightLearn2025!`

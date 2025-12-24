@@ -118,8 +118,8 @@ Per recensioni corsi:
   "provider": {
     "@type": "EducationalOrganization",
     "name": "InsightLearn",
-    "url": "https://wasm.insightlearn.cloud",
-    "logo": "https://wasm.insightlearn.cloud/images/logo.png"
+    "url": "https://www.insightlearn.cloud",
+    "logo": "https://www.insightlearn.cloud/images/logo.png"
   },
   "hasCourseInstance": {
     "@type": "CourseInstance",

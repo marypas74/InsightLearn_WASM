@@ -8,7 +8,7 @@ spec:
     - web
   routes:
     # API routes - MUST come first (more specific)
-    - match: Host(`wasm.insightlearn.cloud`) && PathPrefix(`/api`)
+    - match: Host(`www.insightlearn.cloud`) && PathPrefix(`/api`)
       kind: Rule
       services:
         - name: api-service
@@ -16,7 +16,7 @@ spec:
       priority: 100
 
     # Health endpoint
-    - match: Host(`wasm.insightlearn.cloud`) && PathPrefix(`/health`)
+    - match: Host(`www.insightlearn.cloud`) && PathPrefix(`/health`)
       kind: Rule
       services:
         - name: api-service
@@ -24,7 +24,7 @@ spec:
       priority: 99
 
     # Frontend - catch all other paths
-    - match: Host(`wasm.insightlearn.cloud`)
+    - match: Host(`www.insightlearn.cloud`)
       kind: Rule
       services:
         - name: insightlearn-wasm-blazor-webassembly

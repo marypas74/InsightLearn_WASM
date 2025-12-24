@@ -2,7 +2,7 @@
 
 ## Problem Summary
 Users were experiencing an infinite redirect loop after successful login:
-1. Login at `https://wasm.insightlearn.cloud/login`
+1. Login at `https://www.insightlearn.cloud/login`
 2. API returns JWT token successfully (HTTP 200)
 3. User redirected to `/login?returnUrl=/dashboard` instead of dashboard
 4. Login page appears again - infinite loop
@@ -83,7 +83,7 @@ Added comprehensive logging to track authentication flow:
 
 ### Quick Test
 1. Open browser DevTools (F12) → Console tab
-2. Navigate to: https://wasm.insightlearn.cloud/login
+2. Navigate to: https://www.insightlearn.cloud/login
 3. Login with credentials
 4. Watch console for:
    ```
@@ -108,7 +108,7 @@ console.log('Expires:', new Date(payload.exp * 1000));
 ```
 
 ### Test Page
-Navigate to: https://wasm.insightlearn.cloud/test-localstorage.html
+Navigate to: https://www.insightlearn.cloud/test-localstorage.html
 - Comprehensive localStorage testing
 - Token validation
 - Auth state verification

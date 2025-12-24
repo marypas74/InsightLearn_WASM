@@ -122,7 +122,7 @@ http://localhost:31090
 
 **Cloudflare Tunnel** (production):
 ```
-https://wasm.insightlearn.cloud
+https://www.insightlearn.cloud
 ```
 
 ---

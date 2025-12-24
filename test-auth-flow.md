@@ -62,7 +62,7 @@ localStorage.clear();
 sessionStorage.clear();
 ```
 
-2. Navigate to: https://wasm.insightlearn.cloud/login
+2. Navigate to: https://www.insightlearn.cloud/login
 
 3. Login with test credentials:
    - Email: admin@insightlearn.cloud
@@ -124,7 +124,7 @@ console.log('Token:', localStorage.getItem('InsightLearn.AuthToken'));
 ### Common Issues:
 
 1. **Token not saving**: Check browser localStorage is enabled
-2. **CORS errors**: Verify API allows origin https://wasm.insightlearn.cloud
+2. **CORS errors**: Verify API allows origin https://www.insightlearn.cloud
 3. **JWT expired**: Token validity is 7 days by default
 4. **Wrong localStorage key**: Should be "InsightLearn.AuthToken"
 

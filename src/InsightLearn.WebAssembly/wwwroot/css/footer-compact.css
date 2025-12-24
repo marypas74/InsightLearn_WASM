@@ -1,0 +1,402 @@
+/* ========================================
+   FOOTER COMPACT - UDEMY/COURSERA DARK STYLE
+   Modern compact footer with dark theme
+   ======================================== */
+
+/* CSS Variables - Dark Theme */
+:root {
+    /* Dark footer colors - Udemy inspired */
+    --footer-bg-dark: #1c1d1f;
+    --footer-bg-darker: #0f1011;
+    --footer-text-primary: #f5f5f5;
+    --footer-text-secondary: #d1d5db;
+    --footer-text-muted: #9ca3af;
+    --footer-link-hover: #ffffff;
+    --footer-border: rgba(255, 255, 255, 0.1);
+    --footer-purple: #a435f0;
+    --footer-purple-hover: #8710d8;
+
+    /* Spacing */
+    --footer-padding-y: 40px;
+    --footer-section-gap: 32px;
+    --footer-link-spacing: 10px;
+}
+
+/* ===== MAIN FOOTER CONTAINER ===== */
+/* Override existing .main-footer for compact dark style */
+.main-footer.b2c-footer {
+    background: linear-gradient(180deg, var(--footer-bg-dark) 0%, var(--footer-bg-darker) 100%);
+    color: var(--footer-text-secondary);
+    padding: var(--footer-padding-y) 0 0 0;
+    border-top: 3px solid var(--footer-purple);
+    margin-top: 60px;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ===== FOOTER CONTENT - 4 COLUMN COMPACT ===== */
+/* Udemy-style compact grid */
+.footer-content {
+    display: grid;
+    grid-template-columns: 2fr repeat(4, 1fr);
+    gap: var(--footer-section-gap);
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--footer-border);
+}
+
+/* Footer sections */
+.footer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ===== BRAND SECTION ===== */
+/* Company info - 2x width */
+.footer-brand {
+    grid-column: span 1;
+}
+
+.footer-logo-img {
+    height: 32px;
+    width: auto;
+    margin-bottom: 12px;
+    filter: brightness(0) invert(1);
+}
+
+.footer-description {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--footer-text-muted);
+    margin: 0 0 16px 0;
+    max-width: 280px;
+}
+
+/* ===== SOCIAL LINKS ===== */
+/* Inline compact social icons - Udemy style */
+.footer-social {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--footer-text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.social-link:hover {
+    background: var(--footer-purple);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+/* ===== FOOTER HEADINGS ===== */
+/* Compact headings */
+.footer-heading {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--footer-text-primary);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== FOOTER LINKS ===== */
+/* Compact link lists */
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--footer-link-spacing);
+}
+
+.footer-links li {
+    margin: 0;
+}
+
+.footer-link {
+    color: var(--footer-text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: all 0.15s ease;
+    display: inline-block;
+    position: relative;
+}
+
+.footer-link::before {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--footer-purple);
+    transition: width 0.2s ease;
+}
+
+.footer-link:hover {
+    color: var(--footer-link-hover);
+    transform: translateX(3px);
+}
+
+.footer-link:hover::before {
+    width: 100%;
+}
+
+/* ===== FOOTER BOTTOM ===== */
+/* Copyright + badges - compact single row */
+.footer-bottom {
+    padding: 20px 0;
+    background: var(--footer-bg-darker);
+}
+
+.footer-bottom-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.footer-copyright {
+    font-size: 13px;
+    color: var(--footer-text-muted);
+    margin: 0;
+}
+
+/* ===== TRUST BADGES ===== */
+/* Inline compact badges - Udemy style */
+.footer-badges {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--footer-text-muted);
+    white-space: nowrap;
+}
+
+.footer-badge i {
+    font-size: 14px;
+    color: var(--footer-purple);
+}
+
+/* ===== RESPONSIVE - TABLET ===== */
+@media (max-width: 1024px) {
+    .footer-content {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    .footer-brand {
+        grid-column: span 3;
+        max-width: none;
+    }
+
+    .footer-description {
+        max-width: 100%;
+    }
+}
+
+/* ===== RESPONSIVE - MOBILE ===== */
+@media (max-width: 768px) {
+    .main-footer.b2c-footer {
+        padding: 32px 0 0 0;
+    }
+
+    .footer-container {
+        padding: 0 16px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        padding-bottom: 24px;
+    }
+
+    .footer-brand {
+        grid-column: span 1;
+        text-align: left;
+    }
+
+    .footer-logo-img {
+        height: 28px;
+    }
+
+    .footer-description {
+        font-size: 12px;
+    }
+
+    .footer-social {
+        justify-content: flex-start;
+    }
+
+    .footer-heading {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .footer-links {
+        gap: 8px;
+    }
+
+    .footer-link {
+        font-size: 12px;
+    }
+
+    .footer-bottom-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .footer-badges {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .footer-badge {
+        font-size: 11px;
+    }
+}
+
+/* ===== RESPONSIVE - SMALL MOBILE ===== */
+@media (max-width: 480px) {
+    .main-footer.b2c-footer {
+        padding: 24px 0 0 0;
+        margin-top: 40px;
+    }
+
+    .footer-content {
+        gap: 24px;
+    }
+
+    .footer-section {
+        gap: 12px;
+    }
+
+    .social-link {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .footer-bottom {
+        padding: 16px 0;
+    }
+
+    .footer-copyright {
+        font-size: 11px;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .main-footer {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border-top: 1px solid #000000 !important;
+        padding: 20px 0 !important;
+    }
+
+    .footer-social,
+    .footer-badges {
+        display: none !important;
+    }
+
+    .footer-link {
+        color: #000000 !important;
+    }
+}
+
+/* ===== ACCESSIBILITY ===== */
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .main-footer.b2c-footer {
+        border-top-width: 4px;
+    }
+
+    .footer-link {
+        text-decoration: underline;
+    }
+
+    .social-link {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .footer-link,
+    .social-link,
+    .footer-link::before {
+        transition: none !important;
+    }
+
+    .footer-link:hover,
+    .social-link:hover {
+        transform: none !important;
+    }
+}
+
+/* ===== FOCUS STATES ===== */
+/* Keyboard navigation */
+.footer-link:focus,
+.social-link:focus {
+    outline: 2px solid var(--footer-purple);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+/* ===== DARK MODE OVERRIDE ===== */
+/* Ensure footer stays dark even if user prefers light mode */
+@media (prefers-color-scheme: light) {
+    .main-footer.b2c-footer {
+        background: linear-gradient(180deg, var(--footer-bg-dark) 0%, var(--footer-bg-darker) 100%);
+        color: var(--footer-text-secondary);
+    }
+}
+
+/* ===== ADDITIONAL COMPACT ADJUSTMENTS ===== */
+/* Further reduce spacing for ultra-compact feel */
+.footer-content {
+    padding-bottom: 28px;
+}
+
+.footer-section {
+    gap: 14px;
+}
+
+.footer-links {
+    gap: 9px;
+}
+
+.footer-heading {
+    margin-bottom: 10px;
+}
+
+/* Total estimated height: ~250px (vs original ~400px) */

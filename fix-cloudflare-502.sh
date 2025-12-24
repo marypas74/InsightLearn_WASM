@@ -26,13 +26,13 @@ echo "SS1-Temp1234" | sudo -S systemctl status cloudflared-tunnel.service --no-p
 echo ""
 echo "5. Testing API endpoints..."
 echo "Test /api/info:"
-curl -s https://wasm.insightlearn.cloud/api/info | jq -r '.name, .status' || echo "FAIL"
+curl -s https://www.insightlearn.cloud/api/info | jq -r '.name, .status' || echo "FAIL"
 
 echo ""
 echo "Test /api/auth/login:"
-curl -s -X POST https://wasm.insightlearn.cloud/api/auth/login \
+curl -s -X POST https://www.insightlearn.cloud/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test"}' | jq .
 
 echo ""
-echo "✅ Fix completed! Try login at https://wasm.insightlearn.cloud"
+echo "✅ Fix completed! Try login at https://www.insightlearn.cloud"

@@ -1,36 +1,47 @@
 /* ========================================
-   GDPR Cookie Banner - Professional Style
-   Inspired by Udemy/Coursera/LinkedIn Learning
-   v2.3.5-dev (2025-12-24)
+   GDPR Cookie Banner - Udemy/Coursera Style
+   v2.3.7-dev (2025-12-24)
 
-   Horizontal bottom banner (NOT full-screen modal)
-   Clean, minimal, GDPR compliant
+   Professional bottom banner
+   Mobile-first responsive
+   GDPR/CCPA compliant
    ======================================== */
 
-/* ===== RESET: Hide modal elements, convert to bottom banner ===== */
+/* ===== CRITICAL: Hidden state ===== */
+.cookie-wall-overlay.hidden,
+.cookie-wall-overlay[style*="display: none"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
 
-/* Convert overlay from full-screen modal to bottom banner */
-.cookie-wall-overlay {
+#static-cookie-wall.hidden,
+#static-cookie-wall[style*="display: none"] {
+    display: none !important;
+}
+
+/* ===== OVERLAY: Bottom banner positioning ===== */
+.cookie-wall-overlay:not(.hidden) {
     position: fixed !important;
-    top: auto !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    top: auto !important;
     width: 100% !important;
     height: auto !important;
     min-height: auto !important;
     max-height: none !important;
     background: transparent !important;
     backdrop-filter: none !important;
-    display: flex !important;
-    align-items: flex-end !important;
-    justify-content: center !important;
-    padding: 0 !important;
     z-index: 999999 !important;
-    animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    display: block !important;
+    animation: gdprSlideUp 0.3s ease-out forwards;
 }
 
-/* Container - full width bottom bar */
+/* ===== CONTAINER ===== */
 .cookie-wall-container {
     width: 100% !important;
     max-width: 100% !important;
@@ -38,134 +49,123 @@
     margin: 0 !important;
 }
 
-/* Modal becomes horizontal bar */
+/* ===== MODAL: White bar with shadow ===== */
 .cookie-wall-modal {
     width: 100% !important;
     max-width: 100% !important;
-    min-height: auto !important;
-    max-height: none !important;
+    background: #ffffff !important;
+    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.12) !important;
+    border-top: 3px solid #a435f0 !important;
     border-radius: 0 !important;
     margin: 0 !important;
-    background: #ffffff !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
-    border-top: 3px solid #a435f0 !important;
-    overflow: visible !important;
+    padding: 0 !important;
 }
 
-/* Content becomes horizontal flex */
+/* ===== CONTENT: Horizontal layout ===== */
 .cookie-modal-content {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
-    grid-template-columns: none !important;
-    gap: 24px !important;
-    padding: 16px 32px !important;
-    min-height: auto !important;
+    gap: 20px !important;
+    padding: 14px 24px !important;
     max-width: 1400px !important;
     margin: 0 auto !important;
+    min-height: auto !important;
 }
 
-/* ===== HIDE AI Avatar Section completely ===== */
+/* ===== HIDE: AI Avatar section ===== */
 .ai-avatar-section {
     display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    position: absolute !important;
-    pointer-events: none !important;
 }
 
-/* Cookie content takes all space */
+/* ===== COOKIE CONTENT SECTION ===== */
 .cookie-content-section {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
     width: 100% !important;
-    flex: 1 !important;
-    gap: 24px !important;
+    gap: 20px !important;
     padding: 0 !important;
     background: transparent !important;
-    border-radius: 0 !important;
 }
 
-/* ===== HEADER: Cookie icon + Title inline ===== */
+/* ===== HEADER: Logo + Title ===== */
 .cookie-wall-header {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     gap: 12px !important;
+    flex-shrink: 0 !important;
     padding: 0 !important;
     background: transparent !important;
-    border-radius: 0 !important;
+}
+
+/* Logo wrapper */
+.cookie-logo-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     flex-shrink: 0 !important;
 }
 
-.cookie-icon-wrapper {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-.cookie-icon {
-    font-size: 28px !important;
+/* Logo image */
+.gdpr-logo {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 6px !important;
+    object-fit: contain !important;
     display: block !important;
 }
 
+/* Hide old cookie icon */
+.cookie-icon-wrapper,
+.cookie-icon {
+    display: none !important;
+}
+
+/* Title */
 .cookie-wall-title {
-    font-size: 16px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     color: #1c1d1f !important;
     margin: 0 !important;
     white-space: nowrap !important;
+    line-height: 1.3 !important;
 }
 
+/* Hide subtitle in compact mode */
 .cookie-wall-subtitle {
     display: none !important;
 }
 
-/* ===== BODY: Description text ===== */
+/* ===== BODY: Hidden in compact mode ===== */
 .cookie-wall-body {
-    flex: 1 !important;
-    padding: 0 !important;
-    min-width: 0 !important;
-}
-
-.cookie-simple-info {
-    max-width: 100% !important;
-}
-
-.cookie-description {
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    color: #6a6f73 !important;
-    margin: 0 !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-}
-
-/* Hide features grid in compact mode */
-.cookie-features-grid {
     display: none !important;
 }
 
-/* ===== FOOTER: Buttons row ===== */
+.cookie-simple-info,
+.cookie-description,
+.cookie-features-grid,
+.cookie-settings-content,
+.cookie-categories {
+    display: none !important;
+}
+
+/* ===== FOOTER: Buttons ===== */
 .cookie-wall-footer {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
     padding: 0 !important;
     background: transparent !important;
-    border-radius: 0 !important;
-    border-top: none !important;
-    flex-shrink: 0 !important;
+    border: none !important;
 }
 
-/* Hide links in compact mode */
+/* Hide policy links in compact mode */
 .cookie-links {
     display: none !important;
 }
@@ -175,50 +175,48 @@
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 10px !important;
+    gap: 8px !important;
     flex-wrap: nowrap !important;
 }
 
-/* ===== BUTTON STYLES ===== */
+/* ===== BUTTON BASE STYLES ===== */
 .cookie-actions button {
-    padding: 10px 20px !important;
+    padding: 8px 16px !important;
     border-radius: 4px !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.15s ease !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 6px !important;
-    border: none !important;
-    min-width: auto !important;
     white-space: nowrap !important;
     line-height: 1.4 !important;
+    min-height: 36px !important;
 }
 
-/* Hide button icons for cleaner look */
+/* Hide button icons */
 .btn-icon {
     display: none !important;
 }
 
-/* Cookie Settings - Subtle gray */
+/* Cookie Settings - Light gray */
 .btn-cookie-settings {
     background: #f7f9fa !important;
-    color: #1c1d1f !important;
+    color: #5c5c5c !important;
     border: 1px solid #d1d7dc !important;
 }
 
 .btn-cookie-settings:hover {
     background: #e8eaed !important;
-    border-color: #b4b9be !important;
+    color: #1c1d1f !important;
 }
 
-/* Reject All - Equal prominence (GDPR compliant) */
+/* Reject All - Outlined (GDPR: equal prominence) */
 .btn-cookie-reject {
     background: #ffffff !important;
     color: #1c1d1f !important;
-    border: 2px solid #1c1d1f !important;
+    border: 1.5px solid #1c1d1f !important;
 }
 
 .btn-cookie-reject:hover {
@@ -226,30 +224,27 @@
     color: #ffffff !important;
 }
 
-/* Accept All - Primary purple (Udemy style) */
+/* Accept All - Primary purple */
 .btn-cookie-accept,
 .btn-cookie-accept-all-settings {
     background: #a435f0 !important;
     color: #ffffff !important;
     border: none !important;
-    box-shadow: none !important;
 }
 
 .btn-cookie-accept:hover,
 .btn-cookie-accept-all-settings:hover {
     background: #8710d8 !important;
-    transform: none !important;
-    box-shadow: 0 2px 8px rgba(164, 53, 240, 0.3) !important;
 }
 
-/* Focus states for accessibility */
+/* Focus states */
 .cookie-actions button:focus {
     outline: 2px solid #a435f0 !important;
     outline-offset: 2px !important;
 }
 
-/* ===== SLIDE UP ANIMATION ===== */
-@keyframes slideUpBanner {
+/* ===== ANIMATION ===== */
+@keyframes gdprSlideUp {
     from {
         transform: translateY(100%);
         opacity: 0;
@@ -260,52 +255,27 @@
     }
 }
 
-/* ===== RESPONSIVE: TABLET ===== */
-@media (max-width: 1024px) {
-    .cookie-modal-content {
-        padding: 16px 24px !important;
-        gap: 16px !important;
-    }
-
-    .cookie-description {
-        -webkit-line-clamp: 1 !important;
-    }
-}
-
-/* ===== RESPONSIVE: MOBILE ===== */
+/* ===== MOBILE: Stack vertically ===== */
 @media (max-width: 768px) {
     .cookie-modal-content {
         flex-direction: column !important;
-        align-items: stretch !important;
-        padding: 16px 20px !important;
+        align-items: center !important;
+        padding: 16px !important;
         gap: 12px !important;
     }
 
     .cookie-content-section {
         flex-direction: column !important;
-        align-items: stretch !important;
+        align-items: center !important;
         gap: 12px !important;
+        width: 100% !important;
     }
 
     .cookie-wall-header {
         justify-content: center !important;
     }
 
-    .cookie-wall-title {
-        font-size: 15px !important;
-    }
-
-    .cookie-wall-body {
-        text-align: center !important;
-    }
-
-    .cookie-description {
-        font-size: 13px !important;
-        -webkit-line-clamp: 2 !important;
-    }
-
     .cookie-wall-footer {
-        flex-direction: column !important;
         width: 100% !important;
     }
 
@@ -317,37 +287,30 @@
 
     .cookie-actions button {
         width: 100% !important;
-        padding: 12px 20px !important;
+        padding: 12px 16px !important;
+        font-size: 14px !important;
     }
 }
 
-/* ===== RESPONSIVE: SMALL MOBILE ===== */
+/* ===== SMALL MOBILE ===== */
 @media (max-width: 480px) {
     .cookie-modal-content {
-        padding: 14px 16px !important;
+        padding: 14px 12px !important;
     }
 
-    .cookie-icon {
-        font-size: 24px !important;
+    .gdpr-logo {
+        width: 32px !important;
+        height: 32px !important;
     }
 
     .cookie-wall-title {
         font-size: 14px !important;
     }
-
-    .cookie-description {
-        font-size: 12px !important;
-    }
-
-    .cookie-actions button {
-        font-size: 13px !important;
-        padding: 11px 16px !important;
-    }
 }
 
 /* ===== ACCESSIBILITY ===== */
 @media (prefers-reduced-motion: reduce) {
-    .cookie-wall-overlay {
+    .cookie-wall-overlay:not(.hidden) {
         animation: none !important;
     }
 
@@ -356,13 +319,12 @@
     }
 }
 
-/* High contrast mode */
 @media (prefers-contrast: high) {
     .cookie-wall-modal {
         border-top-width: 4px !important;
     }
 
     .btn-cookie-reject {
-        border-width: 3px !important;
+        border-width: 2px !important;
     }
 }

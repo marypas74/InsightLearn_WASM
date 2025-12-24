@@ -21,7 +21,7 @@
 ## 🔐 SICUREZZA E PROTEZIONE
 
 ### HTTPS/TLS
-- ✅ Cloudflare Tunnel attivo: `https://wasm.insightlearn.cloud`
+- ✅ Cloudflare Tunnel attivo: `https://www.insightlearn.cloud`
 - ✅ Certificati TLS validi (Cloudflare managed)
 - ✅ Tutte le chiamate API su HTTPS funzionanti
 - ✅ No mixed content warnings

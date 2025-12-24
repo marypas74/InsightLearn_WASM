@@ -460,6 +460,8 @@
     <link rel="stylesheet" href="css/header-v2.css" />
     <!-- B2B Enterprise Landing Page - CRITICAL: loads after base styles -->
     <link rel="stylesheet" href="css/enterprise-b2b.css" />
+    <!-- Header Professional - CRITICAL: prevents Chrome FOUC (v2.3.8 fix) -->
+    <link rel="stylesheet" href="css/header-professional.css" />
 
     <!-- ==========================================================================
          DEFERRED CSS - Load asynchronously (below-the-fold)
@@ -478,9 +480,9 @@
     <link rel="stylesheet" href="css/cookie-consent-wall.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/gdpr-compact-mode.css" media="print" onload="this.media='all'" />
 
-    <!-- Professional UI Overrides - Udemy/Coursera/LinkedIn Style (v2.3.5) -->
+    <!-- Professional UI Overrides - Udemy/Coursera/LinkedIn Style (v2.3.8) -->
+    <!-- NOTE: header-professional.css moved to CRITICAL section above to prevent Chrome FOUC -->
     <link rel="stylesheet" href="css/gdpr-banner-professional.css" media="print" onload="this.media='all'" />
-    <link rel="stylesheet" href="css/header-professional.css" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="css/footer-professional.css" media="print" onload="this.media='all'" />
 
     <!-- Page-specific CSS (deferred) -->
@@ -599,12 +601,12 @@
                     </div>
                     <div class="cookie-content-section">
                         <div class="cookie-wall-header">
-                            <div class="cookie-icon-wrapper">
-                                <span class="cookie-icon">🍪</span>
+                            <div class="cookie-logo-wrapper">
+                                <img src="icon-192.png" alt="InsightLearn" class="gdpr-logo" />
                             </div>
                             <h1 class="cookie-wall-title">We value your privacy</h1>
                             <p class="cookie-wall-subtitle">
-                                Please wait while we load your personalized experience...
+                                InsightLearn uses cookies to enhance your learning experience
                             </p>
                         </div>
                         <div class="cookie-wall-body">
@@ -779,6 +781,13 @@
                 document.body.style.overflow = '';
                 console.log('[STATIC-GDPR] Static wall hidden, consent saved');
             }
+
+            // Also hide any Blazor cookie wall overlay (in case Blazor already loaded)
+            var blazorWalls = document.querySelectorAll('.cookie-wall-overlay');
+            blazorWalls.forEach(function(wall) {
+                wall.classList.add('hidden');
+                console.log('[STATIC-GDPR] Blazor wall also hidden');
+            });
         }
 
         (function() {

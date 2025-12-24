@@ -4,7 +4,7 @@
 
 set -e
 
-SITE_URL="${SITE_URL:-https://wasm.insightlearn.cloud}"
+SITE_URL="${SITE_URL:-https://www.insightlearn.cloud}"
 INTERVAL="${1:-60}"  # Default: check every 60 seconds
 LOG_FILE="monitoring-$(date +%Y%m%d).log"
 ALERT_FILE="alerts-$(date +%Y%m%d).log"
@@ -142,7 +142,7 @@ check_ssl_certificate() {
     log_message "INFO" "Checking SSL certificate..."
 
     # Get certificate expiry date
-    expiry=$(echo | openssl s_client -servername wasm.insightlearn.cloud -connect wasm.insightlearn.cloud:443 2>/dev/null | openssl x509 -noout -dates | grep notAfter | cut -d= -f2)
+    expiry=$(echo | openssl s_client -servername www.insightlearn.cloud -connect www.insightlearn.cloud:443 2>/dev/null | openssl x509 -noout -dates | grep notAfter | cut -d= -f2)
 
     if [ -z "$expiry" ]; then
         log_message "WARN" "Could not retrieve SSL certificate expiry"

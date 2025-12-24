@@ -8,7 +8,7 @@
 
 ## 📊 Executive Summary
 
-L'analisi SEO del sito **InsightLearn WASM** (https://wasm.insightlearn.cloud) ha rilevato **5 problemi critici** che impedivano la corretta indicizzazione su Google Search Console.
+L'analisi SEO del sito **InsightLearn WASM** (https://www.insightlearn.cloud) ha rilevato **5 problemi critici** che impedivano la corretta indicizzazione su Google Search Console.
 
 **Stato Attuale**:
 - ❌ **sitemap.xml**: Non deployato (serviva index.html)
@@ -36,7 +36,7 @@ L'analisi SEO del sito **InsightLearn WASM** (https://wasm.insightlearn.cloud) h
 **Dettaglio**:
 ```bash
 # Test eseguito:
-curl https://wasm.insightlearn.cloud/sitemap.xml
+curl https://www.insightlearn.cloud/sitemap.xml
 
 # Risultato ATTESO:
 <?xml version="1.0" encoding="UTF-8"?>
@@ -120,12 +120,12 @@ Actual Content-Type:   text/html                    # ❌ ERRATO
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://wasm.insightlearn.cloud/</loc>
+        <loc>https://www.insightlearn.cloud/</loc>
         <lastmod>2025-12-05</lastmod>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://wasm.insightlearn.cloud/courses</loc>
+        <loc>https://www.insightlearn.cloud/courses</loc>
         <lastmod>2025-12-05</lastmod>
         <priority>0.9</priority>
     </url>
@@ -172,17 +172,17 @@ Actual Content-Type:   text/html                    # ❌ ERRATO
 **Dettaglio**:
 ```txt
 # robots.txt (OLD) dichiarava:
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml
-Sitemap: https://wasm.insightlearn.cloud/sitemap-courses.xml   # ❌ File non esiste
+Sitemap: https://www.insightlearn.cloud/sitemap.xml
+Sitemap: https://www.insightlearn.cloud/sitemap-courses.xml   # ❌ File non esiste
 
 # Test eseguito:
-curl -I https://wasm.insightlearn.cloud/sitemap-courses.xml
+curl -I https://www.insightlearn.cloud/sitemap-courses.xml
 # Risultato: HTTP 200 ma serve index.html (SPA fallback)
 ```
 
 **Soluzione Applicata**:
 - ✅ **robots.txt aggiornato**: Rimosso riferimento a sitemap-courses.xml
-- ✅ **Singolo sitemap**: Solo `Sitemap: https://wasm.insightlearn.cloud/sitemap.xml`
+- ✅ **Singolo sitemap**: Solo `Sitemap: https://www.insightlearn.cloud/sitemap.xml`
 
 **Raccomandazione Futura**:
 - 📝 **Sitemap Index**: Creare `/sitemap-index.xml` con riferimenti a:
@@ -259,7 +259,7 @@ Allow: /cookie-policy
 Allow: /terms-of-service
 
 # Sitemap
-Sitemap: https://wasm.insightlearn.cloud/sitemap.xml
+Sitemap: https://www.insightlearn.cloud/sitemap.xml
 ```
 
 ---
@@ -371,7 +371,7 @@ Dopo il deployment, verificare:
 
 ```bash
 # sitemap.xml
-curl -I https://wasm.insightlearn.cloud/sitemap.xml
+curl -I https://www.insightlearn.cloud/sitemap.xml
 
 # Expected HTTP headers:
 HTTP/2 200
@@ -381,7 +381,7 @@ Cache-Control: public, max-age=86400
 
 ```bash
 # robots.txt
-curl -I https://wasm.insightlearn.cloud/robots.txt
+curl -I https://www.insightlearn.cloud/robots.txt
 
 # Expected HTTP headers:
 HTTP/2 200
@@ -393,19 +393,19 @@ Cache-Control: public, max-age=86400
 
 ```bash
 # Verify sitemap.xml content
-curl -s https://wasm.insightlearn.cloud/sitemap.xml | head -15
+curl -s https://www.insightlearn.cloud/sitemap.xml | head -15
 
 # Expected output:
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://wasm.insightlearn.cloud/</loc>
+        <loc>https://www.insightlearn.cloud/</loc>
         <lastmod>2025-12-05</lastmod>
 ```
 
 ```bash
 # Verify robots.txt content
-curl -s https://wasm.insightlearn.cloud/robots.txt | head -15
+curl -s https://www.insightlearn.cloud/robots.txt | head -15
 
 # Expected output:
 # InsightLearn LMS Platform - Robots.txt
@@ -416,7 +416,7 @@ curl -s https://wasm.insightlearn.cloud/robots.txt | head -15
 
 1. **Submit Sitemap**:
    - URL: https://search.google.com/search-console/sitemaps
-   - Add sitemap URL: `https://wasm.insightlearn.cloud/sitemap.xml`
+   - Add sitemap URL: `https://www.insightlearn.cloud/sitemap.xml`
    - Click "Submit"
 
 2. **Verify Indexing**:

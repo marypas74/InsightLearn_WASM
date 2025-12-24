@@ -11,7 +11,7 @@
 Browser console shows errors like:
 ```
 Uncaught (in promise) TypeError: can't access property "out", e is undefined
-Failed to load resource: https://wasm.insightlearn.cloud/_framework/dotnet.runtime.8.0.21.e3uzc18eok.js (404)
+Failed to load resource: https://www.insightlearn.cloud/_framework/dotnet.runtime.8.0.21.e3uzc18eok.js (404)
 ```
 
 **Note the typo**: `e3uzc18eok` (with number `1`) instead of the correct `e3uzcl8eok` (with letter `l`).
@@ -74,14 +74,14 @@ Should show files with correct hash: `e3uzcl8eok` (with lowercase `l`)
 
 ### Check Cloudflare Cache Status
 ```bash
-curl -sI https://wasm.insightlearn.cloud/_framework/blazor.webassembly.js | grep -i "cf-cache"
+curl -sI https://www.insightlearn.cloud/_framework/blazor.webassembly.js | grep -i "cf-cache"
 ```
 
 After purge, should show: `cf-cache-status: MISS` or `cf-cache-status: DYNAMIC`
 
 ### Test API Connectivity
 ```bash
-curl -s https://wasm.insightlearn.cloud/api/system/endpoints | head -20
+curl -s https://www.insightlearn.cloud/api/system/endpoints | head -20
 ```
 
 Should return JSON with endpoints (not error).
@@ -110,7 +110,7 @@ location /_framework/ {
 Consider adding a Page Rule to bypass cache for `/_framework/*`:
 
 1. Go to Cloudflare Dashboard → Rules → Page Rules
-2. Create rule for `*wasm.insightlearn.cloud/_framework/*`
+2. Create rule for `*www.insightlearn.cloud/_framework/*`
 3. Set: **Cache Level: Bypass**
 4. Save and deploy
 
@@ -182,7 +182,7 @@ curl -X POST "https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache" 
 # Check if files are being served from cache
 for file in blazor.webassembly.js dotnet.js dotnet.runtime.8.0.21.e3uzcl8eok.js; do
   echo "Checking $file:"
-  curl -sI "https://wasm.insightlearn.cloud/_framework/$file" | grep -E "cf-cache|cache-control"
+  curl -sI "https://www.insightlearn.cloud/_framework/$file" | grep -E "cf-cache|cache-control"
 done
 ```
 

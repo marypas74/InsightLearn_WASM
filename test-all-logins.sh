@@ -4,7 +4,7 @@
 # Verifica autenticazione e ruoli
 
 API_URL="http://localhost:31081"
-CLOUDFLARE_URL="https://wasm.insightlearn.cloud"
+CLOUDFLARE_URL="https://www.insightlearn.cloud"
 
 echo "========================================"
 echo "   TEST LOGIN INSIGHTLEARN PLATFORM    "

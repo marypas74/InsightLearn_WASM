@@ -14,7 +14,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: wasm.insightlearn.cloud
+  - host: www.insightlearn.cloud
     http:
       paths:
       # API routes - must come first (more specific)

@@ -20,7 +20,7 @@ fi
 echo "Starting kubectl port-forward..."
 echo "API will be accessible at:"
 echo "  • http://localhost"
-echo "  • http://wasm.insightlearn.cloud (via Cloudflare)"
+echo "  • http://www.insightlearn.cloud (via Cloudflare)"
 echo ""
 echo "Press Ctrl+C to stop"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

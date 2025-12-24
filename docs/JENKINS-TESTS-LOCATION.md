@@ -98,7 +98,7 @@ jenkins/scripts/
 **Schedule**: Domenica 2:00 AM (`0 2 * * 0`)
 
 **Parameters**:
-- `SITE_URL` - Target URL (default: https://wasm.insightlearn.cloud)
+- `SITE_URL` - Target URL (default: https://www.insightlearn.cloud)
 - `LOAD_LEVEL` - heavy/medium/light/stress
 - `EMAIL_RECIPIENTS` - Email per notifiche
 
@@ -144,7 +144,7 @@ cd /home/mpasqui/insightlearn_WASM/InsightLearn_WASM
 ./jenkins/scripts/load-test.sh medium
 
 # Output:
-# Testing https://wasm.insightlearn.cloud
+# Testing https://www.insightlearn.cloud
 # Mode: medium (25 concurrent, 100 total requests)
 #
 # Results:
@@ -243,7 +243,7 @@ Load Test Report - InsightLearn Platform
 =========================================
 Date: 2025-11-08 18:20:07
 Mode: medium (25 concurrent, 100 total requests)
-Site: https://wasm.insightlearn.cloud
+Site: https://www.insightlearn.cloud
 Endpoint: /
 
 Test Results:
@@ -302,10 +302,10 @@ curl -s http://localhost:32000/api/json | jq '.jobs[] | .name'
 
 ```bash
 # Verifica site è accessibile
-curl -I https://wasm.insightlearn.cloud
+curl -I https://www.insightlearn.cloud
 
 # Verifica DNS
-nslookup wasm.insightlearn.cloud
+nslookup www.insightlearn.cloud
 
 # Test diretto API (bypassa CDN)
 curl http://localhost:31090/api/info
@@ -320,7 +320,7 @@ curl http://localhost:31090/api/info
 I test usano queste variabili (configurate in Jenkinsfile):
 
 ```bash
-SITE_URL=https://wasm.insightlearn.cloud
+SITE_URL=https://www.insightlearn.cloud
 EMAIL_RECIPIENTS=marcello.pasqui@gmail.com
 SLACK_CHANNEL=#insightlearn-alerts  # Optional
 ```

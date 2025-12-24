@@ -144,7 +144,7 @@ EOF
 # External access check (optional, can be slow)
 EXTERNAL_ACCESS=0
 if command -v curl &>/dev/null; then
-    if curl -s -m 5 https://wasm.insightlearn.cloud/health >/dev/null 2>&1; then
+    if curl -s -m 5 https://www.insightlearn.cloud/health >/dev/null 2>&1; then
         EXTERNAL_ACCESS=1
     fi
 fi

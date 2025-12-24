@@ -220,8 +220,8 @@ else
 fi
 
 # Check external access
-if curl -s -m 5 https://wasm.insightlearn.cloud/health >/dev/null 2>&1; then
-    echo "  ✓ External access: OK (https://wasm.insightlearn.cloud)"
+if curl -s -m 5 https://www.insightlearn.cloud/health >/dev/null 2>&1; then
+    echo "  ✓ External access: OK (https://www.insightlearn.cloud)"
 else
     echo "  ℹ External access: not reachable (tunnel may be down or DNS propagating)"
 fi

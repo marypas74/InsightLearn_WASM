@@ -15,7 +15,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_URL="${1:-https://wasm.insightlearn.cloud}"
+BASE_URL="${1:-https://www.insightlearn.cloud}"
 LOGIN_ENDPOINT="${BASE_URL}/login"
 DASHBOARD_ENDPOINT="${BASE_URL}/admin/dashboard"
 

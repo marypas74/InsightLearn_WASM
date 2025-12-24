@@ -146,9 +146,9 @@ Il sistema di disaster recovery include il **ripristino automatico del tunnel Cl
 
 Dopo restore, questi endpoint saranno accessibili via Cloudflare:
 
-- **Frontend**: https://wasm.insightlearn.cloud/
-- **API**: https://wasm.insightlearn.cloud/api/
-- **Health Check**: https://wasm.insightlearn.cloud/health
+- **Frontend**: https://www.insightlearn.cloud/
+- **API**: https://www.insightlearn.cloud/api/
+- **Health Check**: https://www.insightlearn.cloud/health
 
 **Note**: Propagazione DNS può richiedere 30-60 secondi dopo restart.
 
@@ -395,7 +395,7 @@ kubectl get events --all-namespaces --sort-by='.lastTimestamp' | tail -20
 
 ### Problema: Cloudflare Tunnel non si riavvia dopo restore
 
-**Sintomi**: Cluster ripristinato ma `https://wasm.insightlearn.cloud` non accessibile (504 Gateway Timeout)
+**Sintomi**: Cluster ripristinato ma `https://www.insightlearn.cloud` non accessibile (504 Gateway Timeout)
 
 **Diagnosi**:
 ```bash

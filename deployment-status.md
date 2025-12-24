@@ -110,9 +110,9 @@ curl http://127.0.0.1:40249/        # ✅ Funziona
 sudo minikube tunnel
 
 # Poi configura /etc/hosts:
-echo "$(minikube ip) wasm.insightlearn.cloud" | sudo tee -a /etc/hosts
+echo "$(minikube ip) www.insightlearn.cloud" | sudo tee -a /etc/hosts
 
-# Accedi a: http://wasm.insightlearn.cloud
+# Accedi a: http://www.insightlearn.cloud
 ```
 
 #### OPZIONE 3: Passare a Docker (Non Consigliato)
@@ -183,7 +183,7 @@ kubectl top pods -n insightlearn
 4. **k8s/04-redis-deployment.yaml** - Immagine fully-qualified
 5. **k8s/13-mongodb-statefulset.yaml** - Immagine fully-qualified
 6. **k8s/12-ollama-deployment.yaml** - Immagini nginx e curl fully-qualified
-7. **k8s/08-ingress.yaml** - Host cambiato a wasm.insightlearn.cloud
+7. **k8s/08-ingress.yaml** - Host cambiato a www.insightlearn.cloud
 8. **k8s/01-secrets.yaml** - Password generate con openssl rand
 
 ---
@@ -200,7 +200,7 @@ kubectl top pods -n insightlearn
 - Non critico per funzionamento base
 
 ### 3. Configurare DNS Reale
-- Puntare wasm.insightlearn.cloud all'IP pubblico del server
+- Puntare www.insightlearn.cloud all'IP pubblico del server
 - Configurare Ingress con certificati Let's Encrypt
 
 ### 4. Backup Automatico

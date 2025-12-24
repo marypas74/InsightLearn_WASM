@@ -30,12 +30,12 @@
                     <!-- Cookie Content Section (RIGHT) -->
                     <div class="cookie-content-section">
                         <div class="cookie-wall-header">
-                            <div class="cookie-icon-wrapper">
-                                <span class="cookie-icon">🍪</span>
+                            <div class="cookie-logo-wrapper">
+                                <img src="icon-192.png" alt="InsightLearn" class="gdpr-logo" />
                             </div>
                             <h1 class="cookie-wall-title">We value your privacy</h1>
                             <p class="cookie-wall-subtitle">
-                                Your privacy matters to us. We use cookies to enhance your experience, analyze site traffic, and personalize content.
+                                InsightLearn uses cookies to enhance your learning experience
                             </p>
                         </div>
 
@@ -543,12 +543,37 @@
 
             await JSRuntime.InvokeVoidAsync("cookieConsentWall.saveConsent", preferences);
 
-            // Hide the wall
+            // Hide the wall immediately
             showWall = false;
             showDetailedSettings = false;
 
-            // Apply consent to third-party scripts
-            await ApplyConsent();
+            // Force UI re-render to hide the wall
+            StateHasChanged();
+
+            // CRITICAL: Force hide ALL cookie walls via JS (both static and Blazor)
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                    // Hide static wall from index.html
+                    var staticWall = document.getElementById('static-cookie-wall');
+                    if (staticWall) {
+                        staticWall.style.display = 'none';
+                        staticWall.classList.add('hidden');
+                    }
+                    // Hide ALL Blazor cookie wall overlays
+                    document.querySelectorAll('.cookie-wall-overlay').forEach(function(el) {
+                        el.style.display = 'none';
+                        el.classList.add('hidden');
+                    });
+                    // Restore body scroll
+                    document.body.style.overflow = '';
+                    console.log('[GDPR] All cookie walls hidden');
+                ");
+            }
+            catch { /* Ignore JS errors */ }
+
+            // Apply consent to third-party scripts (non-blocking)
+            _ = ApplyConsent();
 
             Console.WriteLine("[COOKIE-WALL] Consent saved successfully, wall hidden");
         }

@@ -70,7 +70,7 @@ Click **"Save"**
 ```
 [Pipeline] Start
 [Pipeline] stage: Preparation
-✅ Testing site: https://wasm.insightlearn.cloud
+✅ Testing site: https://www.insightlearn.cloud
 
 [Pipeline] stage: Health Check
 ✅ Main site: 200

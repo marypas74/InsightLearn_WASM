@@ -139,7 +139,7 @@ Run the provided script:
 
 ### 2. Test Login Flow
 
-1. Navigate to: `https://wasm.insightlearn.cloud/login`
+1. Navigate to: `https://www.insightlearn.cloud/login`
 2. Enter admin credentials:
    - Email: `admin@insightlearn.cloud`
    - Password: `Admin123!@#`

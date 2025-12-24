@@ -1,7 +1,7 @@
 #!/bin/bash
 ###############################################################################
 # Install InsightLearn API proxy as systemd service
-# This makes the API accessible at https://wasm.insightlearn.cloud automatically
+# This makes the API accessible at https://www.insightlearn.cloud automatically
 ###############################################################################
 
 set -e
@@ -59,7 +59,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "✅ API is now accessible at:"
 echo "   • http://localhost"
-echo "   • https://wasm.insightlearn.cloud"
+echo "   • https://www.insightlearn.cloud"
 echo ""
 echo "📊 Service management:"
 echo "   sudo systemctl status insightlearn-proxy"

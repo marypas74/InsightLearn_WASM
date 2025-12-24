@@ -22,7 +22,7 @@
 
 ### Criticità da Risolvere
 - ❌ **Google Search Console**: codice verifica placeholder (`VERIFICATION_CODE`)
-- ❌ **Canonical URL inconsistente**: mix di `wasm.insightlearn.cloud` e `www.insightlearn.cloud`
+- ❌ **Canonical URL inconsistente**: mix di `www.insightlearn.cloud` e `www.insightlearn.cloud`
 - ❌ **Sitemap dinamici mancanti**: `sitemap-courses.xml` e `sitemap-index.xml` referenziati ma non esistenti
 - ❌ **Snapshot SEO troppo minimali**: mancano contenuti ricchi e schema markup completi
 - ❌ **Nessuna pagina indicizzata su Google** (0 risultati per site:insightlearn.cloud)
@@ -37,14 +37,14 @@
 ### FASE 1: Fix Critici Immediati (Priorità ALTA)
 
 #### 1.1 Correzione URL Canonical [CRITICO]
-**Problema**: Mix di domini (`wasm.insightlearn.cloud` vs `www.insightlearn.cloud`)
+**Problema**: Mix di domini (`www.insightlearn.cloud` vs `www.insightlearn.cloud`)
 **File da modificare**:
 - `src/InsightLearn.WebAssembly/wwwroot/index.html`
 - `src/InsightLearn.WebAssembly/wwwroot/seo-snapshots/*.html`
 
 **Azioni**:
 ```
-RICERCA: wasm.insightlearn.cloud
+RICERCA: www.insightlearn.cloud
 SOSTITUISCI: www.insightlearn.cloud
 ```
 
@@ -336,7 +336,7 @@ curl -X POST "https://api.indexnow.org/indexnow" \
 ## 📋 CHECKLIST DI IMPLEMENTAZIONE
 
 ### Fase 1 - Fix Critici
-- [ ] Sostituire tutti `wasm.insightlearn.cloud` con `www.insightlearn.cloud`
+- [ ] Sostituire tutti `www.insightlearn.cloud` con `www.insightlearn.cloud`
 - [ ] Ottenere codice verifica Google Search Console
 - [ ] Sostituire `VERIFICATION_CODE` in index.html
 - [ ] Creare sitemap-index.xml

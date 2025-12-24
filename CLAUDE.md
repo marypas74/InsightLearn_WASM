@@ -21,19 +21,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 #    Esempio: 2.2.0 → 2.2.1 (patch), 2.2.1 → 2.3.0 (minor), 2.3.0 → 3.0.0 (major)
 
 # 2. Build con la NUOVA versione
-podman build -f Dockerfile.wasm -t localhost/insightlearn/wasm:2.2.1-dev .
+podman build -f Dockerfile.wasm -t localhost/insightlearn/wasm:X.X.X-dev .
 
-# 3. Export e import in K3s
-podman save localhost/insightlearn/wasm:2.2.1-dev -o /tmp/wasm.tar
-echo 'PASSWORD' | sudo -S /usr/local/bin/k3s ctr images import /tmp/wasm.tar
+# 3. Export e import in K3s (NOTA: richiedere password sudo all'utente se necessario)
+rm -f /tmp/wasm.tar
+podman save localhost/insightlearn/wasm:X.X.X-dev -o /tmp/wasm.tar
+echo '$SUDO_PASSWORD' | sudo -S /usr/local/bin/k3s ctr images import /tmp/wasm.tar
 
 # 4. Deploy con kubectl set image (USA LA NUOVA VERSIONE!)
 kubectl set image deployment/insightlearn-wasm-blazor-webassembly -n insightlearn \
-    wasm-blazor=localhost/insightlearn/wasm:2.2.1-dev
+    wasm-blazor=localhost/insightlearn/wasm:X.X.X-dev
 
 # 5. Verifica rollout
 kubectl rollout status deployment/insightlearn-wasm-blazor-webassembly -n insightlearn
 ```
+
+### 🔑 Nota sulle Credenziali
+
+Le password sudo **NON devono essere salvate in file di documentazione**.
+Quando necessario, richiedere la password all'utente durante la sessione.
 
 ### ❌ ERRORI DA NON FARE MAI:
 
@@ -93,14 +99,14 @@ Questo previene deploy accidentali e permette verifiche intermedie quando necess
 
 **InsightLearn WASM** è una piattaforma LMS enterprise completa con frontend Blazor WebAssembly e backend ASP.NET Core.
 
-**Versione corrente**: `2.2.9-dev` (definita in [Directory.Build.props](/Directory.Build.props))
+**Versione corrente**: `2.3.6-dev` (definita in [Directory.Build.props](/Directory.Build.props))
 **Stack**: .NET 8, Blazor WebAssembly, ASP.NET Core Web API, C# 12
 **Business Model**: **B2B/IaaS** - E-Learning Infrastructure Platform (pivot from B2C 2025-12-23)
 **Security Score**: **10/10** (OWASP, PCI DSS, NIST compliant)
 **Build Status**: ✅ **0 Errors, 0 Warnings** (Frontend + Backend)
 **Code Quality**: **10/10** (21 backend errors FIXED in v2.1.0-dev)
 **Deployment Status**: ✅ **PRODUCTION READY** (deployed 2025-12-16 23:00, emergency recovery 2025-12-18, arch optimization 2025-12-20)
-**Latest Release**: 🏢 B2B/IaaS Pivot v2.2.9-dev (2025-12-23) - Complete business model transformation from B2C (selling courses) to B2B/IaaS (selling e-learning infrastructure). New enterprise-focused UI with SOC2/GDPR/HIPAA compliance messaging, 99.99% SLA, white-label solutions, API-first architecture, multi-tenant support. Previous: GDPR Responsive v2.2.5-dev.
+**Latest Release**: 🛠️ Mobile Header & Chrome FOUC Fix v2.3.8-dev (2025-12-24) - Fixed mobile navigation visibility (Categories, Courses, Login, Sign Up), Categories dropdown responsive sizing, Chrome hero formatting (moved header-professional.css to critical loading). Previous: GDPR Cookie Consent Fix v2.3.7-dev.
 **SEO Status**: ⚠️ **EARLY-STAGE** - Competitive Score 2.5/10 vs Top 10 LMS (Technical SEO: 7.9/10, not yet indexed on Google)
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing enabled (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **Google Indexing**: ❌ **PENDING** - site:insightlearn.cloud returns 0 results (2025-12-12)
@@ -108,7 +114,9 @@ Questo previene deploy accidentali e permette verifiche intermedie quando necess
 **SEO Components**: 3 Blazor components for dynamic SEO (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **SEO Strategy**: [SEO-COMPETITIVE-ANALYSIS-2025-12-12.md](docs/SEO-COMPETITIVE-ANALYSIS-2025-12-12.md) - Piano 12 mesi per Top 10
 
-✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.2.9-dev`.
+✅ **Versioning Unificato**: [Program.cs](src/InsightLearn.Application/Program.cs) legge la versione dinamicamente dall'assembly usando `System.Reflection`, sincronizzato con [Directory.Build.props](Directory.Build.props). Versione corrente: `2.3.8-dev`.
+
+📚 **Competencies Master File**: [skill.md](skill.md) - Documento master con tutte le competenze apprese durante lo sviluppo (K8s, CSS, Blazor, troubleshooting patterns).
 
 ### 🏢 B2B/IaaS Business Model Pivot (v2.2.9-dev - 2025-12-23)
 
@@ -1447,7 +1455,7 @@ Professional student learning environment with AI-powered features inspired by L
 
       # Test login (dovrebbe dare sempre HTTP 200)
       curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-        https://wasm.insightlearn.cloud/api/auth/login \
+        https://www.insightlearn.cloud/api/auth/login \
         -H "Content-Type: application/json" \
         -d '{"email":"admin@insightlearn.cloud","password":"PASSWORD"}'
       ```
@@ -4762,11 +4770,11 @@ Browse Courses → Add to Cart → View Cart → Apply Coupon → Checkout → P
 **IndexNow**: ✅ **ACTIVE** - Bing/Yandex instant indexing (key: `ebd57a262cfe8ff8de852eba65288c19`)
 **IndexNow Script**: ✅ **NEW** - `scripts/submit-indexnow.sh` for batch URL submission
 **Google Search Console**: Ready for sitemap submission (use www.insightlearn.cloud)
-**Canonical Domain**: **www.insightlearn.cloud** (NOT wasm.insightlearn.cloud)
+**Canonical Domain**: **www.insightlearn.cloud** (NOT www.insightlearn.cloud)
 **Sitemap URLs**: **47+ URLs** (expanded from 7 - 2025-12-13)
 **SEO Components**: 3 Blazor components (SeoMetaTags, CourseStructuredData, BreadcrumbSchema)
 **JSON-LD Schemas**: 8 types (Organization, WebSite, EducationalOrganization, FAQPage, Course, ContactPage, WebPage, AboutPage)
-**GDPR Module**: ✅ **OPTIMIZED** - Compact mode CSS for faster load (no AI avatar section)
+**GDPR Module**: ✅ **FIXED v2.3.4-dev** - Compact mode CSS `gdpr-compact-mode.css` hides AI avatar section (was causing black rectangle), clean enterprise design
 
 ### SEO-Optimized Pages (2025-12-13 Update)
 
@@ -4916,7 +4924,7 @@ location = / {
 | `wwwroot/seo-snapshots/search.html` | Search page (9KB) | SearchResultsPage, SearchAction, BreadcrumbList |
 | `wwwroot/seo-snapshots/categories.html` | Categories page (11KB) | CollectionPage, ItemList (8 categories), BreadcrumbList |
 
-**All snapshots use canonical domain**: `https://www.insightlearn.cloud/` (NOT wasm.insightlearn.cloud)
+**All snapshots use canonical domain**: `https://www.insightlearn.cloud/` (NOT www.insightlearn.cloud)
 
 **Adding New Snapshots**:
 1. Create HTML file in `src/InsightLearn.WebAssembly/wwwroot/seo-snapshots/`
@@ -4936,10 +4944,10 @@ location = / {
 **Testing Crawler Detection**:
 ```bash
 # Test as Googlebot
-curl -A "Googlebot/2.1" https://wasm.insightlearn.cloud/ | head -20
+curl -A "Googlebot/2.1" https://www.insightlearn.cloud/ | head -20
 
 # Test as regular user
-curl https://wasm.insightlearn.cloud/ | head -20
+curl https://www.insightlearn.cloud/ | head -20
 ```
 
 ### Documentation
@@ -5076,6 +5084,428 @@ if (skeleton) {
 
 ---
 
-**Last Updated**: 2025-12-04
-**Document Version**: 1.4
-**Status**: ✅ 95% Complete - Production Ready
+## 🔌 Claude Code Plugins - Kubernetes Integration
+
+**Status**: ✅ **CONFIGURATO** - Plugin scaricati in `/claude/` directory
+**Data Integrazione**: 2025-12-24
+**Documentazione Plugin**: [claude/plugins-README.md](claude/plugins-README.md)
+
+### Overview
+
+I plugin Claude Code estendono le funzionalità con comandi custom, agenti specializzati e workflow automatizzati. Sono stati integrati per ottimizzare lo sviluppo e il deployment Kubernetes di InsightLearn.
+
+### 📁 Plugin Disponibili
+
+| Plugin | File | Utilizzo per K8s |
+|--------|------|------------------|
+| **code-review** | [claude/code-review.md](claude/code-review.md) | Review automatica PR con CLAUDE.md compliance |
+| **feature-dev** | [claude/feature-dev.md](claude/feature-dev.md) | Sviluppo feature 7 fasi strutturato |
+| **commit-commands** | [claude/commit-commands.md](claude/commit-commands.md) | `/commit`, `/commit-push-pr`, `/clean_gone` |
+| **pr-review-toolkit** | [claude/pr-review-toolkit.md](claude/pr-review-toolkit.md) | 6 agenti review specializzati |
+| **hookify** | [claude/hookify.md](claude/hookify.md) | Regole custom per sicurezza K8s |
+| **plugin-dev** | [claude/plugin-dev.md](claude/plugin-dev.md) | Sviluppo plugin custom |
+| **ralph-wiggum** | [claude/ralph-wiggum.md](claude/ralph-wiggum.md) | Loop iterativi per task complessi |
+| **agent-sdk-dev** | [claude/agent-sdk-dev.md](claude/agent-sdk-dev.md) | Sviluppo Agent SDK |
+| **frontend-design** | [claude/frontend-design.md](claude/frontend-design.md) | Design UI production-grade |
+| **learning-output-style** | [claude/learning-output-style.md](claude/learning-output-style.md) | Modalità apprendimento interattivo |
+| **explanatory-output-style** | [claude/explanatory-output-style.md](claude/explanatory-output-style.md) | Insight educativi |
+| **claude-opus-4-5-migration** | [claude/claude-opus-4-5-migration.md](claude/claude-opus-4-5-migration.md) | Migrazione a Opus 4.5 |
+
+---
+
+### 🚀 Comandi Principali per Kubernetes
+
+#### `/commit` - Commit Intelligente
+```bash
+# Dopo modifiche a manifests K8s
+/commit
+# Claude analizza le modifiche, genera messaggio appropriato
+# Esempio output: "fix(k8s): update API deployment resource limits"
+```
+
+#### `/commit-push-pr` - Workflow Completo
+```bash
+# Crea branch, commit, push e PR in un passo
+/commit-push-pr
+# Genera PR con summary dei cambiamenti K8s e test plan
+```
+
+#### `/code-review` - Review Automatica
+```bash
+# Review PR con 4 agenti paralleli
+/code-review --comment
+# Controlla: CLAUDE.md compliance, bug detection, security issues
+# Threshold: solo issues con confidence ≥80
+```
+
+#### `/feature-dev` - Sviluppo Feature K8s
+```bash
+# Workflow 7 fasi per nuove feature
+/feature-dev Add horizontal pod autoscaling for API deployment
+
+# Fasi:
+# 1. Discovery - Requisiti HPA
+# 2. Codebase Exploration - Analisi manifests esistenti
+# 3. Clarifying Questions - Metriche CPU/Memory, min/max replicas
+# 4. Architecture Design - 3 approcci alternativi
+# 5. Implementation - HPA manifest + deployment update
+# 6. Quality Review - Validazione YAML, best practices K8s
+# 7. Summary - Documentazione modifiche
+```
+
+#### `/ralph-loop` - Task Iterativi K8s
+```bash
+# Per task complessi che richiedono iterazione
+/ralph-loop "Fix all failing pods in insightlearn namespace. Check logs, fix issues, verify pods are Running. Output <promise>ALL_PODS_HEALTHY</promise> when all pods show Ready status." --max-iterations 20 --completion-promise "ALL_PODS_HEALTHY"
+
+# Casi d'uso K8s:
+# - Debug e fix di pod in CrashLoopBackOff
+# - Migrazione database con retry automatico
+# - Rollout graduale con verifica health
+```
+
+---
+
+### 🛡️ Hookify Rules per Kubernetes Security
+
+Creare regole custom per prevenire errori comuni in K8s.
+
+#### Regola: Blocca Delete Namespace Production
+```bash
+/hookify Block kubectl delete namespace insightlearn commands
+```
+
+Crea `.claude/hookify.block-ns-delete.local.md`:
+```markdown
+---
+name: block-namespace-delete
+enabled: true
+event: bash
+pattern: kubectl\s+delete\s+(namespace|ns)\s+insightlearn
+action: block
+---
+
+🛑 **OPERAZIONE BLOCCATA: Delete Namespace Production!**
+
+Stai tentando di eliminare il namespace `insightlearn` in produzione.
+Questa operazione cancellerebbe TUTTI i pod, servizi e dati.
+
+Se vuoi davvero procedere:
+1. Usa `/hookify:configure` per disabilitare temporaneamente
+2. Esegui il comando
+3. Riabilita la regola
+```
+
+#### Regola: Warn su kubectl apply senza --dry-run
+```bash
+/hookify Warn when using kubectl apply without --dry-run flag
+```
+
+Crea `.claude/hookify.warn-no-dryrun.local.md`:
+```markdown
+---
+name: warn-no-dryrun
+enabled: true
+event: bash
+pattern: kubectl\s+apply\s+(?!.*--dry-run)
+action: warn
+---
+
+⚠️ **Attenzione: kubectl apply senza --dry-run**
+
+Considera di usare prima:
+```bash
+kubectl apply -f <file> --dry-run=client -o yaml
+```
+
+Per verificare le modifiche prima di applicarle in produzione.
+```
+
+#### Regola: Blocca Force Delete Pod
+```bash
+/hookify Block force delete pods without grace period
+```
+
+Crea `.claude/hookify.block-force-delete.local.md`:
+```markdown
+---
+name: block-force-delete
+enabled: true
+event: bash
+pattern: kubectl\s+delete\s+pod.*--force.*--grace-period=0
+action: warn
+---
+
+⚠️ **Force Delete Pod Rilevato!**
+
+`--force --grace-period=0` può causare:
+- Dati non salvati persi
+- Connessioni client interrotte bruscamente
+- Stati inconsistenti nel cluster
+
+Considera invece:
+```bash
+kubectl delete pod <name> -n insightlearn --grace-period=30
+```
+```
+
+---
+
+### 🔍 PR Review Toolkit per K8s
+
+6 agenti specializzati per review di codice Kubernetes.
+
+#### Workflow Consigliato per PR K8s
+
+```bash
+# 1. Prima di creare PR - Review generale
+"Review my Kubernetes manifest changes"
+# → Triggera code-reviewer
+
+# 2. Verifica configurazioni
+"Check if the deployment configuration follows best practices"
+# → Analizza resource limits, probes, security context
+
+# 3. Review sicurezza
+"Review error handling in the deployment scripts"
+# → Triggera silent-failure-hunter
+
+# 4. Semplificazione
+"Simplify the Kubernetes manifests"
+# → Triggera code-simplifier - rimuove duplicazioni, migliora leggibilità
+```
+
+#### Agenti Utili per K8s
+
+| Agente | Trigger | Uso K8s |
+|--------|---------|---------|
+| `code-reviewer` | "Review my changes" | Compliance CLAUDE.md, best practices K8s |
+| `silent-failure-hunter` | "Check error handling" | Script deploy, job failures, init containers |
+| `comment-analyzer` | "Check comments" | Documentazione manifests |
+| `code-simplifier` | "Simplify this" | Riduzione duplicazione YAML |
+
+---
+
+### 🏗️ Feature Development per K8s (7 Fasi)
+
+Esempio completo per aggiungere **Monitoring Stack** (Prometheus + Grafana).
+
+```bash
+/feature-dev Add comprehensive monitoring with Prometheus and Grafana for all InsightLearn services
+```
+
+**Fase 1 - Discovery**:
+```
+Claude: Chiarisco i requisiti...
+- Quali metriche vuoi monitorare? (CPU, Memory, Request latency, Custom metrics?)
+- Retention dei dati? (7 giorni, 30 giorni?)
+- Alert necessari? (PagerDuty, Slack, Email?)
+- Dashboards specifiche? (API performance, Database health, Pod status?)
+```
+
+**Fase 2 - Codebase Exploration**:
+```
+Lanciati 2-3 code-explorer agents:
+- "Find existing monitoring configuration in k8s/"
+- "Analyze current Prometheus setup and metrics endpoints"
+- "Map service mesh and ingress configuration"
+
+Risultati:
+- k8s/10-prometheus-deployment.yaml (già presente)
+- k8s/16-grafana-deployment.yaml (già presente)
+- API espone /metrics endpoint (verificato)
+- Mancano: ServiceMonitor, AlertManager, custom dashboards
+```
+
+**Fase 3 - Clarifying Questions**:
+```
+1. ServiceMonitor: Vuoi usare Prometheus Operator o scrape config manuale?
+2. Storage: PVC dedicato per Prometheus data o ephemeral?
+3. Grafana: Provisioning automatico dashboards da ConfigMap?
+4. Alerting: Configurare AlertManager con webhook Slack?
+5. Retention: prometheus.retention.time=7d è sufficiente?
+```
+
+**Fase 4 - Architecture Design** (3 approcci):
+```
+Approccio 1: Minimal - Aggiungi solo scrape config
+Approccio 2: Prometheus Operator - ServiceMonitor + AlertManager
+Approccio 3: Full Stack - Operator + Loki + Tempo (observability completa)
+
+Raccomandazione: Approccio 2 - bilancio tra complessità e funzionalità
+```
+
+**Fase 5 - Implementation**:
+```yaml
+# Nuovi file creati:
+# k8s/21-prometheus-servicemonitor.yaml
+# k8s/22-alertmanager-config.yaml
+# k8s/23-grafana-dashboards-configmap.yaml
+# k8s/24-prometheus-rules.yaml
+```
+
+**Fase 6 - Quality Review**:
+```
+Lanciati 3 code-reviewer agents:
+- YAML syntax validation ✅
+- K8s best practices ✅
+- Resource limits definiti ✅
+- SecurityContext presente ✅
+- Labels consistenti ✅
+
+Issues trovati:
+1. [WARN] Prometheus PVC senza storageClassName esplicito
+2. [WARN] Grafana password in plain text (usare Secret)
+```
+
+**Fase 7 - Summary**:
+```
+Feature Complete: Monitoring Stack
+
+File creati:
+- k8s/21-prometheus-servicemonitor.yaml
+- k8s/22-alertmanager-config.yaml
+- k8s/23-grafana-dashboards-configmap.yaml
+- k8s/24-prometheus-rules.yaml
+
+Modifiche:
+- k8s/10-prometheus-deployment.yaml (aggiunto volume per rules)
+- k8s/16-grafana-deployment.yaml (provisioning dashboards)
+
+Prossimi passi:
+- kubectl apply -f k8s/21-*.yaml -f k8s/22-*.yaml ...
+- Verificare ServiceMonitor discovery
+- Testare alerting con test alert
+```
+
+---
+
+### 🔄 Ralph Loop per Task K8s Complessi
+
+#### Esempio 1: Fix All Failing Pods
+```bash
+/ralph-loop "
+Obiettivo: Tutti i pod in namespace insightlearn devono essere Running e Ready.
+
+Procedura iterativa:
+1. kubectl get pods -n insightlearn - identifica pod non Ready
+2. Per ogni pod non Ready:
+   - kubectl describe pod <name> - analizza eventi
+   - kubectl logs <name> - cerca errori
+   - Identifica root cause (image pull, resource, config)
+   - Applica fix appropriato
+3. Attendi 30 secondi per stabilizzazione
+4. Verifica stato: kubectl get pods -n insightlearn
+5. Se tutti Ready, output <promise>PODS_HEALTHY</promise>
+6. Altrimenti, continua iterazione
+
+Non modificare: sqlserver-0, mongodb-0 (StatefulSets critici)
+" --max-iterations 15 --completion-promise "PODS_HEALTHY"
+```
+
+#### Esempio 2: Database Migration con Retry
+```bash
+/ralph-loop "
+Obiettivo: Applicare migrazione database EF Core con retry automatico.
+
+Procedura:
+1. Verifica SQL Server pod Ready
+2. Esegui: kubectl exec sqlserver-0 -- /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '\$MSSQL_SA_PASSWORD' -C -Q 'SELECT 1'
+3. Se connessione OK, esegui migration script
+4. Verifica tabelle create: SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+5. Se migration completa, output <promise>MIGRATION_DONE</promise>
+6. Se errore, attendi 30s e riprova
+
+Timeout per iterazione: 60 secondi
+" --max-iterations 10 --completion-promise "MIGRATION_DONE"
+```
+
+#### Esempio 3: Rollout con Health Check
+```bash
+/ralph-loop "
+Obiettivo: Rollout nuova versione API con verifica health.
+
+Procedura:
+1. kubectl set image deployment/insightlearn-api -n insightlearn wasm-api=localhost/insightlearn/api:2.2.10-dev
+2. kubectl rollout status deployment/insightlearn-api -n insightlearn --timeout=120s
+3. Attendi 30s per stabilizzazione
+4. curl http://localhost:31081/health - verifica HTTP 200
+5. curl http://localhost:31081/api/info - verifica versione corretta
+6. Se health OK e versione corretta, output <promise>ROLLOUT_SUCCESS</promise>
+7. Se fallisce, kubectl rollout undo e riprova con fix
+
+Criteri successo:
+- Pod 1/1 Ready
+- Health endpoint HTTP 200
+- /api/info mostra versione 2.2.10-dev
+" --max-iterations 5 --completion-promise "ROLLOUT_SUCCESS"
+```
+
+---
+
+### 📋 Checklist Pre-Deploy con Plugin
+
+Prima di ogni deploy K8s, eseguire:
+
+```bash
+# 1. Review codice
+/code-review
+
+# 2. Commit con messaggio appropriato
+/commit
+
+# 3. Se tutto OK, push e PR
+/commit-push-pr
+
+# 4. Dopo merge, cleanup branch
+/clean_gone
+```
+
+---
+
+### 🎯 Best Practices Plugin + K8s
+
+1. **Usa `/feature-dev` per nuove feature K8s**: Le 7 fasi garantiscono design completo
+2. **Configura hookify rules**: Previeni errori critici (delete namespace, force delete)
+3. **Review con confidence scoring**: Solo issues ≥80 sono affidabili
+4. **Ralph loop per debug**: Task iterativi con criteri chiari di successo
+5. **Commit atomici**: Un commit per cambiamento logico
+6. **PR descrittive**: `/commit-push-pr` genera summary automatico
+
+---
+
+### ⚠️ Limitazioni e Avvertenze
+
+1. **Hookify regex**: Usa sintassi Python regex, non bash glob
+2. **Ralph loop**: Sempre usare `--max-iterations` come safety net
+3. **Code review**: Richiede `gh` CLI autenticato per posting commenti
+4. **Feature dev**: Funziona meglio con codebase esistente da analizzare
+5. **Plugin path**: File `.local.md` vanno in `.claude/` nella root del progetto
+
+---
+
+### 📚 Documentazione Completa
+
+Tutti i file README dei plugin sono disponibili in:
+```
+/home/mpasqui/insightlearn_WASM/InsightLearn_WASM/claude/
+├── plugins-README.md          # Overview generale
+├── agent-sdk-dev.md           # SDK development
+├── claude-opus-4-5-migration.md # Migrazione Opus 4.5
+├── code-review.md             # Review automatica PR
+├── commit-commands.md         # Workflow git
+├── explanatory-output-style.md # Insight educativi
+├── feature-dev.md             # Sviluppo feature 7 fasi
+├── frontend-design.md         # Design UI
+├── hookify.md                 # Hook personalizzati
+├── learning-output-style.md   # Apprendimento interattivo
+├── plugin-dev.md              # Sviluppo plugin
+├── pr-review-toolkit.md       # 6 agenti review
+└── ralph-wiggum.md            # Loop iterativi
+```
+
+---
+
+**Last Updated**: 2025-12-24
+**Document Version**: 1.5
+**Status**: ✅ 95% Complete - Production Ready + Claude Code Plugins Integrated
