@@ -67,16 +67,61 @@ kubectl rollout status deployment/NAME -n NAMESPACE --timeout=120s
 
 **Root Cause**: Deferred CSS loading means critical styles aren't applied immediately.
 
-**Solution**: Move critical CSS from deferred section to synchronous loading:
-
+**Solution 1 - Move to Synchronous Loading**:
 ```html
 <!-- CRITICAL section (loads synchronously) -->
 <link rel="stylesheet" href="css/header-professional.css" />
 
 <!-- DEFERRED section (loads async) -->
-<!-- Move non-critical CSS here -->
 <link rel="stylesheet" href="css/footer.css" media="print" onload="this.media='all'" />
 ```
+
+**Solution 2 - Visibility Hidden Pattern** (✅ RECOMMENDED for Blazor WASM):
+```html
+<head>
+    <!-- Hide page until CSS loads -->
+    <style>html{visibility:hidden;opacity:0;}</style>
+</head>
+<body>
+    <!-- At end of body, show page after CSS is ready -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.documentElement.style.visibility = 'visible';
+            document.documentElement.style.opacity = '1';
+        });
+    </script>
+</body>
+```
+
+**Solution 3 - Inline Critical CSS**:
+```html
+<head>
+    <style>
+        /* Inline critical above-the-fold CSS */
+        .main-header { position: sticky; top: 0; background: #fff; }
+        .hero { min-height: 500px; background: linear-gradient(...); }
+    </style>
+</head>
+```
+
+**Solution 4 - Preload Critical Resources**:
+```html
+<link rel="preload" href="css/header-professional.css" as="style" />
+<link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin />
+```
+
+**Blazor WASM Specific (dotnet/aspnetcore#26571)**:
+- Blazor WASM initializes after DOM is parsed
+- CSS loading can race with Blazor initialization
+- Use visibility:hidden pattern + show in Blazor OnAfterRender
+- Or use CSS animation: `html { animation: fadeIn 0.3s ease-in forwards; }`
+
+**Best Practice Checklist**:
+1. ✅ Critical CSS (header, hero, layout) - Synchronous `<link>`
+2. ✅ Non-critical CSS (footer, modals) - Deferred `media="print"`
+3. ✅ Visibility hidden fallback for race conditions
+4. ✅ Preload fonts and critical resources
+5. ✅ Test in incognito mode (no cache)
 
 ### Mobile Navigation Disappearing
 
