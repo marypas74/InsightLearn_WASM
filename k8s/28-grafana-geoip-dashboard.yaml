@@ -1,0 +1,1144 @@
+# =============================================================================
+# Grafana GeoIP Dashboard - Real Visitor Geolocation Tracking
+# InsightLearn WASM - Uses Cloudflare Headers via Loki
+# Created: 2025-12-25
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-geoip-dashboard
+  namespace: insightlearn
+  labels:
+    app: grafana
+    grafana_dashboard: "1"
+data:
+  geoip-dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "displayMode": "lcd",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "sum"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\"} | json | country != \"\" | country != \"-\" [$__interval]))",
+              "legendFormat": "{{country}}",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Requests by Country (Real Visitors)",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "displayMode": "lcd",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "sum"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "sum by (city) (count_over_time({job=\"nginx-geoip\"} | json | city != \"\" | city != \"-\" [$__interval]))",
+              "legendFormat": "{{city}}",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Requests by City",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 8
+          },
+          "id": 3,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\"} | json | country != \"\" | country != \"-\" [$__interval]))",
+              "legendFormat": "{{country}}",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Requests Over Time by Country",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 16
+          },
+          "id": 4,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "{job=\"nginx-geoip\"} | json | line_format \"{{.time}} | {{.cf_ipcountry}} | {{.cf_ipcity}} | {{.cf_connecting_ip}} | {{.request_uri}} | {{.status}}\"",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Recent Requests with GeoIP Data",
+          "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 0,
+            "y": 26
+          },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "sum"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "count_over_time({job=\"nginx-geoip\"} [$__range])",
+              "legendFormat": "Total Requests",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Total Requests",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 8,
+            "y": 26
+          },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "count(count by (country) (count_over_time({job=\"nginx-geoip\"} | json | country != \"\" | country != \"-\" [$__range])))",
+              "legendFormat": "Unique Countries",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Unique Countries",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 16,
+            "y": 26
+          },
+          "id": 7,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki"
+              },
+              "editorMode": "code",
+              "expr": "count(count by (client_ip) (count_over_time({job=\"nginx-geoip\"} | json | client_ip != \"\" [$__range])))",
+              "legendFormat": "Unique Visitors",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "title": "Unique Visitors",
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 32
+          },
+          "id": 20,
+          "panels": [],
+          "title": "💾 Disk Space Monitoring",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 0,
+            "y": 33
+          },
+          "id": 8,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}) * 100)",
+              "legendFormat": "Root /",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Root (/) Disk Usage",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 8,
+            "y": 33
+          },
+          "id": 9,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/boot\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/boot\",fstype!=\"rootfs\"}) * 100)",
+              "legendFormat": "/boot",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "/boot Disk Usage",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 53687091200
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 107374182400
+                  },
+                  {
+                    "color": "green",
+                    "value": 214748364800
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 8,
+            "x": 16,
+            "y": 33
+          },
+          "id": 10,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}",
+              "legendFormat": "Root Available",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Root Available Space",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 39
+          },
+          "id": 11,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "min",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "node_filesystem_avail_bytes{mountpoint=~\"/|/boot\",fstype!=\"rootfs\"}",
+              "legendFormat": "{{mountpoint}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Available Disk Space Over Time",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 10737418240
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 21474836480
+                  },
+                  {
+                    "color": "green",
+                    "value": 53687091200
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 39
+          },
+          "id": 12,
+          "options": {
+            "displayMode": "lcd",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "valueMode": "color"
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "node_filesystem_avail_bytes{mountpoint=~\"/|/boot\",fstype!=\"rootfs\"}",
+              "legendFormat": "{{mountpoint}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Available Space by Partition",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Size"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "bytes"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Available"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "bytes"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Used %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 70
+                        },
+                        {
+                          "color": "orange",
+                          "value": 80
+                        },
+                        {
+                          "color": "red",
+                          "value": 90
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "mode": "lcd",
+                      "type": "gauge"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 47
+          },
+          "id": 13,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Used %"
+              }
+            ]
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "node_filesystem_size_bytes{fstype!=\"rootfs\",fstype!=\"tmpfs\",fstype!=\"overlay\"}",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "Size"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "node_filesystem_avail_bytes{fstype!=\"rootfs\",fstype!=\"tmpfs\",fstype!=\"overlay\"}",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "Available"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "100 - ((node_filesystem_avail_bytes{fstype!=\"rootfs\",fstype!=\"tmpfs\",fstype!=\"overlay\"} / node_filesystem_size_bytes{fstype!=\"rootfs\",fstype!=\"tmpfs\",fstype!=\"overlay\"}) * 100)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "Used"
+            }
+          ],
+          "title": "All Filesystems Overview",
+          "transformations": [
+            {
+              "id": "seriesToColumns",
+              "options": {
+                "byField": "mountpoint"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "__name__": true,
+                  "__name__ 1": true,
+                  "__name__ 2": true,
+                  "__name__ 3": true,
+                  "device": true,
+                  "device 1": true,
+                  "device 2": true,
+                  "device 3": true,
+                  "fstype 1": true,
+                  "fstype 2": true,
+                  "fstype 3": true,
+                  "instance": true,
+                  "instance 1": true,
+                  "instance 2": true,
+                  "instance 3": true,
+                  "job": true,
+                  "job 1": true,
+                  "job 2": true,
+                  "job 3": true,
+                  "mountpoint 1": true,
+                  "mountpoint 2": true,
+                  "mountpoint 3": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Value #Available": 3,
+                  "Value #Size": 2,
+                  "Value #Used": 4,
+                  "fstype": 1,
+                  "mountpoint": 0
+                },
+                "renameByName": {
+                  "Value #Available": "Available",
+                  "Value #Size": "Size",
+                  "Value #Used": "Used %",
+                  "fstype": "Type",
+                  "mountpoint": "Mount Point"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": [
+        "geoip",
+        "analytics",
+        "cloudflare",
+        "disk",
+        "storage"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-24h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "GeoIP Analytics & Disk Monitoring",
+      "uid": "geoip-analytics",
+      "version": 1,
+      "weekStart": ""
+    }

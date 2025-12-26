@@ -3323,9 +3323,21 @@ curl http://localhost:9091/-/healthy   # Prometheus (porta 9091!)
    - Pod CPU/Memory Usage
    - MongoDB Video Storage Size
 
+2. **GeoIP Analytics & Disk Monitoring** (uid: `geoip-analytics`) - **NEW v2.3.13**
+   - Real visitor geolocation from Cloudflare headers (CF-IPCountry, CF-IPCity)
+   - Requests by Country/City (bar gauges)
+   - Requests Over Time by Country (time series)
+   - Recent Requests with GeoIP Data (logs panel)
+   - Total Requests, Unique Countries, Unique Visitors (stats)
+   - Root/Boot Disk Usage gauges (with thresholds 70/80/90%)
+   - Available Space Over Time (time series)
+   - All Filesystems Overview (table with Used % gauge)
+   - **Data Source**: Loki (for GeoIP), Prometheus (for disk metrics)
+
 **File**:
 - [k8s/grafana-dashboard-insightlearn.json](k8s/grafana-dashboard-insightlearn.json) - Dashboard JSON
 - [k8s/17-grafana-dashboard-configmap.yaml](k8s/17-grafana-dashboard-configmap.yaml) - ConfigMap auto-load
+- [k8s/28-grafana-geoip-dashboard.yaml](k8s/28-grafana-geoip-dashboard.yaml) - GeoIP Dashboard ConfigMap (v2.3.13)
 
 **Import Dashboard**:
 ```bash
@@ -3338,7 +3350,59 @@ kubectl apply -f k8s/17-grafana-dashboard-configmap.yaml
 # 3. Seleziona: k8s/grafana-dashboard-insightlearn.json
 ```
 
-**Data Source**: Prometheus (http://prometheus:9090) - configurato automaticamente
+**Data Sources**:
+- Prometheus (http://prometheus:9090) - metriche sistema e applicazione
+- Loki (http://loki:3100) - log aggregation con GeoIP (v2.3.13)
+
+### 📍 Loki + Promtail GeoIP Stack (2025-12-26) - NEW v2.3.13
+
+**Status**: ✅ **OPERATIVO** - Log aggregation con geolocalizzazione visitatori reali
+
+**Architettura**:
+```
+WASM Pod (nginx) → stdout logs → Promtail (DaemonSet) → Loki (Deployment) → Grafana
+                                      ↓
+                              Parse GeoIP from
+                              Cloudflare headers
+```
+
+**Componenti**:
+| Componente | Tipo | Porta | Scopo |
+|------------|------|-------|-------|
+| Loki | Deployment | 3100 | Log storage e query |
+| Promtail | DaemonSet | 9080 | Log collector |
+| NetworkPolicies | - | - | Permettere comunicazione Promtail→Loki |
+
+**File Kubernetes**:
+- [k8s/25-loki-deployment.yaml](k8s/25-loki-deployment.yaml) - Loki Deployment + Service
+- [k8s/26-promtail-daemonset.yaml](k8s/26-promtail-daemonset.yaml) - Promtail DaemonSet + ConfigMap
+- [k8s/27-grafana-loki-datasource.yaml](k8s/27-grafana-loki-datasource.yaml) - Loki datasource per Grafana
+- [k8s/28-grafana-geoip-dashboard.yaml](k8s/28-grafana-geoip-dashboard.yaml) - Dashboard GeoIP + Disk
+- [k8s/29-loki-promtail-networkpolicy.yaml](k8s/29-loki-promtail-networkpolicy.yaml) - NetworkPolicies
+
+**Header Cloudflare Processati**:
+- `CF-Connecting-IP`: IP reale del client
+- `CF-IPCountry`: Codice paese ISO (ES, IT, US, etc.)
+- `CF-IPCity`: Città del client
+- `CF-IPContinent`: Continente
+
+**Verifica Stack**:
+```bash
+# Verifica Loki riceve dati
+kubectl exec -n insightlearn deployment/loki -- wget -qO- \
+  'http://localhost:3100/loki/api/v1/labels'
+# Output: {"status":"success","data":["city","country","job","namespace","status"]}
+
+# Query dati GeoIP
+kubectl exec -n insightlearn deployment/loki -- wget -qO- \
+  'http://localhost:3100/loki/api/v1/query?query=sum%20by%20(country)%20(count_over_time({job="nginx-geoip"}[1h]))'
+```
+
+**Problema Risolto - NetworkPolicies**:
+Se Promtail mostra `context deadline exceeded`, le NetworkPolicies bloccano il traffico. Applicare:
+```bash
+kubectl apply -f k8s/29-loki-promtail-networkpolicy.yaml
+```
 
 ### 🔧 Service Watchdog (2025-01-08)
 

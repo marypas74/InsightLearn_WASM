@@ -1,0 +1,179 @@
+# =============================================================================
+# Promtail - Log Collector with Cloudflare GeoIP Processing
+# InsightLearn WASM - Grafana GeoIP Solution
+# Created: 2025-12-25
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: insightlearn
+  labels:
+    app: promtail
+data:
+  promtail-config.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      # =======================================================================
+      # WASM Nginx Access Logs with Cloudflare GeoIP Headers
+      # Reads from Kubernetes pod logs (nginx outputs to stdout)
+      # =======================================================================
+      - job_name: nginx-geoip
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: nginx-geoip
+              namespace: insightlearn
+              __path__: /var/log/pods/insightlearn_insightlearn-wasm-blazor-webassembly-*/wasm-blazor/*.log
+        pipeline_stages:
+          # Parse CRI log format: TIMESTAMP stdout F JSON_LOG
+          - regex:
+              expression: '^(?P<timestamp>\S+) (?P<stream>stdout|stderr) (?P<flags>\S+) (?P<content>.*)$'
+          # Extract JSON from content field (only process lines with GeoIP JSON)
+          - match:
+              selector: '{job="nginx-geoip"}'
+              stages:
+                - json:
+                    source: content
+                    expressions:
+                      time: time
+                      remote_addr: remote_addr
+                      cf_connecting_ip: cf_connecting_ip
+                      cf_ipcountry: cf_ipcountry
+                      cf_ipcity: cf_ipcity
+                      cf_ipcontinent: cf_ipcontinent
+                      request_uri: request_uri
+                      status: status
+                      request_time: request_time
+                      user_agent: user_agent
+                # Add labels for Grafana queries (only if country is not empty)
+                - labels:
+                    country: cf_ipcountry
+                    city: cf_ipcity
+                    status:
+
+      # =======================================================================
+      # Kubernetes Pod Logs (General - All insightlearn namespace)
+      # =======================================================================
+      - job_name: kubernetes-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: kubernetes-pods
+              namespace: insightlearn
+              __path__: /var/log/pods/insightlearn_*/*/*.log
+        pipeline_stages:
+          # Parse CRI log format
+          - regex:
+              expression: '^(?P<timestamp>\S+) (?P<stream>stdout|stderr) (?P<flags>\S+) (?P<content>.*)$'
+        relabel_configs:
+          # Extract pod name from path
+          - source_labels: ['__path__']
+            regex: '/var/log/pods/insightlearn_([^_]+)_.*'
+            target_label: pod
+            replacement: '$1'
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: insightlearn
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      serviceAccountName: promtail
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.3
+          args:
+            - -config.file=/etc/promtail/promtail-config.yaml
+          ports:
+            - containerPort: 9080
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: pods-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: containers-logs
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+        - name: pods-logs
+          hostPath:
+            path: /var/log/pods
+        - name: containers-logs
+          hostPath:
+            path: /var/lib/docker/containers
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: insightlearn
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "watch", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail
+subjects:
+  - kind: ServiceAccount
+    name: promtail
+    namespace: insightlearn
+roleRef:
+  kind: ClusterRole
+  name: promtail
+  apiGroup: rbac.authorization.k8s.io
