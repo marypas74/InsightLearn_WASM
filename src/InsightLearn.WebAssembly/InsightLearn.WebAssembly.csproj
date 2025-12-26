@@ -32,8 +32,8 @@
     <PackageReference Include="Serilog.Sinks.BrowserConsole" Version="2.0.0" />
 
     <!-- FluentValidation for client-side validation -->
-    <PackageReference Include="FluentValidation" Version="11.11.0" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
 
     <!-- Security patches for transitive vulnerabilities (CVE-2024-43483) -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
