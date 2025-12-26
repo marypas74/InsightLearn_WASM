@@ -392,3 +392,613 @@
         }
     }
 }
+
+/* ========================================
+   FIX v2.3.15-dev - 2025-12-26
+
+   COMPLETE REWRITE for Mobile Header + Categories
+
+   Issues Fixed:
+   1. Categories dropdown - MOVE LEFT on desktop
+   2. Mobile logo NOT visible - hamburger is inside .header-actions-section
+   3. Mobile menu is EMPTY - content not showing
+
+   Root Cause Analysis:
+   - Grid-area approach DOESN'T WORK because hamburger is NOT a direct
+     child of .main-header-container (it's inside .header-actions-section)
+   - mobile-ux-fixes.css uses right: -100% approach for mobile panel
+   - This file was using left: 0 + transform approach (CONFLICT!)
+
+   Solution:
+   1. Categories: Add left offset to position more to the left
+   2. Mobile: Use FLEXBOX layout (not grid-areas)
+   3. Mobile menu: Use SAME right-based approach as mobile-ux-fixes.css
+   ======================================== */
+
+/* ===== DESKTOP: Categories Dropdown - Position More to the LEFT ===== */
+.dropdown-menu.categories-menu {
+    /* Position dropdown more to the left on desktop */
+    position: absolute !important;
+    left: -100px !important; /* MOVE LEFT by 100px */
+    right: auto !important;
+    min-width: 560px !important;
+    width: max-content !important;
+    max-width: 640px !important;
+    margin-top: 8px !important;
+}
+
+.categories-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(160px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 8px !important;
+}
+
+.category-item {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 10px 12px !important;
+}
+
+.category-label {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 13px !important;
+    display: block !important;
+    max-width: 140px !important;
+}
+
+/* ========================================
+   MOBILE HEADER LAYOUT v2.3.15 - COMPLETE REWRITE
+   Date: 2025-12-26
+
+   HTML Structure Reality:
+   <div class="main-header-container">
+       <div class="header-logo-section">...</div>         <!-- Child 1 -->
+       <div class="header-search-section desktop-only">   <!-- Child 2 - HIDDEN -->
+       <div class="header-actions-section">               <!-- Child 3 -->
+           <button class="mobile-menu-toggle">            <!-- INSIDE actions! -->
+           <div class="categories-dropdown">              <!-- HIDDEN on mobile -->
+           <div class="auth-buttons">                     <!-- LOGIN/SIGNUP -->
+       </div>
+   </div>
+
+   Solution: Use FLEXBOX on .main-header-container with ORDER property
+   to visually reorder elements even though hamburger is nested
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* ===== MAIN HEADER CONTAINER - FLEXBOX LAYOUT ===== */
+    .main-header-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 8px 12px !important;
+        width: 100% !important;
+        min-height: 56px !important;
+        gap: 8px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* ===== LOGO SECTION - FIRST (order: 1) ===== */
+    .header-logo-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        order: 1 !important;  /* Second visual position */
+        flex: 0 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .header-logo-section .logo-link {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 4px !important;
+        text-decoration: none !important;
+    }
+
+    /* CRITICAL: Logo image MUST be visible */
+    .header-logo-section img.logo-image,
+    .header-logo-section .logo-image,
+    .logo-image {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: 32px !important;
+        width: auto !important;
+        max-width: 100px !important;
+        object-fit: contain !important;
+    }
+
+    /* Hide logo text on mobile to save space */
+    .header-logo-section .logo-text {
+        display: none !important;
+    }
+
+    /* ===== SEARCH SECTION - HIDE ===== */
+    .header-search-section,
+    .desktop-only {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ===== ACTIONS SECTION - Contains hamburger + categories + auth ===== */
+    .header-actions-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        order: 2 !important;  /* Last visual position */
+        flex: 1 1 auto !important;
+        gap: 8px !important;
+    }
+
+    /* ===== HAMBURGER TOGGLE - First in actions ===== */
+    .mobile-menu-toggle {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        order: -1 !important;  /* Move to START of flex container */
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        background: #f7f9fa !important;
+        border: 1px solid #e4e8eb !important;
+        border-radius: 8px !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+        margin-right: auto !important;  /* Push other items to the right */
+    }
+
+    .mobile-menu-toggle i {
+        font-size: 16px !important;
+        color: #1c1d1f !important;
+        display: block !important;
+    }
+
+    .mobile-menu-toggle:hover,
+    .mobile-menu-toggle:active {
+        background: #e4e8eb !important;
+    }
+
+    /* ===== CATEGORIES DROPDOWN - HIDE ON MOBILE ===== */
+    .nav-dropdown.categories-dropdown,
+    .categories-dropdown,
+    .dropdown-trigger.categories-trigger {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ===== AUTH BUTTONS - Last in actions ===== */
+    .auth-buttons {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        order: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    /* Individual auth buttons */
+    .auth-buttons .btn,
+    .auth-buttons .btn-outline,
+    .auth-buttons .btn-primary,
+    .auth-buttons .btn-cta-signup,
+    .auth-buttons > a,
+    .auth-buttons > button {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        min-height: 32px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
+        border-radius: 6px !important;
+    }
+
+    /* Login button - outline style */
+    .auth-buttons .btn-outline {
+        background: #ffffff !important;
+        color: #1c1d1f !important;
+        border: 1px solid #1c1d1f !important;
+    }
+
+    /* Sign up button - gradient */
+    .auth-buttons .btn-primary,
+    .auth-buttons .btn-cta-signup {
+        background: linear-gradient(135deg, #a435f0 0%, #8710d8 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+
+    /* Hide icons on mobile buttons */
+    .auth-buttons .btn i,
+    .auth-buttons .btn .fa,
+    .auth-buttons .btn .fas {
+        display: none !important;
+    }
+
+    /* ===== Categories dropdown on mobile (if shown) ===== */
+    .dropdown-menu.categories-menu {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        min-width: auto !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 340px !important;
+        top: 60px !important;
+    }
+
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .category-label {
+        font-size: 12px !important;
+        max-width: 120px !important;
+    }
+}
+
+/* ========================================
+   MOBILE MENU PANEL - CONTENT VISIBILITY FIX
+
+   CRITICAL: mobile-ux-fixes.css uses RIGHT-based positioning:
+   - Base: right: -100%
+   - Open: right: 0
+
+   We OVERRIDE with higher specificity, using SAME approach
+   ======================================== */
+
+/* ===== MOBILE MENU PANEL - Override mobile-ux-fixes.css ===== */
+nav.mobile-menu-panel.mobile-menu-panel,
+.mobile-menu-panel.mobile-menu-panel {
+    position: fixed !important;
+    top: 0 !important;
+    right: -100% !important;  /* Same approach as mobile-ux-fixes.css */
+    left: auto !important;    /* Override any left positioning */
+    width: 300px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background-color: #ffffff !important;
+    z-index: 100000 !important;  /* Above everything */
+    transform: none !important;   /* Remove any transform */
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* ===== MOBILE MENU PANEL - OPEN STATE ===== */
+nav.mobile-menu-panel.mobile-menu-panel.open,
+.mobile-menu-panel.mobile-menu-panel.open {
+    right: 0 !important;
+    visibility: visible !important;
+}
+
+/* ===== MOBILE MENU HEADER ===== */
+nav.mobile-menu-panel .mobile-menu-header,
+.mobile-menu-panel .mobile-menu-header {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid #e4e8eb !important;
+    background: #f7f9fa !important;
+    flex-shrink: 0 !important;
+}
+
+nav.mobile-menu-panel .mobile-menu-title,
+.mobile-menu-panel .mobile-menu-title {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #1c1d1f !important;
+}
+
+nav.mobile-menu-panel .mobile-menu-close,
+.mobile-menu-panel .mobile-menu-close {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border: none !important;
+    background: transparent !important;
+    color: #1c1d1f !important;
+    cursor: pointer !important;
+    border-radius: 50% !important;
+    font-size: 20px !important;
+}
+
+nav.mobile-menu-panel .mobile-menu-close:hover,
+.mobile-menu-panel .mobile-menu-close:hover {
+    background: #e4e8eb !important;
+}
+
+/* ===== MOBILE MENU CONTENT - MUST BE VISIBLE ===== */
+nav.mobile-menu-panel .mobile-menu-content,
+.mobile-menu-panel .mobile-menu-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #ffffff !important;
+}
+
+/* Force visibility when open */
+nav.mobile-menu-panel.open .mobile-menu-content,
+.mobile-menu-panel.open .mobile-menu-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ===== MOBILE SEARCH FORM ===== */
+nav.mobile-menu-panel .mobile-search-form,
+.mobile-menu-panel .mobile-search-form {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 16px !important;
+    gap: 8px !important;
+    border-bottom: 1px solid #e4e8eb !important;
+    background: #ffffff !important;
+}
+
+nav.mobile-menu-panel .mobile-search-form input,
+.mobile-menu-panel .mobile-search-form input,
+nav.mobile-menu-panel .mobile-search-input,
+.mobile-menu-panel .mobile-search-input {
+    flex: 1 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 12px 16px !important;
+    border: 1px solid #d1d7dc !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    background: #f7f9fa !important;
+    color: #1c1d1f !important;
+}
+
+nav.mobile-menu-panel .mobile-search-form button,
+.mobile-menu-panel .mobile-search-form button,
+nav.mobile-menu-panel .mobile-search-btn,
+.mobile-menu-panel .mobile-search-btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 12px 16px !important;
+    background: #a435f0 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ===== MOBILE NAVIGATION SECTIONS - CRITICAL FIX ===== */
+nav.mobile-menu-panel .mobile-nav-section,
+.mobile-menu-panel .mobile-nav-section {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #e4e8eb !important;
+    background: #ffffff !important;
+}
+
+nav.mobile-menu-panel .mobile-nav-section:last-child,
+.mobile-menu-panel .mobile-nav-section:last-child {
+    border-bottom: none !important;
+}
+
+/* Force visibility when panel is open */
+nav.mobile-menu-panel.open .mobile-nav-section,
+.mobile-menu-panel.open .mobile-nav-section {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ===== SECTION TITLES ===== */
+nav.mobile-menu-panel .mobile-nav-section-title,
+.mobile-menu-panel .mobile-nav-section-title {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 12px 20px 8px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: #6a6f73 !important;
+    background: #ffffff !important;
+}
+
+/* ===== NAVIGATION LINKS - CRITICAL: MUST BE VISIBLE ===== */
+nav.mobile-menu-panel .mobile-nav-link,
+.mobile-menu-panel .mobile-nav-link,
+.mobile-menu-panel a.mobile-nav-link {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 14px 20px !important;
+    color: #1c1d1f !important;
+    text-decoration: none !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    background: #ffffff !important;
+    min-height: 48px !important;
+    transition: background 0.15s ease !important;
+}
+
+/* Force visibility when open */
+nav.mobile-menu-panel.open .mobile-nav-link,
+.mobile-menu-panel.open .mobile-nav-link {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+nav.mobile-menu-panel .mobile-nav-link:hover,
+.mobile-menu-panel .mobile-nav-link:hover {
+    background: #f7f9fa !important;
+    color: #a435f0 !important;
+}
+
+nav.mobile-menu-panel .mobile-nav-link i,
+.mobile-menu-panel .mobile-nav-link i {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 20px !important;
+    text-align: center !important;
+    color: #6a6f73 !important;
+    font-size: 14px !important;
+}
+
+nav.mobile-menu-panel .mobile-nav-link:hover i,
+.mobile-menu-panel .mobile-nav-link:hover i {
+    color: #a435f0 !important;
+}
+
+/* ===== MOBILE AUTH SECTION ===== */
+nav.mobile-menu-panel .mobile-auth-section,
+.mobile-menu-panel .mobile-auth-section {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 16px !important;
+    background: #f7f9fa !important;
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+}
+
+.mobile-auth-section .btn {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    padding: 12px 16px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+}
+
+.mobile-auth-section .btn-outline {
+    background: #ffffff !important;
+    color: #1c1d1f !important;
+    border: 2px solid #1c1d1f !important;
+}
+
+.mobile-auth-section .btn-primary {
+    background: linear-gradient(135deg, #a435f0 0%, #8710d8 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+/* ===== MOBILE MENU OVERLAY ===== */
+.mobile-menu-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 99999 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+.mobile-menu-overlay.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* ===== VERY SMALL SCREENS ===== */
+@media (max-width: 360px) {
+    .mobile-menu-panel {
+        width: 260px !important;
+    }
+
+    .auth-buttons .btn {
+        padding: 5px 8px !important;
+        font-size: 10px !important;
+    }
+
+    nav.mobile-menu-panel .mobile-nav-link,
+    .mobile-menu-panel .mobile-nav-link {
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+    }
+
+    nav.mobile-menu-panel .mobile-nav-section-title,
+    .mobile-menu-panel .mobile-nav-section-title {
+        padding: 8px 16px 6px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* ===== ACCESSIBILITY: Focus States ===== */
+.mobile-menu-close:focus,
+.mobile-nav-link:focus,
+.mobile-search-form input:focus,
+.mobile-search-form button:focus,
+.mobile-menu-toggle:focus {
+    outline: 2px solid #a435f0 !important;
+    outline-offset: 2px !important;
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+    nav.mobile-menu-panel.mobile-menu-panel,
+    .mobile-menu-panel.mobile-menu-panel,
+    .mobile-menu-overlay {
+        transition: none !important;
+    }
+}

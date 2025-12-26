@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Versioning Configuration -->
-    <VersionPrefix>2.3.9</VersionPrefix>
+    <VersionPrefix>2.3.15</VersionPrefix>
     <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
 
     <!-- Semantic Versioning: Major.Minor.Patch-Suffix+BuildMetadata -->

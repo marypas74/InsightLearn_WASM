@@ -1,0 +1,104 @@
+# =============================================================================
+# Network Policies for Loki and Promtail
+# InsightLearn WASM - GeoIP Logging Solution
+# Created: 2025-12-25
+# =============================================================================
+---
+# Loki Network Policy - Allow ingress from Promtail and Grafana
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-network-policy
+  namespace: insightlearn
+  labels:
+    app: loki
+spec:
+  podSelector:
+    matchLabels:
+      app: loki
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from Promtail (log push)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: promtail
+      ports:
+        - protocol: TCP
+          port: 3100
+        - protocol: TCP
+          port: 9096
+    # Allow from Grafana (queries)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 3100
+        - protocol: TCP
+          port: 9096
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow internal cluster traffic for storage
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3100
+        - protocol: TCP
+          port: 9096
+
+---
+# Promtail Network Policy - Allow egress to Loki and access to host logs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: promtail-network-policy
+  namespace: insightlearn
+  labels:
+    app: promtail
+spec:
+  podSelector:
+    matchLabels:
+      app: promtail
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Prometheus scraping metrics
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9080
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow connection to Loki
+    - to:
+        - podSelector:
+            matchLabels:
+              app: loki
+      ports:
+        - protocol: TCP
+          port: 3100
+        - protocol: TCP
+          port: 9096
