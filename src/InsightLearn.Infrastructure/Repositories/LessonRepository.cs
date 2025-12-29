@@ -76,4 +76,18 @@ public class LessonRepository : ILessonRepository
 
         await _context.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Get all lessons that do NOT have transcripts in MongoDB.
+    /// Filters for lessons with VideoUrl (has video) but no VideoTranscriptMetadata entry.
+    /// v2.3.23-dev - Part of Batch Transcription System.
+    /// </summary>
+    public async Task<List<Lesson>> GetLessonsWithoutTranscriptsAsync()
+    {
+        return await _context.Lessons
+            .Where(l => !_context.VideoTranscriptMetadata.Any(vt => vt.LessonId == l.Id))
+            .Where(l => !string.IsNullOrEmpty(l.VideoUrl))
+            .OrderBy(l => l.CreatedAt) // Oldest first (FIFO processing)
+            .ToListAsync();
+    }
 }

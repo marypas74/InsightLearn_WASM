@@ -66,6 +66,16 @@
     <!-- Prometheus metrics (Phase 4.2) -->
     <PackageReference Include="prometheus-net" Version="8.2.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+
+    <!-- Qdrant vector database for semantic search -->
+    <PackageReference Include="Qdrant.Client" Version="1.13.0" />
+
+    <!-- Whisper.net for automatic speech recognition (ASR) - v2.3.23-dev -->
+    <PackageReference Include="Whisper.net" Version="1.7.0" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.7.0" />
+
+    <!-- FFMpegCore for video audio extraction - v2.3.23-dev -->
+    <PackageReference Include="FFMpegCore" Version="5.1.0" />
   </ItemGroup>
 
   <ItemGroup>

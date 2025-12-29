@@ -36,4 +36,11 @@ public interface ILessonRepository
     /// Reorders lessons within a section
     /// </summary>
     Task ReorderAsync(Guid sectionId, List<Guid> lessonIds);
+
+    /// <summary>
+    /// Get all lessons that do NOT have transcripts in MongoDB.
+    /// Used by BatchTranscriptProcessor to find lessons needing transcript generation.
+    /// v2.3.23-dev - Part of Batch Transcription System.
+    /// </summary>
+    Task<List<Lesson>> GetLessonsWithoutTranscriptsAsync();
 }

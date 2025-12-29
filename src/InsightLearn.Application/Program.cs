@@ -24,6 +24,8 @@ using InsightLearn.Core.DTOs.VideoBookmarks;
 using InsightLearn.Core.DTOs.Engagement;
 using InsightLearn.Core.DTOs.Cart;
 using InsightLearn.Core.DTOs.Subtitle;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Hangfire;
 using Hangfire.SqlServer;
 using InsightLearn.Application.BackgroundJobs;
@@ -40,16 +42,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
 using Prometheus;
+using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // SECURITY FIX (CRIT-2): Configure request body size limits to prevent memory exhaustion attacks
-// Default: 500MB for video uploads (required for video lesson content)
-// v2.1.0-dev: Increased from 10MB to 500MB to support video uploads
+// Default: 600MB for video uploads (required for video lesson content)
+// v2.3.21-dev: Increased from 500MB to 600MB to support large test videos (Elephants Dream 557MB)
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500 MB for video uploads
-    Console.WriteLine("[CONFIG] Global request body size limit: 500 MB (video upload support)");
+    serverOptions.Limits.MaxRequestBodySize = 600 * 1024 * 1024; // 600 MB for video uploads
+    Console.WriteLine("[CONFIG] Global request body size limit: 600 MB (video upload support)");
 });
 
 // Get version from assembly (defined in Directory.Build.props)
@@ -117,6 +120,16 @@ Console.WriteLine($"[CONFIG] MongoDB: {sanitizedMongo} (CRIT-4: password sanitiz
 
 // Add services to the container
 builder.Services.AddControllers();
+
+// CRITICAL: Configure FormOptions for large video uploads (600MB limit)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 600 * 1024 * 1024; // 600 MB
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+    Console.WriteLine("[CONFIG] FormOptions MultipartBodyLengthLimit: 600 MB");
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -632,6 +645,10 @@ builder.Services.AddScoped<ISubtitleRepository, SubtitleRepository>();
 builder.Services.AddScoped<ISubtitleService, SubtitleService>();
 Console.WriteLine("[CONFIG] Subtitle Service registered for multi-language support");
 
+// Register WebVTT Subtitle Generator (Phase 7 Task 7.1 - WebVTT subtitle file generation)
+builder.Services.AddScoped<ISubtitleGenerator, WebVttSubtitleGenerator>();
+Console.WriteLine("[CONFIG] WebVTT Subtitle Generator registered (Phase 7 - WebVTT/SRT subtitle generation)");
+
 // Register Subtitle Translation Service (v2.2.0-dev - Real-time Ollama-powered translation)
 builder.Services.AddScoped<ISubtitleTranslationService, SubtitleTranslationService>();
 builder.Services.AddHttpClient<SubtitleTranslationService>(); // For downloading VTT files
@@ -640,6 +657,26 @@ Console.WriteLine("[CONFIG] Subtitle Translation Service registered (Ollama-powe
 // Register Subtitle Auto-Generation Service (v2.2.0-dev - Whisper ASR powered)
 builder.Services.AddScoped<ISubtitleGenerationService, SubtitleGenerationService>();
 Console.WriteLine("[CONFIG] Subtitle Generation Service registered (Whisper ASR, automatic WebVTT creation)");
+
+// Register Real-Time Video Transcription & Translation Services (v2.3.23-dev - Hybrid MongoDB + Qdrant)
+builder.Services.AddScoped<IWhisperTranscriptionService, WhisperTranscriptionService>();
+Console.WriteLine("[CONFIG] Whisper Transcription Service registered (ASR with Whisper.net base model)");
+
+builder.Services.AddScoped<IOllamaTranslationService, OllamaTranslationService>();
+builder.Services.AddHttpClient<OllamaTranslationService>(); // For Ollama API calls
+Console.WriteLine("[CONFIG] Ollama Translation Service registered (mistral:7b-instruct, 20+ languages)");
+
+// Register Azure Translator Service (Phase 8.1 - Professional translation with Azure Cognitive Services)
+builder.Services.AddScoped<IAzureTranslatorService, AzureTranslatorService>();
+builder.Services.AddHttpClient<AzureTranslatorService>(); // For Azure Translator API calls
+Console.WriteLine("[CONFIG] Azure Translator Service registered (Azure Cognitive Services v3.0, premium translation)");
+
+builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
+builder.Services.AddHttpClient<EmbeddingService>(); // For Ollama embedding API
+Console.WriteLine("[CONFIG] Embedding Service registered (nomic-embed-text, 384-dim vectors for Qdrant)");
+
+builder.Services.AddScoped<IHybridSearchService, HybridSearchService>();
+Console.WriteLine("[CONFIG] Hybrid Search Service registered (MongoDB + Qdrant semantic search)");
 
 // Register IMongoDatabase for Student Learning Space repositories (v2.1.0-dev fix)
 builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>
@@ -652,6 +689,23 @@ builder.Services.AddSingleton<MongoDB.Driver.IMongoDatabase>(sp =>
     return client.GetDatabase("insightlearn_videos");
 });
 Console.WriteLine("[CONFIG] MongoDB IMongoDatabase registered for Learning Space repositories");
+
+// Register Qdrant Client (v2.3.23-dev - Shared connection for hybrid search)
+builder.Services.AddSingleton<QdrantClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var qdrantHost = configuration["Qdrant:Host"] ?? "qdrant-service";
+    var qdrantPort = int.Parse(configuration["Qdrant:Port"] ?? "6334");
+    var useHttps = bool.Parse(configuration["Qdrant:UseHttps"] ?? "false");
+
+    var client = new QdrantClient(host: qdrantHost, port: qdrantPort, https: useHttps);
+    Console.WriteLine($"[CONFIG] Qdrant Client connected to {qdrantHost}:{qdrantPort} (HTTPS: {useHttps})");
+    return client;
+});
+
+// Register Qdrant Vector Search Service (v2.3.16-dev - Semantic video search)
+builder.Services.AddSingleton<IVectorSearchService, QdrantVectorSearchService>();
+Console.WriteLine("[CONFIG] Qdrant Vector Search Service registered for semantic video search");
 
 // Register Enhanced Dashboard Service
 builder.Services.AddScoped<IEnhancedDashboardService, EnhancedDashboardService>();
@@ -749,6 +803,10 @@ builder.Services.AddScoped<IStudentNoteService, StudentNoteService>();
 builder.Services.AddScoped<IVideoBookmarkService, VideoBookmarkService>();
 builder.Services.AddScoped<IVideoProgressService, VideoProgressService>();
 Console.WriteLine("[CONFIG] Student Learning Space Services registered (5 services)");
+
+// Register WebVTT Subtitle Generator (Phase 7 - LinkedIn Learning parity feature)
+builder.Services.AddScoped<ISubtitleGenerator, WebVttSubtitleGenerator>();
+Console.WriteLine("[CONFIG] WebVTT Subtitle Generator registered (Phase 7 - downloadable .vtt and .srt files)");
 
 // Register Hangfire Background Job Processing (v2.1.0)
 // Configure Hangfire with SQL Server storage for job persistence
@@ -1122,6 +1180,11 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     DisplayStorageConnectionString = false // Hide connection string for security
 });
 Console.WriteLine("[CONFIG] Hangfire Dashboard enabled at /hangfire (Admin access only)");
+
+// ✅ NEW (v2.3.23-dev): Register recurring batch transcript processor
+// LinkedIn Learning approach - pre-generate all transcripts daily at 3 AM
+BatchTranscriptProcessor.RegisterRecurringJob();
+Console.WriteLine("[HANGFIRE] Batch transcript processor registered (daily 3:00 AM UTC)");
 
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
 // Positioned AFTER authentication to capture user context (userId, email, roles)
@@ -1905,10 +1968,10 @@ app.MapPost("/api/video/upload", async (
             return Results.BadRequest(new { error = "Valid userId is required" });
         }
 
-        // Validate file size (max 500MB)
-        if (videoFile.Length > 500 * 1024 * 1024)
+        // Validate file size (max 600MB)
+        if (videoFile.Length > 600 * 1024 * 1024)
         {
-            return Results.BadRequest(new { error = "Video file too large (max 500MB)" });
+            return Results.BadRequest(new { error = "Video file too large (max 600MB)" });
         }
 
         // Validate file type
@@ -6346,36 +6409,11 @@ app.MapGet("/api/transcripts/{lessonId:guid}/search", async (
 .Produces(400)
 .Produces(500);
 
-// POST /api/transcripts/{lessonId}/generate - Queue transcript generation (Admin/Instructor)
-app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
-    Guid lessonId,
-    [FromBody] GenerateTranscriptRequestDto request,
-    [FromServices] IVideoTranscriptService transcriptService,
-    [FromServices] ILogger<Program> logger,
-    ClaimsPrincipal user) =>
-{
-    try
-    {
-        logger.LogInformation("[TRANSCRIPT] Queueing transcript generation for lesson {LessonId}, language: {Language}",
-            lessonId, request.Language ?? "en-US");
-        // Note: Video URL is obtained from lesson metadata by the service
-        var jobId = await transcriptService.QueueTranscriptGenerationAsync(lessonId, string.Empty, request.Language ?? "en-US");
-
-        return Results.Accepted($"/api/transcripts/{lessonId}/status", new { jobId, lessonId });
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "[TRANSCRIPT] Error queueing transcript generation for lesson {LessonId}", lessonId);
-        return Results.Problem(detail: ex.Message, statusCode: 500);
-    }
-})
-.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
-.WithName("GenerateTranscript")
-.WithTags("Transcripts")
-.Produces<object>(202)
-.Produces(401)
-.Produces(403)
-.Produces(500);
+// ========================================
+// DUPLICATE ENDPOINT REMOVED (2025-12-28)
+// This was a duplicate of the endpoint at line ~6576 which uses TranscriptGenerationJob.Enqueue()
+// ASP.NET Core would only register the first endpoint, causing the correct implementation to be ignored
+// ========================================
 
 // GET /api/transcripts/{lessonId}/status - Check processing status
 app.MapGet("/api/transcripts/{lessonId:guid}/status", async (
@@ -6435,20 +6473,100 @@ app.MapDelete("/api/transcripts/{lessonId:guid}", async (
 .Produces(403)
 .Produces(500);
 
-// POST /api/transcripts/{lessonId}/auto-generate - Auto-generate transcript with Ollama
-// v2.2.0-dev: Generates demo transcript when viewing lesson (no ASR required)
-app.MapPost("/api/transcripts/{lessonId:guid}/auto-generate", async (
+// GET /api/transcripts/{lessonId}/download?format={webvtt|srt} - Download subtitle file
+// Phase 7.3: WebVTT Subtitle Generation - LinkedIn Learning parity feature
+app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
     Guid lessonId,
-    [FromBody] AutoGenerateTranscriptRequest request,
+    [FromQuery] string format,
     [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ISubtitleGenerator subtitleGenerator,
     [FromServices] ILogger<Program> logger) =>
 {
     try
     {
-        logger.LogInformation("[TRANSCRIPT] Auto-generating transcript for lesson {LessonId}, title: {Title}",
+        // Validate format parameter
+        if (string.IsNullOrWhiteSpace(format))
+        {
+            format = "webvtt"; // Default to WebVTT
+        }
+
+        format = format.ToLower();
+        if (format != "webvtt" && format != "srt")
+        {
+            logger.LogWarning("[SUBTITLE] Invalid format requested: {Format}", format);
+            return Results.BadRequest(new { error = "Invalid format. Supported formats: webvtt, srt" });
+        }
+
+        logger.LogInformation("[SUBTITLE] Downloading subtitle for lesson {LessonId}, format: {Format}", lessonId, format);
+
+        // Get transcript from service
+        var transcript = await transcriptService.GetTranscriptAsync(lessonId);
+
+        if (transcript == null)
+        {
+            logger.LogWarning("[SUBTITLE] Transcript not found for lesson {LessonId}", lessonId);
+            return Results.NotFound(new { error = "Transcript not found" });
+        }
+
+        // Convert transcript to subtitle format
+        string subtitleContent;
+        string contentType;
+        string fileName;
+
+        if (format == "webvtt")
+        {
+            subtitleContent = subtitleGenerator.TranscriptToWebVTT(transcript);
+            contentType = "text/vtt";
+            fileName = $"lesson-{lessonId}.vtt";
+        }
+        else // srt
+        {
+            subtitleContent = subtitleGenerator.TranscriptToSRT(transcript);
+            contentType = "application/x-subrip";
+            fileName = $"lesson-{lessonId}.srt";
+        }
+
+        // Return file download response
+        var bytes = System.Text.Encoding.UTF8.GetBytes(subtitleContent);
+        logger.LogInformation("[SUBTITLE] Generated {Format} file for lesson {LessonId}, size: {Size} bytes",
+            format.ToUpper(), lessonId, bytes.Length);
+
+        return Results.File(
+            bytes,
+            contentType: contentType,
+            fileDownloadName: fileName,
+            enableRangeProcessing: false);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE] Error downloading subtitle for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("DownloadSubtitle")
+.WithTags("Transcripts", "Subtitles")
+.Produces(200)
+.Produces(400)
+.Produces(404)
+.Produces(500);
+
+// POST /api/transcripts/{lessonId}/generate - Queue transcript generation (async Hangfire job)
+// v2.3.23-dev: LinkedIn Learning approach - queue background job, return HTTP 202 Accepted
+// Fixes timeout issue: synchronous generation takes 40-60s, Hangfire job runs in background
+app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
+    Guid lessonId,
+    [FromBody] AutoGenerateTranscriptRequest request,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] ILessonRepository lessonRepository,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Queueing transcript generation for lesson {LessonId}, title: {Title}",
             lessonId, request.LessonTitle);
 
-        // First check if transcript already exists
+        // ✅ Check if transcript already exists (fast cache check)
         var existing = await transcriptService.GetTranscriptAsync(lessonId);
         if (existing != null && existing.Transcript.Count > 0)
         {
@@ -6456,25 +6574,265 @@ app.MapPost("/api/transcripts/{lessonId:guid}/auto-generate", async (
             return Results.Ok(existing);
         }
 
-        // Generate demo transcript using Ollama
-        var transcript = await transcriptService.GenerateDemoTranscriptAsync(
+        // ✅ Get lesson to retrieve correct VideoUrl with MongoDB ObjectId
+        var lesson = await lessonRepository.GetByIdAsync(lessonId);
+        if (lesson == null)
+        {
+            logger.LogWarning("[TRANSCRIPT] Lesson {LessonId} not found", lessonId);
+            return Results.NotFound(new { error = $"Lesson {lessonId} not found" });
+        }
+
+        if (string.IsNullOrEmpty(lesson.VideoUrl))
+        {
+            logger.LogWarning("[TRANSCRIPT] Lesson {LessonId} has no video URL", lessonId);
+            return Results.BadRequest(new { error = "Lesson has no video URL" });
+        }
+
+        // ✅ Queue Hangfire background job (returns immediately, < 100ms)
+        var jobId = TranscriptGenerationJob.Enqueue(
             lessonId,
-            request.LessonTitle ?? "Educational Lesson",
-            request.DurationSeconds ?? 300,
+            lesson.VideoUrl,  // Use actual VideoUrl from database (contains MongoDB ObjectId)
             request.Language ?? "en-US"
         );
 
-        return Results.Ok(transcript);
+        logger.LogInformation("[TRANSCRIPT] Hangfire job {JobId} queued for lesson {LessonId}, videoUrl: {VideoUrl}",
+            jobId, lessonId, lesson.VideoUrl);
+
+        // ✅ Return HTTP 202 Accepted with job tracking info
+        return Results.Accepted(
+            uri: $"/api/transcripts/{lessonId}/status",
+            value: new
+            {
+                LessonId = lessonId,
+                JobId = jobId,
+                Status = "Processing",
+                Message = "Transcript generation started. Poll /api/transcripts/{lessonId}/status for updates.",
+                EstimatedCompletionSeconds = 120 // 2 minutes estimate for 5-min video
+            }
+        );
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[TRANSCRIPT] Error auto-generating transcript for lesson {LessonId}", lessonId);
+        logger.LogError(ex, "[TRANSCRIPT] Error queueing transcript generation for lesson {LessonId}", lessonId);
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.WithName("AutoGenerateTranscript")
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("QueueTranscriptGeneration")
 .WithTags("Transcripts")
-.Produces<VideoTranscriptDto>(200)
+.Produces<VideoTranscriptDto>(200)  // Existing transcript found
+.Produces(202)  // Job queued successfully
+.Produces(401)  // Unauthorized
+.Produces(403)  // Forbidden (not Admin/Instructor)
+.Produces(500); // Error
+
+// GET /api/transcripts/{lessonId:guid}/download - Download pre-generated subtitle file (WebVTT or SRT)
+// Phase 7 Task 7.2: Subtitle Download API Endpoint - LinkedIn Learning parity
+// Retrieves pre-generated subtitle files from MongoDB GridFS (generated by TranscriptGenerationJob)
+app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
+    Guid lessonId,
+    HttpContext httpContext,
+    [FromServices] IConfiguration configuration,
+    [FromServices] ILogger<Program> logger,
+    string format = "webvtt",  // "webvtt" or "srt"
+    string language = "en-US") =>
+{
+    try
+    {
+        // Normalize format parameter
+        var normalizedFormat = format.ToLowerInvariant();
+        var extension = normalizedFormat == "srt" ? "srt" : "vtt";
+        var mimeType = normalizedFormat == "srt" ? "application/x-subrip" : "text/vtt";
+
+        logger.LogInformation("[SUBTITLE] Downloading {Format} subtitle for lesson {LessonId}, language: {Language}",
+            extension.ToUpperInvariant(), lessonId, language);
+
+        // Construct filename as generated by TranscriptGenerationJob (Phase 7.3)
+        // Format: "lesson-{lessonId}-{language}.{extension}"
+        var fileName = $"lesson-{lessonId}-{language}.{extension}";
+
+        // Connect to MongoDB GridFS to find subtitle file
+        var connectionString = configuration["MongoDb:ConnectionString"]
+            ?? configuration.GetConnectionString("MongoDB")
+            ?? throw new InvalidOperationException("MongoDB connection string not configured");
+
+        var mongoClient = new MongoDB.Driver.MongoClient(connectionString);
+        var database = mongoClient.GetDatabase("insightlearn_videos");
+        var gridFsBucket = new MongoDB.Driver.GridFS.GridFSBucket(database, new MongoDB.Driver.GridFS.GridFSBucketOptions
+        {
+            BucketName = "videos"
+        });
+
+        // Find file by filename
+        var filter = MongoDB.Driver.Builders<MongoDB.Driver.GridFS.GridFSFileInfo>.Filter.Eq("filename", fileName);
+        var fileInfoCursor = await gridFsBucket.FindAsync(filter);
+        var fileInfoList = await fileInfoCursor.ToListAsync();
+        var fileInfo = fileInfoList.FirstOrDefault();
+
+        if (fileInfo == null)
+        {
+            logger.LogWarning("[SUBTITLE] Subtitle file not found: {FileName}", fileName);
+            return Results.NotFound(new {
+                error = $"Subtitle file not found for lesson {lessonId} in {extension.ToUpperInvariant()} format and language {language}.",
+                hint = "Subtitle files are generated automatically when transcripts are created. Please generate a transcript first.",
+                expectedFilename = fileName
+            });
+        }
+
+        // Download file stream from GridFS
+        var fileStream = await gridFsBucket.OpenDownloadStreamAsync(fileInfo.Id);
+
+        logger.LogInformation("[SUBTITLE] Successfully retrieved {Format} subtitle file: {FileName}, FileId: {FileId}, Size: {Size} bytes",
+            extension.ToUpperInvariant(), fileName, fileInfo.Id, fileInfo.Length);
+
+        // Set response headers for file download
+        httpContext.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+        httpContext.Response.ContentType = mimeType;
+
+        // Return file stream
+        return Results.Stream(fileStream, contentType: mimeType, fileDownloadName: fileName);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SUBTITLE] Error downloading subtitle file for lesson {LessonId}, format: {Format}", lessonId, format);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("DownloadSubtitleFile")
+.WithTags("Transcripts")
+.Produces(200, contentType: "text/vtt")
+.Produces(200, contentType: "application/x-subrip")
+.Produces(404)
+.Produces(500);
+
+// GET /api/transcripts/{lessonId}/translations/{targetLanguage} - Get translated transcript
+// Phase 8.5: Multi-Language Subtitle Support - Frontend language selector
+app.MapGet("/api/transcripts/{lessonId:guid}/translations/{targetLanguage}", async (
+    Guid lessonId,
+    string targetLanguage,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] IMongoVideoStorageService mongoStorage,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSLATION] Getting translation for lesson {LessonId}, language: {Language}",
+            lessonId, targetLanguage);
+
+        // Validate target language (ISO 639-1 code: 2 letters)
+        if (string.IsNullOrWhiteSpace(targetLanguage) || targetLanguage.Length != 2)
+        {
+            return Results.BadRequest(new { error = "Invalid language code. Use 2-letter ISO 639-1 codes (es, fr, de, pt, it)" });
+        }
+
+        // Find translation record in SQL Server
+        var translationRecord = await dbContext.VideoTranscriptTranslations
+            .FirstOrDefaultAsync(t => t.LessonId == lessonId && t.TargetLanguage == targetLanguage.ToLower());
+
+        if (translationRecord == null)
+        {
+            logger.LogInformation("[TRANSLATION] Translation not found for lesson {LessonId}, language: {Language}",
+                lessonId, targetLanguage);
+            return Results.Ok(new
+            {
+                Status = "NotFound",
+                Message = $"No translation found for language '{targetLanguage}'. It may not have been generated yet.",
+                LessonId = lessonId,
+                TargetLanguage = targetLanguage
+            });
+        }
+
+        // Check translation status
+        if (translationRecord.Status == "Processing" || translationRecord.Status == "Queued")
+        {
+            logger.LogInformation("[TRANSLATION] Translation in progress for lesson {LessonId}, language: {Language}",
+                lessonId, targetLanguage);
+            return Results.Ok(new
+            {
+                Status = translationRecord.Status,
+                Message = $"Translation to '{targetLanguage}' is in progress. Please check back in a few moments.",
+                LessonId = lessonId,
+                TargetLanguage = targetLanguage,
+                QueuedAt = translationRecord.CreatedAt
+            });
+        }
+
+        if (translationRecord.Status == "Failed")
+        {
+            logger.LogWarning("[TRANSLATION] Translation failed for lesson {LessonId}, language: {Language}, error: {Error}",
+                lessonId, targetLanguage, translationRecord.ErrorMessage);
+            return Results.Ok(new
+            {
+                Status = "Failed",
+                Message = $"Translation to '{targetLanguage}' failed: {translationRecord.ErrorMessage}",
+                LessonId = lessonId,
+                TargetLanguage = targetLanguage,
+                ErrorMessage = translationRecord.ErrorMessage
+            });
+        }
+
+        // Translation completed - fetch from MongoDB
+        if (translationRecord.Status == "Completed" && !string.IsNullOrWhiteSpace(translationRecord.MongoDocumentId))
+        {
+            logger.LogInformation("[TRANSLATION] Fetching completed translation from MongoDB: {MongoDocumentId}",
+                translationRecord.MongoDocumentId);
+
+            var mongoDocument = await mongoStorage.GetTranslatedSubtitlesAsync(translationRecord.MongoDocumentId);
+
+            if (mongoDocument == null)
+            {
+                logger.LogError("[TRANSLATION] MongoDB document not found: {MongoDocumentId}", translationRecord.MongoDocumentId);
+                return Results.Problem(detail: "Translation metadata found but document missing in MongoDB", statusCode: 500);
+            }
+
+            // Parse MongoDB document and build response
+            var segments = mongoDocument["segments"].AsBsonArray
+                .Select(s => new
+                {
+                    Index = s["index"].AsInt32,
+                    StartTime = s["startSeconds"].AsDouble,
+                    EndTime = s["endSeconds"].AsDouble,
+                    OriginalText = s["originalText"].AsString,
+                    TranslatedText = s["translatedText"].AsString,
+                    Confidence = s["confidenceScore"].IsBsonNull ? (double?)null : s["confidenceScore"].AsDouble
+                })
+                .ToList();
+
+            var metadata = mongoDocument["metadata"].AsBsonDocument;
+
+            return Results.Ok(new
+            {
+                Status = "Completed",
+                LessonId = lessonId,
+                SourceLanguage = mongoDocument["sourceLanguage"].AsString,
+                TargetLanguage = mongoDocument["targetLanguage"].AsString,
+                Translator = mongoDocument["translator"].AsString,
+                QualityTier = mongoDocument["qualityTier"].AsString,
+                SegmentCount = segments.Count,
+                TotalCharacters = metadata["totalCharacters"].AsInt32,
+                ProcessingTime = metadata["processingTime"].AsDouble,
+                ProcessedAt = metadata["processedAt"].ToUniversalTime(),
+                Segments = segments
+            });
+        }
+
+        // Unexpected status
+        logger.LogWarning("[TRANSLATION] Unexpected translation status: {Status} for lesson {LessonId}, language: {Language}",
+            translationRecord.Status, lessonId, targetLanguage);
+        return Results.Problem(detail: $"Unexpected translation status: {translationRecord.Status}", statusCode: 500);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSLATION] Error getting translation for lesson {LessonId}, language: {Language}",
+            lessonId, targetLanguage);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetTranslation")
+.WithTags("Transcripts")
+.Produces(200)
+.Produces(400)
 .Produces(500);
 
 // ========================================
@@ -7302,6 +7660,311 @@ app.MapGet("/api/progress/resume", async (
 .Produces(500);
 
 // ========================================
+// VIDEO TRANSCRIPTION & TRANSLATION ENDPOINTS (v2.3.23-dev)
+// ========================================
+
+// POST /api/transcripts/generate - Generate transcript from video (Admin/Instructor)
+app.MapPost("/api/transcripts/generate", async (
+    [FromBody] GenerateTranscriptRequest request,
+    [FromServices] InsightLearnDbContext dbContext,
+    [FromServices] IMongoVideoStorageService videoStorage,
+    [FromServices] IWhisperTranscriptionService whisperService,
+    [FromServices] IEmbeddingService embeddingService,
+    [FromServices] IMongoDatabase mongoDb,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSCRIPT] Generating transcript for lesson {LessonId}, language: {Language}",
+            request.LessonId, request.Language);
+
+        // 1. Load lesson from database
+        var lesson = await dbContext.Lessons.FindAsync(request.LessonId);
+        if (lesson == null)
+        {
+            logger.LogWarning("[TRANSCRIPT] Lesson {LessonId} not found", request.LessonId);
+            return Results.NotFound(new { error = $"Lesson {request.LessonId} not found" });
+        }
+
+        if (string.IsNullOrEmpty(lesson.VideoUrl))
+        {
+            logger.LogWarning("[TRANSCRIPT] Lesson {LessonId} has no video", request.LessonId);
+            return Results.BadRequest(new { error = "Lesson has no video attached" });
+        }
+
+        // 2. Extract MongoDB fileId from VideoUrl (format: /api/video/stream/{fileId})
+        var fileId = lesson.VideoUrl.Split('/').Last();
+        logger.LogInformation("[TRANSCRIPT] Extracted fileId: {FileId} from VideoUrl: {VideoUrl}", fileId, lesson.VideoUrl);
+
+        // 3. Download video stream from MongoDB GridFS
+        Stream videoStream;
+        try
+        {
+            videoStream = await videoStorage.DownloadVideoAsync(fileId);
+            logger.LogInformation("[TRANSCRIPT] Video stream downloaded for fileId: {FileId}", fileId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[TRANSCRIPT] Failed to download video {FileId}", fileId);
+            return Results.Problem(detail: $"Failed to download video: {ex.Message}", statusCode: 500);
+        }
+
+        // 4. Transcribe video using Whisper (auto-extracts audio via FFmpeg)
+        TranscriptionResult transcriptionResult;
+        try
+        {
+            transcriptionResult = await whisperService.TranscribeVideoAsync(videoStream, request.Language, request.LessonId);
+            logger.LogInformation("[TRANSCRIPT] Transcription completed: {SegmentCount} segments",
+                transcriptionResult.Segments.Count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[TRANSCRIPT] Transcription failed for lesson {LessonId}", request.LessonId);
+            return Results.Problem(detail: $"Transcription failed: {ex.Message}", statusCode: 500);
+        }
+        finally
+        {
+            videoStream.Dispose();
+        }
+
+        // 5. Save transcript to MongoDB VideoTranscripts collection
+        try
+        {
+            var transcriptsCollection = mongoDb.GetCollection<BsonDocument>("VideoTranscripts");
+
+            var transcriptDoc = new BsonDocument
+            {
+                ["lessonId"] = request.LessonId.ToString(),
+                ["language"] = request.Language,
+                ["modelUsed"] = transcriptionResult.ModelUsed,
+                ["transcribedAt"] = transcriptionResult.TranscribedAt,
+                ["durationSeconds"] = transcriptionResult.DurationSeconds,
+                ["segments"] = new BsonArray(transcriptionResult.Segments.Select(s => new BsonDocument
+                {
+                    ["index"] = s.Index,
+                    ["startSeconds"] = s.StartSeconds,
+                    ["endSeconds"] = s.EndSeconds,
+                    ["text"] = s.Text,
+                    ["confidence"] = s.Confidence
+                }))
+            };
+
+            // Upsert: replace if exists, insert if not
+            var filter = Builders<BsonDocument>.Filter.Eq("lessonId", request.LessonId.ToString());
+            await transcriptsCollection.ReplaceOneAsync(filter, transcriptDoc, new ReplaceOptions { IsUpsert = true });
+
+            logger.LogInformation("[TRANSCRIPT] Transcript saved to MongoDB for lesson {LessonId}", request.LessonId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[TRANSCRIPT] Failed to save transcript to MongoDB");
+            return Results.Problem(detail: $"Failed to save transcript: {ex.Message}", statusCode: 500);
+        }
+
+        // 6. Index segments in Qdrant for semantic search
+        try
+        {
+            var indexedCount = await embeddingService.IndexTranscriptionAsync(request.LessonId, transcriptionResult.Segments);
+            logger.LogInformation("[TRANSCRIPT] Indexed {Count} segments in Qdrant", indexedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[TRANSCRIPT] Failed to index in Qdrant (transcript still saved)");
+            // Non-blocking: transcript is saved, search indexing is optional
+        }
+
+        return Results.Ok(new
+        {
+            lessonId = request.LessonId,
+            language = request.Language,
+            segmentCount = transcriptionResult.Segments.Count,
+            durationSeconds = transcriptionResult.DurationSeconds,
+            modelUsed = transcriptionResult.ModelUsed,
+            transcribedAt = transcriptionResult.TranscribedAt,
+            message = "Transcript generated successfully"
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSCRIPT] Unexpected error generating transcript for lesson {LessonId}", request.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GenerateTranscript")
+.WithTags("Transcription")
+.Produces(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// POST /api/translations/generate - Generate translation from transcript (Admin/Instructor)
+app.MapPost("/api/translations/generate", async (
+    [FromBody] GenerateTranslationRequest request,
+    [FromServices] IOllamaTranslationService translationService,
+    [FromServices] IEmbeddingService embeddingService,
+    [FromServices] IMongoDatabase mongoDb,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSLATION] Generating translation for lesson {LessonId}: {SourceLang} → {TargetLang}",
+            request.LessonId, request.SourceLanguage, request.TargetLanguage);
+
+        // 1. Check if transcript exists in MongoDB
+        var transcriptsCollection = mongoDb.GetCollection<BsonDocument>("VideoTranscripts");
+        var transcriptFilter = Builders<BsonDocument>.Filter.Eq("lessonId", request.LessonId.ToString());
+        var transcriptDoc = await transcriptsCollection.Find(transcriptFilter).FirstOrDefaultAsync();
+
+        if (transcriptDoc == null)
+        {
+            logger.LogWarning("[TRANSLATION] No transcript found for lesson {LessonId}", request.LessonId);
+            return Results.NotFound(new { error = $"No transcript found for lesson {request.LessonId}. Generate transcript first." });
+        }
+
+        // 2. Translate transcript using Ollama (loads from MongoDB internally)
+        TranslationResult translationResult;
+        try
+        {
+            translationResult = await translationService.TranslateAsync(
+                request.LessonId,
+                request.SourceLanguage,
+                request.TargetLanguage
+            );
+            logger.LogInformation("[TRANSLATION] Translation completed: {SegmentCount} segments translated",
+                translationResult.Segments.Count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[TRANSLATION] Translation failed for lesson {LessonId}", request.LessonId);
+            return Results.Problem(detail: $"Translation failed: {ex.Message}", statusCode: 500);
+        }
+
+        // 3. Save translation to MongoDB VideoTranslations collection
+        try
+        {
+            var translationsCollection = mongoDb.GetCollection<BsonDocument>("VideoTranslations");
+
+            var translationDoc = new BsonDocument
+            {
+                ["lessonId"] = request.LessonId.ToString(),
+                ["sourceLanguage"] = translationResult.SourceLanguage,
+                ["targetLanguage"] = translationResult.TargetLanguage,
+                ["modelUsed"] = translationResult.ModelUsed,
+                ["translatedAt"] = translationResult.TranslatedAt,
+                ["segments"] = new BsonArray(translationResult.Segments.Select(s => new BsonDocument
+                {
+                    ["index"] = s.Index,
+                    ["startSeconds"] = s.StartSeconds,
+                    ["endSeconds"] = s.EndSeconds,
+                    ["originalText"] = s.OriginalText,
+                    ["translatedText"] = s.TranslatedText,
+                    ["quality"] = s.Quality
+                }))
+            };
+
+            // Upsert: replace if exists for this language pair
+            var filter = Builders<BsonDocument>.Filter.And(
+                Builders<BsonDocument>.Filter.Eq("lessonId", request.LessonId.ToString()),
+                Builders<BsonDocument>.Filter.Eq("targetLanguage", request.TargetLanguage)
+            );
+            await translationsCollection.ReplaceOneAsync(filter, translationDoc, new ReplaceOptions { IsUpsert = true });
+
+            logger.LogInformation("[TRANSLATION] Translation saved to MongoDB for lesson {LessonId}, language: {TargetLang}",
+                request.LessonId, request.TargetLanguage);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[TRANSLATION] Failed to save translation to MongoDB");
+            return Results.Problem(detail: $"Failed to save translation: {ex.Message}", statusCode: 500);
+        }
+
+        // 4. Index translated segments in Qdrant for semantic search
+        try
+        {
+            var indexedCount = await embeddingService.IndexTranslationAsync(
+                request.LessonId,
+                request.TargetLanguage,
+                translationResult.Segments
+            );
+            logger.LogInformation("[TRANSLATION] Indexed {Count} translated segments in Qdrant", indexedCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[TRANSLATION] Failed to index in Qdrant (translation still saved)");
+            // Non-blocking: translation is saved, search indexing is optional
+        }
+
+        return Results.Ok(new
+        {
+            lessonId = request.LessonId,
+            sourceLanguage = translationResult.SourceLanguage,
+            targetLanguage = translationResult.TargetLanguage,
+            segmentCount = translationResult.Segments.Count,
+            modelUsed = translationResult.ModelUsed,
+            translatedAt = translationResult.TranslatedAt,
+            message = "Translation generated successfully"
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSLATION] Unexpected error generating translation for lesson {LessonId}", request.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("GenerateTranslation")
+.WithTags("Translation")
+.Produces(200)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/search/hybrid - Hybrid search (MongoDB + Qdrant)
+app.MapGet("/api/search/hybrid", async (
+    [FromQuery] string query,
+    [FromQuery] Guid? lessonId,
+    [FromQuery] string? language,
+    [FromQuery] int limit,
+    [FromServices] IHybridSearchService searchService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Results.BadRequest(new { error = "Query parameter is required" });
+        }
+
+        logger.LogInformation("[HYBRID_SEARCH] Searching: query='{Query}', lesson={LessonId}, language={Language}",
+            query, lessonId, language);
+
+        var results = await searchService.SearchAsync(query, lessonId, language, limit);
+
+        return Results.Ok(new
+        {
+            query,
+            lessonId,
+            language,
+            resultCount = results.Count,
+            results
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[HYBRID_SEARCH] Search error: {Query}", query);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("HybridSearch")
+.WithTags("Search")
+.Produces(200)
+.Produces(400)
+.Produces(401)
+.Produces(500);
+
+// ========================================
 // BACKGROUND JOB ENDPOINTS (4)
 // ========================================
 
@@ -7527,7 +8190,177 @@ Console.WriteLine($"Listening on: {string.Join(", ", builder.WebHost.GetSetting(
 Console.WriteLine($"Chatbot enabled with model: {ollamaModel}");
 Console.WriteLine($"Ollama URL: {ollamaUrl}");
 
+// ====================================
+// VECTOR SEARCH ENDPOINTS (v2.3.16-dev)
+// Qdrant-powered semantic video search
+// ====================================
+
+// Index video for semantic search (Admin/Instructor only)
+app.MapPost("/api/vector/index-video", async (
+    [FromBody] IndexVideoRequest request,
+    [FromServices] IVectorSearchService vectorService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[VECTOR] Indexing video {VideoId} with title: {Title}", request.VideoId, request.Title);
+
+        var success = await vectorService.IndexVideoAsync(
+            request.VideoId,
+            request.Title,
+            request.Description,
+            request.Embedding
+        );
+
+        if (success)
+        {
+            return Results.Ok(new { message = "Video indexed successfully", videoId = request.VideoId });
+        }
+        else
+        {
+            return Results.Problem("Failed to index video");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VECTOR] Error indexing video {VideoId}", request.VideoId);
+        return Results.Problem("Error indexing video");
+    }
+})
+.WithName("IndexVideo")
+.WithTags("VectorSearch")
+.Produces(200)
+.Produces(500);
+
+// Search for similar videos using semantic search
+app.MapGet("/api/vector/search", async (
+    [FromQuery] string query,
+    [FromQuery] int limit,
+    [FromServices] IVectorSearchService vectorService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Results.BadRequest(new { error = "Query parameter is required" });
+        }
+
+        if (limit <= 0 || limit > 100)
+        {
+            limit = 10; // Default to 10 results
+        }
+
+        logger.LogInformation("[VECTOR] Searching for videos similar to: {Query} (limit: {Limit})", query, limit);
+
+        var results = await vectorService.SearchSimilarVideosAsync(query, limit);
+
+        return Results.Ok(new
+        {
+            query,
+            results,
+            count = results.Count
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VECTOR] Error searching for: {Query}", query);
+        return Results.Problem("Error performing semantic search");
+    }
+})
+.WithName("SearchSimilarVideos")
+.WithTags("VectorSearch")
+.Produces<SearchResponse>(200)
+.Produces(400)
+.Produces(500);
+
+// Delete video from vector index (Admin/Instructor only)
+app.MapDelete("/api/vector/videos/{videoId}", async (
+    [FromRoute] Guid videoId,
+    [FromServices] IVectorSearchService vectorService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[VECTOR] Deleting video {VideoId} from vector index", videoId);
+
+        var success = await vectorService.DeleteVideoAsync(videoId);
+
+        if (success)
+        {
+            return Results.Ok(new { message = "Video removed from index", videoId });
+        }
+        else
+        {
+            return Results.NotFound(new { error = "Video not found in index" });
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VECTOR] Error deleting video {VideoId}", videoId);
+        return Results.Problem("Error deleting video from index");
+    }
+})
+.WithName("DeleteVideoFromIndex")
+.WithTags("VectorSearch")
+.Produces(200)
+.Produces(404)
+.Produces(500);
+
+// Get vector collection statistics
+app.MapGet("/api/vector/stats", async (
+    [FromServices] IVectorSearchService vectorService,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[VECTOR] Getting collection statistics");
+
+        var stats = await vectorService.GetCollectionStatsAsync();
+
+        return Results.Ok(stats);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[VECTOR] Error getting collection stats");
+        return Results.Problem("Error retrieving collection statistics");
+    }
+})
+.WithName("GetVectorStats")
+.WithTags("VectorSearch")
+.Produces<VectorCollectionStats>(200)
+.Produces(500);
+
+Console.WriteLine("[API] Vector Search endpoints registered (4 endpoints)");
+
 app.Run();
+
+// ============================================
+// VECTOR SEARCH REQUEST DTOs
+// ============================================
+
+/// <summary>
+/// Request body for indexing a video in the vector database
+/// </summary>
+/// <param name="VideoId">Unique identifier for the video</param>
+/// <param name="Title">Video title</param>
+/// <param name="Description">Video description</param>
+/// <param name="Embedding">384-dimensional embedding vector</param>
+public record IndexVideoRequest(
+    Guid VideoId,
+    string Title,
+    string Description,
+    float[] Embedding
+);
+
+/// <summary>
+/// Response for vector search results
+/// </summary>
+public record SearchResponse(
+    string Query,
+    List<VideoSearchResult> Results,
+    int Count
+);
 
 // ============================================
 // SEO REQUEST DTOs
@@ -7547,3 +8380,22 @@ public record IndexNowRequest(string? Url, string[]? Urls);
 /// <param name="DurationSeconds">Video duration in seconds (default: 300)</param>
 /// <param name="Language">Language code (default: en-US)</param>
 public record AutoGenerateTranscriptRequest(string? LessonTitle, int? DurationSeconds, string? Language);
+
+// ============================================
+// VIDEO TRANSCRIPTION & TRANSLATION REQUEST DTOs (v2.3.23-dev)
+// ============================================
+
+/// <summary>
+/// Request body for generating transcript from video
+/// </summary>
+/// <param name="LessonId">Lesson GUID</param>
+/// <param name="Language">Language code (e.g., en-US, it-IT)</param>
+public record GenerateTranscriptRequest(Guid LessonId, string Language);
+
+/// <summary>
+/// Request body for generating translation from transcript
+/// </summary>
+/// <param name="LessonId">Lesson GUID</param>
+/// <param name="SourceLanguage">Source language code</param>
+/// <param name="TargetLanguage">Target language code</param>
+public record GenerateTranslationRequest(Guid LessonId, string SourceLanguage, string TargetLanguage);

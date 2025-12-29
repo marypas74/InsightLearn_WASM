@@ -27,6 +27,7 @@ namespace InsightLearn.Application.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<VideoTranscriptService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IWhisperTranscriptionService _whisperService;
 
         private const string CacheKeyPrefix = "transcript:";
         private const int CacheDurationMinutes = 60; // 1 hour cache
@@ -36,13 +37,15 @@ namespace InsightLearn.Application.Services
             IDistributedCache cache,
             IHttpClientFactory httpClientFactory,
             ILogger<VideoTranscriptService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IWhisperTranscriptionService whisperService)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _whisperService = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
         }
 
         public async Task<VideoTranscriptDto?> GetTranscriptAsync(Guid lessonId, CancellationToken ct = default)
@@ -101,22 +104,37 @@ namespace InsightLearn.Application.Services
 
         public async Task<VideoTranscriptDto> GenerateTranscriptAsync(Guid lessonId, string videoUrl, string language = "en-US", CancellationToken ct = default)
         {
-            _logger.LogInformation("Starting synchronous transcript generation for lesson {LessonId}", lessonId);
+            _logger.LogInformation("Starting synchronous transcript generation for lesson {LessonId} using Whisper.net", lessonId);
 
             try
             {
                 // Update status to "Processing"
                 await _repository.UpdateProcessingStatusAsync(lessonId, "Processing", null, ct);
 
-                // 1. Call Whisper API
-                var whisperBaseUrl = _configuration["Whisper:BaseUrl"] ?? "http://whisper-service:9000";
-                var segments = await CallWhisperApiAsync(videoUrl, language, whisperBaseUrl, ct);
+                // 1. Download video stream
+                _logger.LogDebug("Downloading video from URL: {VideoUrl}", videoUrl);
+                var videoStream = await DownloadVideoStreamAsync(videoUrl, ct);
 
-                // 2. Calculate metadata
+                // 2. Transcribe using Whisper.net
+                // Extract language code (convert "en-US" to "en" for Whisper)
+                var whisperLanguage = language.Contains('-') ? language.Split('-')[0] : language;
+                var transcriptionResult = await _whisperService.TranscribeVideoAsync(videoStream, whisperLanguage, lessonId);
+
+                // 3. Map TranscriptionResult to TranscriptSegmentDto
+                var segments = transcriptionResult.Segments.Select(s => new TranscriptSegmentDto
+                {
+                    StartTime = s.StartSeconds,
+                    EndTime = s.EndSeconds,
+                    Text = s.Text,
+                    Speaker = null, // Whisper doesn't provide speaker diarization
+                    Confidence = s.Confidence
+                }).ToList();
+
+                // 4. Calculate metadata
                 var wordCount = segments.Sum(s => s.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
                 var averageConfidence = segments.Where(s => s.Confidence.HasValue).Average(s => s.Confidence!.Value);
 
-                // 3. Create DTO
+                // 5. Create DTO
                 var transcriptDto = new VideoTranscriptDto
                 {
                     LessonId = lessonId,
@@ -125,20 +143,22 @@ namespace InsightLearn.Application.Services
                     Transcript = segments,
                     Metadata = new TranscriptMetadataDto
                     {
+                        DurationSeconds = (int)transcriptionResult.DurationSeconds,
                         WordCount = wordCount,
                         AverageConfidence = averageConfidence,
-                        ProcessingModel = "whisper-large-v3",
+                        ProcessingEngine = transcriptionResult.ModelUsed, // "whisper-base"
                         ProcessedAt = DateTime.UtcNow
                     }
                 };
 
-                // 4. Save to database
+                // 6. Save to database
                 await _repository.CreateAsync(lessonId, transcriptDto, ct);
 
-                // 5. Invalidate cache (if any)
+                // 7. Invalidate cache (if any)
                 await InvalidateCacheAsync(lessonId, ct);
 
-                _logger.LogInformation("Transcript generation completed for lesson {LessonId}, {WordCount} words", lessonId, wordCount);
+                _logger.LogInformation("Transcript generation completed for lesson {LessonId}, {WordCount} words, {SegmentCount} segments",
+                    lessonId, wordCount, segments.Count);
 
                 return transcriptDto;
             }
@@ -148,6 +168,36 @@ namespace InsightLearn.Application.Services
                 await _repository.UpdateProcessingStatusAsync(lessonId, "Failed", ex.Message, ct);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Download video stream from the provided video URL.
+        /// Handles both relative URLs (e.g., /api/video/stream/{id}) and absolute URLs.
+        /// </summary>
+        private async Task<Stream> DownloadVideoStreamAsync(string videoUrl, CancellationToken ct)
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromMinutes(5); // 5-minute timeout for large videos
+
+            // If videoUrl is relative, construct full URL using API base URL
+            string fullUrl;
+            if (videoUrl.StartsWith("/"))
+            {
+                // Relative URL - use localhost or configured base URL
+                var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "http://localhost:80";
+                fullUrl = $"{apiBaseUrl}{videoUrl}";
+            }
+            else
+            {
+                fullUrl = videoUrl;
+            }
+
+            _logger.LogDebug("Downloading video from: {Url}", fullUrl);
+
+            var response = await httpClient.GetAsync(fullUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStreamAsync(ct);
         }
 
         public async Task<TranscriptSearchResultDto> SearchTranscriptAsync(Guid lessonId, string query, int limit = 10, CancellationToken ct = default)
