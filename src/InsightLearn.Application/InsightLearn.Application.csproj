@@ -47,7 +47,7 @@
     <!-- Hangfire for background jobs (Student Learning Space v2.1.0) -->
     <PackageReference Include="Hangfire.Core" Version="1.8.17" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.8.17" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.17" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
 
     <!-- Security patches for transitive vulnerabilities (CVE-2024-43483, CVE-2024-43485) -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
