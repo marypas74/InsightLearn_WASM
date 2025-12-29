@@ -110,7 +110,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__range]))",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__range]))",
               "legendFormat": "{{country}}",
               "queryType": "instant",
               "refId": "A"
@@ -192,7 +192,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "topk(10, sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__range])))",
+              "expr": "topk(10, sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__range])))",
               "legendFormat": "{{country}}",
               "queryType": "instant",
               "refId": "A"
@@ -232,7 +232,7 @@ data:
             "displayLabels": ["name", "percent"],
             "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
             "pieType": "pie",
-            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
             "tooltip": { "mode": "single", "sort": "none" }
           },
           "pluginVersion": "10.2.0",
@@ -240,19 +240,13 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__range]))",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__range]))",
               "legendFormat": "{{country}}",
               "queryType": "instant",
               "refId": "A"
             }
           ],
           "title": "🥧 Country Distribution",
-          "transformations": [
-            {
-              "id": "labelsToFields",
-              "options": { "mode": "columns" }
-            }
-          ],
           "type": "piechart"
         },
         {
@@ -311,7 +305,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__range]))",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__range]))",
               "legendFormat": "{{country}}",
               "queryType": "instant",
               "refId": "A"
@@ -390,7 +384,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__interval]))",
+              "expr": "sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__interval]))",
               "legendFormat": "{{country}}",
               "queryType": "range",
               "refId": "A"
@@ -401,7 +395,7 @@ data:
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "description": "Total requests over time",
+          "description": "HTTP requests from website visitors captured by nginx-geoip logs. Shows the volume of page views and API calls over time.",
           "fieldConfig": {
             "defaults": {
               "color": { "fixedColor": "blue", "mode": "fixed" },
@@ -409,7 +403,7 @@ data:
                 "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
-                "axisLabel": "",
+                "axisLabel": "HTTP Requests per Interval",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
                 "drawStyle": "bars",
@@ -449,12 +443,12 @@ data:
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
               "expr": "sum(count_over_time({job=\"nginx-geoip\"} [$__interval]))",
-              "legendFormat": "Total Requests",
+              "legendFormat": "Website Visitor Requests",
               "queryType": "range",
               "refId": "A"
             }
           ],
-          "title": "📊 Total Traffic Over Time",
+          "title": "📈 Website Visitor HTTP Requests Timeline",
           "type": "timeseries"
         },
         {
@@ -516,7 +510,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "topk(15, sum by (city) (count_over_time({job="nginx-geoip", city!=""} [$__range])))",
+              "expr": "topk(15, sum by (city) (count_over_time({job=\"nginx-geoip\", city=~\".+\"} [$__range])))",
               "legendFormat": "{{city}}",
               "queryType": "instant",
               "refId": "A"
@@ -573,7 +567,7 @@ data:
             "displayLabels": ["name", "percent"],
             "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
             "pieType": "donut",
-            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
             "tooltip": { "mode": "single", "sort": "none" }
           },
           "pluginVersion": "10.2.0",
@@ -581,19 +575,13 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum by (status) (count_over_time({job=\"nginx-geoip\"} | json | status != \"\" [$__range]))",
+              "expr": "sum by (status) (count_over_time({job=\"nginx-geoip\", status=~\".+\"} [$__range]))",
               "legendFormat": "{{status}}",
               "queryType": "instant",
               "refId": "A"
             }
           ],
           "title": "📊 HTTP Status Codes",
-          "transformations": [
-            {
-              "id": "labelsToFields",
-              "options": { "mode": "columns" }
-            }
-          ],
           "type": "piechart"
         },
         {
@@ -628,7 +616,7 @@ data:
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "count(sum by (country) (count_over_time({job="nginx-geoip", country!=""} [$__range])))",
+              "expr": "count(sum by (country) (count_over_time({job=\"nginx-geoip\", country=~\".+\"} [$__range])))",
               "legendFormat": "Countries",
               "queryType": "instant",
               "refId": "A"
@@ -804,14 +792,44 @@ data:
               },
               "unit": "bytes"
             },
-            "overrides": []
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "/" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "/home" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "/boot" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "/k3s-zfs" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "/var/lib/rancher/k3s" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+                ]
+              }
+            ]
           },
           "gridPos": { "h": 6, "w": 12, "x": 12, "y": 51 },
           "id": 13,
           "options": {
             "barRadius": 0.1,
             "barWidth": 0.8,
-            "colorByField": "mountpoint",
             "fullHighlight": false,
             "groupWidth": 0.7,
             "legend": { "calcs": [], "displayMode": "list", "placement": "right", "showLegend": true },
@@ -1141,7 +1159,7 @@ data:
           "type": "timeseries"
         }
       ],
-      "refresh": "30s",
+      "refresh": "2m",
       "schemaVersion": 39,
       "tags": ["geoip", "worldmap", "visitors", "loki"],
       "templating": { "list": [] },

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightLearn - Video Test Links</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .filters {
+            padding: 20px;
+            background: #fff;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filters input, .filters select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .filters input[type="search"] {
+            flex: 1;
+            min-width: 250px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .video-title {
+            font-weight: 500;
+            color: #212529;
+        }
+        .course-name {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .duration {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .file-size {
+            color: #17a2b8;
+        }
+        .format-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .format-mp4 {
+            background: #e7f3ff;
+            color: #0066cc;
+        }
+        .format-webm {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .link-group {
+            display: flex;
+            gap: 8px;
+        }
+        .link-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .link-prod {
+            background: #28a745;
+            color: white;
+        }
+        .link-prod:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        .link-local {
+            background: #6c757d;
+            color: white;
+        }
+        .link-local:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        .copy-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+        .copy-btn.copied {
+            background: #28a745;
+        }
+        .object-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .search-highlight {
+            background: yellow;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎥 InsightLearn Video Test Links</h1>
+            <p>All MongoDB GridFS video streaming URLs for testing and verification</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="totalVideos">0</div>
+                <div class="stat-label">Total Videos</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalSize">0</div>
+                <div class="stat-label">Total Size (GB)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="avgSize">0</div>
+                <div class="stat-label">Avg Size (MB)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalDuration">0</div>
+                <div class="stat-label">Total Duration (hrs)</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <input type="search" id="searchInput" placeholder="🔍 Search by title, course, or ObjectId..." />
+            <select id="formatFilter">
+                <option value="">All Formats</option>
+                <option value="mp4">MP4</option>
+                <option value="webm">WebM</option>
+            </select>
+            <select id="courseFilter">
+                <option value="">All Courses</option>
+            </select>
+        </div>
+
+        <table id="videoTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>ObjectId</th>
+                    <th>Video Title</th>
+                    <th>Course</th>
+                    <th>Duration</th>
+                    <th>File Size</th>
+                    <th>Format</th>
+                    <th>Links</th>
+                </tr>
+            </thead>
+            <tbody id="videoTableBody">
+                <!-- Data will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const videos = [  {   "objectId": "693bd380a633a1ccf7f519e7",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd3803312dba5e79987ce",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd380a633a1ccf7f519ea",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd380a633a1ccf7f519ed",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd3803312dba5e79987d1",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd380a633a1ccf7f519f0",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd3803312dba5e79987d4",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd3803312dba5e79987d7",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd380a633a1ccf7f519f3",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bd380a633a1ccf7f519f6",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 1",   "duration": 5,   "fileSize": 1083366,   "format": "webm"  },  {   "objectId": "693bdeada633a1ccf7f519f9",   "title": "About Bananas - Agricultural Education",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 68512128,   "format": "mp4"  },  {   "objectId": "693be12aa633a1ccf7f51a3c",   "title": "Doctor in Industry - Workplace Health",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 117249712,   "format": "mp4"  },  {   "objectId": "693be1363312dba5e79987da",   "title": "Health: Your Posture - Body Mechanics",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 66520877,   "format": "mp4"  },  {   "objectId": "693be13c3312dba5e799881b",   "title": "From the Ground Up - Construction",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 119087429,   "format": "mp4"  },  {   "objectId": "693be145a633a1ccf7f51aad",   "title": "Sleep for Health - Rest Education",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 66986081,   "format": "mp4"  },  {   "objectId": "693be1473312dba5e799888e",   "title": "Joan Avoids a Cold - Health Habits",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 65083997,   "format": "mp4"  },  {   "objectId": "693be1483312dba5e79988ce",   "title": "Eat for Health - Nutrition Guide",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 64969607,   "format": "mp4"  },  {   "objectId": "693be14e3312dba5e799890d",   "title": "Automotive Service - Car Maintenance",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 62773628,   "format": "mp4"  },  {   "objectId": "693be154a633a1ccf7f51aee",   "title": "Care of the Skin - Personal Hygiene",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 65433050,   "format": "mp4"  },  {   "objectId": "693be155a633a1ccf7f51b2e",   "title": "Sniffles and Sneezes - Cold Prevention",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 60763377,   "format": "mp4"  },  {   "objectId": "693be15a3312dba5e799894a",   "title": "Personal Hygiene - Health Education",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 93433267,   "format": "mp4"  },  {   "objectId": "693be15c3312dba5e79989a5",   "title": "Bacteria: Friend and Foe - Microbiology",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 64127958,   "format": "mp4"  },  {   "objectId": "693be15da633a1ccf7f51b69",   "title": "A Case of Spring Fever - Industrial",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 51525807,   "format": "mp4"  },  {   "objectId": "693be15ea633a1ccf7f51b9c",   "title": "Good Eating Habits - Nutrition",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 60898831,   "format": "mp4"  },  {   "objectId": "693be160a633a1ccf7f51bd8",   "title": "Wartime Nutrition - WWII Education",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 64677689,   "format": "mp4"  },  {   "objectId": "693be163a633a1ccf7f51c17",   "title": "Duck and Cover - Civil Defense",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 57591076,   "format": "mp4"  },  {   "objectId": "693be1653312dba5e79989e4",   "title": "How to Go Places - Travel Guide",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 66671212,   "format": "mp4"  },  {   "objectId": "693be1663312dba5e7998a25",   "title": "General Health Habits - Wellness",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 39473854,   "format": "mp4"  },  {   "objectId": "693be169a633a1ccf7f51c4f",   "title": "Experiments in Revival - Science",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 121956872,   "format": "mp4"  },  {   "objectId": "693be16b3312dba5e7998a4c",   "title": "Preventing Disease - Public Health",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 67450192,   "format": "mp4"  },  {   "objectId": "693be1703312dba5e7998a8e",   "title": "Time Savers for House Makers",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 6167517,   "format": "mp4"  },  {   "objectId": "693be1713312dba5e7998a95",   "title": "Exercise and Health - Fitness",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 61556887,   "format": "mp4"  },  {   "objectId": "693be179a633a1ccf7f51cc5",   "title": "Archive.org: PrivateL1947⧸PrivateL1947 256kb.rm",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 115527229,   "format": "mp4"  },  {   "objectId": "693be17da633a1ccf7f51d35",   "title": "Make Mine Freedom - Civics",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 59359868,   "format": "mp4"  },  {   "objectId": "693be17ea633a1ccf7f51d6f",   "title": "Japanese Relocation - History",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 59086470,   "format": "mp4"  },  {   "objectId": "693be1833312dba5e7998ad1",   "title": "Don't Be a Sucker - Anti-Propaganda",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 108346030,   "format": "mp4"  },  {   "objectId": "693be1883312dba5e7998b3a",   "title": "The Golden Years - Aging Well",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 90708066,   "format": "mp4"  },  {   "objectId": "693be18da633a1ccf7f51da9",   "title": "My Japan - Cultural Education",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 100167293,   "format": "mp4"  },  {   "objectId": "693be18fa633a1ccf7f51e0a",   "title": "Design for Dreaming - Future Tech",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 57947878,   "format": "mp4"  },  {   "objectId": "693be190a633a1ccf7f51e43",   "title": "How to Be Well Groomed",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 66604551,   "format": "mp4"  },  {   "objectId": "693be1953312dba5e7998b92",   "title": "For Health and Happiness",   "course": "[TEST] Load Test Course 1",   "duration": 15,   "fileSize": 58799820,   "format": "mp4"  },  {   "objectId": "693b4ae53312dba5e79986c0",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae63312dba5e79986c9",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae83312dba5e79986d2",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae83312dba5e79986db",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae83312dba5e79986e4",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4aea3312dba5e79986ed",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4aeaa633a1ccf7f51930",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4aea3312dba5e79986f6",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4aea3312dba5e79986ff",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4aeaa633a1ccf7f51939",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 10",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "6936e907806d75d92d07da45",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e909806d75d92d07da69",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e9122f2912f01289aa7c",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e90d806d75d92d07dae1",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e91a806d75d92d07db7d",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e91f2f2912f01289aad0",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e927806d75d92d07dc01",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e92d806d75d92d07dc49",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "6936e92f806d75d92d07dc61",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 2",   "duration": 5,   "fileSize": 10485760,   "format": "mp4"  },  {   "objectId": "693b4ad0a633a1ccf7f5184f",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad03312dba5e79985df",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad0a633a1ccf7f51858",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad13312dba5e79985e8",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad13312dba5e79985f1",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad13312dba5e79985fa",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad13312dba5e7998603",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad23312dba5e799860c",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad23312dba5e7998615",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad2a633a1ccf7f51861",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 3",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adb3312dba5e7998681",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adc3312dba5e799868a",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adc3312dba5e7998693",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adc3312dba5e799869c",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4add3312dba5e79986a5",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae2a633a1ccf7f51915",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae2a633a1ccf7f5191e",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae3a633a1ccf7f51927",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae53312dba5e79986ae",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ae53312dba5e79986b7",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 4",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adaa633a1ccf7f518e8",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adaa633a1ccf7f518f1",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adaa633a1ccf7f518fa",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ada3312dba5e7998654",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adaa633a1ccf7f51903",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ada3312dba5e799865d",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ada3312dba5e7998666",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ada3312dba5e799866f",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adaa633a1ccf7f5190c",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4adb3312dba5e7998678",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 5",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b07a633a1ccf7f51993",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b07a633a1ccf7f5199c",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b0a3312dba5e799876b",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b10a633a1ccf7f519a5",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b10a633a1ccf7f519ae",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b13a633a1ccf7f519b7",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b13a633a1ccf7f519c0",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b133312dba5e7998774",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b133312dba5e799877d",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b143312dba5e7998786",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 6",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b153312dba5e799878f",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b153312dba5e7998798",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b153312dba5e79987a1",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b153312dba5e79987aa",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b153312dba5e79987b3",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b17a633a1ccf7f519c9",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b17a633a1ccf7f519d2",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b173312dba5e79987bc",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b173312dba5e79987c5",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b17a633a1ccf7f519db",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 7",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af8a633a1ccf7f51954",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af8a633a1ccf7f5195d",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4afe3312dba5e7998750",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b02a633a1ccf7f51966",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b04a633a1ccf7f5196f",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b04a633a1ccf7f51978",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b06a633a1ccf7f51981",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b06a633a1ccf7f5198a",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b063312dba5e7998759",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4b073312dba5e7998762",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 8",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af03312dba5e7998708",   "title": "Lesson 1 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af13312dba5e7998711",   "title": "Lesson 2 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af23312dba5e799871a",   "title": "Lesson 3 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af23312dba5e7998723",   "title": "Lesson 4 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af33312dba5e799872c",   "title": "Lesson 5 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af3a633a1ccf7f51942",   "title": "Lesson 6 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af3a633a1ccf7f5194b",   "title": "Lesson 7 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af53312dba5e7998735",   "title": "Lesson 8 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af53312dba5e799873e",   "title": "Lesson 9 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4af83312dba5e7998747",   "title": "Lesson 10 - Video",   "course": "[TEST] Load Test Course 9",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad23312dba5e799861e",   "title": "Lesson 1 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad3a633a1ccf7f5186a",   "title": "Lesson 2 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad33312dba5e7998627",   "title": "Lesson 3 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad3a633a1ccf7f51873",   "title": "Lesson 4 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad4a633a1ccf7f5187c",   "title": "Lesson 5 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad4a633a1ccf7f51885",   "title": "Lesson 6 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad4a633a1ccf7f5188e",   "title": "Lesson 7 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad6a633a1ccf7f51897",   "title": "Lesson 8 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad7a633a1ccf7f518a0",   "title": "Lesson 9 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  },  {   "objectId": "693b4ad7a633a1ccf7f518a9",   "title": "Lesson 10 - Video",   "course": "TEST Course Debug",   "duration": 5,   "fileSize": 8145542,   "format": "mp4"  } ]; ;
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return 'N/A';
+            const mb = bytes / (1024 * 1024);
+            if (mb < 1) return (bytes / 1024).toFixed(2) + ' KB';
+            if (mb < 1024) return mb.toFixed(2) + ' MB';
+            return (mb / 1024).toFixed(2) + ' GB';
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function renderTable(filteredVideos) {
+            const tbody = document.getElementById('videoTableBody');
+            tbody.innerHTML = '';
+
+            filteredVideos.forEach((video, index) => {
+                const row = document.createElement('tr');
+                const prodUrl = `https://www.insightlearn.cloud/api/video/stream/${video.objectId}`;
+                const localUrl = `http://localhost:31081/api/video/stream/${video.objectId}`;
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td class="object-id">${video.objectId}</td>
+                    <td>
+                        <div class="video-title">${video.title}</div>
+                    </td>
+                    <td class="course-name">${video.course}</td>
+                    <td class="duration">${video.duration} min</td>
+                    <td class="file-size">${formatFileSize(video.fileSize)}</td>
+                    <td><span class="format-badge format-${video.format}">${video.format}</span></td>
+                    <td>
+                        <div class="link-group">
+                            <a href="${prodUrl}" class="link-btn link-prod" target="_blank">🌐 Prod</a>
+                            <a href="${localUrl}" class="link-btn link-local" target="_blank">💻 Local</a>
+                            <button class="copy-btn" onclick="copyToClipboard('${prodUrl}', this)">📋 Copy</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateStats(filteredVideos) {
+            const totalSize = filteredVideos.reduce((sum, v) => sum + v.fileSize, 0);
+            const totalDuration = filteredVideos.reduce((sum, v) => sum + v.duration, 0);
+
+            document.getElementById('totalVideos').textContent = filteredVideos.length;
+            document.getElementById('totalSize').textContent = (totalSize / (1024 * 1024 * 1024)).toFixed(2);
+            document.getElementById('avgSize').textContent = filteredVideos.length > 0
+                ? (totalSize / (1024 * 1024) / filteredVideos.length).toFixed(2)
+                : 0;
+            document.getElementById('totalDuration').textContent = (totalDuration / 60).toFixed(1);
+        }
+
+        function filterVideos() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const formatFilter = document.getElementById('formatFilter').value;
+            const courseFilter = document.getElementById('courseFilter').value;
+
+            let filtered = videos.filter(video => {
+                const matchesSearch = !searchTerm ||
+                    video.title.toLowerCase().includes(searchTerm) ||
+                    video.course.toLowerCase().includes(searchTerm) ||
+                    video.objectId.toLowerCase().includes(searchTerm);
+
+                const matchesFormat = !formatFilter || video.format === formatFilter;
+                const matchesCourse = !courseFilter || video.course === courseFilter;
+
+                return matchesSearch && matchesFormat && matchesCourse;
+            });
+
+            renderTable(filtered);
+            updateStats(filtered);
+        }
+
+        // Populate course filter
+        const uniqueCourses = [...new Set(videos.map(v => v.course))].sort();
+        const courseSelect = document.getElementById('courseFilter');
+        uniqueCourses.forEach(course => {
+            const option = document.createElement('option');
+            option.value = course;
+            option.textContent = course;
+            courseSelect.appendChild(option);
+        });
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterVideos);
+        document.getElementById('formatFilter').addEventListener('change', filterVideos);
+        document.getElementById('courseFilter').addEventListener('change', filterVideos);
+
+        // Initial render
+        filterVideos();
+    </script>
+</body>
+</html>

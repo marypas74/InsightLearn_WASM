@@ -394,188 +394,317 @@
 }
 
 /* ========================================
-   FIX v2.3.11-dev - 2025-12-24
-   Issues Fixed:
-   1. Categories dropdown text truncation - INCREASED WIDTH TO FIT ALL TEXT
-   2. Mobile auth buttons VISIBILITY - ensure they show
-   3. Mobile menu navigation CONTENT visibility
+   FIX v2.3.15-dev - 2025-12-26
 
-   Sources:
-   - CSS-Tricks: Preventing a Grid Blowout (min-width: 0)
-   - Defensive CSS: Grid min-content-size
-   - Ahmad Shadeed: Building Website Headers with Flexbox
-   - Web research: Use width: max-content for dropdowns
+   COMPLETE REWRITE for Mobile Header + Categories
+
+   Issues Fixed:
+   1. Categories dropdown - MOVE LEFT on desktop
+   2. Mobile logo NOT visible - hamburger is inside .header-actions-section
+   3. Mobile menu is EMPTY - content not showing
+
+   Root Cause Analysis:
+   - Grid-area approach DOESN'T WORK because hamburger is NOT a direct
+     child of .main-header-container (it's inside .header-actions-section)
+   - mobile-ux-fixes.css uses right: -100% approach for mobile panel
+   - This file was using left: 0 + transform approach (CONFLICT!)
+
+   Solution:
+   1. Categories: Add left offset to position more to the left
+   2. Mobile: Use FLEXBOX layout (not grid-areas)
+   3. Mobile menu: Use SAME right-based approach as mobile-ux-fixes.css
    ======================================== */
 
-/* ===== FIX #1: Categories Dropdown Text Truncation ===== */
-/* Problem: "Personal Growth" shows as "Personal Growt" - container too narrow */
-/* Solution: Use much wider container (680px) so all text fits without truncation */
-
+/* ===== DESKTOP: Categories Dropdown - Position More to the LEFT ===== */
 .dropdown-menu.categories-menu {
-    /* KEY FIX: Much wider min-width to fit all category labels fully */
-    min-width: 680px !important;
+    /* Position dropdown more to the left on desktop */
+    position: absolute !important;
+    left: -100px !important; /* MOVE LEFT by 100px */
+    right: auto !important;
+    min-width: 560px !important;
     width: max-content !important;
-    max-width: 720px !important;
+    max-width: 640px !important;
+    margin-top: 8px !important;
 }
 
 .categories-grid {
     display: grid !important;
-    /* Use fixed column widths, not fractional - each column 200px minimum */
-    grid-template-columns: repeat(3, minmax(200px, 1fr)) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(3, minmax(160px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 8px !important;
 }
 
 .category-item {
-    /* Do NOT use min-width: 0 - we WANT it to expand */
-    min-width: max-content !important;
-    width: auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 10px 12px !important;
 }
 
 .category-label {
-    /* KEY FIX: Allow text to display fully, no truncation */
     white-space: nowrap !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
-    font-size: 14px !important;
-    display: inline-block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 13px !important;
+    display: block !important;
+    max-width: 140px !important;
 }
 
-/* ===== FIX #2: Mobile Auth Buttons MUST BE VISIBLE ===== */
-/* Problem: Login/Sign Up buttons disappeared on mobile */
-/* Solution: Force visibility with maximum specificity */
+/* ========================================
+   MOBILE HEADER LAYOUT v2.3.15 - COMPLETE REWRITE
+   Date: 2025-12-26
+
+   HTML Structure Reality:
+   <div class="main-header-container">
+       <div class="header-logo-section">...</div>         <!-- Child 1 -->
+       <div class="header-search-section desktop-only">   <!-- Child 2 - HIDDEN -->
+       <div class="header-actions-section">               <!-- Child 3 -->
+           <button class="mobile-menu-toggle">            <!-- INSIDE actions! -->
+           <div class="categories-dropdown">              <!-- HIDDEN on mobile -->
+           <div class="auth-buttons">                     <!-- LOGIN/SIGNUP -->
+       </div>
+   </div>
+
+   Solution: Use FLEXBOX on .main-header-container with ORDER property
+   to visually reorder elements even though hamburger is nested
+   ======================================== */
 
 @media (max-width: 768px) {
-    /* Main header container - proper flexbox layout */
+    /* ===== MAIN HEADER CONTAINER - FLEXBOX LAYOUT ===== */
     .main-header-container {
         display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        padding: 0 12px !important;
+        padding: 8px 12px !important;
         width: 100% !important;
         min-height: 56px !important;
         gap: 8px !important;
+        box-sizing: border-box !important;
     }
 
-    /* Logo section - left aligned */
+    /* ===== LOGO SECTION - FIRST (order: 1) ===== */
     .header-logo-section {
-        flex: 0 0 auto !important;
         display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
         align-items: center !important;
+        justify-content: flex-start !important;
+        order: 1 !important;  /* Second visual position */
+        flex: 0 1 auto !important;
+        min-width: 0 !important;
     }
 
     .header-logo-section .logo-link {
         display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
         align-items: center !important;
+        gap: 4px !important;
+        text-decoration: none !important;
     }
 
-    .header-logo-section img,
-    .header-logo-section .logo-img,
+    /* CRITICAL: Logo image MUST be visible */
+    .header-logo-section img.logo-image,
+    .header-logo-section .logo-image,
     .logo-image {
-        height: 28px !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: 32px !important;
         width: auto !important;
+        max-width: 100px !important;
+        object-fit: contain !important;
     }
 
-    /* CRITICAL FIX: Auth buttons MUST be visible on mobile */
-    .header-actions-section .auth-buttons,
-    .auth-buttons {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        flex: 0 0 auto !important;
-        align-items: center !important;
-        gap: 6px !important;
-        padding: 0 !important;
-        background: transparent !important;
-        border: none !important;
-    }
-
-    /* CRITICAL FIX: Auth buttons individually visible */
-    .auth-buttons .btn,
-    .auth-buttons .btn-outline,
-    .auth-buttons .btn-primary,
-    .auth-buttons .btn-cta-signup,
-    .auth-buttons a.btn {
-        display: inline-flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        padding: 6px 10px !important;
-        font-size: 12px !important;
-        white-space: nowrap !important;
-        min-height: 32px !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    /* Hide icons on very small screens to save space */
-    .auth-buttons .btn i {
+    /* Hide logo text on mobile to save space */
+    .header-logo-section .logo-text {
         display: none !important;
     }
 
-    /* Mobile menu toggle - visible and on left */
+    /* ===== SEARCH SECTION - HIDE ===== */
+    .header-search-section,
+    .desktop-only {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ===== ACTIONS SECTION - Contains hamburger + categories + auth ===== */
+    .header-actions-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        order: 2 !important;  /* Last visual position */
+        flex: 1 1 auto !important;
+        gap: 8px !important;
+    }
+
+    /* ===== HAMBURGER TOGGLE - First in actions ===== */
     .mobile-menu-toggle {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
+        order: -1 !important;  /* Move to START of flex container */
         align-items: center !important;
         justify-content: center !important;
         width: 40px !important;
         height: 40px !important;
-        flex: 0 0 auto !important;
-        order: -1 !important;
-        margin-right: 4px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
         background: #f7f9fa !important;
         border: 1px solid #e4e8eb !important;
         border-radius: 8px !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+        margin-right: auto !important;  /* Push other items to the right */
     }
 
-    /* Categories dropdown - mobile responsive */
+    .mobile-menu-toggle i {
+        font-size: 16px !important;
+        color: #1c1d1f !important;
+        display: block !important;
+    }
+
+    .mobile-menu-toggle:hover,
+    .mobile-menu-toggle:active {
+        background: #e4e8eb !important;
+    }
+
+    /* ===== CATEGORIES DROPDOWN - HIDE ON MOBILE ===== */
+    .nav-dropdown.categories-dropdown,
+    .categories-dropdown,
+    .dropdown-trigger.categories-trigger {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ===== AUTH BUTTONS - Last in actions ===== */
+    .auth-buttons {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        order: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    /* Individual auth buttons */
+    .auth-buttons .btn,
+    .auth-buttons .btn-outline,
+    .auth-buttons .btn-primary,
+    .auth-buttons .btn-cta-signup,
+    .auth-buttons > a,
+    .auth-buttons > button {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 6px 12px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        min-height: 32px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
+        border-radius: 6px !important;
+    }
+
+    /* Login button - outline style */
+    .auth-buttons .btn-outline {
+        background: #ffffff !important;
+        color: #1c1d1f !important;
+        border: 1px solid #1c1d1f !important;
+    }
+
+    /* Sign up button - gradient */
+    .auth-buttons .btn-primary,
+    .auth-buttons .btn-cta-signup {
+        background: linear-gradient(135deg, #a435f0 0%, #8710d8 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+
+    /* Hide icons on mobile buttons */
+    .auth-buttons .btn i,
+    .auth-buttons .btn .fa,
+    .auth-buttons .btn .fas {
+        display: none !important;
+    }
+
+    /* ===== Categories dropdown on mobile (if shown) ===== */
     .dropdown-menu.categories-menu {
-        min-width: auto !important;
-        width: calc(100vw - 24px) !important;
-        max-width: 360px !important;
+        position: fixed !important;
         left: 50% !important;
-        transform: translateX(-50%) translateY(-10px) !important;
-    }
-
-    .dropdown-menu.categories-menu.show {
-        transform: translateX(-50%) translateY(0) !important;
+        transform: translateX(-50%) !important;
+        min-width: auto !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 340px !important;
+        top: 60px !important;
     }
 
     .categories-grid {
         grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .category-label {
+        font-size: 12px !important;
+        max-width: 120px !important;
     }
 }
 
-/* ===== FIX #3: Mobile Menu Navigation Visibility ===== */
-/* Problem: Hamburger menu opens but shows NO navigation items */
-/* Root cause: CSS specificity war - some rule is hiding the content */
-/* Solution: Use maximum specificity to force visibility */
+/* ========================================
+   MOBILE MENU PANEL - CONTENT VISIBILITY FIX
 
-/* Mobile menu panel - base state (hidden off-screen) */
-nav.mobile-menu-panel {
+   CRITICAL: mobile-ux-fixes.css uses RIGHT-based positioning:
+   - Base: right: -100%
+   - Open: right: 0
+
+   We OVERRIDE with higher specificity, using SAME approach
+   ======================================== */
+
+/* ===== MOBILE MENU PANEL - Override mobile-ux-fixes.css ===== */
+nav.mobile-menu-panel.mobile-menu-panel,
+.mobile-menu-panel.mobile-menu-panel {
     position: fixed !important;
     top: 0 !important;
-    left: 0 !important;
+    right: -100% !important;  /* Same approach as mobile-ux-fixes.css */
+    left: auto !important;    /* Override any left positioning */
     width: 300px !important;
     max-width: 85vw !important;
     height: 100vh !important;
-    height: 100dvh !important; /* Dynamic viewport height for mobile */
-    background: #ffffff !important;
-    z-index: 10000 !important;
-    transform: translateX(-100%) !important;
-    transition: transform 0.3s ease !important;
+    height: 100dvh !important;
+    background-color: #ffffff !important;
+    z-index: 100000 !important;  /* Above everything */
+    transform: none !important;   /* Remove any transform */
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
-/* Mobile menu panel - OPEN state */
-nav.mobile-menu-panel.open {
-    transform: translateX(0) !important;
+/* ===== MOBILE MENU PANEL - OPEN STATE ===== */
+nav.mobile-menu-panel.mobile-menu-panel.open,
+.mobile-menu-panel.mobile-menu-panel.open {
+    right: 0 !important;
+    visibility: visible !important;
 }
 
-/* Mobile menu header - with highest specificity */
-nav.mobile-menu-panel .mobile-menu-header {
+/* ===== MOBILE MENU HEADER ===== */
+nav.mobile-menu-panel .mobile-menu-header,
+.mobile-menu-panel .mobile-menu-header {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -584,79 +713,97 @@ nav.mobile-menu-panel .mobile-menu-header {
     padding: 16px 20px !important;
     border-bottom: 1px solid #e4e8eb !important;
     background: #f7f9fa !important;
+    flex-shrink: 0 !important;
 }
 
-nav.mobile-menu-panel .mobile-menu-title {
+nav.mobile-menu-panel .mobile-menu-title,
+.mobile-menu-panel .mobile-menu-title {
     display: block !important;
     visibility: visible !important;
+    opacity: 1 !important;
     font-size: 18px !important;
     font-weight: 700 !important;
     color: #1c1d1f !important;
 }
 
-nav.mobile-menu-panel .mobile-menu-close {
+nav.mobile-menu-panel .mobile-menu-close,
+.mobile-menu-panel .mobile-menu-close {
     display: flex !important;
     visibility: visible !important;
+    opacity: 1 !important;
     align-items: center !important;
     justify-content: center !important;
     width: 36px !important;
     height: 36px !important;
     border: none !important;
     background: transparent !important;
-    color: #6a6f73 !important;
+    color: #1c1d1f !important;
     cursor: pointer !important;
     border-radius: 50% !important;
-    transition: background 0.2s ease !important;
+    font-size: 20px !important;
 }
 
-nav.mobile-menu-panel .mobile-menu-close:hover {
+nav.mobile-menu-panel .mobile-menu-close:hover,
+.mobile-menu-panel .mobile-menu-close:hover {
     background: #e4e8eb !important;
-    color: #1c1d1f !important;
 }
 
-/* CRITICAL FIX: Mobile menu content MUST be visible when panel is open */
-nav.mobile-menu-panel .mobile-menu-content {
+/* ===== MOBILE MENU CONTENT - MUST BE VISIBLE ===== */
+nav.mobile-menu-panel .mobile-menu-content,
+.mobile-menu-panel .mobile-menu-content {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     padding: 0 !important;
+    flex: 1 1 auto !important;
     overflow-y: auto !important;
-    max-height: calc(100vh - 70px) !important;
-    max-height: calc(100dvh - 70px) !important;
+    overflow-x: hidden !important;
+    background: #ffffff !important;
 }
 
-/* CRITICAL: Force visibility when panel is open */
-nav.mobile-menu-panel.open .mobile-menu-content {
+/* Force visibility when open */
+nav.mobile-menu-panel.open .mobile-menu-content,
+.mobile-menu-panel.open .mobile-menu-content {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
 }
 
-/* Mobile search form - with nav specificity */
-nav.mobile-menu-panel .mobile-search-form {
+/* ===== MOBILE SEARCH FORM ===== */
+nav.mobile-menu-panel .mobile-search-form,
+.mobile-menu-panel .mobile-search-form {
     display: flex !important;
     visibility: visible !important;
+    opacity: 1 !important;
     padding: 16px !important;
     gap: 8px !important;
     border-bottom: 1px solid #e4e8eb !important;
+    background: #ffffff !important;
 }
 
 nav.mobile-menu-panel .mobile-search-form input,
-nav.mobile-menu-panel .mobile-search-input {
+.mobile-menu-panel .mobile-search-form input,
+nav.mobile-menu-panel .mobile-search-input,
+.mobile-menu-panel .mobile-search-input {
     flex: 1 !important;
     display: block !important;
     visibility: visible !important;
+    opacity: 1 !important;
     padding: 12px 16px !important;
     border: 1px solid #d1d7dc !important;
     border-radius: 8px !important;
-    font-size: 16px !important; /* 16px prevents iOS zoom */
+    font-size: 16px !important;
     background: #f7f9fa !important;
+    color: #1c1d1f !important;
 }
 
 nav.mobile-menu-panel .mobile-search-form button,
-nav.mobile-menu-panel .mobile-search-btn {
+.mobile-menu-panel .mobile-search-form button,
+nav.mobile-menu-panel .mobile-search-btn,
+.mobile-menu-panel .mobile-search-btn {
     display: flex !important;
     visibility: visible !important;
+    opacity: 1 !important;
     padding: 12px 16px !important;
     background: #a435f0 !important;
     color: #ffffff !important;
@@ -667,28 +814,33 @@ nav.mobile-menu-panel .mobile-search-btn {
     justify-content: center !important;
 }
 
-/* CRITICAL: Mobile navigation sections MUST be visible */
-nav.mobile-menu-panel .mobile-nav-section {
+/* ===== MOBILE NAVIGATION SECTIONS - CRITICAL FIX ===== */
+nav.mobile-menu-panel .mobile-nav-section,
+.mobile-menu-panel .mobile-nav-section {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     padding: 8px 0 !important;
     border-bottom: 1px solid #e4e8eb !important;
+    background: #ffffff !important;
 }
 
-nav.mobile-menu-panel .mobile-nav-section:last-child {
+nav.mobile-menu-panel .mobile-nav-section:last-child,
+.mobile-menu-panel .mobile-nav-section:last-child {
     border-bottom: none !important;
 }
 
 /* Force visibility when panel is open */
-nav.mobile-menu-panel.open .mobile-nav-section {
+nav.mobile-menu-panel.open .mobile-nav-section,
+.mobile-menu-panel.open .mobile-nav-section {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
 }
 
-/* Section titles - visible */
-nav.mobile-menu-panel .mobile-nav-section-title {
+/* ===== SECTION TITLES ===== */
+nav.mobile-menu-panel .mobile-nav-section-title,
+.mobile-menu-panel .mobile-nav-section-title {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -698,10 +850,13 @@ nav.mobile-menu-panel .mobile-nav-section-title {
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
     color: #6a6f73 !important;
+    background: #ffffff !important;
 }
 
-/* CRITICAL: Navigation links MUST be visible */
-nav.mobile-menu-panel .mobile-nav-link {
+/* ===== NAVIGATION LINKS - CRITICAL: MUST BE VISIBLE ===== */
+nav.mobile-menu-panel .mobile-nav-link,
+.mobile-menu-panel .mobile-nav-link,
+.mobile-menu-panel a.mobile-nav-link {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -712,44 +867,57 @@ nav.mobile-menu-panel .mobile-nav-link {
     text-decoration: none !important;
     font-size: 15px !important;
     font-weight: 500 !important;
+    background: #ffffff !important;
+    min-height: 48px !important;
     transition: background 0.15s ease !important;
-    min-height: 48px !important; /* Touch target size */
 }
 
-/* Force visibility when panel is open */
-nav.mobile-menu-panel.open .mobile-nav-link {
+/* Force visibility when open */
+nav.mobile-menu-panel.open .mobile-nav-link,
+.mobile-menu-panel.open .mobile-nav-link {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
 }
 
-.mobile-nav-link:hover {
+nav.mobile-menu-panel .mobile-nav-link:hover,
+.mobile-menu-panel .mobile-nav-link:hover {
     background: #f7f9fa !important;
     color: #a435f0 !important;
 }
 
-.mobile-nav-link i {
+nav.mobile-menu-panel .mobile-nav-link i,
+.mobile-menu-panel .mobile-nav-link i {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     width: 20px !important;
     text-align: center !important;
     color: #6a6f73 !important;
     font-size: 14px !important;
 }
 
-.mobile-nav-link:hover i {
+nav.mobile-menu-panel .mobile-nav-link:hover i,
+.mobile-menu-panel .mobile-nav-link:hover i {
     color: #a435f0 !important;
 }
 
-/* Mobile auth section */
-.mobile-auth-section {
+/* ===== MOBILE AUTH SECTION ===== */
+nav.mobile-menu-panel .mobile-auth-section,
+.mobile-menu-panel .mobile-auth-section {
     display: block !important;
     visibility: visible !important;
+    opacity: 1 !important;
     padding: 16px !important;
     background: #f7f9fa !important;
     margin-top: auto !important;
+    flex-shrink: 0 !important;
 }
 
 .mobile-auth-section .btn {
     display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
@@ -759,7 +927,6 @@ nav.mobile-menu-panel.open .mobile-nav-link {
     font-size: 14px !important;
     font-weight: 600 !important;
     text-decoration: none !important;
-    transition: all 0.2s ease !important;
 }
 
 .mobile-auth-section .btn-outline {
@@ -774,7 +941,7 @@ nav.mobile-menu-panel.open .mobile-nav-link {
     border: none !important;
 }
 
-/* Mobile menu overlay/backdrop */
+/* ===== MOBILE MENU OVERLAY ===== */
 .mobile-menu-overlay {
     position: fixed !important;
     top: 0 !important;
@@ -782,7 +949,7 @@ nav.mobile-menu-panel.open .mobile-nav-link {
     right: 0 !important;
     bottom: 0 !important;
     background: rgba(0, 0, 0, 0.5) !important;
-    z-index: 9999 !important;
+    z-index: 99999 !important;
     opacity: 0 !important;
     visibility: hidden !important;
     transition: opacity 0.3s ease, visibility 0.3s ease !important;
@@ -793,33 +960,1594 @@ nav.mobile-menu-panel.open .mobile-nav-link {
     visibility: visible !important;
 }
 
-/* ===== Smaller screens adjustments ===== */
-@media (max-width: 480px) {
+/* ===== VERY SMALL SCREENS ===== */
+@media (max-width: 360px) {
     .mobile-menu-panel {
-        width: 280px !important;
+        width: 260px !important;
     }
 
     .auth-buttons .btn {
-        padding: 5px 10px !important;
-        font-size: 11px !important;
+        padding: 5px 8px !important;
+        font-size: 10px !important;
     }
 
-    .mobile-nav-link {
-        padding: 10px 16px !important;
+    nav.mobile-menu-panel .mobile-nav-link,
+    .mobile-menu-panel .mobile-nav-link {
+        padding: 12px 16px !important;
         font-size: 14px !important;
     }
 
-    .mobile-nav-section-title {
-        padding: 6px 16px !important;
+    nav.mobile-menu-panel .mobile-nav-section-title,
+    .mobile-menu-panel .mobile-nav-section-title {
+        padding: 8px 16px 6px !important;
         font-size: 10px !important;
     }
 }
 
-/* Focus states for accessibility */
+/* ===== ACCESSIBILITY: Focus States ===== */
 .mobile-menu-close:focus,
 .mobile-nav-link:focus,
 .mobile-search-form input:focus,
-.mobile-search-form button:focus {
+.mobile-search-form button:focus,
+.mobile-menu-toggle:focus {
     outline: 2px solid #a435f0 !important;
     outline-offset: 2px !important;
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+    nav.mobile-menu-panel.mobile-menu-panel,
+    .mobile-menu-panel.mobile-menu-panel,
+    .mobile-menu-overlay {
+        transition: none !important;
+    }
+}
+
+/* ============================================================
+   v2.3.17 CRITICAL MOBILE FIXES - Based on Web Research
+   Sources:
+   - https://github.com/philipwalton/flexbugs (flex-shrink: 0)
+   - https://ishadeed.com/article/website-headers-flexbox/ (flex-wrap)
+   - https://allwebco-templates.com/support/S-responsive-mobile-hidden.htm (specificity)
+   ============================================================ */
+
+/* ===== FIX #1: MOBILE LOGO VISIBILITY ===== */
+/* Problem: Logo disappears on mobile due to flex shrinking and display:none overrides */
+/* Solution: Use flex-shrink: 0 to prevent shrinking, explicit dimensions, max specificity */
+
+@media screen and (max-width: 768px) {
+    /* Force logo section visibility with highest specificity */
+    html body .main-header .main-header-container .header-logo-section,
+    html body .header-logo-section,
+    .main-header-container > .header-logo-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-shrink: 0 !important;
+        flex-basis: auto !important;
+        min-width: 120px !important;
+        height: auto !important;
+        align-items: center !important;
+        order: 2 !important;
+        pointer-events: auto !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+
+    /* Force logo link visibility */
+    html body .header-logo-section .logo-link,
+    html body .logo-link,
+    .header-logo-section > .logo-link {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 8px !important;
+        text-decoration: none !important;
+    }
+
+    /* Force logo image visibility - Critical fix */
+    html body .header-logo-section .logo-image,
+    html body .logo-image,
+    html body img.logo-image,
+    .logo-link > img.logo-image,
+    .header-logo-section img {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: auto !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        max-height: 40px !important;
+        flex-shrink: 0 !important;
+        object-fit: contain !important;
+    }
+
+    /* Logo text visible on mobile */
+    html body .header-logo-section .logo-text,
+    html body .logo-text {
+        display: inline !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #1a1a2e !important;
+    }
+}
+
+/* ===== FIX #2: BUTTONS INSIDE HEADER BAR ===== */
+/* Problem: Buttons escape header container on mobile */
+/* Solution: Proper flexbox containment with flex-wrap and overflow control */
+
+@media screen and (max-width: 768px) {
+    /* Main header must contain all children */
+    html body header.main-header,
+    html body .main-header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        min-height: 56px !important;
+        max-height: auto !important;
+        background: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+        z-index: 99999 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Header container - flexbox row with proper alignment */
+    html body .main-header-container,
+    html body .main-header .main-header-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 56px !important;
+        min-height: 56px !important;
+        padding: 0 12px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        gap: 8px !important;
+        overflow: hidden !important;
+    }
+
+    /* Actions section (contains hamburger, categories, login buttons) */
+    html body .header-actions-section,
+    html body .main-header .header-actions-section {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        flex-basis: auto !important;
+        order: 3 !important;
+        height: 100% !important;
+        max-height: 56px !important;
+    }
+
+    /* Mobile hamburger toggle - first in visual order */
+    html body .mobile-menu-toggle,
+    html body button.mobile-menu-toggle {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        background: #f5f5f5 !important;
+        color: #333 !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        order: 1 !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+
+    /* Hide categories dropdown on mobile (it's in the mobile menu) */
+    html body .categories-dropdown,
+    html body .nav-dropdown.categories-dropdown {
+        display: none !important;
+    }
+
+    /* Auth buttons container */
+    html body .auth-buttons,
+    html body .header-actions-section .auth-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        order: 2 !important;
+    }
+
+    /* Login/Sign Up buttons - compact on mobile */
+    html body .auth-buttons .btn,
+    html body .auth-buttons a.btn,
+    html body .auth-buttons button.btn {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        min-height: 32px !important;
+        max-height: 36px !important;
+    }
+
+    /* Login button - outline style */
+    html body .auth-buttons .btn-outline,
+    html body .auth-buttons .btn-login {
+        background: transparent !important;
+        border: 1px solid #a435f0 !important;
+        color: #a435f0 !important;
+    }
+
+    /* Sign Up button - filled style */
+    html body .auth-buttons .btn-primary,
+    html body .auth-buttons .btn-signup {
+        background: linear-gradient(135deg, #a435f0 0%, #7c3aed 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+    }
+
+    /* Hide search on mobile */
+    html body .header-search-section,
+    html body .desktop-only {
+        display: none !important;
+    }
+}
+
+/* ===== FIX #3: MOBILE MENU CONTENT VISIBILITY ===== */
+/* Problem: Menu opens but content is invisible/hidden */
+/* Solution: Maximum specificity CSS with explicit visibility on all child elements */
+
+@media screen and (max-width: 768px) {
+    /* Mobile menu panel - slide from right */
+    html body nav.mobile-menu-panel,
+    html body .mobile-menu-panel,
+    nav.mobile-menu-panel.mobile-menu-panel.mobile-menu-panel {
+        position: fixed !important;
+        top: 0 !important;
+        right: -100% !important;
+        left: auto !important;
+        width: 85% !important;
+        max-width: 320px !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        background: #ffffff !important;
+        z-index: 100001 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        transition: right 0.3s ease-in-out !important;
+        box-shadow: -4px 0 20px rgba(0,0,0,0.15) !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Mobile menu panel OPEN state */
+    html body nav.mobile-menu-panel.open,
+    html body .mobile-menu-panel.open,
+    nav.mobile-menu-panel.mobile-menu-panel.mobile-menu-panel.open {
+        right: 0 !important;
+    }
+
+    /* Mobile menu header (logo + close button) */
+    html body .mobile-menu-panel .mobile-menu-header,
+    html body .mobile-menu-header {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 16px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        flex-shrink: 0 !important;
+        min-height: 60px !important;
+        background: #ffffff !important;
+    }
+
+    /* Mobile menu close button */
+    html body .mobile-menu-panel .mobile-menu-close,
+    html body .mobile-menu-close {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        border: none !important;
+        border-radius: 50% !important;
+        background: #f3f4f6 !important;
+        color: #374151 !important;
+        font-size: 16px !important;
+        cursor: pointer !important;
+    }
+
+    /* CRITICAL: Mobile menu content container */
+    html body .mobile-menu-panel .mobile-menu-content,
+    html body .mobile-menu-content,
+    .mobile-menu-panel.open > .mobile-menu-content {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        width: 100% !important;
+    }
+
+    /* CRITICAL: Navigation sections */
+    html body .mobile-menu-panel .mobile-nav-section,
+    html body .mobile-nav-section,
+    .mobile-menu-content > .mobile-nav-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        padding: 8px 0 !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        width: 100% !important;
+    }
+
+    /* Section titles */
+    html body .mobile-menu-panel .mobile-nav-section-title,
+    html body .mobile-nav-section-title {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 12px 16px 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: #9ca3af !important;
+    }
+
+    /* CRITICAL: Navigation links - MUST BE VISIBLE */
+    html body .mobile-menu-panel .mobile-nav-link,
+    html body .mobile-nav-link,
+    html body a.mobile-nav-link,
+    .mobile-nav-section > a.mobile-nav-link,
+    .mobile-menu-content a.mobile-nav-link {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 14px 16px !important;
+        color: #374151 !important;
+        text-decoration: none !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        transition: background 0.15s ease !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        min-height: 48px !important;
+    }
+
+    html body .mobile-menu-panel .mobile-nav-link:hover,
+    html body .mobile-nav-link:hover {
+        background: #f9fafb !important;
+        color: #a435f0 !important;
+    }
+
+    /* Navigation link icons */
+    html body .mobile-menu-panel .mobile-nav-link i,
+    html body .mobile-nav-link i,
+    html body .mobile-nav-link .fa,
+    html body .mobile-nav-link .fas {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 20px !important;
+        height: 20px !important;
+        min-width: 20px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
+        color: #6b7280 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Mobile menu overlay backdrop */
+    html body .mobile-menu-overlay,
+    .mobile-menu-overlay.active {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 100000 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: opacity 0.3s ease, visibility 0.3s ease !important;
+    }
+
+    html body .mobile-menu-overlay.active,
+    .mobile-menu-panel.open ~ .mobile-menu-overlay {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Mobile search form in menu */
+    html body .mobile-menu-panel .mobile-search-form,
+    html body .mobile-search-form {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 12px 16px !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+    }
+
+    /* Search input wrapper */
+    html body .mobile-search-form .search-input-wrapper,
+    .mobile-search-form > .search-input-wrapper {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        background: #f9fafb !important;
+        border-radius: 8px !important;
+        border: 1px solid #e5e7eb !important;
+        overflow: hidden !important;
+    }
+
+    /* Search input */
+    html body .mobile-search-form input,
+    .mobile-search-form input[type="search"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex: 1 !important;
+        padding: 10px 12px !important;
+        border: none !important;
+        background: transparent !important;
+        font-size: 14px !important;
+        outline: none !important;
+    }
+
+    /* Search button */
+    html body .mobile-search-form button,
+    .mobile-search-form button[type="submit"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 44px !important;
+        padding: 10px !important;
+        border: none !important;
+        background: transparent !important;
+        color: #6b7280 !important;
+        cursor: pointer !important;
+    }
+
+    /* Mobile menu footer (if exists) */
+    html body .mobile-menu-panel .mobile-menu-footer,
+    html body .mobile-menu-footer {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        padding: 16px !important;
+        margin-top: auto !important;
+        border-top: 1px solid #e5e7eb !important;
+        background: #f9fafb !important;
+    }
+}
+
+/* ===== TABLET ADJUSTMENTS ===== */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+    html body .main-header-container {
+        padding: 0 16px !important;
+    }
+
+    html body .auth-buttons .btn {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+    }
+
+    html body .mobile-menu-panel {
+        max-width: 350px !important;
+    }
+}
+
+/* ===== SMALL MOBILE (under 380px) ===== */
+@media screen and (max-width: 380px) {
+    html body .main-header-container {
+        padding: 0 8px !important;
+        gap: 4px !important;
+    }
+
+    html body .header-logo-section {
+        min-width: 100px !important;
+    }
+
+    html body .logo-image {
+        height: 28px !important;
+    }
+
+    html body .logo-text {
+        font-size: 14px !important;
+    }
+
+    html body .auth-buttons .btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+    }
+
+    html body .mobile-menu-toggle {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        font-size: 16px !important;
+    }
+}
+
+/* ============================================================
+   v2.3.18 CRITICAL MOBILE FIXES - Research-Based Solutions
+
+   Sources Used:
+   - https://github.com/philipwalton/flexbugs (min-width: 0 pattern)
+   - https://www.smashingmagazine.com/2021/04/css-overflow-issues/ (overflow fixes)
+   - https://codyhouse.co/gem/css-slide-in-panel/ (visibility transition pattern)
+   - https://apeatling.com/articles/building-smooth-sliding-mobile-menu/ (translate3d)
+   - https://dev.to/martyhimmel/quick-tip-to-stop-flexbox-from-overflowing-peb
+
+   Key Findings:
+   1. CSS selector mismatch: HTML uses .mobile-menu-backdrop, not .mobile-menu-overlay
+   2. Flexbox children need min-width: 0 to prevent overflow
+   3. translate3d provides hardware acceleration for smooth animations
+   4. Visibility needs proper transition timing pattern
+   ============================================================ */
+
+/* ===== v2.3.18 FIX #1: HEADER OVERFLOW CONTAINMENT ===== */
+/* Problem: Header children escape the white bar on mobile */
+/* Solution: Proper overflow control + min-width: 0 on all flex children */
+
+@media screen and (max-width: 768px) {
+    /* Main header - absolute containment */
+    html body .main-header,
+    html body header.main-header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        min-height: 56px !important;
+        height: 56px !important;
+        max-height: 56px !important;
+        background: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        z-index: 99999 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Header container - strict containment */
+    html body .main-header-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        height: 56px !important;
+        max-height: 56px !important;
+        padding: 0 10px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        gap: 8px !important;
+        /* CRITICAL: Prevent children from overflowing */
+        overflow: hidden !important;
+        /* CRITICAL: Force children into single row */
+        min-width: 0 !important;
+    }
+
+    /* ALL direct children must have min-width: 0 (flexbug fix) */
+    html body .main-header-container > * {
+        min-width: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Logo section - left side */
+    html body .header-logo-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        flex: 0 0 auto !important;
+        order: 2 !important;
+        min-width: 0 !important;
+        max-width: 150px !important;
+        height: 100% !important;
+    }
+
+    /* Logo link */
+    html body .header-logo-section .logo-link {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 6px !important;
+        text-decoration: none !important;
+        min-width: 0 !important;
+    }
+
+    /* Logo image */
+    html body .header-logo-section .logo-image,
+    html body .logo-link img {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: auto !important;
+        height: 28px !important;
+        max-height: 32px !important;
+        flex-shrink: 0 !important;
+        object-fit: contain !important;
+    }
+
+    /* Logo text */
+    html body .header-logo-section .logo-text {
+        display: inline !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        color: #1a1a2e !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* Actions section - right side, contains hamburger + auth buttons */
+    html body .header-actions-section {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+        flex: 0 0 auto !important;
+        order: 3 !important;
+        min-width: 0 !important;
+        height: 100% !important;
+        max-height: 56px !important;
+    }
+
+    /* Hide search and desktop-only elements */
+    html body .header-search-section,
+    html body .desktop-only {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
+
+/* ===== v2.3.18 FIX #2: HAMBURGER BUTTON VISIBILITY ===== */
+/* Problem: Hamburger button not visible or outside header */
+/* Solution: Explicit flex properties + visibility enforcement */
+
+@media screen and (max-width: 768px) {
+    html body .mobile-menu-toggle,
+    html body button.mobile-menu-toggle {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        max-width: 40px !important;
+        max-height: 40px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        background: #f3f4f6 !important;
+        color: #374151 !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+        cursor: pointer !important;
+        order: 1 !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+        z-index: 10 !important;
+        position: relative !important;
+    }
+
+    /* Hamburger icon */
+    html body .mobile-menu-toggle i,
+    html body .mobile-menu-toggle .fa,
+    html body .mobile-menu-toggle .fas {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 18px !important;
+        color: inherit !important;
+        line-height: 1 !important;
+    }
+
+    /* Hide categories dropdown on mobile */
+    html body .categories-dropdown,
+    html body .nav-dropdown.categories-dropdown,
+    html body .categories-backdrop {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
+
+/* ===== v2.3.18 FIX #3: AUTH BUTTONS INSIDE HEADER ===== */
+/* Problem: Login/Sign Up buttons escape the header bar */
+/* Solution: Strict size constraints + no-wrap */
+
+@media screen and (max-width: 768px) {
+    /* Auth buttons container */
+    html body .auth-buttons {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+        order: 2 !important;
+        min-width: 0 !important;
+        height: auto !important;
+        max-height: 40px !important;
+    }
+
+    /* Individual auth buttons */
+    html body .auth-buttons .btn,
+    html body .auth-buttons a.btn,
+    html body .auth-buttons a.btn-outline,
+    html body .auth-buttons a.btn-primary {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        line-height: 1.2 !important;
+        border-radius: 6px !important;
+        white-space: nowrap !important;
+        text-decoration: none !important;
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+        min-height: 32px !important;
+        max-height: 36px !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Hide button icons on mobile to save space */
+    html body .auth-buttons .btn i,
+    html body .auth-buttons .btn .fa,
+    html body .auth-buttons .btn .fas {
+        display: none !important;
+    }
+
+    /* Login button (outline) */
+    html body .auth-buttons .btn-outline {
+        background: transparent !important;
+        border: 1.5px solid #a435f0 !important;
+        color: #a435f0 !important;
+    }
+
+    /* Sign Up button (filled) */
+    html body .auth-buttons .btn-primary,
+    html body .auth-buttons .btn-cta-signup {
+        background: linear-gradient(135deg, #a435f0 0%, #7c3aed 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+    }
+}
+
+/* ===== v2.3.18 FIX #4: MOBILE MENU BACKDROP (CLASS NAME FIX!) ===== */
+/* Problem: CSS targeted .mobile-menu-overlay but HTML uses .mobile-menu-backdrop */
+/* Solution: Target CORRECT class name */
+
+@media screen and (max-width: 768px) {
+    /* CORRECT class name: mobile-menu-backdrop (from MainLayout.razor line 428) */
+    html body .mobile-menu-backdrop {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 100000 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+    }
+}
+
+/* ===== v2.3.18 FIX #5: MOBILE MENU PANEL WITH translate3d ===== */
+/* Problem: Menu opens but content not visible */
+/* Solution: Use translate3d for hardware acceleration + proper visibility pattern */
+
+@media screen and (max-width: 768px) {
+    /* Mobile menu panel - slide from LEFT using translate3d */
+    html body nav.mobile-menu-panel,
+    html body .mobile-menu-panel {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: auto !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        background: #ffffff !important;
+        z-index: 100001 !important;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.15) !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        /* Use translate3d for hardware acceleration (better performance) */
+        transform: translate3d(-100%, 0, 0) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        /* Visibility pattern from CodyHouse */
+        visibility: hidden !important;
+        /* Flex column for content layout */
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Menu panel OPEN state */
+    html body nav.mobile-menu-panel.open,
+    html body .mobile-menu-panel.open {
+        transform: translate3d(0, 0, 0) !important;
+        visibility: visible !important;
+    }
+
+    /* Menu header */
+    html body .mobile-menu-panel .mobile-menu-header,
+    html body .mobile-menu-header {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 16px !important;
+        min-height: 60px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        background: #ffffff !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Menu title */
+    html body .mobile-menu-header .mobile-menu-title {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #1a1a2e !important;
+    }
+
+    /* Close button */
+    html body .mobile-menu-panel .mobile-menu-close,
+    html body .mobile-menu-close {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        border: none !important;
+        border-radius: 50% !important;
+        background: #f3f4f6 !important;
+        color: #374151 !important;
+        font-size: 16px !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* ===== v2.3.18 FIX #6: MOBILE MENU CONTENT VISIBILITY ===== */
+/* Problem: Menu content sections not showing even when panel opens */
+/* Solution: Force visibility on ALL content children with maximum specificity */
+
+@media screen and (max-width: 768px) {
+    /* Content container - MUST be visible and scrollable */
+    html body .mobile-menu-panel .mobile-menu-content,
+    html body .mobile-menu-content {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        width: 100% !important;
+        min-height: 0 !important;
+    }
+
+    /* Search form in menu */
+    html body .mobile-menu-panel .mobile-search-form,
+    html body .mobile-search-form {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 12px 16px !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        background: #ffffff !important;
+        flex-shrink: 0 !important;
+    }
+
+    html body .mobile-search-form input,
+    html body .mobile-search-input {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex: 1 !important;
+        padding: 10px 12px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px 0 0 8px !important;
+        background: #f9fafb !important;
+        font-size: 14px !important;
+        outline: none !important;
+    }
+
+    html body .mobile-search-form button,
+    html body .mobile-search-btn {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 44px !important;
+        padding: 10px !important;
+        border: 1px solid #e5e7eb !important;
+        border-left: none !important;
+        border-radius: 0 8px 8px 0 !important;
+        background: #f9fafb !important;
+        color: #6b7280 !important;
+        cursor: pointer !important;
+    }
+
+    /* Navigation sections - CRITICAL: Force visibility */
+    html body .mobile-menu-panel .mobile-nav-section,
+    html body .mobile-nav-section,
+    html body .mobile-menu-content .mobile-nav-section,
+    .mobile-menu-content > .mobile-nav-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        padding: 8px 0 !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+    }
+
+    /* Section titles */
+    html body .mobile-menu-panel .mobile-nav-section-title,
+    html body .mobile-nav-section-title {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 12px 16px 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: #9ca3af !important;
+        background: #ffffff !important;
+    }
+
+    /* Navigation links - CRITICAL: Maximum visibility */
+    html body .mobile-menu-panel .mobile-nav-link,
+    html body .mobile-nav-link,
+    html body a.mobile-nav-link,
+    html body button.mobile-nav-link,
+    .mobile-nav-section > a.mobile-nav-link,
+    .mobile-nav-section > button.mobile-nav-link,
+    .mobile-menu-content a.mobile-nav-link,
+    .mobile-menu-content button.mobile-nav-link {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 14px 16px !important;
+        color: #374151 !important;
+        text-decoration: none !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        width: 100% !important;
+        min-height: 48px !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        border: none !important;
+        cursor: pointer !important;
+        text-align: left !important;
+    }
+
+    /* Link icons */
+    html body .mobile-nav-link i,
+    html body .mobile-nav-link .fa,
+    html body .mobile-nav-link .fas,
+    html body .mobile-nav-link .fab {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 20px !important;
+        min-width: 20px !important;
+        height: 20px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
+        color: #6b7280 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Link text (span inside links) */
+    html body .mobile-nav-link span {
+        display: inline !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: inherit !important;
+    }
+
+    /* Mobile auth section */
+    html body .mobile-auth-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        background: #f9fafb !important;
+    }
+
+    /* Mobile auth buttons */
+    html body .mobile-auth-btn {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 14px 16px !important;
+        border-radius: 8px !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+    }
+
+    html body .mobile-login-btn {
+        background: #ffffff !important;
+        border: 2px solid #a435f0 !important;
+        color: #a435f0 !important;
+    }
+
+    html body .mobile-signup-btn {
+        background: linear-gradient(135deg, #a435f0 0%, #7c3aed 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+    }
+
+    /* User section in mobile menu */
+    html body .mobile-user-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        background: #f9fafb !important;
+    }
+
+    html body .mobile-user-info {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+
+    html body .mobile-user-avatar {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        background: #e5e7eb !important;
+        font-size: 24px !important;
+        color: #6b7280 !important;
+    }
+
+    html body .mobile-user-name {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #1f2937 !important;
+    }
+
+    html body .mobile-logout-btn {
+        color: #dc2626 !important;
+    }
+}
+
+/* ===== v2.3.18 VERY SMALL SCREENS (< 360px) ===== */
+@media screen and (max-width: 360px) {
+    html body .main-header-container {
+        padding: 0 6px !important;
+        gap: 4px !important;
+    }
+
+    html body .header-logo-section {
+        max-width: 120px !important;
+    }
+
+    html body .logo-image {
+        height: 24px !important;
+    }
+
+    html body .logo-text {
+        font-size: 13px !important;
+    }
+
+    html body .mobile-menu-toggle {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+    }
+
+    html body .auth-buttons .btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+    }
+
+    html body .mobile-menu-panel {
+        width: 260px !important;
+    }
+}
+
+/* ==============================================================================
+   v2.3.19 CRITICAL FIXES - MOBILE MENU CONTENT + HEADER BUTTONS
+   ==============================================================================
+   Issues Fixed:
+   1. Mobile menu opens but content is EMPTY (only header visible)
+   2. Header buttons overflow on small screens (Sign Up cut off)
+
+   Root Causes Identified (via web research):
+   - overflow: hidden on .mobile-menu-panel (line 1824) CLIPS scrollable children
+   - Flexbug #3: flex children need min-height: 0 for scroll to work
+   - Buttons lack min-width: 0 and compact sizing for <400px screens
+
+   Sources:
+   - CSS-Tricks: https://css-tricks.com/preventing-a-grid-blowout/
+   - Stack Overflow: flex child min-height: 0 pattern
+   - Ahmad Shadeed: https://ishadeed.com/article/website-headers-flexbox/
+   ============================================================================== */
+
+/* ===== v2.3.19 FIX #1: MOBILE MENU PANEL OVERFLOW FIX ===== */
+/* Problem: overflow: hidden clips the scrollable content area */
+/* Solution: Change to overflow: visible and let content handle scroll */
+
+@media screen and (max-width: 768px) {
+    /* Override the overflow: hidden that clips content */
+    html body nav.mobile-menu-panel,
+    html body .mobile-menu-panel,
+    html body div.mobile-menu-panel {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
+    /* When menu is OPEN, panel must be visible */
+    html body nav.mobile-menu-panel.open,
+    html body .mobile-menu-panel.open,
+    html body div.mobile-menu-panel.open {
+        overflow: visible !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #2: MOBILE MENU CONTENT SCROLL FIX (FLEXBUG #3) ===== */
+/* Problem: Flex children can't scroll without min-height: 0 */
+/* Solution: Apply min-height: 0 to all flex children in the menu */
+
+@media screen and (max-width: 768px) {
+    /* Content container - MUST have min-height: 0 for flex scroll */
+    html body .mobile-menu-panel .mobile-menu-content,
+    html body .mobile-menu-content,
+    html body div.mobile-menu-content {
+        display: flex !important;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        /* CRITICAL: Flexbug #3 fix - allows shrinking for scroll */
+        min-height: 0 !important;
+        flex: 1 1 0 !important;
+        /* Scroll within content, not panel */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        /* Full dimensions */
+        width: 100% !important;
+        height: auto !important;
+        max-height: calc(100vh - 60px) !important;
+        max-height: calc(100dvh - 60px) !important;
+        /* Ensure background is visible */
+        background-color: #ffffff !important;
+        padding: 0 !important;
+    }
+
+    /* Force all direct children to be visible */
+    html body .mobile-menu-content > *,
+    html body .mobile-menu-panel .mobile-menu-content > * {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #3: FORCE NAVIGATION SECTIONS VISIBLE ===== */
+/* Maximum specificity to override any hidden rules */
+
+@media screen and (max-width: 768px) {
+    /* Navigation sections */
+    html body .mobile-menu-panel.open .mobile-nav-section,
+    html body .mobile-menu-content .mobile-nav-section,
+    html body div.mobile-menu-content div.mobile-nav-section,
+    html body .mobile-nav-section {
+        display: flex !important;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        min-height: auto !important;
+        background-color: #ffffff !important;
+        padding: 8px 0 !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+    }
+
+    /* Section titles */
+    html body .mobile-menu-panel.open .mobile-nav-section-title,
+    html body .mobile-nav-section-title {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        padding: 12px 16px 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: #9ca3af !important;
+    }
+
+    /* Navigation links - MOST CRITICAL */
+    html body .mobile-menu-panel.open .mobile-nav-link,
+    html body .mobile-menu-content .mobile-nav-link,
+    html body a.mobile-nav-link,
+    html body button.mobile-nav-link,
+    html body div.mobile-nav-section a.mobile-nav-link,
+    html body div.mobile-nav-section button.mobile-nav-link,
+    html body .mobile-nav-link {
+        display: flex !important;
+        flex-direction: row !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 12px !important;
+        width: 100% !important;
+        padding: 14px 16px !important;
+        color: #374151 !important;
+        text-decoration: none !important;
+        background-color: #ffffff !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        border: none !important;
+        cursor: pointer !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Link icons */
+    html body .mobile-nav-link i,
+    html body .mobile-nav-link .fa,
+    html body .mobile-nav-link svg {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: #6b7280 !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Link text */
+    html body .mobile-nav-link span {
+        display: inline !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Hover state */
+    html body .mobile-nav-link:hover {
+        background-color: #f9fafb !important;
+        color: #1a1a2e !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #4: USER SECTION IN MOBILE MENU ===== */
+@media screen and (max-width: 768px) {
+    html body .mobile-menu-panel.open .mobile-user-section,
+    html body .mobile-user-section {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        background-color: #f9fafb !important;
+    }
+
+    html body .mobile-user-avatar {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 50% !important;
+        background-color: #e5e7eb !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 20px !important;
+        color: #6b7280 !important;
+        flex-shrink: 0 !important;
+    }
+
+    html body .mobile-user-info {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    html body .mobile-user-name {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #1f2937 !important;
+    }
+
+    html body .mobile-user-email {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 13px !important;
+        color: #6b7280 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #5: HEADER BUTTONS COMPACT SIZING ===== */
+/* Problem: Login/Sign Up buttons overflow header on small screens */
+/* Solution: More aggressive compact sizing with min-width: 0 */
+
+@media screen and (max-width: 768px) {
+    /* Auth buttons container */
+    html body .auth-buttons,
+    html body .header-auth-section {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        /* CRITICAL: Allow buttons to shrink */
+        min-width: 0 !important;
+    }
+
+    /* All buttons - compact baseline */
+    html body .auth-buttons .btn,
+    html body .header-auth-section .btn,
+    html body .auth-buttons a,
+    html body .auth-buttons button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        /* Compact dimensions */
+        padding: 6px 12px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        /* Allow shrinking */
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+        /* Remove any minimum widths */
+        width: auto !important;
+        /* Smaller border radius for compact look */
+        border-radius: 6px !important;
+        /* Single line */
+        white-space: nowrap !important;
+        text-decoration: none !important;
+        cursor: pointer !important;
+    }
+
+    /* Login button - outline style */
+    html body .auth-buttons .btn-outline,
+    html body .btn-login {
+        background-color: transparent !important;
+        border: 1px solid #d1d5db !important;
+        color: #374151 !important;
+    }
+
+    /* Sign Up button - primary style */
+    html body .auth-buttons .btn-primary,
+    html body .btn-signup {
+        background-color: #a435f0 !important;
+        background: linear-gradient(135deg, #a435f0, #7c3aed) !important;
+        border: none !important;
+        color: #ffffff !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #6: SMALL SCREENS (360px - 400px) ===== */
+@media screen and (max-width: 400px) {
+    html body .main-header-container {
+        padding: 0 8px !important;
+        gap: 6px !important;
+    }
+
+    /* More compact buttons */
+    html body .auth-buttons .btn,
+    html body .auth-buttons a,
+    html body .auth-buttons button {
+        padding: 5px 10px !important;
+        font-size: 12px !important;
+        gap: 4px !important;
+    }
+
+    /* Compact logo */
+    html body .header-logo-section {
+        max-width: 110px !important;
+    }
+
+    html body .logo-text {
+        font-size: 14px !important;
+    }
+
+    html body .logo-image {
+        height: 26px !important;
+    }
+
+    /* Smaller hamburger */
+    html body .mobile-menu-toggle {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #7: VERY SMALL SCREENS (320px - 360px) ===== */
+@media screen and (max-width: 360px) {
+    html body .main-header-container {
+        padding: 0 6px !important;
+        gap: 4px !important;
+    }
+
+    /* Ultra compact buttons */
+    html body .auth-buttons {
+        gap: 4px !important;
+    }
+
+    html body .auth-buttons .btn,
+    html body .auth-buttons a,
+    html body .auth-buttons button {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+    }
+
+    /* Consider hiding text on very small screens */
+    html body .auth-buttons .btn-text {
+        display: none !important;
+    }
+
+    /* Ultra compact logo */
+    html body .header-logo-section {
+        max-width: 100px !important;
+    }
+
+    html body .logo-text {
+        font-size: 13px !important;
+    }
+
+    html body .logo-image {
+        height: 24px !important;
+    }
+}
+
+/* ===== v2.3.19 FIX #8: ULTRA SMALL SCREENS (< 320px) ===== */
+@media screen and (max-width: 320px) {
+    html body .main-header-container {
+        padding: 0 4px !important;
+        gap: 2px !important;
+    }
+
+    /* Minimum viable buttons */
+    html body .auth-buttons .btn,
+    html body .auth-buttons a,
+    html body .auth-buttons button {
+        padding: 4px 6px !important;
+        font-size: 10px !important;
+    }
+
+    /* Hide secondary button text if needed */
+    html body .auth-buttons .btn-outline .btn-text,
+    html body .btn-login .btn-text {
+        display: none !important;
+    }
+
+    /* Minimal logo */
+    html body .header-logo-section {
+        max-width: 80px !important;
+    }
+
+    html body .logo-text {
+        font-size: 12px !important;
+    }
+
+    /* Smaller menu panel for tiny screens */
+    html body .mobile-menu-panel {
+        width: 240px !important;
+        max-width: 90vw !important;
+    }
 }

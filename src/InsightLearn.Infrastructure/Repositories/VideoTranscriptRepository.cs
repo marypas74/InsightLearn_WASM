@@ -184,11 +184,27 @@ namespace InsightLearn.Infrastructure.Repositories
         {
             var metadata = await GetMetadataAsync(lessonId, ct);
             if (metadata == null)
-                throw new KeyNotFoundException($"Transcript metadata for lesson {lessonId} not found");
-
-            metadata.Status = status;
-            if (status == "Completed")
-                metadata.GeneratedAt = DateTime.UtcNow;
+            {
+                // Create new metadata record if it doesn't exist (e.g., when queueing new transcript generation)
+                metadata = new VideoTranscriptMetadata
+                {
+                    Id = Guid.NewGuid(),
+                    LessonId = lessonId,
+                    MongoDocumentId = string.Empty, // Placeholder - will be set when transcript is generated
+                    Language = "en-US", // Default language (can be updated later)
+                    Status = status,
+                    SegmentCount = 0, // Placeholder - will be updated when transcript is generated
+                    DurationSeconds = 0, // Placeholder - will be updated when transcript is generated
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.VideoTranscriptMetadata.Add(metadata);
+            }
+            else
+            {
+                metadata.Status = status;
+                if (status == "Completed")
+                    metadata.GeneratedAt = DateTime.UtcNow;
+            }
 
             await _context.SaveChangesAsync(ct);
         }

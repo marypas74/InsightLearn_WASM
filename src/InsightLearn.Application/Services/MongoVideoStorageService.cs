@@ -14,6 +14,15 @@ public interface IMongoVideoStorageService
     Task<(Stream Stream, long ContentLength)> DownloadVideoWithLengthAsync(string fileId);
     Task<bool> DeleteVideoAsync(string fileId);
     Task<VideoMetadata> GetVideoMetadataAsync(string fileId);
+
+    // Phase 7: WebVTT Subtitle Generation - Store subtitle files (.vtt, .srt)
+    Task<string> StoreSubtitleFileAsync(string fileName, Stream fileStream, string contentType, Guid lessonId, Guid userId);
+
+    // Phase 8: Multi-Language Subtitle Translation - Store translated subtitles in MongoDB
+    Task<string> StoreTranslatedSubtitlesAsync(BsonDocument translatedDocument);
+
+    // Phase 8.5: Multi-Language Subtitle Translation - Get translated subtitles from MongoDB by document ID
+    Task<BsonDocument?> GetTranslatedSubtitlesAsync(string mongoDocumentId);
 }
 
 public class VideoUploadResult
@@ -390,5 +399,166 @@ public class MongoVideoStorageService : IMongoVideoStorageService
             "video/quicktime" => "mov",
             _ => "mp4"
         };
+    }
+
+    /// <summary>
+    /// Store subtitle file (.vtt, .srt) in MongoDB GridFS.
+    /// Phase 7: WebVTT Subtitle Generation - LinkedIn Learning parity feature.
+    /// Stores subtitle files without compression for fast access.
+    /// </summary>
+    public async Task<string> StoreSubtitleFileAsync(
+        string fileName,
+        Stream fileStream,
+        string contentType,
+        Guid lessonId,
+        Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("[SUBTITLE] Storing subtitle file: {FileName} for lesson {LessonId}", fileName, lessonId);
+
+            var fileSize = fileStream.Length;
+
+            // Extract language and format from filename (e.g., "lesson-{guid}-en-US.vtt")
+            var extension = Path.GetExtension(fileName).TrimStart('.').ToLower(); // vtt or srt
+            var languageMatch = System.Text.RegularExpressions.Regex.Match(fileName, @"-([a-z]{2}-[A-Z]{2})\.");
+            var language = languageMatch.Success ? languageMatch.Groups[1].Value : "en-US";
+
+            // Store metadata (no compression for subtitle text files)
+            var metadata = new BsonDocument
+            {
+                { "lessonId", lessonId.ToString() },
+                { "userId", userId.ToString() },
+                { "fileType", "subtitle" },  // Tag for filtering subtitle files
+                { "language", language },
+                { "format", extension },  // vtt or srt
+                { "originalSize", fileSize },
+                { "compressedSize", fileSize },  // Same size - no compression
+                { "contentType", contentType },
+                { "compressed", false },
+                { "compressionType", "none" },
+                { "compressionRatio", 0.0 },
+                { "uploadDate", DateTime.UtcNow }
+            };
+
+            var uploadOptions = new GridFSUploadOptions
+            {
+                Metadata = metadata
+            };
+
+            // Upload subtitle file directly to GridFS (no compression)
+            var fileId = await _gridFsBucket.UploadFromStreamAsync(
+                fileName,
+                fileStream,
+                uploadOptions
+            );
+
+            _logger.LogInformation(
+                "[SUBTITLE] Subtitle file stored successfully: {FileName} (FileId: {FileId}) - Language: {Language}, Size: {Size} bytes",
+                fileName, fileId.ToString(), language, fileSize
+            );
+
+            return fileId.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SUBTITLE] Failed to store subtitle file: {FileName} for lesson {LessonId}", fileName, lessonId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Store translated subtitles document in MongoDB TranslatedSubtitles collection.
+    /// Phase 8: Multi-Language Subtitle Translation - LinkedIn Learning parity feature.
+    /// Stores full translated subtitle documents with metadata for fast multi-language access.
+    /// </summary>
+    public async Task<string> StoreTranslatedSubtitlesAsync(BsonDocument translatedDocument)
+    {
+        try
+        {
+            var lessonId = translatedDocument["lessonId"].AsString;
+            var targetLanguage = translatedDocument["targetLanguage"].AsString;
+            var translator = translatedDocument["translator"].AsString;
+
+            _logger.LogInformation("[TRANSLATION] Storing translated subtitles for lesson {LessonId}, language {TargetLanguage}, translator {Translator}",
+                lessonId, targetLanguage, translator);
+
+            // Get or create TranslatedSubtitles collection
+            var collection = _database.GetCollection<BsonDocument>("TranslatedSubtitles");
+
+            // Insert document into collection (MongoDB will auto-generate _id)
+            await collection.InsertOneAsync(translatedDocument);
+
+            // Get the generated ObjectId
+            var documentId = translatedDocument["_id"].AsObjectId.ToString();
+
+            var segmentCount = translatedDocument["segments"].AsBsonArray.Count;
+            var totalCharacters = translatedDocument["metadata"]["totalCharacters"].AsInt32;
+            var estimatedCost = translatedDocument["metadata"]["estimatedCost"].AsDouble;
+
+            _logger.LogInformation(
+                "[TRANSLATION] Translated subtitles stored successfully: DocumentId: {DocumentId}, Lesson: {LessonId}, Language: {Language}, Segments: {SegmentCount}, Characters: {TotalCharacters}, Cost: ${EstimatedCost:F4}",
+                documentId, lessonId, targetLanguage, segmentCount, totalCharacters, estimatedCost
+            );
+
+            return documentId;
+        }
+        catch (Exception ex)
+        {
+            var lessonId = translatedDocument.Contains("lessonId") ? translatedDocument["lessonId"].AsString : "unknown";
+            var targetLanguage = translatedDocument.Contains("targetLanguage") ? translatedDocument["targetLanguage"].AsString : "unknown";
+
+            _logger.LogError(ex, "[TRANSLATION] Failed to store translated subtitles for lesson {LessonId}, language {TargetLanguage}",
+                lessonId, targetLanguage);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets translated subtitles from MongoDB by document ID.
+    /// Phase 8.5: Multi-Language Subtitle Translation - Frontend language selector support.
+    /// </summary>
+    public async Task<BsonDocument?> GetTranslatedSubtitlesAsync(string mongoDocumentId)
+    {
+        try
+        {
+            _logger.LogInformation("[TRANSLATION] Fetching translated subtitles: DocumentId {DocumentId}", mongoDocumentId);
+
+            // Get TranslatedSubtitles collection
+            var collection = _database.GetCollection<BsonDocument>("TranslatedSubtitles");
+
+            // Parse ObjectId
+            if (!ObjectId.TryParse(mongoDocumentId, out var objectId))
+            {
+                _logger.LogWarning("[TRANSLATION] Invalid MongoDB ObjectId: {DocumentId}", mongoDocumentId);
+                return null;
+            }
+
+            // Find document by _id
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", objectId);
+            var document = await collection.Find(filter).FirstOrDefaultAsync();
+
+            if (document == null)
+            {
+                _logger.LogWarning("[TRANSLATION] Translated subtitles not found: DocumentId {DocumentId}", mongoDocumentId);
+                return null;
+            }
+
+            var lessonId = document.Contains("lessonId") ? document["lessonId"].AsString : "unknown";
+            var targetLanguage = document.Contains("targetLanguage") ? document["targetLanguage"].AsString : "unknown";
+            var segmentCount = document.Contains("segments") ? document["segments"].AsBsonArray.Count : 0;
+
+            _logger.LogInformation(
+                "[TRANSLATION] Translated subtitles retrieved: DocumentId: {DocumentId}, Lesson: {LessonId}, Language: {Language}, Segments: {SegmentCount}",
+                mongoDocumentId, lessonId, targetLanguage, segmentCount
+            );
+
+            return document;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[TRANSLATION] Failed to fetch translated subtitles: DocumentId {DocumentId}", mongoDocumentId);
+            throw;
+        }
     }
 }

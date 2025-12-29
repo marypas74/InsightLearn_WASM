@@ -75,6 +75,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     // Multi-language subtitle support (v2.2.0-dev)
     public DbSet<SubtitleTrack> SubtitleTracks { get; set; }
 
+    // Phase 8: Multi-Language Subtitle Translation (v2.3.24-dev)
+    public DbSet<VideoTranscriptTranslation> VideoTranscriptTranslations { get; set; }
+
     // SaaS Subscription Model entities
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
@@ -709,6 +712,46 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
             entity.HasIndex(e => new { e.LessonId, e.Language })
                 .IsUnique()
                 .HasDatabaseName("IX_SubtitleTracks_LessonId_Language_Unique");
+        });
+
+        // VideoTranscriptTranslation configuration (v2.3.24-dev) - Phase 8: Multi-Language Subtitle Translation
+        builder.Entity<VideoTranscriptTranslation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LessonId).IsRequired();
+            entity.Property(e => e.SourceLanguage).IsRequired().HasMaxLength(10).HasDefaultValue("en");
+            entity.Property(e => e.TargetLanguage).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.MongoDocumentId).HasMaxLength(100);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+            entity.Property(e => e.QualityTier).IsRequired().HasMaxLength(50).HasDefaultValue("Auto/Ollama");
+            entity.Property(e => e.SegmentCount);
+            entity.Property(e => e.TotalCharacters);
+            entity.Property(e => e.EstimatedCost).HasColumnType("decimal(10,4)").HasDefaultValue(0.0m);
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            entity.Property(e => e.CompletedAt);
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign key to Lesson
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: one translation per lesson per target language
+            entity.HasIndex(e => new { e.LessonId, e.TargetLanguage })
+                .IsUnique()
+                .HasDatabaseName("IX_VideoTranscriptTranslations_LessonId_TargetLanguage_Unique");
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Status)
+                .HasDatabaseName("IX_VideoTranscriptTranslations_Status");
+
+            entity.HasIndex(e => e.QualityTier)
+                .HasDatabaseName("IX_VideoTranscriptTranslations_QualityTier");
+
+            entity.HasIndex(e => new { e.LessonId, e.Status })
+                .HasDatabaseName("IX_VideoTranscriptTranslations_LessonId_Status");
         });
     }
 }

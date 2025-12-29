@@ -226,6 +226,101 @@ window.VideoInterop = {
         return true;
     },
 
+    /**
+     * Apply subtitle styling (Phase 9.2)
+     * @param {string} elementId - The video element ID
+     * @param {Object} styling - Styling options { size, color, backgroundOpacity, font }
+     */
+    applySubtitleStyling: function (elementId, styling) {
+        const instance = this.instances.get(elementId);
+        if (!instance?.video) return false;
+
+        console.log('[VideoInterop] Applying subtitle styling:', styling);
+
+        // Map size to CSS font-size values
+        const sizeMap = {
+            'small': '16px',
+            'medium': '20px',
+            'large': '24px',
+            'xlarge': '32px'
+        };
+
+        const fontSize = sizeMap[styling.size] || '20px';
+        const color = styling.color || '#ffffff';
+        const bgOpacity = styling.backgroundOpacity || 0.75;
+        const fontFamily = styling.font || 'sans-serif';
+
+        // Create CSS for ::cue pseudo-element
+        // We need to inject a style element since we can't directly style ::cue from JavaScript
+        const styleId = `subtitle-style-${elementId}`;
+        let styleElement = document.getElementById(styleId);
+
+        if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = styleId;
+            document.head.appendChild(styleElement);
+        }
+
+        // Apply CSS to video::cue pseudo-element
+        styleElement.textContent = `
+            #${elementId}::cue {
+                font-size: ${fontSize} !important;
+                color: ${color} !important;
+                background-color: rgba(0, 0, 0, ${bgOpacity}) !important;
+                font-family: ${fontFamily} !important;
+            }
+        `;
+
+        console.log('[VideoInterop] Subtitle styling applied successfully');
+        return true;
+    },
+
+    /**
+     * Set subtitle delay offset (Phase 9.4)
+     * @param {string} elementId - The video element ID
+     * @param {number} delaySeconds - Delay in seconds (can be negative for advance)
+     */
+    setSubtitleDelay: function (elementId, delaySeconds) {
+        const instance = this.instances.get(elementId);
+        if (!instance?.video) return false;
+
+        console.log('[VideoInterop] Setting subtitle delay:', delaySeconds, 'seconds');
+
+        // Store delay value for future track changes
+        instance.subtitleDelay = delaySeconds;
+
+        // Apply delay to all currently showing tracks
+        const tracks = instance.video.textTracks;
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            if (track.mode === 'showing' && track.cues) {
+                // Note: Modifying cue times directly is not standard and may not work in all browsers
+                // This is a best-effort implementation
+                for (let j = 0; j < track.cues.length; j++) {
+                    const cue = track.cues[j];
+                    // Store original times if not already stored
+                    if (cue._originalStartTime === undefined) {
+                        cue._originalStartTime = cue.startTime;
+                        cue._originalEndTime = cue.endTime;
+                    }
+                    // Apply delay to original times
+                    try {
+                        cue.startTime = cue._originalStartTime + delaySeconds;
+                        cue.endTime = cue._originalEndTime + delaySeconds;
+                    } catch (e) {
+                        // Some browsers may not allow modifying cue times
+                        console.warn('[VideoInterop] Cannot modify cue times in this browser:', e.message);
+                        return false;
+                    }
+                }
+                console.log('[VideoInterop] Applied delay to', track.cues.length, 'cues in track:', track.language);
+            }
+        }
+
+        console.log('[VideoInterop] Subtitle delay applied successfully');
+        return true;
+    },
+
     // Private methods
     _bindEvents: function (elementId, video, dotNetRef) {
         const handlers = {

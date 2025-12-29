@@ -1,0 +1,1086 @@
+apiVersion: v1
+data:
+  loadbalancer-dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "Load Balancer, Autoscaling and Replica Monitoring",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 100,
+          "panels": [],
+          "title": "Replica Status",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "green", "value": 2 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+          "id": 1,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"insightlearn-api\"})",
+              "legendFormat": "API Ready",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API Replicas",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "green", "value": 2 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"insightlearn-wasm-blazor-webassembly\"})",
+              "legendFormat": "WASM Ready",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "WASM Replicas",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+          "id": 3,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"grafana\"})",
+              "legendFormat": "Grafana Ready",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Grafana Replicas",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+          "id": 4,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "value_and_name"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\"})",
+              "legendFormat": "Total Pods",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Total Ready Pods",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "none",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+          "id": 5,
+          "options": {
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"insightlearn-api\"})",
+              "legendFormat": "API",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"insightlearn-wasm-blazor-webassembly\"})",
+              "legendFormat": "WASM",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=\"grafana\"})",
+              "legendFormat": "Grafana",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Replicas Over Time",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+          "id": 101,
+          "panels": [],
+          "title": "HPA Resource Usage",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 10 },
+          "id": 6,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "100 * sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", container!=\"\", container!=\"POD\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", resource=\"cpu\"})",
+              "legendFormat": "CPU",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API CPU % (Target: 70%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 80 },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 6, "y": 10 },
+          "id": 7,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "100 * sum(container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", container!=\"\", container!=\"POD\"}) / sum(kube_pod_container_resource_limits{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", resource=\"memory\"})",
+              "legendFormat": "Memory",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API Memory % (Target: 80%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 85 }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 12, "y": 10 },
+          "id": 8,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "100 * sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"insightlearn-wasm.*\", container!=\"\", container!=\"POD\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"insightlearn\", pod=~\"insightlearn-wasm.*\", resource=\"cpu\"})",
+              "legendFormat": "CPU",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "WASM CPU % (Target: 70%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 80 },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 6, "x": 18, "y": 10 },
+          "id": 9,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "100 * sum(rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"grafana.*\", container!=\"\", container!=\"POD\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"insightlearn\", pod=~\"grafana.*\", resource=\"cpu\"})",
+              "legendFormat": "CPU",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Grafana CPU % (Target: 80%)",
+          "type": "gauge"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+          "id": 102,
+          "panels": [],
+          "title": "Pod Details",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "never",
+                "stacking": { "group": "A", "mode": "none" }
+              },
+              "mappings": [],
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+          "id": 10,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", container!=\"\", container!=\"POD\"}[5m]))",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API Pod CPU Usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "mappings": [],
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+          "id": 11,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"insightlearn\", pod=~\"insightlearn-api.*\", container!=\"\", container!=\"POD\"})",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API Pod Memory Usage",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+          "id": 103,
+          "panels": [],
+          "title": "Deployment Overview",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 },
+          "id": 12,
+          "options": {
+            "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (deployment) (kube_deployment_status_replicas_ready{namespace=\"insightlearn\", deployment=~\"insightlearn-api|insightlearn-wasm.*|grafana|prometheus|redis|geoip.*\"})",
+              "legendFormat": "{{deployment}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Pod Distribution",
+          "type": "piechart"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto",
+                "filterable": false,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Ready" },
+                "properties": [
+                  { "id": "custom.displayMode", "value": "color-background-solid" },
+                  { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 16, "x": 8, "y": 26 },
+          "id": 13,
+          "options": {
+            "footer": { "enablePagination": false, "fields": "", "reducer": ["sum"], "show": false },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (deployment) (kube_deployment_spec_replicas{namespace=\"insightlearn\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (deployment) (kube_deployment_status_replicas_ready{namespace=\"insightlearn\"})",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "Deployment Status",
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": { "Time": true, "Time 1": true, "Time 2": true },
+                "indexByName": { "deployment": 0, "Value #A": 1, "Value #B": 2 },
+                "renameByName": { "deployment": "Deployment", "Value #A": "Desired", "Value #B": "Ready" }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+          "id": 104,
+          "panels": [],
+          "title": "Scaling Activity",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "bars",
+                "fillOpacity": 80,
+                "lineWidth": 0,
+                "pointSize": 5
+              },
+              "mappings": [],
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 35 },
+          "id": 14,
+          "options": {
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (deployment) (changes(kube_deployment_status_replicas{namespace=\"insightlearn\", deployment=~\"insightlearn-api|insightlearn-wasm.*|grafana\"}[10m]))",
+              "legendFormat": "{{deployment}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Scaling Events (10m)",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+          "id": 105,
+          "panels": [],
+          "title": "Geographic & Traffic",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {}
+          },
+          "gridPos": { "h": 12, "w": 14, "x": 0, "y": 42 },
+          "id": 20,
+          "options": {
+            "basemap": {
+              "config": {},
+              "name": "Layer 0",
+              "type": "carto"
+            },
+            "controls": {
+              "mouseWheelZoom": true,
+              "showAttribution": true,
+              "showDebug": false,
+              "showMeasure": false,
+              "showScale": false,
+              "showZoom": true
+            },
+            "layers": [
+              {
+                "config": {
+                  "showLegend": true,
+                  "style": {
+                    "color": {
+                      "field": "Value",
+                      "fixed": "dark-green"
+                    },
+                    "opacity": 0.8,
+                    "rotation": {
+                      "fixed": 0,
+                      "max": 360,
+                      "min": -360,
+                      "mode": "mod"
+                    },
+                    "size": {
+                      "field": "Value",
+                      "fixed": 5,
+                      "max": 30,
+                      "min": 6
+                    },
+                    "symbol": {
+                      "fixed": "img/icons/marker/circle.svg",
+                      "mode": "fixed"
+                    },
+                    "symbolAlign": {
+                      "horizontal": "center",
+                      "vertical": "center"
+                    },
+                    "text": {
+                      "field": "country",
+                      "fixed": "",
+                      "mode": "field"
+                    },
+                    "textConfig": {
+                      "fontSize": 10,
+                      "offsetX": 0,
+                      "offsetY": 12,
+                      "textAlign": "center",
+                      "textBaseline": "top"
+                    }
+                  }
+                },
+                "location": {
+                  "gazetteer": "public/gazetteer/countries.json",
+                  "lookup": "country",
+                  "mode": "lookup"
+                },
+                "name": "Requests by Country",
+                "tooltip": true,
+                "type": "markers"
+              }
+            ],
+            "tooltip": {
+              "mode": "details"
+            },
+            "view": {
+              "allLayers": true,
+              "id": "fit",
+              "lat": 30,
+              "lon": 0,
+              "zoom": 2
+            }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (country) (node_api_requests_by_country{job=\"geoip-exporter\"})",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "refId": "A"
+            }
+          ],
+          "title": "Requests by Country",
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {
+                "keepLabels": ["country"],
+                "mode": "columns"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                }
+              }
+            }
+          ],
+          "type": "geomap"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 10, "x": 14, "y": 42 },
+          "id": 21,
+          "options": {
+            "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "topk(10, sum by (country) (node_api_requests_by_country{job=\"geoip-exporter\"}))",
+              "legendFormat": "{{country}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top 10 Countries",
+          "type": "piechart"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 10, "x": 14, "y": 48 },
+          "id": 22,
+          "options": {
+            "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "topk(10, sum by (city) (node_api_requests_by_city{job=\"geoip-exporter\"}))",
+              "legendFormat": "{{city}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top 10 Cities",
+          "type": "piechart"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+          "id": 106,
+          "panels": [],
+          "title": "Load Balancer Traffic",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "mappings": [],
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+          "id": 23,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(traefik_entrypoint_requests_total{entrypoint=\"web\"}[5m]))",
+              "legendFormat": "Total Requests/s",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(traefik_entrypoint_requests_total{entrypoint=\"web\", code=~\"2..\"}[5m]))",
+              "legendFormat": "Success Requests/s",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(rate(traefik_entrypoint_requests_total{entrypoint=\"websecure\"}[5m]))",
+              "legendFormat": "HTTPS Requests/s",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Request Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "lineWidth": 2,
+                "showPoints": "never"
+              },
+              "mappings": [],
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+          "id": 24,
+          "options": {
+            "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[5m])) by (le))",
+              "legendFormat": "p50",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[5m])) by (le))",
+              "legendFormat": "p95",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[5m])) by (le))",
+              "legendFormat": "p99",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "API Response Time (Latency)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 5 }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 8, "x": 0, "y": 63 },
+          "id": 25,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "100 * sum(rate(traefik_entrypoint_requests_total{entrypoint=\"web\", code=~\"5..\"}[5m])) / sum(rate(traefik_entrypoint_requests_total{entrypoint=\"web\"}[5m])) or vector(0)",
+              "legendFormat": "Error Rate",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Error Rate (5xx)",
+          "type": "gauge"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "bars",
+                "fillOpacity": 80,
+                "lineWidth": 0
+              },
+              "mappings": [],
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 6, "w": 16, "x": 8, "y": 63 },
+          "id": 26,
+          "options": {
+            "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by (code) (increase(traefik_entrypoint_requests_total{entrypoint=\"web\"}[5m]))",
+              "legendFormat": "{{code}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Requests by HTTP Status Code",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["insightlearn", "loadbalancer", "autoscaling", "hpa"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "",
+      "title": "InsightLearn Load Balancer & Autoscaling",
+      "uid": "insightlearn-lb",
+      "version": 3,
+      "weekStart": ""
+    }
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"loadbalancer-dashboard.json":"{\n  \"annotations\": {\n    \"list\": []\n  },\n  \"description\": \"Load Balancer, Autoscaling and Replica Monitoring\",\n  \"editable\": true,\n  \"fiscalYearStartMonth\": 0,\n  \"graphTooltip\": 0,\n  \"id\": null,\n  \"links\": [],\n  \"liveNow\": false,\n  \"panels\": [\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 0 },\n      \"id\": 100,\n      \"panels\": [],\n      \"title\": \"Replica Status\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"red\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 1 },\n              { \"color\": \"green\", \"value\": 2 }\n            ]\n          },\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 5, \"w\": 4, \"x\": 0, \"y\": 1 },\n      \"id\": 1,\n      \"options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"textMode\": \"value_and_name\"\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"insightlearn-api\\\"})\",\n          \"legendFormat\": \"API Ready\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"API Replicas\",\n      \"type\": \"stat\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"red\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 1 },\n              { \"color\": \"green\", \"value\": 2 }\n            ]\n          },\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 5, \"w\": 4, \"x\": 4, \"y\": 1 },\n      \"id\": 2,\n      \"options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"textMode\": \"value_and_name\"\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"insightlearn-wasm-blazor-webassembly\\\"})\",\n          \"legendFormat\": \"WASM Ready\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"WASM Replicas\",\n      \"type\": \"stat\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"red\", \"value\": null },\n              { \"color\": \"green\", \"value\": 1 }\n            ]\n          },\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 5, \"w\": 4, \"x\": 8, \"y\": 1 },\n      \"id\": 3,\n      \"options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"textMode\": \"value_and_name\"\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"grafana\\\"})\",\n          \"legendFormat\": \"Grafana Ready\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Grafana Replicas\",\n      \"type\": \"stat\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null }\n            ]\n          },\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 5, \"w\": 4, \"x\": 12, \"y\": 1 },\n      \"id\": 4,\n      \"options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"textMode\": \"value_and_name\"\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\"})\",\n          \"legendFormat\": \"Total Pods\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Total Ready Pods\",\n      \"type\": \"stat\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"axisCenteredZero\": false,\n            \"axisColorMode\": \"text\",\n            \"axisLabel\": \"\",\n            \"axisPlacement\": \"auto\",\n            \"barAlignment\": 0,\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 20,\n            \"gradientMode\": \"none\",\n            \"hideFrom\": { \"legend\": false, \"tooltip\": false, \"viz\": false },\n            \"lineInterpolation\": \"smooth\",\n            \"lineWidth\": 2,\n            \"pointSize\": 5,\n            \"scaleDistribution\": { \"type\": \"linear\" },\n            \"showPoints\": \"never\",\n            \"spanNulls\": false,\n            \"stacking\": { \"group\": \"A\", \"mode\": \"none\" },\n            \"thresholdsStyle\": { \"mode\": \"off\" }\n          },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [{ \"color\": \"green\", \"value\": null }]\n          },\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 8, \"x\": 16, \"y\": 1 },\n      \"id\": 5,\n      \"options\": {\n        \"legend\": { \"calcs\": [], \"displayMode\": \"list\", \"placement\": \"bottom\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\", \"sort\": \"desc\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"insightlearn-api\\\"})\",\n          \"legendFormat\": \"API\",\n          \"range\": true,\n          \"refId\": \"A\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"insightlearn-wasm-blazor-webassembly\\\"})\",\n          \"legendFormat\": \"WASM\",\n          \"range\": true,\n          \"refId\": \"B\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=\\\"grafana\\\"})\",\n          \"legendFormat\": \"Grafana\",\n          \"range\": true,\n          \"refId\": \"C\"\n        }\n      ],\n      \"title\": \"Replicas Over Time\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 9 },\n      \"id\": 101,\n      \"panels\": [],\n      \"title\": \"HPA Resource Usage\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 70 },\n              { \"color\": \"red\", \"value\": 85 }\n            ]\n          },\n          \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 6, \"x\": 0, \"y\": 10 },\n      \"id\": 6,\n      \"options\": {\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"showThresholdLabels\": true,\n        \"showThresholdMarkers\": true\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"100 * sum(rate(container_cpu_usage_seconds_total{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", resource=\\\"cpu\\\"})\",\n          \"legendFormat\": \"CPU\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"API CPU % (Target: 70%)\",\n      \"type\": \"gauge\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 80 },\n              { \"color\": \"red\", \"value\": 90 }\n            ]\n          },\n          \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 6, \"x\": 6, \"y\": 10 },\n      \"id\": 7,\n      \"options\": {\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"showThresholdLabels\": true,\n        \"showThresholdMarkers\": true\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"100 * sum(container_memory_working_set_bytes{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"}) / sum(kube_pod_container_resource_limits{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", resource=\\\"memory\\\"})\",\n          \"legendFormat\": \"Memory\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"API Memory % (Target: 80%)\",\n      \"type\": \"gauge\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 70 },\n              { \"color\": \"red\", \"value\": 85 }\n            ]\n          },\n          \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 6, \"x\": 12, \"y\": 10 },\n      \"id\": 8,\n      \"options\": {\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"showThresholdLabels\": true,\n        \"showThresholdMarkers\": true\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"100 * sum(rate(container_cpu_usage_seconds_total{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-wasm.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-wasm.*\\\", resource=\\\"cpu\\\"})\",\n          \"legendFormat\": \"CPU\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"WASM CPU % (Target: 70%)\",\n      \"type\": \"gauge\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 80 },\n              { \"color\": \"red\", \"value\": 90 }\n            ]\n          },\n          \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 6, \"x\": 18, \"y\": 10 },\n      \"id\": 9,\n      \"options\": {\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"showThresholdLabels\": true,\n        \"showThresholdMarkers\": true\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"100 * sum(rate(container_cpu_usage_seconds_total{namespace=\\\"insightlearn\\\", pod=~\\\"grafana.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\\\"insightlearn\\\", pod=~\\\"grafana.*\\\", resource=\\\"cpu\\\"})\",\n          \"legendFormat\": \"CPU\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Grafana CPU % (Target: 80%)\",\n      \"type\": \"gauge\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 16 },\n      \"id\": 102,\n      \"panels\": [],\n      \"title\": \"Pod Details\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 10,\n            \"lineInterpolation\": \"smooth\",\n            \"lineWidth\": 2,\n            \"pointSize\": 5,\n            \"showPoints\": \"never\",\n            \"stacking\": { \"group\": \"A\", \"mode\": \"none\" }\n          },\n          \"mappings\": [],\n          \"unit\": \"percentunit\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 17 },\n      \"id\": 10,\n      \"options\": {\n        \"legend\": { \"calcs\": [\"mean\", \"max\"], \"displayMode\": \"table\", \"placement\": \"right\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\", \"sort\": \"desc\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"}[5m]))\",\n          \"legendFormat\": \"{{pod}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"API Pod CPU Usage\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 10,\n            \"lineWidth\": 2,\n            \"showPoints\": \"never\"\n          },\n          \"mappings\": [],\n          \"unit\": \"bytes\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 17 },\n      \"id\": 11,\n      \"options\": {\n        \"legend\": { \"calcs\": [\"mean\", \"max\"], \"displayMode\": \"table\", \"placement\": \"right\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\", \"sort\": \"desc\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (pod) (container_memory_working_set_bytes{namespace=\\\"insightlearn\\\", pod=~\\\"insightlearn-api.*\\\", container!=\\\"\\\", container!=\\\"POD\\\"})\",\n          \"legendFormat\": \"{{pod}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"API Pod Memory Usage\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 25 },\n      \"id\": 103,\n      \"panels\": [],\n      \"title\": \"Deployment Overview\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"hideFrom\": { \"legend\": false, \"tooltip\": false, \"viz\": false }\n          },\n          \"mappings\": []\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 8, \"x\": 0, \"y\": 26 },\n      \"id\": 12,\n      \"options\": {\n        \"legend\": { \"displayMode\": \"table\", \"placement\": \"right\", \"showLegend\": true, \"values\": [\"value\"] },\n        \"pieType\": \"donut\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"tooltip\": { \"mode\": \"single\", \"sort\": \"none\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (deployment) (kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\", deployment=~\\\"insightlearn-api|insightlearn-wasm.*|grafana|prometheus|redis|geoip.*\\\"})\",\n          \"legendFormat\": \"{{deployment}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Pod Distribution\",\n      \"type\": \"piechart\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"custom\": {\n            \"align\": \"auto\",\n            \"displayMode\": \"auto\",\n            \"filterable\": false,\n            \"inspect\": false\n          },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [{ \"color\": \"green\", \"value\": null }]\n          }\n        },\n        \"overrides\": [\n          {\n            \"matcher\": { \"id\": \"byName\", \"options\": \"Ready\" },\n            \"properties\": [\n              { \"id\": \"custom.displayMode\", \"value\": \"color-background-solid\" },\n              { \"id\": \"thresholds\", \"value\": { \"mode\": \"absolute\", \"steps\": [{ \"color\": \"red\", \"value\": null }, { \"color\": \"green\", \"value\": 1 }] } }\n            ]\n          }\n        ]\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 16, \"x\": 8, \"y\": 26 },\n      \"id\": 13,\n      \"options\": {\n        \"footer\": { \"enablePagination\": false, \"fields\": \"\", \"reducer\": [\"sum\"], \"show\": false },\n        \"showHeader\": true,\n        \"sortBy\": []\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (deployment) (kube_deployment_spec_replicas{namespace=\\\"insightlearn\\\"})\",\n          \"format\": \"table\",\n          \"instant\": true,\n          \"legendFormat\": \"__auto\",\n          \"range\": false,\n          \"refId\": \"A\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (deployment) (kube_deployment_status_replicas_ready{namespace=\\\"insightlearn\\\"})\",\n          \"format\": \"table\",\n          \"hide\": false,\n          \"instant\": true,\n          \"legendFormat\": \"__auto\",\n          \"range\": false,\n          \"refId\": \"B\"\n        }\n      ],\n      \"title\": \"Deployment Status\",\n      \"transformations\": [\n        {\n          \"id\": \"merge\",\n          \"options\": {}\n        },\n        {\n          \"id\": \"organize\",\n          \"options\": {\n            \"excludeByName\": { \"Time\": true, \"Time 1\": true, \"Time 2\": true },\n            \"indexByName\": { \"deployment\": 0, \"Value #A\": 1, \"Value #B\": 2 },\n            \"renameByName\": { \"deployment\": \"Deployment\", \"Value #A\": \"Desired\", \"Value #B\": \"Ready\" }\n          }\n        }\n      ],\n      \"type\": \"table\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 34 },\n      \"id\": 104,\n      \"panels\": [],\n      \"title\": \"Scaling Activity\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"bars\",\n            \"fillOpacity\": 80,\n            \"lineWidth\": 0,\n            \"pointSize\": 5\n          },\n          \"mappings\": [],\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 24, \"x\": 0, \"y\": 35 },\n      \"id\": 14,\n      \"options\": {\n        \"legend\": { \"calcs\": [], \"displayMode\": \"list\", \"placement\": \"bottom\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (deployment) (changes(kube_deployment_status_replicas{namespace=\\\"insightlearn\\\", deployment=~\\\"insightlearn-api|insightlearn-wasm.*|grafana\\\"}[10m]))\",\n          \"legendFormat\": \"{{deployment}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Scaling Events (10m)\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 41 },\n      \"id\": 105,\n      \"panels\": [],\n      \"title\": \"Geographic \u0026 Traffic\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {}\n      },\n      \"gridPos\": { \"h\": 12, \"w\": 14, \"x\": 0, \"y\": 42 },\n      \"id\": 20,\n      \"options\": {\n        \"basemap\": {\n          \"config\": {},\n          \"name\": \"Layer 0\",\n          \"type\": \"carto\"\n        },\n        \"controls\": {\n          \"mouseWheelZoom\": true,\n          \"showAttribution\": true,\n          \"showDebug\": false,\n          \"showMeasure\": false,\n          \"showScale\": false,\n          \"showZoom\": true\n        },\n        \"layers\": [\n          {\n            \"config\": {\n              \"showLegend\": true,\n              \"style\": {\n                \"color\": {\n                  \"field\": \"Value\",\n                  \"fixed\": \"dark-green\"\n                },\n                \"opacity\": 0.8,\n                \"rotation\": {\n                  \"fixed\": 0,\n                  \"max\": 360,\n                  \"min\": -360,\n                  \"mode\": \"mod\"\n                },\n                \"size\": {\n                  \"field\": \"Value\",\n                  \"fixed\": 5,\n                  \"max\": 30,\n                  \"min\": 6\n                },\n                \"symbol\": {\n                  \"fixed\": \"img/icons/marker/circle.svg\",\n                  \"mode\": \"fixed\"\n                },\n                \"symbolAlign\": {\n                  \"horizontal\": \"center\",\n                  \"vertical\": \"center\"\n                },\n                \"text\": {\n                  \"field\": \"country\",\n                  \"fixed\": \"\",\n                  \"mode\": \"field\"\n                },\n                \"textConfig\": {\n                  \"fontSize\": 10,\n                  \"offsetX\": 0,\n                  \"offsetY\": 12,\n                  \"textAlign\": \"center\",\n                  \"textBaseline\": \"top\"\n                }\n              }\n            },\n            \"location\": {\n              \"gazetteer\": \"public/gazetteer/countries.json\",\n              \"lookup\": \"country\",\n              \"mode\": \"lookup\"\n            },\n            \"name\": \"Requests by Country\",\n            \"tooltip\": true,\n            \"type\": \"markers\"\n          }\n        ],\n        \"tooltip\": {\n          \"mode\": \"details\"\n        },\n        \"view\": {\n          \"allLayers\": true,\n          \"id\": \"fit\",\n          \"lat\": 30,\n          \"lon\": 0,\n          \"zoom\": 2\n        }\n      },\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"expr\": \"sum by (country) (node_api_requests_by_country{job=\\\"geoip-exporter\\\"})\",\n          \"format\": \"table\",\n          \"instant\": true,\n          \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Requests by Country\",\n      \"transformations\": [\n        {\n          \"id\": \"labelsToFields\",\n          \"options\": {\n            \"keepLabels\": [\"country\"],\n            \"mode\": \"columns\"\n          }\n        },\n        {\n          \"id\": \"organize\",\n          \"options\": {\n            \"excludeByName\": {\n              \"Time\": true\n            }\n          }\n        }\n      ],\n      \"type\": \"geomap\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"hideFrom\": { \"legend\": false, \"tooltip\": false, \"viz\": false }\n          },\n          \"mappings\": []\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 10, \"x\": 14, \"y\": 42 },\n      \"id\": 21,\n      \"options\": {\n        \"legend\": { \"displayMode\": \"table\", \"placement\": \"right\", \"showLegend\": true, \"values\": [\"value\", \"percent\"] },\n        \"pieType\": \"donut\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"tooltip\": { \"mode\": \"single\", \"sort\": \"none\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"topk(10, sum by (country) (node_api_requests_by_country{job=\\\"geoip-exporter\\\"}))\",\n          \"legendFormat\": \"{{country}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Top 10 Countries\",\n      \"type\": \"piechart\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"hideFrom\": { \"legend\": false, \"tooltip\": false, \"viz\": false }\n          },\n          \"mappings\": []\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 10, \"x\": 14, \"y\": 48 },\n      \"id\": 22,\n      \"options\": {\n        \"legend\": { \"displayMode\": \"table\", \"placement\": \"right\", \"showLegend\": true, \"values\": [\"value\", \"percent\"] },\n        \"pieType\": \"donut\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"tooltip\": { \"mode\": \"single\", \"sort\": \"none\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"topk(10, sum by (city) (node_api_requests_by_city{job=\\\"geoip-exporter\\\"}))\",\n          \"legendFormat\": \"{{city}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Top 10 Cities\",\n      \"type\": \"piechart\"\n    },\n    {\n      \"collapsed\": false,\n      \"gridPos\": { \"h\": 1, \"w\": 24, \"x\": 0, \"y\": 54 },\n      \"id\": 106,\n      \"panels\": [],\n      \"title\": \"Load Balancer Traffic\",\n      \"type\": \"row\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 20,\n            \"lineWidth\": 2,\n            \"showPoints\": \"never\"\n          },\n          \"mappings\": [],\n          \"unit\": \"reqps\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 0, \"y\": 55 },\n      \"id\": 23,\n      \"options\": {\n        \"legend\": { \"calcs\": [\"mean\", \"max\"], \"displayMode\": \"table\", \"placement\": \"bottom\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\", \"sort\": \"desc\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(rate(traefik_entrypoint_requests_total{entrypoint=\\\"web\\\"}[5m]))\",\n          \"legendFormat\": \"Total Requests/s\",\n          \"range\": true,\n          \"refId\": \"A\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(rate(traefik_entrypoint_requests_total{entrypoint=\\\"web\\\", code=~\\\"2..\\\"}[5m]))\",\n          \"legendFormat\": \"Success Requests/s\",\n          \"range\": true,\n          \"refId\": \"B\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum(rate(traefik_entrypoint_requests_total{entrypoint=\\\"websecure\\\"}[5m]))\",\n          \"legendFormat\": \"HTTPS Requests/s\",\n          \"range\": true,\n          \"refId\": \"C\"\n        }\n      ],\n      \"title\": \"Request Rate\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 20,\n            \"lineWidth\": 2,\n            \"showPoints\": \"never\"\n          },\n          \"mappings\": [],\n          \"unit\": \"s\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 8, \"w\": 12, \"x\": 12, \"y\": 55 },\n      \"id\": 24,\n      \"options\": {\n        \"legend\": { \"calcs\": [\"mean\", \"max\"], \"displayMode\": \"table\", \"placement\": \"bottom\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\", \"sort\": \"desc\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\\\"web\\\"}[5m])) by (le))\",\n          \"legendFormat\": \"p50\",\n          \"range\": true,\n          \"refId\": \"A\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\\\"web\\\"}[5m])) by (le))\",\n          \"legendFormat\": \"p95\",\n          \"range\": true,\n          \"refId\": \"B\"\n        },\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\\\"web\\\"}[5m])) by (le))\",\n          \"legendFormat\": \"p99\",\n          \"range\": true,\n          \"refId\": \"C\"\n        }\n      ],\n      \"title\": \"API Response Time (Latency)\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"thresholds\" },\n          \"mappings\": [],\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n            \"mode\": \"absolute\",\n            \"steps\": [\n              { \"color\": \"green\", \"value\": null },\n              { \"color\": \"yellow\", \"value\": 1 },\n              { \"color\": \"red\", \"value\": 5 }\n            ]\n          },\n          \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 8, \"x\": 0, \"y\": 63 },\n      \"id\": 25,\n      \"options\": {\n        \"orientation\": \"auto\",\n        \"reduceOptions\": { \"calcs\": [\"lastNotNull\"], \"fields\": \"\", \"values\": false },\n        \"showThresholdLabels\": true,\n        \"showThresholdMarkers\": true\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"100 * sum(rate(traefik_entrypoint_requests_total{entrypoint=\\\"web\\\", code=~\\\"5..\\\"}[5m])) / sum(rate(traefik_entrypoint_requests_total{entrypoint=\\\"web\\\"}[5m])) or vector(0)\",\n          \"legendFormat\": \"Error Rate\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Error Rate (5xx)\",\n      \"type\": \"gauge\"\n    },\n    {\n      \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\": { \"mode\": \"palette-classic\" },\n          \"custom\": {\n            \"drawStyle\": \"bars\",\n            \"fillOpacity\": 80,\n            \"lineWidth\": 0\n          },\n          \"mappings\": [],\n          \"unit\": \"short\"\n        },\n        \"overrides\": []\n      },\n      \"gridPos\": { \"h\": 6, \"w\": 16, \"x\": 8, \"y\": 63 },\n      \"id\": 26,\n      \"options\": {\n        \"legend\": { \"calcs\": [], \"displayMode\": \"list\", \"placement\": \"bottom\", \"showLegend\": true },\n        \"tooltip\": { \"mode\": \"multi\" }\n      },\n      \"pluginVersion\": \"10.2.0\",\n      \"targets\": [\n        {\n          \"datasource\": { \"type\": \"prometheus\", \"uid\": \"prometheus\" },\n          \"editorMode\": \"code\",\n          \"expr\": \"sum by (code) (increase(traefik_entrypoint_requests_total{entrypoint=\\\"web\\\"}[5m]))\",\n          \"legendFormat\": \"{{code}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Requests by HTTP Status Code\",\n      \"type\": \"timeseries\"\n    }\n  ],\n  \"refresh\": \"30s\",\n  \"schemaVersion\": 38,\n  \"style\": \"dark\",\n  \"tags\": [\"insightlearn\", \"loadbalancer\", \"autoscaling\", \"hpa\"],\n  \"templating\": { \"list\": [] },\n  \"time\": { \"from\": \"now-1h\", \"to\": \"now\" },\n  \"timepicker\": {},\n  \"timezone\": \"\",\n  \"title\": \"InsightLearn Load Balancer \u0026 Autoscaling\",\n  \"uid\": \"insightlearn-lb\",\n  \"version\": 3,\n  \"weekStart\": \"\"\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"monitoring","app.kubernetes.io/name":"insightlearn","grafana_dashboard":"1"},"name":"grafana-dashboard-loadbalancer","namespace":"insightlearn"}}
+  creationTimestamp: "2025-12-22T10:45:22Z"
+  labels:
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/name: insightlearn
+    grafana_dashboard: "1"
+  name: grafana-dashboard-loadbalancer
+  namespace: insightlearn
+  resourceVersion: "66075"
+  uid: a83937f0-e6eb-45bf-9833-8332ca008c18

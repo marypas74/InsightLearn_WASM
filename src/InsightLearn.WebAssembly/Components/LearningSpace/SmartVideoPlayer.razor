@@ -6,7 +6,7 @@
 @inject ITokenService TokenService
 @implements IAsyncDisposable
 
-<div class="smart-video-container @(IsFullscreen ? "fullscreen" : "")" tabindex="0" @ref="_containerRef">
+<div class="smart-video-container @(IsFullscreen ? "fullscreen" : "")" tabindex="0" @ref="_containerRef" @onkeydown="HandleKeyDown" @onkeydown:preventDefault>
     @* Video Element *@
     <video id="@VideoElementId"
            class="smart-video-element"
@@ -189,11 +189,95 @@
                 </div>
 
                 @* Settings *@
-                <button class="control-btn" @onclick="ToggleSettingsMenu" aria-label="Settings">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22l-1.92 3.32c-.12.21-.07.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94 0 .31.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                    </svg>
-                </button>
+                <div class="settings-control">
+                    <button class="control-btn" @onclick="ToggleSettingsMenu" aria-label="Settings">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22l-1.92 3.32c-.12.21-.07.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94 0 .31.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                        </svg>
+                    </button>
+                    @if (ShowSettingsMenu)
+                    {
+                        <div class="settings-menu">
+                            <div class="settings-section">
+                                <div class="settings-label">Subtitle Font Size</div>
+                                @foreach (var size in SubtitleSizeOptions)
+                                {
+                                    <button class="settings-option @(SubtitleSize == size.Value ? "active" : "")"
+                                            @onclick="() => SetSubtitleSize(size.Value)">
+                                        @size.Label
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="settings-divider"></div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Subtitle Color</div>
+                                <div class="color-options">
+                                    @foreach (var color in SubtitleColorOptions)
+                                    {
+                                        <button class="color-option @(SubtitleColor == color.Value ? "active" : "")"
+                                                @onclick="() => SetSubtitleColor(color.Value)"
+                                                style="background-color: @color.Value"
+                                                title="@color.Label">
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="settings-divider"></div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Background Opacity</div>
+                                @foreach (var opacity in SubtitleOpacityOptions)
+                                {
+                                    <button class="settings-option @(SubtitleBackgroundOpacity == opacity.Value ? "active" : "")"
+                                            @onclick="() => SetSubtitleOpacity(opacity.Value)">
+                                        @opacity.Label
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="settings-divider"></div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Subtitle Font</div>
+                                @foreach (var font in SubtitleFontOptions)
+                                {
+                                    <button class="settings-option @(SubtitleFont == font.Value ? "active" : "")"
+                                            @onclick="() => SetSubtitleFont(font.Value)">
+                                        @font.Label
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="settings-divider"></div>
+
+                            <div class="settings-section">
+                                <div class="settings-label">Subtitle Delay</div>
+                                <div class="delay-control">
+                                    <button class="delay-btn" @onclick="() => AdjustSubtitleDelay(-0.5)" title="Delay -0.5s">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                                        </svg>
+                                    </button>
+                                    <span class="delay-value">@SubtitleDelay.ToString("F1")s</span>
+                                    <button class="delay-btn" @onclick="() => AdjustSubtitleDelay(0.5)" title="Delay +0.5s">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                @if (SubtitleDelay != 0)
+                                {
+                                    <button class="reset-delay-btn" @onclick="ResetSubtitleDelay">
+                                        Reset
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
 
                 @* Fullscreen *@
                 <button class="control-btn" @onclick="ToggleFullscreen" aria-label="@(IsFullscreen ? "Exit fullscreen" : "Fullscreen")">

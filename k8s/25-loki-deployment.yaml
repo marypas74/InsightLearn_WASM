@@ -35,7 +35,35 @@ data:
         cache:
           embedded_cache:
             enabled: true
-            max_size_mb: 100
+            max_size_mb: 500
+            ttl: 24h
+      parallelise_shardable_queries: true
+      max_retries: 5
+      cache_results: true
+
+    chunk_store_config:
+      max_look_back_period: 0s
+      chunk_cache_config:
+        embedded_cache:
+          enabled: true
+          max_size_mb: 500
+          ttl: 24h
+
+    querier:
+      max_concurrent: 32
+      query_timeout: 5m
+      engine:
+        max_look_back_period: 168h
+
+    frontend:
+      max_outstanding_per_tenant: 4096
+      compress_responses: true
+      scheduler_address: ""
+
+    query_scheduler:
+      max_outstanding_requests_per_tenant: 4096
+      grpc_client_config:
+        max_send_msg_size: 104857600
 
     schema_config:
       configs:
@@ -56,6 +84,10 @@ data:
       ingestion_burst_size_mb: 20
       max_streams_per_user: 10000
       max_line_size: 256kb
+      max_query_parallelism: 32
+      max_query_series: 5000
+      max_entries_limit_per_query: 10000
+      split_queries_by_interval: 0  # CRITICAL: Disables query splitting that causes 429 errors
 
 ---
 apiVersion: v1
@@ -107,11 +139,11 @@ spec:
               name: grpc
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
+              cpu: 200m
               memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
           volumeMounts:
             - name: config
               mountPath: /etc/loki

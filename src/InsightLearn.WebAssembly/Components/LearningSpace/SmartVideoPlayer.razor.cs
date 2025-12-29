@@ -55,6 +55,16 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     private bool ShowTranscript { get; set; } = false;
 
     private string ActiveSubtitle { get; set; } = "off";
+
+    // Subtitle styling state (Phase 9.2)
+    private string SubtitleSize { get; set; } = "medium";
+    private string SubtitleColor { get; set; } = "#ffffff";
+    private double SubtitleBackgroundOpacity { get; set; } = 0.75;
+    private string SubtitleFont { get; set; } = "sans-serif";
+
+    // Subtitle delay state (Phase 9.4)
+    private double SubtitleDelay { get; set; } = 0.0;
+
     private string? ErrorMessage { get; set; }
     private string? DebugInfo { get; set; }
     private bool IsLoadingTimedOut { get; set; } = false;
@@ -67,6 +77,41 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     private TranscriptSegment? _activeSegment;
 
     private static readonly double[] PlaybackRates = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+
+    // Subtitle styling options (Phase 9.2)
+    private static readonly (string Label, string Value)[] SubtitleSizeOptions =
+    [
+        ("Small", "small"),
+        ("Medium", "medium"),
+        ("Large", "large"),
+        ("Extra Large", "xlarge")
+    ];
+
+    private static readonly (string Label, string Value)[] SubtitleColorOptions =
+    [
+        ("White", "#ffffff"),
+        ("Yellow", "#ffff00"),
+        ("Cyan", "#00ffff"),
+        ("Green", "#00ff00"),
+        ("Magenta", "#ff00ff"),
+        ("Black", "#000000")
+    ];
+
+    private static readonly (string Label, double Value)[] SubtitleOpacityOptions =
+    [
+        ("0%", 0.0),
+        ("25%", 0.25),
+        ("50%", 0.50),
+        ("75%", 0.75),
+        ("100%", 1.0)
+    ];
+
+    private static readonly (string Label, string Value)[] SubtitleFontOptions =
+    [
+        ("Sans-serif", "sans-serif"),
+        ("Serif", "serif"),
+        ("Monospace", "monospace")
+    ];
 
     #endregion
 
@@ -487,6 +532,186 @@ public partial class SmartVideoPlayer : IAsyncDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"[SmartVideoPlayer] Translation error: {ex.Message}");
+        }
+    }
+
+    // Subtitle styling methods (Phase 9.2)
+    private async Task SetSubtitleSize(string size)
+    {
+        SubtitleSize = size;
+        await ApplySubtitleStyling();
+    }
+
+    private async Task SetSubtitleColor(string color)
+    {
+        SubtitleColor = color;
+        await ApplySubtitleStyling();
+    }
+
+    private async Task SetSubtitleOpacity(double opacity)
+    {
+        SubtitleBackgroundOpacity = opacity;
+        await ApplySubtitleStyling();
+    }
+
+    private async Task SetSubtitleFont(string font)
+    {
+        SubtitleFont = font;
+        await ApplySubtitleStyling();
+    }
+
+    private async Task ApplySubtitleStyling()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("VideoInterop.applySubtitleStyling", VideoElementId, new
+            {
+                size = SubtitleSize,
+                color = SubtitleColor,
+                backgroundOpacity = SubtitleBackgroundOpacity,
+                font = SubtitleFont
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SmartVideoPlayer] Failed to apply subtitle styling: {ex.Message}");
+        }
+    }
+
+    // Keyboard shortcuts (Phase 9.3)
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        // Ignore if user is typing in an input field
+        if (e.CtrlKey || e.AltKey || e.MetaKey) return;
+
+        switch (e.Key.ToLower())
+        {
+            case "c":
+                // Toggle subtitles: cycle through available tracks and off
+                await ToggleSubtitleTrack();
+                break;
+
+            case "+":
+            case "=":
+                // Increase subtitle font size
+                await IncreaseSubtitleSize();
+                break;
+
+            case "-":
+            case "_":
+                // Decrease subtitle font size
+                await DecreaseSubtitleSize();
+                break;
+
+            case " ":
+            case "spacebar":
+                // Toggle play/pause (default scroll behavior prevented in markup)
+                await TogglePlayPause();
+                break;
+
+            case "f":
+                // Toggle fullscreen
+                await ToggleFullscreen();
+                break;
+
+            case "m":
+                // Toggle mute
+                await ToggleMute();
+                break;
+        }
+    }
+
+    private async Task ToggleSubtitleTrack()
+    {
+        if (SubtitleTracks == null || SubtitleTracks.Count == 0)
+        {
+            Console.WriteLine("[SmartVideoPlayer] No subtitle tracks available");
+            return;
+        }
+
+        // Find current track index
+        int currentIndex = -1;
+        if (ActiveSubtitle != "off")
+        {
+            currentIndex = SubtitleTracks.FindIndex(t => t.Language == ActiveSubtitle);
+        }
+
+        // Move to next track (cycle: off -> track1 -> track2 -> ... -> off)
+        if (currentIndex == -1)
+        {
+            // Currently off, enable first track
+            await SetSubtitle(SubtitleTracks[0].Language);
+            Console.WriteLine($"[SmartVideoPlayer] Subtitle enabled: {SubtitleTracks[0].Label}");
+        }
+        else if (currentIndex < SubtitleTracks.Count - 1)
+        {
+            // Move to next track
+            await SetSubtitle(SubtitleTracks[currentIndex + 1].Language);
+            Console.WriteLine($"[SmartVideoPlayer] Subtitle changed: {SubtitleTracks[currentIndex + 1].Label}");
+        }
+        else
+        {
+            // Last track, turn off
+            await SetSubtitleOff();
+            Console.WriteLine("[SmartVideoPlayer] Subtitle disabled");
+        }
+    }
+
+    private async Task IncreaseSubtitleSize()
+    {
+        var currentIndex = Array.FindIndex(SubtitleSizeOptions, o => o.Value == SubtitleSize);
+        if (currentIndex < SubtitleSizeOptions.Length - 1)
+        {
+            await SetSubtitleSize(SubtitleSizeOptions[currentIndex + 1].Value);
+            Console.WriteLine($"[SmartVideoPlayer] Subtitle size increased: {SubtitleSizeOptions[currentIndex + 1].Label}");
+        }
+        else
+        {
+            Console.WriteLine("[SmartVideoPlayer] Subtitle size already at maximum");
+        }
+    }
+
+    private async Task DecreaseSubtitleSize()
+    {
+        var currentIndex = Array.FindIndex(SubtitleSizeOptions, o => o.Value == SubtitleSize);
+        if (currentIndex > 0)
+        {
+            await SetSubtitleSize(SubtitleSizeOptions[currentIndex - 1].Value);
+            Console.WriteLine($"[SmartVideoPlayer] Subtitle size decreased: {SubtitleSizeOptions[currentIndex - 1].Label}");
+        }
+        else
+        {
+            Console.WriteLine("[SmartVideoPlayer] Subtitle size already at minimum");
+        }
+    }
+
+    // Subtitle delay methods (Phase 9.4)
+    private async Task AdjustSubtitleDelay(double seconds)
+    {
+        SubtitleDelay += seconds;
+        // Clamp to reasonable range (-10s to +10s)
+        SubtitleDelay = Math.Max(-10.0, Math.Min(10.0, SubtitleDelay));
+
+        await ApplySubtitleDelay();
+        Console.WriteLine($"[SmartVideoPlayer] Subtitle delay adjusted: {SubtitleDelay:F1}s");
+    }
+
+    private async Task ResetSubtitleDelay()
+    {
+        SubtitleDelay = 0.0;
+        await ApplySubtitleDelay();
+        Console.WriteLine("[SmartVideoPlayer] Subtitle delay reset");
+    }
+
+    private async Task ApplySubtitleDelay()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("VideoInterop.setSubtitleDelay", VideoElementId, SubtitleDelay);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SmartVideoPlayer] Failed to apply subtitle delay: {ex.Message}");
         }
     }
 

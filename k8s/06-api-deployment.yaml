@@ -141,6 +141,8 @@ spec:
         - name: api-tls
           mountPath: /https
           readOnly: true
+        - name: whisper-cache
+          mountPath: /root/.cache/whisper
         resources:
           requests:
             memory: "512Mi"
@@ -172,6 +174,9 @@ spec:
       - name: api-tls
         secret:
           secretName: api-tls-cert
+      - name: whisper-cache
+        persistentVolumeClaim:
+          claimName: whisper-model-cache
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

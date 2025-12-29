@@ -106,6 +106,32 @@ public class MetricsService
             LabelNames = new[] { "status" }
         });
 
+    /// <summary>
+    /// Total transcript generation jobs
+    /// Labels: status (success/failed/timeout)
+    /// Part of Batch Video Transcription System v2.3.23-dev
+    /// </summary>
+    private static readonly Counter TranscriptJobsTotal = Metrics.CreateCounter(
+        "insightlearn_transcript_jobs_total",
+        "Total transcript generation jobs",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "status" }
+        });
+
+    /// <summary>
+    /// Total subtitle translation jobs
+    /// Labels: translator (azure/ollama), target_language (es/fr/de/pt/etc), status (success/failed)
+    /// Part of Phase 8: Multi-Language Subtitle Support - LinkedIn Learning parity (v2.3.24-dev)
+    /// </summary>
+    private static readonly Counter TranslationJobsTotal = Metrics.CreateCounter(
+        "insightlearn_translation_jobs_total",
+        "Total subtitle translation jobs",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "translator", "target_language", "status" }
+        });
+
     // ==================================================
     // GAUGES - Current snapshot values (can go up/down)
     // ==================================================
@@ -193,6 +219,36 @@ public class MetricsService
         {
             LabelNames = new[] { "operation" },
             Buckets = Histogram.ExponentialBuckets(0.001, 2, 12) // 1ms to ~4s
+        });
+
+    /// <summary>
+    /// Transcript processing duration in seconds
+    /// Labels: video_duration_minutes (5, 10, 15, 30, 60+)
+    /// Buckets: 10s, 30s, 1m, 2m, 5m, 10m, 20m
+    /// Part of Batch Video Transcription System v2.3.23-dev
+    /// </summary>
+    private static readonly Histogram TranscriptProcessingDuration = Metrics.CreateHistogram(
+        "insightlearn_transcript_processing_duration_seconds",
+        "Transcript processing duration in seconds",
+        new HistogramConfiguration
+        {
+            LabelNames = new[] { "video_duration_minutes" },
+            Buckets = new[] { 10.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1200.0 } // 10s to 20 minutes
+        });
+
+    /// <summary>
+    /// Translation processing duration in seconds
+    /// Labels: translator (azure/ollama), target_language (es/fr/de/pt/etc)
+    /// Buckets: 1s, 5s, 10s, 30s, 1m, 2m, 5m, 10m
+    /// Part of Phase 8: Multi-Language Subtitle Support - LinkedIn Learning parity (v2.3.24-dev)
+    /// </summary>
+    private static readonly Histogram TranslationProcessingDuration = Metrics.CreateHistogram(
+        "insightlearn_translation_processing_duration_seconds",
+        "Translation processing duration in seconds",
+        new HistogramConfiguration
+        {
+            LabelNames = new[] { "translator", "target_language" },
+            Buckets = new[] { 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0 } // 1s to 10 minutes
         });
 
     // ==================================================
@@ -368,6 +424,45 @@ public class MetricsService
         }
     }
 
+    /// <summary>
+    /// Record a transcript generation job completion
+    /// Part of Batch Video Transcription System v2.3.23-dev
+    /// </summary>
+    /// <param name="status">Job status (success/failed/timeout)</param>
+    public void RecordTranscriptJob(string status)
+    {
+        try
+        {
+            TranscriptJobsTotal.WithLabels(status).Inc();
+            _logger.LogDebug("[METRICS] Recorded transcript job: status={Status}", status);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[METRICS] Failed to record transcript job metric");
+        }
+    }
+
+    /// <summary>
+    /// Record a translation job completion
+    /// Part of Phase 8: Multi-Language Subtitle Support - LinkedIn Learning parity (v2.3.24-dev)
+    /// </summary>
+    /// <param name="translator">Translator used (azure/ollama)</param>
+    /// <param name="targetLanguage">Target language code (es/fr/de/pt/etc)</param>
+    /// <param name="status">Job status (success/failed)</param>
+    public void RecordTranslationJob(string translator, string targetLanguage, string status)
+    {
+        try
+        {
+            TranslationJobsTotal.WithLabels(translator, targetLanguage, status).Inc();
+            _logger.LogDebug("[METRICS] Recorded translation job: translator={Translator}, language={Language}, status={Status}",
+                translator, targetLanguage, status);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[METRICS] Failed to record translation job metric");
+        }
+    }
+
     // ==================================================
     // PUBLIC METHODS - Gauge updates
     // ==================================================
@@ -476,6 +571,29 @@ public class MetricsService
     public IDisposable MeasureDatabaseQuery(string operation)
     {
         return DatabaseQueryDuration.WithLabels(operation).NewTimer();
+    }
+
+    /// <summary>
+    /// Measure transcript processing duration
+    /// Usage: using (metricsService.MeasureTranscriptProcessing(videoDurationMinutes)) { ... }
+    /// Part of Batch Video Transcription System v2.3.23-dev
+    /// </summary>
+    /// <param name="videoDurationMinutes">Video duration in minutes for labeling</param>
+    public IDisposable MeasureTranscriptProcessing(int videoDurationMinutes)
+    {
+        return TranscriptProcessingDuration.WithLabels(videoDurationMinutes.ToString()).NewTimer();
+    }
+
+    /// <summary>
+    /// Measure translation processing duration
+    /// Usage: using (metricsService.MeasureTranslationProcessing("azure", "es")) { ... }
+    /// Part of Phase 8: Multi-Language Subtitle Support - LinkedIn Learning parity (v2.3.24-dev)
+    /// </summary>
+    /// <param name="translator">Translator used (azure/ollama)</param>
+    /// <param name="targetLanguage">Target language code (es/fr/de/pt/etc)</param>
+    public IDisposable MeasureTranslationProcessing(string translator, string targetLanguage)
+    {
+        return TranslationProcessingDuration.WithLabels(translator, targetLanguage).NewTimer();
     }
 
     /// <summary>

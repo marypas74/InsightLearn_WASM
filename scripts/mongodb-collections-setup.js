@@ -375,6 +375,174 @@ print("VideoTranscripts: 4 indexes (lessonId unique, language, fulltext, created
 print("VideoKeyTakeaways: 4 indexes (lessonId unique, category, relevanceScore, createdAt)");
 print("AIConversationHistory: 5 indexes (sessionId unique, userId+createdAt, lessonId, lastActivity, fulltext)");
 
+// ==============================================================================
+// 4. TranslatedSubtitles Collection (Phase 8: Multi-Language Subtitle Support)
+// ==============================================================================
+
+print("\n4. Creating TranslatedSubtitles collection with validation schema...");
+
+db.createCollection("TranslatedSubtitles", {
+    validator: {
+        $jsonSchema: {
+            bsonType: "object",
+            required: ["lessonId", "sourceLanguage", "targetLanguage", "translator", "segments", "createdAt"],
+            properties: {
+                lessonId: {
+                    bsonType: "string",
+                    description: "Lesson GUID as string (matches SQL Server LessonId)"
+                },
+                sourceLanguage: {
+                    bsonType: "string",
+                    pattern: "^[a-z]{2}$",
+                    description: "Source language code (ISO 639-1, e.g., en, it)"
+                },
+                targetLanguage: {
+                    bsonType: "string",
+                    pattern: "^[a-z]{2}$",
+                    description: "Target language code (ISO 639-1, e.g., es, fr, de)"
+                },
+                translator: {
+                    bsonType: "string",
+                    enum: ["azure", "ollama"],
+                    description: "Translation service used (azure or ollama)"
+                },
+                segments: {
+                    bsonType: "array",
+                    description: "Array of translated subtitle segments",
+                    items: {
+                        bsonType: "object",
+                        required: ["index", "startSeconds", "endSeconds", "originalText", "translatedText"],
+                        properties: {
+                            index: {
+                                bsonType: "int",
+                                minimum: 0,
+                                description: "Segment index (0-based)"
+                            },
+                            startSeconds: {
+                                bsonType: "double",
+                                minimum: 0,
+                                description: "Segment start time in seconds"
+                            },
+                            endSeconds: {
+                                bsonType: "double",
+                                minimum: 0,
+                                description: "Segment end time in seconds"
+                            },
+                            originalText: {
+                                bsonType: "string",
+                                minLength: 1,
+                                description: "Original text in source language"
+                            },
+                            translatedText: {
+                                bsonType: "string",
+                                minLength: 1,
+                                description: "Translated text in target language"
+                            },
+                            confidenceScore: {
+                                bsonType: ["double", "null"],
+                                minimum: 0,
+                                maximum: 1,
+                                description: "Translation confidence score (0-1, Azure only)"
+                            }
+                        }
+                    }
+                },
+                metadata: {
+                    bsonType: ["object", "null"],
+                    description: "Translation processing metadata",
+                    properties: {
+                        totalSegments: {
+                            bsonType: "int",
+                            minimum: 0,
+                            description: "Total number of segments translated"
+                        },
+                        totalCharacters: {
+                            bsonType: "int",
+                            minimum: 0,
+                            description: "Total characters translated (for cost calculation)"
+                        },
+                        estimatedCost: {
+                            bsonType: "double",
+                            minimum: 0,
+                            description: "Estimated cost in USD (Azure: $10 per 1M chars, Ollama: 0)"
+                        },
+                        translatorVersion: {
+                            bsonType: "string",
+                            description: "Translator version/model (e.g., Azure Translator v3.0, qwen2:0.5b)"
+                        },
+                        processingTime: {
+                            bsonType: ["double", "null"],
+                            minimum: 0,
+                            description: "Processing time in seconds"
+                        },
+                        processedAt: {
+                            bsonType: "date",
+                            description: "Processing completion timestamp"
+                        }
+                    }
+                },
+                qualityTier: {
+                    bsonType: "string",
+                    enum: ["Auto/Ollama", "Auto/Azure", "Professional", "Human-Verified"],
+                    description: "Translation quality tier"
+                },
+                createdAt: {
+                    bsonType: "date",
+                    description: "Document creation timestamp"
+                },
+                updatedAt: {
+                    bsonType: ["date", "null"],
+                    description: "Last update timestamp"
+                }
+            }
+        }
+    },
+    validationLevel: "strict",
+    validationAction: "error"
+});
+
+// Create indexes for TranslatedSubtitles
+print("Creating indexes for TranslatedSubtitles...");
+
+// Unique constraint: one translation per lesson per target language per translator
+db.TranslatedSubtitles.createIndex(
+    { "lessonId": 1, "targetLanguage": 1, "translator": 1 },
+    { unique: true, name: "idx_lessonId_targetLanguage_translator_unique" }
+);
+
+db.TranslatedSubtitles.createIndex(
+    { "lessonId": 1, "targetLanguage": 1 },
+    { name: "idx_lessonId_targetLanguage" }
+);
+
+db.TranslatedSubtitles.createIndex(
+    { "targetLanguage": 1 },
+    { name: "idx_targetLanguage" }
+);
+
+db.TranslatedSubtitles.createIndex(
+    { "translator": 1 },
+    { name: "idx_translator" }
+);
+
+db.TranslatedSubtitles.createIndex(
+    { "qualityTier": 1 },
+    { name: "idx_qualityTier" }
+);
+
+db.TranslatedSubtitles.createIndex(
+    { "createdAt": -1 },
+    { name: "idx_createdAt_desc" }
+);
+
+// Full-text search on translated text
+db.TranslatedSubtitles.createIndex(
+    { "segments.translatedText": "text" },
+    { name: "idx_translatedText_fulltext", default_language: "english" }
+);
+
+print("✅ TranslatedSubtitles collection created successfully");
+
 print("\n✅ MongoDB Collections Setup Complete!");
 print("\nNext steps:");
 print("1. Verify collections exist: db.getCollectionNames()");

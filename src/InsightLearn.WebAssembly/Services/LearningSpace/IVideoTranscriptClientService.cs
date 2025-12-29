@@ -40,6 +40,14 @@ public interface IVideoTranscriptClientService
     /// Creates demo transcript when viewing lesson.
     /// </summary>
     Task<ApiResponse<VideoTranscriptDto>> AutoGenerateTranscriptAsync(AutoGenerateTranscriptRequest request);
+
+    /// <summary>
+    /// Get translated transcript for a specific language.
+    /// Phase 8.5: Multi-Language Subtitle Support.
+    /// </summary>
+    /// <param name="lessonId">Lesson ID</param>
+    /// <param name="targetLanguage">Target language (ISO 639-1 code: es, fr, de, pt, it)</param>
+    Task<ApiResponse<TranslationResponseDto>> GetTranslationAsync(Guid lessonId, string targetLanguage);
 }
 
 /// <summary>
@@ -74,4 +82,75 @@ public class TranscriptSearchResultDto
     public string Text { get; set; } = string.Empty;
     public string? Speaker { get; set; }
     public int MatchIndex { get; set; }
+}
+
+/// <summary>
+/// Translation response DTO.
+/// Phase 8.5: Multi-Language Subtitle Support.
+/// </summary>
+public class TranslationResponseDto
+{
+    /// <summary>
+    /// Translation status: NotFound, Processing, Failed, Completed
+    /// </summary>
+    public string Status { get; set; } = "Unknown";
+
+    /// <summary>
+    /// Optional message (for Processing/NotFound status)
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Error message (for Failed status)
+    /// </summary>
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Lesson ID
+    /// </summary>
+    public Guid? LessonId { get; set; }
+
+    /// <summary>
+    /// Source language (e.g., "en")
+    /// </summary>
+    public string? SourceLanguage { get; set; }
+
+    /// <summary>
+    /// Target language (e.g., "es", "fr", "de")
+    /// </summary>
+    public string? TargetLanguage { get; set; }
+
+    /// <summary>
+    /// Translator used (e.g., "azure", "ollama")
+    /// </summary>
+    public string? Translator { get; set; }
+
+    /// <summary>
+    /// Quality tier (e.g., "Auto/Azure", "Auto/Ollama")
+    /// </summary>
+    public string? QualityTier { get; set; }
+
+    /// <summary>
+    /// Number of translated segments
+    /// </summary>
+    public int? SegmentCount { get; set; }
+
+    /// <summary>
+    /// Translated transcript segments
+    /// </summary>
+    public List<TranslatedSegmentDto>? Segments { get; set; }
+}
+
+/// <summary>
+/// Translated transcript segment.
+/// Phase 8.5: Multi-Language Subtitle Support.
+/// </summary>
+public class TranslatedSegmentDto
+{
+    public int Index { get; set; }
+    public double StartTime { get; set; }
+    public double EndTime { get; set; }
+    public string OriginalText { get; set; } = string.Empty;
+    public string TranslatedText { get; set; } = string.Empty;
+    public double? Confidence { get; set; }
 }

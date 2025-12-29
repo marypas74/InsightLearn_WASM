@@ -1627,6 +1627,178 @@
         ],
         "title": "⚙️ Avg CPU",
         "type": "stat"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 45
+        },
+        "id": 200,
+        "panels": [],
+        "title": "📝 Transcript Processing (v2.3.23-dev)",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "unit": "ops"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 46
+        },
+        "id": 201,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single"
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(insightlearn_transcript_jobs_total{status=\"success\"}[5m])",
+            "legendFormat": "✅ Success Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(insightlearn_transcript_jobs_total{status=\"failed\"}[5m])",
+            "legendFormat": "❌ Failure Rate",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(insightlearn_transcript_jobs_total{status=\"timeout\"}[5m])",
+            "legendFormat": "⏱️ Timeout Rate",
+            "refId": "C"
+          }
+        ],
+        "title": "Transcript Job Success/Failure Rate",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 46
+        },
+        "id": 202,
+        "options": {
+          "legend": {
+            "calcs": [
+              "mean",
+              "max"
+            ],
+            "displayMode": "table",
+            "placement": "right"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(insightlearn_transcript_processing_duration_seconds_bucket[5m])) by (le, video_duration_minutes))",
+            "legendFormat": "p50 - {{video_duration_minutes}}min video",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(insightlearn_transcript_processing_duration_seconds_bucket[5m])) by (le, video_duration_minutes))",
+            "legendFormat": "p95 - {{video_duration_minutes}}min video",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(insightlearn_transcript_processing_duration_seconds_bucket[5m])) by (le, video_duration_minutes))",
+            "legendFormat": "p99 - {{video_duration_minutes}}min video",
+            "refId": "C"
+          }
+        ],
+        "title": "Transcript Processing Duration (p50/p95/p99)",
+        "type": "timeseries"
       }
     ],
     "refresh": "30s",

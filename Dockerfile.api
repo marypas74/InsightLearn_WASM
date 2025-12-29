@@ -15,7 +15,8 @@
 # Build stage - uses SDK for compilation
 # =============================================================================
 # SECURITY: Pin to specific version for reproducible builds
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+# NOTE: Using Debian-based image instead of Alpine to support SQL Server globalization
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 # Security labels
 LABEL org.opencontainers.image.source="https://github.com/insightlearn/insightlearn"
@@ -54,8 +55,9 @@ RUN dotnet publish "InsightLearn.Application.csproj" \
 # =============================================================================
 # Runtime stage - minimal image for production
 # =============================================================================
-# SECURITY: Use Alpine-based image for smaller attack surface
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+# SECURITY: Using Debian-based image for SQL Server globalization support
+# NOTE: Slightly larger than Alpine but required for Hangfire + SQL Server
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 
 # Security labels
 LABEL org.opencontainers.image.source="https://github.com/insightlearn/insightlearn"
@@ -68,8 +70,8 @@ LABEL security.read-only-fs="compatible"
 WORKDIR /app
 
 # SECURITY: Create non-root user with specific UID/GID
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup && \
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -m -s /bin/bash appuser && \
     # Create required directories with proper permissions
     mkdir -p /app/logs /tmp/app && \
     chown -R appuser:appgroup /app /tmp/app
@@ -78,7 +80,7 @@ RUN addgroup -g 1001 -S appgroup && \
 COPY --from=build --chown=appuser:appgroup /app/publish .
 
 # SECURITY: Remove unnecessary packages and shells (if any)
-RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     # Remove setuid/setgid binaries
     find / -perm /6000 -type f -exec chmod a-s {} \; 2>/dev/null || true
 
@@ -88,9 +90,9 @@ USER 1001:1001
 # Only expose necessary port (HTTP internally, TLS at ingress)
 EXPOSE 80
 
-# SECURITY: Health check without curl (uses wget from alpine)
+# SECURITY: Health check using curl (available in Debian-based image)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+    CMD curl --fail --silent --show-error http://localhost:80/health || exit 1
 
 # SECURITY: Use exec form to avoid shell
 ENTRYPOINT ["dotnet", "InsightLearn.Application.dll"]

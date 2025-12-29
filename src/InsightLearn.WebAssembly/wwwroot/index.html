@@ -476,9 +476,7 @@
     <link rel="stylesheet" href="css/enterprise-b2b.css" />
     <!-- Header Professional - CRITICAL: prevents Chrome FOUC (v2.3.8 fix) -->
     <link rel="stylesheet" href="css/header-professional.css" />
-    <!-- Header Enhancements - CRITICAL: fixes Categories dropdown, mobile menu (v2.3.11 fix) -->
-    <!-- MUST load AFTER header-professional.css for proper CSS specificity -->
-    <link rel="stylesheet" href="css/header-enhancements.css" />
+    <!-- NOTE: header-enhancements.css moved to END of CSS chain (after mobile-ux-fixes.css) for proper specificity -->
 
     <!-- ==========================================================================
          DEFERRED CSS - Load asynchronously (below-the-fold)
@@ -570,6 +568,10 @@
 
     <!-- Mobile UX Critical Fixes - Auth buttons, text contrast, spacing (v2.2.5) -->
     <link rel="stylesheet" href="css/mobile-ux-fixes.css" media="print" onload="this.media='all'" />
+
+    <!-- Header Enhancements - CRITICAL: fixes Categories dropdown, mobile menu (v2.3.16 fix) -->
+    <!-- MUST load LAST for proper CSS specificity over ALL other files -->
+    <link rel="stylesheet" href="css/header-enhancements.css" media="print" onload="this.media='all'" />
 
     <!-- Scoped Styles -->
     <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" media="print" onload="this.media='all'" />

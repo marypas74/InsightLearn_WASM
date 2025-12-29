@@ -207,6 +207,35 @@ pipeline {
             }
         }
 
+        stage('Video Infrastructure Check') {
+            steps {
+                script {
+                    echo '=== Video Streaming Verification ==='
+                    sh '''#!/bin/bash
+                        # Run the video verification script
+                        SCRIPT_PATH="${WORKSPACE}/scripts/verify-test-videos.sh"
+
+                        if [ -f "$SCRIPT_PATH" ]; then
+                            echo "Running video verification script..."
+                            chmod +x "$SCRIPT_PATH"
+                            "$SCRIPT_PATH"
+
+                            # Check exit code
+                            if [ $? -eq 0 ]; then
+                                echo "✅ Video verification PASSED"
+                            else
+                                echo "❌ Video verification FAILED"
+                                exit 1
+                            fi
+                        else
+                            echo "⚠️ Video verification script not found at: $SCRIPT_PATH"
+                            echo "Skipping video infrastructure check"
+                        fi
+                    '''
+                }
+            }
+        }
+
         stage('SEO Testing') {
             steps {
                 script {
