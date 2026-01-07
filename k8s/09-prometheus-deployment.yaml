@@ -168,10 +168,10 @@ spec:
         resources:
           requests:
             memory: "512Mi"
-            cpu: "200m"
+            cpu: "100m"  # Reduced to free CPU for API transcription
           limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"  # Reduced from 1000m to free 500m for API
         volumeMounts:
         - name: config
           mountPath: /etc/prometheus

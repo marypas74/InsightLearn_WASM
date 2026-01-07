@@ -132,9 +132,10 @@ public class AuthHttpClient : IAuthHttpClient
                             errorMsg = errorMessageElement.GetString() ?? errorMsg;
                         }
                     }
-                    catch
+                    catch (JsonException ex)
                     {
-                        // If we can't parse the JSON, use the raw response
+                        // JSON parsing failed - use raw response instead
+                        _logger.LogDebug(ex, "Failed to parse error response JSON, using raw content");
                         errors.Add(responseContent);
                     }
 

@@ -2,11 +2,13 @@
 @using InsightLearn.Shared.DTOs
 @using InsightLearn.Core.Entities
 @using InsightLearn.WebAssembly.Components.SEO
+@using System.Reflection
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<Detail> Logger
 
 <PageTitle>@(course?.Title ?? "Course") - InsightLearn</PageTitle>
 
@@ -40,6 +42,11 @@
 
     <BreadcrumbSchema Items="@GetBreadcrumbs()" />
 }
+
+@* VERSION BADGE v2.3.38-dev - ALWAYS VISIBLE to verify cache cleared *@
+<div style="position: fixed; bottom: 10px; left: 10px; background: #ff0000; color: white; padding: 8px 12px; z-index: 99999; font-size: 14px; font-weight: bold; font-family: monospace; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+    🚀 v2.3.38-dev | 2026-01-02 16:45 UTC
+</div>
 
 @if (isLoading)
 {
@@ -148,7 +155,9 @@ else
                         </div>
 
                         <CourseCurriculum Sections="@course.Sections"
-                                          OnPreviewClick="HandlePreviewClick" />
+                                          IsEnrolled="@isEnrolled"
+                                          OnPreviewClick="HandlePreviewClick"
+                                          OnLessonClick="HandleLessonClick" />
                     </section>
                 }
 
@@ -236,6 +245,16 @@ else
     private bool isEnrolled = false;
     private bool descriptionExpanded = false;
 
+    // v2.3.38-dev: Version from assembly using reflection
+    private string AppVersion => Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion ?? "2.3.38-dev";
+
+    // v2.3.38-dev: Build date from assembly
+    private string BuildDate => Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyFileVersionAttribute>()?
+        .Version ?? "unknown";
+
     protected override async Task OnInitializedAsync()
     {
         await LoadCourseAsync();
@@ -245,12 +264,15 @@ else
     {
         try
         {
+            Logger.LogInformation("Loading course details for CourseId: {CourseId}", CourseId);
             isLoading = true;
             var response = await CourseService.GetCourseByIdAsync(CourseId);
 
             if (response.Success && response.Data != null)
             {
                 course = response.Data;
+                Logger.LogInformation("Course loaded successfully: {CourseTitle} (ID: {CourseId})",
+                    course.Title, CourseId);
 
                 // Check if user is enrolled
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -258,17 +280,21 @@ else
                 {
                     var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
                     isEnrolled = enrollmentResponse.Data;
+                    Logger.LogDebug("User enrollment status for CourseId {CourseId}: {IsEnrolled}",
+                        CourseId, isEnrolled);
                 }
             }
             else
             {
                 course = null;
+                Logger.LogWarning("Failed to load course {CourseId}: {ErrorMessage}",
+                    CourseId, response.Message ?? "Unknown error");
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error loading course: {ex.Message}");
             course = null;
+            Logger.LogError(ex, "Exception while loading course {CourseId}", CourseId);
         }
         finally
         {
@@ -322,6 +348,13 @@ else
     private void HandlePreviewClick(Guid lessonId)
     {
         // v2.1.0-dev: Navigate to Learn page (which now allows free lessons without enrollment)
+        Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
+    }
+
+    private void HandleLessonClick(Guid lessonId)
+    {
+        // v2.3.38-dev FIX: Navigate to Learn page when user clicks on lesson
+        // This is called for enrolled users or lessons that require enrollment
         Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
     }
 

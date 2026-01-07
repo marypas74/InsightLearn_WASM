@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  labels:
+    app.kubernetes.io/component: security
+    app.kubernetes.io/name: insightlearn
+  name: insightlearn-limits
+  namespace: insightlearn
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: "4"
+      memory: 16Gi  # Increased from 8Gi to 16Gi to allow faster-whisper 12Gi limit
+    min:
+      cpu: 10m
+      memory: 32Mi
+    type: Container
+  - max:
+      storage: 100Gi
+    min:
+      storage: 1Gi
+    type: PersistentVolumeClaim

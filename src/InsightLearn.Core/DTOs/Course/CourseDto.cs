@@ -46,4 +46,11 @@ public class CourseDto
 
     public List<SectionDto>? Sections { get; set; }
     public bool IsFree => Price == 0;
+
+    // v2.3.34-dev FIX: Computed properties for course detail page display
+    public int SectionCount => Sections?.Count ?? 0;
+    public int LessonCount => Sections?.Sum(s => s.Lessons?.Count ?? 0) ?? 0;
+
+    // Additional property for instructor image (used in Detail.razor line 86)
+    public string? InstructorImageUrl => InstructorProfilePictureUrl;
 }

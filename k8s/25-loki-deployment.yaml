@@ -139,10 +139,10 @@ spec:
               name: grpc
           resources:
             requests:
-              cpu: 200m
+              cpu: 100m  # Reduced to free CPU for API transcription
               memory: 512Mi
             limits:
-              cpu: 1000m
+              cpu: 500m  # Reduced from 1000m to free 500m for API
               memory: 1Gi
           volumeMounts:
             - name: config

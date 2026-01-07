@@ -21,7 +21,7 @@ metadata:
   name: insightlearn-api
   namespace: insightlearn
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: insightlearn-api
@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: localhost/insightlearn/api:latest
+        image: localhost/insightlearn/api:2.3.41-dev
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -123,7 +123,7 @@ spec:
         - name: Prometheus__Url
           value: "http://prometheus:9090"
         - name: Ollama__Model
-          value: "qwen2:0.5b"
+          value: "qwen2.5:3b"
         - name: MongoDb__ConnectionString
           valueFrom:
             secretKeyRef:
@@ -142,14 +142,14 @@ spec:
           mountPath: /https
           readOnly: true
         - name: whisper-cache
-          mountPath: /root/.cache/whisper
+          mountPath: /app/.cache/whisper
         resources:
           requests:
             memory: "512Mi"
-            cpu: "250m"
+            cpu: "1000m"  # Increased for faster transcription (parallel FFmpeg + Whisper)
           limits:
-            memory: "1Gi"
-            cpu: "1000m"
+            memory: "2Gi"
+            cpu: "2000m"  # 2 CPU cores per pod (4 total with 2 replicas)
         livenessProbe:
           httpGet:
             path: /health/live

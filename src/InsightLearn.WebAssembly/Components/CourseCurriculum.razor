@@ -497,6 +497,7 @@
     private HashSet<Guid> expandedSections = new();
     private int totalLessons = 0;
     private int completedLessons = 0;
+    private Guid? previousCurrentLessonId = null; // v2.3.34-dev: Prevent OnParametersSet loop
 
     protected override void OnInitialized()
     {
@@ -514,17 +515,22 @@
             {
                 expandedSections.Add(sectionWithCurrentLesson.Id);
             }
-            else
+            else if (Sections.Any())
             {
                 expandedSections.Add(Sections.First().Id);
             }
+
+            previousCurrentLessonId = CurrentLessonId; // Track initial state
         }
     }
 
     protected override void OnParametersSet()
     {
-        // Update when current lesson changes
-        if (CurrentLessonId.HasValue && Sections?.Any() == true)
+        // v2.3.34-dev FIX: Only update if CurrentLessonId actually changed to prevent rendering loop
+        // Previous code modified expandedSections on every OnParametersSet call, causing infinite re-renders
+        if (CurrentLessonId.HasValue &&
+            CurrentLessonId != previousCurrentLessonId &&
+            Sections?.Any() == true)
         {
             var sectionWithCurrentLesson = Sections.FirstOrDefault(s =>
                 s.Lessons?.Any(l => l.Id == CurrentLessonId) == true);
@@ -532,6 +538,7 @@
             if (sectionWithCurrentLesson != null && !expandedSections.Contains(sectionWithCurrentLesson.Id))
             {
                 expandedSections.Add(sectionWithCurrentLesson.Id);
+                previousCurrentLessonId = CurrentLessonId; // Update tracking
             }
         }
     }

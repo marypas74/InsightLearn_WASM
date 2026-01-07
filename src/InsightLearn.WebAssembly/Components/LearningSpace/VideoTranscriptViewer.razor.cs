@@ -221,18 +221,18 @@ public partial class VideoTranscriptViewer : ComponentBase
 
             try
             {
-                var statusResponse = await TranscriptService.GetTranscriptStatusAsync(LessonId);
+                var statusResponse = await TranscriptService.GetStatusAsync(LessonId);
 
                 if (statusResponse.Success && statusResponse.Data != null)
                 {
                     var status = statusResponse.Data;
 
                     // Update progress (0-100%)
-                    transcriptProgress = status.ProgressPercentage ?? 0;
-                    processingStatus = status.ProcessingStatus;
+                    transcriptProgress = (int)(status.Progress ?? 0);
+                    processingStatus = status.Status;
                     StateHasChanged();
 
-                    if (status.ProcessingStatus == "Completed")
+                    if (status.Status == "Completed")
                     {
                         // Fetch completed transcript
                         var transcriptResponse = await TranscriptService.GetTranscriptAsync(LessonId);
@@ -250,7 +250,7 @@ public partial class VideoTranscriptViewer : ComponentBase
                         StateHasChanged();
                         return;
                     }
-                    else if (status.ProcessingStatus == "Failed")
+                    else if (status.Status == "Failed")
                     {
                         errorMessage = status.ErrorMessage ?? "Transcript generation failed";
                         processingStatus = "Failed";
@@ -491,8 +491,8 @@ public partial class VideoTranscriptViewer : ComponentBase
             StateHasChanged();
 
             // Construct download URL (endpoint created in Phase 7.2)
-            var baseUrl = TranscriptService.GetBaseUrl(); // Assume this method exists
-            var downloadUrl = $"{baseUrl}/api/transcripts/{LessonId}/download?format={format}";
+            // Note: Using relative URL since we're in Blazor WASM (client-side)
+            var downloadUrl = $"/api/transcripts/{LessonId}/download?format={format}";
 
             // Trigger browser download using JavaScript
             // The browser will handle the file download with proper filename from Content-Disposition header

@@ -65,7 +65,7 @@ namespace InsightLearn.WebAssembly.Services.Admin
                     return response.Data;
                 }
 
-                _logger.LogWarning("Failed to get API metrics: {Error}", "error");
+                _logger.LogWarning("Failed to get API metrics: {Message}", response.Message);
                 return new List<PrometheusMetricDto>();
             }
             catch (Exception ex)
@@ -88,7 +88,7 @@ namespace InsightLearn.WebAssembly.Services.Admin
                     return response.Data;
                 }
 
-                _logger.LogWarning("Failed to get pod metrics: {Error}", "error");
+                _logger.LogWarning("Failed to get pod metrics: {Message}", response.Message);
                 return new Dictionary<string, double>();
             }
             catch (Exception ex)
@@ -117,7 +117,7 @@ namespace InsightLearn.WebAssembly.Services.Admin
                     return response.Data;
                 }
 
-                _logger.LogWarning("Query failed: {Error}", "error");
+                _logger.LogWarning("Query failed: {Message}", response.Message);
                 return new PrometheusQueryResult { Status = "error" };
             }
             catch (Exception ex)
@@ -149,7 +149,7 @@ namespace InsightLearn.WebAssembly.Services.Admin
                     return response.Data;
                 }
 
-                _logger.LogWarning("Range query failed: {Error}", "error");
+                _logger.LogWarning("Range query failed: {Message}", response.Message);
                 return new PrometheusRangeQueryResult { Status = "error" };
             }
             catch (Exception ex)

@@ -78,14 +78,19 @@ public class LessonRepository : ILessonRepository
     }
 
     /// <summary>
-    /// Get all lessons that do NOT have transcripts in MongoDB.
-    /// Filters for lessons with VideoUrl (has video) but no VideoTranscriptMetadata entry.
+    /// Get all lessons that do NOT have COMPLETED or PROCESSING transcripts in MongoDB.
+    /// Filters for lessons with VideoUrl (has video) but no VideoTranscriptMetadata entry with Status="Completed" or "Processing".
+    /// This prevents duplicate job creation while allowing automatic retry of failed transcripts.
     /// v2.3.23-dev - Part of Batch Transcription System.
+    /// v2.3.46-dev - BUGFIX: Added Status="Completed" filter to enable retry of failed transcripts.
+    /// v2.3.47-dev - BUGFIX: Exclude Status="Processing" to prevent job duplication (fix for 27 duplicate jobs issue).
     /// </summary>
     public async Task<List<Lesson>> GetLessonsWithoutTranscriptsAsync()
     {
         return await _context.Lessons
-            .Where(l => !_context.VideoTranscriptMetadata.Any(vt => vt.LessonId == l.Id))
+            .Where(l => !_context.VideoTranscriptMetadata.Any(vt =>
+                vt.LessonId == l.Id &&
+                (vt.Status == "Completed" || vt.Status == "Processing")))
             .Where(l => !string.IsNullOrEmpty(l.VideoUrl))
             .OrderBy(l => l.CreatedAt) // Oldest first (FIFO processing)
             .ToListAsync();

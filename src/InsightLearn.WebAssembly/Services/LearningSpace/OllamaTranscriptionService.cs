@@ -172,10 +172,13 @@ public class OllamaTranscriptionService : IAiTranscriptionService
         try
         {
             var response = await _httpClient.GetAsync("api/chat/health");
-            return response.IsSuccessStatusCode;
+            var isAvailable = response.IsSuccessStatusCode;
+            _logger.LogDebug("[OllamaTranscription] Backend availability check: {IsAvailable}", isAvailable);
+            return isAvailable;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "[OllamaTranscription] Backend availability check failed");
             return false;
         }
     }

@@ -64,11 +64,11 @@ public class SessionTimeoutService : IDisposable
             _inactivityTimer.Start();
 
             _isInitialized = true;
-            _logger.LogInformation("[SESSION] Session timeout service initialized. Timeout: {Minutes} minutes", TimeoutMinutes);
+            _logger.LogInformation("Session timeout service initialized. Timeout: {TimeoutMinutes} minutes", TimeoutMinutes);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SESSION] Failed to initialize session timeout service");
+            _logger.LogError(ex, "Failed to initialize session timeout service: {ErrorMessage}", ex.Message);
         }
     }
 
@@ -87,7 +87,7 @@ public class SessionTimeoutService : IDisposable
             _warningTimer?.Stop();
             _warningTimer?.Dispose();
             _warningTimer = null;
-            _logger.LogInformation("[SESSION] User activity detected, warning dismissed");
+            _logger.LogInformation("User activity detected, warning dismissed");
         }
     }
 
@@ -114,7 +114,7 @@ public class SessionTimeoutService : IDisposable
         IsWarningVisible = true;
         RemainingSeconds = WarningMinutes * 60;
 
-        _logger.LogInformation("[SESSION] Showing inactivity warning. Session expires in {Minutes} minutes", WarningMinutes);
+        _logger.LogInformation("Showing inactivity warning. Session expires in {WarningMinutes} minutes", WarningMinutes);
 
         OnWarningShown?.Invoke();
 
@@ -139,7 +139,7 @@ public class SessionTimeoutService : IDisposable
         _inactivityTimer?.Stop();
         _warningTimer?.Stop();
 
-        _logger.LogWarning("[SESSION] Session expired due to inactivity. Logging out user.");
+        _logger.LogWarning("Session expired due to inactivity. Logging out user");
 
         try
         {
@@ -148,7 +148,7 @@ public class SessionTimeoutService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SESSION] Error during session expiry logout");
+            _logger.LogError(ex, "Error during session expiry logout: {ErrorMessage}", ex.Message);
         }
     }
 
@@ -160,7 +160,7 @@ public class SessionTimeoutService : IDisposable
         _lastActivity = DateTime.UtcNow;
         IsWarningVisible = false;
         _warningTimer?.Stop();
-        _logger.LogDebug("[SESSION] Timer reset");
+        _logger.LogDebug("Session timer reset");
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public class SessionTimeoutService : IDisposable
         _warningTimer?.Stop();
         IsWarningVisible = false;
         _isInitialized = false;
-        _logger.LogInformation("[SESSION] Session monitoring stopped");
+        _logger.LogInformation("Session monitoring stopped");
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public class SessionTimeoutService : IDisposable
     public void ExtendSession()
     {
         OnUserActivity();
-        _logger.LogInformation("[SESSION] Session extended by user request");
+        _logger.LogInformation("Session extended by user request");
     }
 
     public void Dispose()

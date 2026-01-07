@@ -1,0 +1,741 @@
+@page "/admin/debug"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using System.Text.Json
+@attribute [Authorize(Roles = "Admin")]
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IApiClient ApiClient
+
+<PageTitle>Debug Console - InsightLearn Admin</PageTitle>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 mb-1">
+                                <i class="fas fa-bug text-danger me-2"></i>Debug Console
+                            </h1>
+                            <p class="text-muted mb-0">Real-time frontend & backend monitoring</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-danger btn-sm" @onclick="ClearAllLogs">
+                                <i class="fas fa-trash me-1"></i>Clear All
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" @onclick="RefreshData">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                            <button class="btn @(isAutoRefresh ? "btn-success" : "btn-outline-success") btn-sm" @onclick="ToggleAutoRefresh">
+                                <i class="fas fa-play-circle me-1"></i>Auto-Refresh: @(isAutoRefresh ? "ON" : "OFF")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "console" ? "active" : "")" @onclick='() => activeTab = "console"'>
+                <i class="fas fa-terminal me-2"></i>Console Logs
+                <span class="badge bg-danger ms-2">@consoleLogs.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "api" ? "active" : "")" @onclick='() => activeTab = "api"'>
+                <i class="fas fa-network-wired me-2"></i>API Calls
+                <span class="badge bg-primary ms-2">@apiCalls.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "auth" ? "active" : "")" @onclick='() => activeTab = "auth"'>
+                <i class="fas fa-user-shield me-2"></i>Authentication
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "state" ? "active" : "")" @onclick='() => activeTab = "state"'>
+                <i class="fas fa-database me-2"></i>Application State
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "network" ? "active" : "")" @onclick='() => activeTab = "network"'>
+                <i class="fas fa-wifi me-2"></i>Network
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        @if (activeTab == "console")
+        {
+            <!-- Console Logs Tab -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-terminal me-2"></i>Console Output</span>
+                    <button class="btn btn-sm btn-outline-light" @onclick="ClearConsoleLogs">Clear</button>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto; background: #1e1e1e; font-family: 'Courier New', monospace;">
+                    @if (consoleLogs.Count == 0)
+                    {
+                        <div class="p-3 text-muted text-center">No console logs captured yet...</div>
+                    }
+                    else
+                    {
+                        @foreach (var log in consoleLogs.OrderByDescending(l => l.Timestamp))
+                        {
+                            <div class="p-2 border-bottom" style="@GetLogColor(log.Level)">
+                                <small class="text-muted">[@log.Timestamp.ToString("HH:mm:ss.fff")]</small>
+                                <span class="badge @GetLogBadge(log.Level) ms-2">@log.Level</span>
+                                <span class="ms-2" style="color: #d4d4d4;">@log.Message</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+        else if (activeTab == "api")
+        {
+            <!-- API Calls Tab -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-network-wired me-2"></i>API Request/Response Log</span>
+                    <button class="btn btn-sm btn-outline-light" @onclick="ClearApiCalls">Clear</button>
+                </div>
+                <div class="card-body p-0">
+                    @if (apiCalls.Count == 0)
+                    {
+                        <div class="p-3 text-muted text-center">No API calls captured yet...</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 100px;">Time</th>
+                                        <th style="width: 80px;">Method</th>
+                                        <th>Endpoint</th>
+                                        <th style="width: 100px;">Status</th>
+                                        <th style="width: 100px;">Duration</th>
+                                        <th style="width: 80px;">Size</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var call in apiCalls.OrderByDescending(c => c.Timestamp))
+                                    {
+                                        <tr style="cursor: pointer;" @onclick="() => ToggleApiDetails(call.Id)">
+                                            <td><small>@call.Timestamp.ToString("HH:mm:ss")</small></td>
+                                            <td><span class="badge bg-secondary">@call.Method</span></td>
+                                            <td><code>@call.Url</code></td>
+                                            <td>
+                                                <span class="badge @GetStatusBadge(call.StatusCode)">
+                                                    @call.StatusCode @call.StatusText
+                                                </span>
+                                            </td>
+                                            <td>@call.DurationMs ms</td>
+                                            <td>@FormatBytes(call.ResponseSize)</td>
+                                        </tr>
+                                        @if (selectedApiCallId == call.Id)
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="bg-light">
+                                                    <div class="p-3">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <h6 class="text-primary">Request Headers</h6>
+                                                                <pre class="bg-white p-2 border rounded" style="max-height: 200px; overflow-y: auto;">@call.RequestHeaders</pre>
+                                                                @if (!string.IsNullOrEmpty(call.RequestBody))
+                                                                {
+                                                                    <h6 class="text-primary mt-3">Request Body</h6>
+                                                                    <pre class="bg-white p-2 border rounded" style="max-height: 200px; overflow-y: auto;">@call.RequestBody</pre>
+                                                                }
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <h6 class="text-success">Response Headers</h6>
+                                                                <pre class="bg-white p-2 border rounded" style="max-height: 200px; overflow-y: auto;">@call.ResponseHeaders</pre>
+                                                                @if (!string.IsNullOrEmpty(call.ResponseBody))
+                                                                {
+                                                                    <h6 class="text-success mt-3">Response Body</h6>
+                                                                    <pre class="bg-white p-2 border rounded" style="max-height: 200px; overflow-y: auto;">@call.ResponseBody</pre>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (activeTab == "auth")
+        {
+            <!-- Authentication Tab -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-user-shield me-2"></i>Authentication State
+                </div>
+                <div class="card-body">
+                    @if (authState == null)
+                    {
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="text-primary mb-3">User Identity</h5>
+                                <table class="table table-sm table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th style="width: 40%;">Authenticated</th>
+                                            <td>
+                                                @if (authState.User.Identity?.IsAuthenticated ?? false)
+                                                {
+                                                    <span class="badge bg-success">Yes</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">No</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Authentication Type</th>
+                                            <td>@(authState.User.Identity?.AuthenticationType ?? "None")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>User Name</th>
+                                            <td>@(authState.User.Identity?.Name ?? "Anonymous")</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <h5 class="text-primary mb-3 mt-4">Claims (@authState.User.Claims.Count())</h5>
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var claim in authState.User.Claims)
+                                            {
+                                                <tr>
+                                                    <td><code>@claim.Type</code></td>
+                                                    <td>@claim.Value</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="text-primary mb-3">Roles</h5>
+                                <div class="mb-3">
+                                    @if (authState.User.Claims.Any(c => c.Type == "role" || c.Type.Contains("role")))
+                                    {
+                                        foreach (var role in authState.User.Claims.Where(c => c.Type == "role" || c.Type.Contains("role")))
+                                        {
+                                            <span class="badge bg-primary me-2 mb-2">@role.Value</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No roles assigned</span>
+                                    }
+                                </div>
+
+                                <h5 class="text-primary mb-3 mt-4">JWT Token Info</h5>
+                                <table class="table table-sm table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th style="width: 40%;">Token Present</th>
+                                            <td>
+                                                @if (hasToken)
+                                                {
+                                                    <span class="badge bg-success">Yes</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">No</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        @if (hasToken && tokenExpiry.HasValue)
+                                        {
+                                            <tr>
+                                                <th>Expires At</th>
+                                                <td>@tokenExpiry.Value.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Time Until Expiry</th>
+                                                <td>
+                                                    @{
+                                                        var timeLeft = tokenExpiry.Value - DateTime.UtcNow;
+                                                        if (timeLeft.TotalSeconds > 0)
+                                                        {
+                                                            <span class="text-success">@timeLeft.ToString(@"hh\:mm\:ss")</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-danger">Expired</span>
+                                                        }
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (activeTab == "state")
+        {
+            <!-- Application State Tab -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-database me-2"></i>Application State
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">Navigation</h5>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Current URL</th>
+                                        <td><code>@Navigation.Uri</code></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Base URL</th>
+                                        <td><code>@Navigation.BaseUri</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h5 class="text-primary mb-3 mt-4">Browser Info</h5>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">User Agent</th>
+                                        <td><small>@browserInfo</small></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Window Size</th>
+                                        <td>@windowWidth x @windowHeight px</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Online Status</th>
+                                        <td>
+                                            @if (isOnline)
+                                            {
+                                                <span class="badge bg-success">Online</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Offline</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">Performance Metrics</h5>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Page Load Time</th>
+                                        <td>@pageLoadTime ms</td>
+                                    </tr>
+                                    <tr>
+                                        <th>DOM Content Loaded</th>
+                                        <td>@domContentLoadedTime ms</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h5 class="text-primary mb-3 mt-4">Local Storage</h5>
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Storage usage and keys are monitored via browser DevTools.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "network")
+        {
+            <!-- Network Tab -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-wifi me-2"></i>Network Status
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">Connection</h5>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Status</th>
+                                        <td>
+                                            @if (isOnline)
+                                            {
+                                                <span class="badge bg-success">Connected</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Disconnected</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Connection Type</th>
+                                        <td>@connectionType</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Effective Type</th>
+                                        <td>@effectiveType</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">API Statistics</h5>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Total Calls</th>
+                                        <td>@apiCalls.Count</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Successful (2xx)</th>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                @apiCalls.Count(c => c.StatusCode >= 200 && c.StatusCode < 300)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Failed (4xx/5xx)</th>
+                                        <td>
+                                            <span class="badge bg-danger">
+                                                @apiCalls.Count(c => c.StatusCode >= 400)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Avg Response Time</th>
+                                        <td>
+                                            @if (apiCalls.Any())
+                                            {
+                                                @($"{apiCalls.Average(c => c.DurationMs):F0} ms")
+                                            }
+                                            else
+                                            {
+                                                <span>N/A</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "console";
+    private bool isAutoRefresh = false;
+    private System.Threading.Timer? refreshTimer;
+
+    // Console Logs
+    private List<ConsoleLog> consoleLogs = new();
+
+    // API Calls
+    private List<ApiCallLog> apiCalls = new();
+    private Guid? selectedApiCallId = null;
+
+    // Auth State
+    private AuthenticationState? authState;
+    private bool hasToken = false;
+    private DateTime? tokenExpiry;
+
+    // Browser Info
+    private string browserInfo = "";
+    private int windowWidth = 0;
+    private int windowHeight = 0;
+    private bool isOnline = true;
+    private string connectionType = "Unknown";
+    private string effectiveType = "Unknown";
+    private long pageLoadTime = 0;
+    private long domContentLoadedTime = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+        await InitializeJavaScriptInterop();
+    }
+
+    private async Task InitializeJavaScriptInterop()
+    {
+        try
+        {
+            // Get browser info
+            browserInfo = await JS.InvokeAsync<string>("eval", "navigator.userAgent");
+
+            // Get window size
+            var windowSize = await JS.InvokeAsync<int[]>("eval", "[window.innerWidth, window.innerHeight]");
+            windowWidth = windowSize[0];
+            windowHeight = windowSize[1];
+
+            // Get online status
+            isOnline = await JS.InvokeAsync<bool>("eval", "navigator.onLine");
+
+            // Get connection info (if available)
+            try
+            {
+                var connection = await JS.InvokeAsync<JsonElement>("eval", "navigator.connection || navigator.mozConnection || navigator.webkitConnection || {}");
+                if (connection.ValueKind != JsonValueKind.Undefined)
+                {
+                    if (connection.TryGetProperty("type", out var type))
+                        connectionType = type.GetString() ?? "Unknown";
+                    if (connection.TryGetProperty("effectiveType", out var effType))
+                        effectiveType = effType.GetString() ?? "Unknown";
+                }
+            }
+            catch { /* Connection API not supported */ }
+
+            // Get performance metrics
+            try
+            {
+                var performance = await JS.InvokeAsync<JsonElement>("eval", "performance.timing");
+                var loadEventEnd = performance.GetProperty("loadEventEnd").GetInt64();
+                var navigationStart = performance.GetProperty("navigationStart").GetInt64();
+                var domContentLoaded = performance.GetProperty("domContentLoadedEventEnd").GetInt64();
+
+                pageLoadTime = loadEventEnd - navigationStart;
+                domContentLoadedTime = domContentLoaded - navigationStart;
+            }
+            catch { /* Performance API not supported */ }
+
+            // Setup console log capture
+            await JS.InvokeVoidAsync("eval", @"
+                if (!window.__debugConsoleHooked) {
+                    window.__debugConsoleHooked = true;
+                    window.__debugConsoleLogs = [];
+
+                    const oldLog = console.log;
+                    const oldWarn = console.warn;
+                    const oldError = console.error;
+                    const oldInfo = console.info;
+
+                    console.log = function(...args) {
+                        window.__debugConsoleLogs.push({level: 'Log', message: args.join(' '), timestamp: new Date().toISOString()});
+                        oldLog.apply(console, args);
+                    };
+                    console.warn = function(...args) {
+                        window.__debugConsoleLogs.push({level: 'Warning', message: args.join(' '), timestamp: new Date().toISOString()});
+                        oldWarn.apply(console, args);
+                    };
+                    console.error = function(...args) {
+                        window.__debugConsoleLogs.push({level: 'Error', message: args.join(' '), timestamp: new Date().toISOString()});
+                        oldError.apply(console, args);
+                    };
+                    console.info = function(...args) {
+                        window.__debugConsoleLogs.push({level: 'Info', message: args.join(' '), timestamp: new Date().toISOString()});
+                        oldInfo.apply(console, args);
+                    };
+                }
+            ");
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[Debug] Error initializing JS interop: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        try
+        {
+            // Refresh auth state
+            authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+            // Check for token in claims
+            var tokenClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "exp");
+            if (tokenClaim != null && long.TryParse(tokenClaim.Value, out var exp))
+            {
+                hasToken = true;
+                tokenExpiry = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
+            }
+
+            // Capture console logs from JavaScript
+            try
+            {
+                var jsLogs = await JS.InvokeAsync<JsonElement>("eval", "window.__debugConsoleLogs || []");
+                if (jsLogs.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var log in jsLogs.EnumerateArray())
+                    {
+                        if (log.TryGetProperty("message", out var msg) &&
+                            log.TryGetProperty("level", out var lvl) &&
+                            log.TryGetProperty("timestamp", out var ts))
+                        {
+                            consoleLogs.Add(new ConsoleLog
+                            {
+                                Id = Guid.NewGuid(),
+                                Level = lvl.GetString() ?? "Log",
+                                Message = msg.GetString() ?? "",
+                                Timestamp = DateTime.Parse(ts.GetString() ?? DateTime.UtcNow.ToString())
+                            });
+                        }
+                    }
+
+                    // Clear JS logs after capture
+                    await JS.InvokeVoidAsync("eval", "window.__debugConsoleLogs = []");
+                }
+            }
+            catch { /* Console capture not available */ }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[Debug] Error refreshing data: {ex.Message}");
+        }
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        isAutoRefresh = !isAutoRefresh;
+
+        if (isAutoRefresh)
+        {
+            refreshTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () => await RefreshData());
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        }
+        else
+        {
+            refreshTimer?.Dispose();
+            refreshTimer = null;
+        }
+    }
+
+    private void ClearAllLogs()
+    {
+        consoleLogs.Clear();
+        apiCalls.Clear();
+        selectedApiCallId = null;
+    }
+
+    private void ClearConsoleLogs()
+    {
+        consoleLogs.Clear();
+    }
+
+    private void ClearApiCalls()
+    {
+        apiCalls.Clear();
+        selectedApiCallId = null;
+    }
+
+    private void ToggleApiDetails(Guid callId)
+    {
+        selectedApiCallId = selectedApiCallId == callId ? null : callId;
+    }
+
+    private string GetLogColor(string level) => level switch
+    {
+        "Error" => "background: #2d0000;",
+        "Warning" => "background: #2d2d00;",
+        "Info" => "background: #00002d;",
+        _ => "background: #1e1e1e;"
+    };
+
+    private string GetLogBadge(string level) => level switch
+    {
+        "Error" => "bg-danger",
+        "Warning" => "bg-warning text-dark",
+        "Info" => "bg-info text-dark",
+        _ => "bg-secondary"
+    };
+
+    private string GetStatusBadge(int status) => status switch
+    {
+        >= 200 and < 300 => "bg-success",
+        >= 300 and < 400 => "bg-info",
+        >= 400 and < 500 => "bg-warning text-dark",
+        >= 500 => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F1} MB";
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+
+    // Models
+    private class ConsoleLog
+    {
+        public Guid Id { get; set; }
+        public string Level { get; set; } = "";
+        public string Message { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+
+    private class ApiCallLog
+    {
+        public Guid Id { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Method { get; set; } = "";
+        public string Url { get; set; } = "";
+        public int StatusCode { get; set; }
+        public string StatusText { get; set; } = "";
+        public long DurationMs { get; set; }
+        public long ResponseSize { get; set; }
+        public string RequestHeaders { get; set; } = "";
+        public string RequestBody { get; set; } = "";
+        public string ResponseHeaders { get; set; } = "";
+        public string ResponseBody { get; set; } = "";
+    }
+}

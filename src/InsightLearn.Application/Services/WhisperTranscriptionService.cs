@@ -1,184 +1,328 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using InsightLearn.Core.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Whisper.net;
-using Whisper.net.Ggml;
 using FFMpegCore;
-using FFMpegCore.Pipes;
 
 namespace InsightLearn.Application.Services;
 
 /// <summary>
-/// Whisper.net-based automatic speech recognition service
-/// Transcribes video/audio to text with timestamps
+/// faster-whisper-server (CTranslate2) based automatic speech recognition service
+/// Provides 4x speed improvement over Whisper.net
+/// Uses OpenAI-compatible HTTP API
 /// </summary>
 public class WhisperTranscriptionService : IWhisperTranscriptionService
 {
     private readonly ILogger<WhisperTranscriptionService> _logger;
-    private readonly string _modelPath;
-    private static readonly object _modelLock = new();
-    private static string? _cachedModelPath;
+    private readonly HttpClient _httpClient;
+    private readonly string _baseUrl;
+    private readonly int _timeoutSeconds;
+    private readonly string _model;
 
-    public WhisperTranscriptionService(ILogger<WhisperTranscriptionService> logger)
+    public WhisperTranscriptionService(
+        ILogger<WhisperTranscriptionService> logger,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _logger = logger;
-        _modelPath = GetOrDownloadModel();
-    }
+        _httpClient = httpClientFactory.CreateClient("FasterWhisper");
 
-    /// <summary>
-    /// Get or download Whisper GGML model (base model - 74MB)
-    /// </summary>
-    private string GetOrDownloadModel()
-    {
-        lock (_modelLock)
+        // Load configuration
+        _baseUrl = configuration["Whisper:BaseUrl"] ?? "http://faster-whisper-service:8000";
+        _timeoutSeconds = int.Parse(configuration["Whisper:Timeout"] ?? "600");
+        _model = configuration["Whisper:Model"] ?? "base";
+
+        _httpClient.BaseAddress = new Uri(_baseUrl);
+        _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
+
+        // Configure FFMpegCore with explicit binary path for containerized environment
+        try
         {
-            if (_cachedModelPath != null && File.Exists(_cachedModelPath))
+            FFMpegCore.GlobalFFOptions.Configure(new FFMpegCore.FFOptions
             {
-                return _cachedModelPath;
-            }
-
-            try
-            {
-                // Download base model (74MB) on first use
-                _logger.LogInformation("[WhisperASR] Downloading Whisper base model (74MB)...");
-
-                // Create cache directory in user home
-                var cacheDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "whisper");
-                Directory.CreateDirectory(cacheDir);
-                var modelPath = Path.Combine(cacheDir, "ggml-base.bin");
-
-                // Download model stream and save to file
-                using (var modelStream = WhisperGgmlDownloader.GetGgmlModelAsync(GgmlType.Base).GetAwaiter().GetResult())
-                using (var fileStream = File.Create(modelPath))
-                {
-                    modelStream.CopyTo(fileStream);
-                }
-
-                _cachedModelPath = modelPath;
-                _logger.LogInformation("[WhisperASR] Model downloaded to: {Path}", modelPath);
-                return modelPath;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[WhisperASR] Failed to download Whisper model");
-                throw;
-            }
+                BinaryFolder = "/usr/bin",
+                TemporaryFilesFolder = "/tmp"
+            });
+            _logger.LogInformation("[FasterWhisper] FFMpegCore configured with binary path: /usr/bin");
         }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[FasterWhisper] Failed to configure FFMpegCore explicitly, using defaults");
+        }
+
+        _logger.LogInformation("[FasterWhisper] Initialized with BaseUrl: {BaseUrl}, Model: {Model}, Timeout: {Timeout}s",
+            _baseUrl, _model, _timeoutSeconds);
     }
 
-    public async Task<TranscriptionResult> TranscribeAsync(Stream audioStream, string language, Guid lessonId)
+    public async Task<TranscriptionResult> TranscribeAsync(Stream audioStream, string language, Guid lessonId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[WhisperASR] Starting transcription for lesson {LessonId}, language: {Language}",
+        _logger.LogInformation("[FasterWhisper] Starting transcription for lesson {LessonId}, language: {Language}",
             lessonId, language);
 
-        var segments = new List<TranscriptionSegment>();
-        double duration = 0;
+        var sw = Stopwatch.StartNew();
 
         try
         {
-            using var whisperFactory = WhisperFactory.FromPath(_modelPath);
-            using var processor = whisperFactory.CreateBuilder()
-                .WithLanguage(language)
-                .WithPrompt("This is a video lecture about programming, technology, and education.")
-                .Build();
+            // Read audio stream into memory for multipart upload
+            // NOTE: Using MemoryStream to avoid file locking issues with temp files
+            using var memoryStream = new MemoryStream();
+            await audioStream.CopyToAsync(memoryStream, cancellationToken);
+            var audioBytes = memoryStream.ToArray();
 
-            await foreach (var result in processor.ProcessAsync(audioStream))
-            {
-                var segment = new TranscriptionSegment
+            var audioSizeKB = audioBytes.Length / 1024;
+            _logger.LogInformation("[FasterWhisper] Audio stream read into memory ({AudioSizeKB}KB)", audioSizeKB);
+
+            // Call faster-whisper-server API (OpenAI-compatible endpoint)
+            using var content = new MultipartFormDataContent();
+            using var audioContent = new ByteArrayContent(audioBytes);
+                audioContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+                content.Add(audioContent, "file", "audio.wav");
+                content.Add(new StringContent(_model), "model");
+                content.Add(new StringContent(language), "language");
+                content.Add(new StringContent("verbose_json"), "response_format");
+                content.Add(new StringContent("0.0"), "temperature");
+
+                _logger.LogInformation("[FasterWhisper] Sending transcription request to {BaseUrl}/v1/audio/transcriptions", _baseUrl);
+                var response = await _httpClient.PostAsync("/v1/audio/transcriptions", content, cancellationToken);
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = JsonSerializer.Deserialize<FasterWhisperResponse>(jsonResponse);
+
+                if (result == null || result.Segments == null)
                 {
-                    Index = segments.Count,
-                    StartSeconds = result.Start.TotalSeconds,
-                    EndSeconds = result.End.TotalSeconds,
-                    Text = result.Text.Trim(),
-                    Confidence = result.Probability
-                };
+                    throw new InvalidOperationException("Invalid response from faster-whisper-server");
+                }
 
-                segments.Add(segment);
-                duration = Math.Max(duration, result.End.TotalSeconds);
+                // Convert faster-whisper segments to our format
+                var segments = result.Segments.Select((s, index) => new TranscriptionSegment
+                {
+                    Index = index,
+                    StartSeconds = s.Start,
+                    EndSeconds = s.End,
+                    Text = s.Text.Trim(),
+                    Confidence = (float)(s.AvgLogprob > -1.0 ? Math.Exp(s.AvgLogprob) : 0.8) // Convert log probability to confidence
+                }).ToList();
 
-                _logger.LogDebug("[WhisperASR] Segment {Index}: [{Start:F2}s - {End:F2}s] {Text}",
-                    segment.Index, segment.StartSeconds, segment.EndSeconds, segment.Text);
-            }
-
-            _logger.LogInformation("[WhisperASR] Transcription completed: {SegmentCount} segments, {Duration:F2}s duration",
-                segments.Count, duration);
+                sw.Stop();
+                var elapsedMs = sw.ElapsedMilliseconds;
+                var segmentCount = segments.Count;
+                var duration = result.Duration;
+                _logger.LogInformation("[FasterWhisper] Transcription completed in {ElapsedMs}ms: {SegmentCount} segments, {Duration}s duration",
+                    elapsedMs, segmentCount, duration);
 
             return new TranscriptionResult
             {
                 LessonId = lessonId,
-                Language = language,
+                Language = result.Language ?? language,
                 Segments = segments,
-                DurationSeconds = duration,
+                DurationSeconds = result.Duration,
                 TranscribedAt = DateTime.UtcNow,
-                ModelUsed = "whisper-base"
+                ModelUsed = "faster-whisper-" + _model
             };
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[FasterWhisper] HTTP request failed for lesson {LessonId}: {Message}",
+                lessonId, ex.Message);
+            throw new Exception($"faster-whisper-server connection failed: {ex.Message}", ex);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("[FasterWhisper] Transcription cancelled by user for lesson {LessonId} after {ElapsedMs}ms",
+                lessonId, sw.ElapsedMilliseconds);
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[WhisperASR] Transcription failed for lesson {LessonId}", lessonId);
+            _logger.LogError(ex, "[FasterWhisper] Transcription failed for lesson {LessonId} after {ElapsedMs}ms",
+                lessonId, sw.ElapsedMilliseconds);
             throw;
         }
     }
 
-    public async Task<TranscriptionResult> TranscribeVideoAsync(Stream videoStream, string language, Guid lessonId)
+    public async Task<TranscriptionResult> TranscribeVideoAsync(Stream videoStream, string language, Guid lessonId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[WhisperASR] Extracting audio from video for lesson {LessonId}", lessonId);
+        _logger.LogInformation("[FasterWhisper] Video transcription started for lesson {LessonId}, language: {Language}",
+            lessonId, language);
+
+        // Create linked cancellation token with 90-minute timeout (increased for 40-45 min videos)
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromMinutes(90));
+        var timeoutToken = cts.Token;
+
+        var totalSw = Stopwatch.StartNew();
 
         try
         {
             // Save video stream to temporary file (FFMpegCore requires file path)
-            var tempVideoPath = Path.Combine(Path.GetTempPath(), $"{lessonId}_video.mp4");
-            var tempAudioPath = Path.Combine(Path.GetTempPath(), $"{lessonId}_audio.wav");
+            // Add unique suffix to prevent race conditions when Hangfire retries or concurrent jobs run
+            var jobInstanceId = Guid.NewGuid().ToString("N").Substring(0, 8); // 8-char unique ID
+            var tempVideoPath = Path.Combine(Path.GetTempPath(), $"{lessonId}_{jobInstanceId}_video.mp4");
+            var tempAudioPath = Path.Combine(Path.GetTempPath(), $"{lessonId}_{jobInstanceId}_audio.wav");
 
             try
             {
+                _logger.LogInformation("[FasterWhisper] Saving video stream to temp file: {Path}", tempVideoPath);
+                var saveSw = Stopwatch.StartNew();
+
                 // Save video stream to temp file
                 using (var fileStream = File.Create(tempVideoPath))
                 {
-                    await videoStream.CopyToAsync(fileStream);
+                    await videoStream.CopyToAsync(fileStream, timeoutToken);
                 }
 
-                _logger.LogInformation("[WhisperASR] Video saved to temp file: {Path}", tempVideoPath);
+                saveSw.Stop();
+                var videoSizeKB = new FileInfo(tempVideoPath).Length / 1024;
+                _logger.LogInformation("[FasterWhisper] Video saved ({VideoSizeKB}KB) in {ElapsedMs}ms",
+                    videoSizeKB, saveSw.ElapsedMilliseconds);
 
                 // Extract audio using FFMpegCore
                 // Convert to 16kHz mono WAV (optimal for Whisper)
-                await FFMpegArguments
-                    .FromFileInput(tempVideoPath)
-                    .OutputToFile(tempAudioPath, overwrite: true, options => options
-                        .WithAudioCodec("pcm_s16le")  // PCM 16-bit signed little-endian
-                        .WithAudioSamplingRate(16000) // 16kHz (Whisper optimal)
-                        .WithCustomArgument("-ac 1")  // Mono
-                        .WithCustomArgument("-vn"))   // No video
-                    .ProcessAsynchronously();
+                _logger.LogInformation("[FasterWhisper] Extracting audio with FFMpegCore (16kHz mono WAV, PCM 16-bit)...");
+                _logger.LogInformation("[FasterWhisper] Input video: {VideoPath} ({VideoSizeKB}KB)", tempVideoPath, videoSizeKB);
+                _logger.LogInformation("[FasterWhisper] Output audio will be: {AudioPath}", tempAudioPath);
 
-                _logger.LogInformation("[WhisperASR] Audio extracted to: {Path}", tempAudioPath);
+                var ffmpegSw = Stopwatch.StartNew();
 
-                // Read extracted audio and transcribe
-                using var audioStream = File.OpenRead(tempAudioPath);
-                var result = await TranscribeAsync(audioStream, language, lessonId);
+                try
+                {
+                    var ffmpegArgs = FFMpegArguments
+                        .FromFileInput(tempVideoPath)
+                        .OutputToFile(tempAudioPath, overwrite: true, options => options
+                            .WithAudioCodec("pcm_s16le")  // PCM 16-bit signed little-endian
+                            .WithAudioSamplingRate(16000) // 16kHz (Whisper optimal)
+                            .WithCustomArgument("-ac 1")  // Mono
+                            .WithCustomArgument("-vn"));  // No video
 
-                _logger.LogInformation("[WhisperASR] Video transcription completed for lesson {LessonId}", lessonId);
-                return result;
+                    _logger.LogInformation("[FasterWhisper] FFMpegCore arguments configured, starting ProcessAsynchronously()...");
+
+                    var success = await ffmpegArgs
+                        .CancellableThrough(timeoutToken)
+                        .ProcessAsynchronously();
+
+                    ffmpegSw.Stop();
+
+                    _logger.LogInformation("[FasterWhisper] ProcessAsynchronously() returned {Success} after {ElapsedMs}ms",
+                        success, ffmpegSw.ElapsedMilliseconds);
+
+                    // Verify output file was created
+                    if (!File.Exists(tempAudioPath))
+                    {
+                        _logger.LogError("[FasterWhisper] CRITICAL: FFMpegCore reported success={Success} but audio file does not exist at {Path}",
+                            success, tempAudioPath);
+                        throw new FileNotFoundException($"FFMpegCore failed to create audio file at {tempAudioPath} (ProcessAsynchronously returned {success})");
+                    }
+
+                    var audioSizeKB = new FileInfo(tempAudioPath).Length / 1024;
+                    _logger.LogInformation("[FasterWhisper] Audio extraction completed successfully in {ElapsedMs}ms ({AudioSizeKB}KB WAV file created)",
+                        ffmpegSw.ElapsedMilliseconds, audioSizeKB);
+                }
+                catch (Exception ex) when (ex is not FileNotFoundException)
+                {
+                    ffmpegSw.Stop();
+                    _logger.LogError(ex, "[FasterWhisper] FFMpegCore ProcessAsynchronously() threw exception after {ElapsedMs}ms. Exception type: {ExceptionType}, Message: {Message}, StackTrace: {StackTrace}",
+                        ffmpegSw.ElapsedMilliseconds, ex.GetType().Name, ex.Message, ex.StackTrace);
+                    throw new InvalidOperationException($"FFmpeg audio extraction failed: {ex.Message}", ex);
+                }
+
+                // Wait for FFmpeg to fully release file handle with retry loop (fix race condition)
+                // Simple delays (500ms, 2000ms) were insufficient - implementing exponential backoff
+                Stream? audioStream = null;
+                int maxRetries = 5;
+                int retryDelayMs = 500;
+
+                for (int retry = 0; retry <= maxRetries; retry++)
+                {
+                    try
+                    {
+                        if (retry > 0)
+                        {
+                            _logger.LogInformation("[FasterWhisper] Retry {Retry}/{MaxRetries}: Waiting {DelayMs}ms before attempting to open audio file...",
+                                retry, maxRetries, retryDelayMs);
+                            await Task.Delay(retryDelayMs, timeoutToken);
+                            retryDelayMs *= 2; // Exponential backoff: 500ms, 1000ms, 2000ms, 4000ms, 8000ms
+                        }
+                        else
+                        {
+                            _logger.LogInformation("[FasterWhisper] Initial attempt: Waiting 500ms for FFmpeg to release file handle...");
+                            await Task.Delay(500, timeoutToken);
+                        }
+
+                        _logger.LogInformation("[FasterWhisper] Opening audio file for transcription...");
+                        audioStream = File.OpenRead(tempAudioPath);
+                        _logger.LogInformation("[FasterWhisper] Audio file opened successfully, starting transcription...");
+                        break; // Success - exit retry loop
+                    }
+                    catch (IOException ioEx) when (retry < maxRetries)
+                    {
+                        _logger.LogWarning(ioEx, "[FasterWhisper] IOException on attempt {Retry}/{MaxRetries}: File still locked by FFmpeg process",
+                            retry + 1, maxRetries + 1);
+                        // Continue to next retry
+                    }
+                }
+
+                if (audioStream == null)
+                {
+                    throw new IOException($"Failed to open audio file after {maxRetries + 1} attempts. FFmpeg did not release file handle.");
+                }
+
+                using (audioStream)
+                {
+                    var result = await TranscribeAsync(audioStream, language, lessonId, timeoutToken);
+
+                    totalSw.Stop();
+                    _logger.LogInformation("[FasterWhisper] Video transcription COMPLETED for lesson {LessonId} - Total time: {TotalMs}ms ({SegmentCount} segments)",
+                        lessonId, totalSw.ElapsedMilliseconds, result.Segments.Count);
+                    return result;
+                }
             }
             finally
             {
                 // Clean up temp files
                 if (File.Exists(tempVideoPath))
+                {
                     File.Delete(tempVideoPath);
+                    _logger.LogDebug("[FasterWhisper] Deleted temp video file: {Path}", tempVideoPath);
+                }
                 if (File.Exists(tempAudioPath))
+                {
                     File.Delete(tempAudioPath);
-
-                _logger.LogDebug("[WhisperASR] Temp files cleaned up for lesson {LessonId}", lessonId);
+                    _logger.LogDebug("[FasterWhisper] Deleted temp audio file: {Path}", tempAudioPath);
+                }
             }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not user cancellation)
+            totalSw.Stop();
+            _logger.LogError("[FasterWhisper] Video transcription TIMEOUT after {ElapsedMs}ms (90-minute limit exceeded) for lesson {LessonId}",
+                totalSw.ElapsedMilliseconds, lessonId);
+            throw new TimeoutException($"Video transcription exceeded 90-minute timeout (Lesson: {lessonId}, Elapsed: {totalSw.Elapsed})");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // User cancellation
+            totalSw.Stop();
+            _logger.LogWarning("[FasterWhisper] Video transcription CANCELLED by user after {ElapsedMs}ms for lesson {LessonId}",
+                totalSw.ElapsedMilliseconds, lessonId);
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[WhisperASR] Video transcription failed for lesson {LessonId}", lessonId);
+            totalSw.Stop();
+            _logger.LogError(ex, "[FasterWhisper] Video transcription FAILED after {ElapsedMs}ms for lesson {LessonId}: {ErrorMessage}",
+                totalSw.ElapsedMilliseconds, lessonId, ex.Message);
             throw;
         }
     }
@@ -187,7 +331,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     {
         // TODO: Implement status tracking via database or cache
         // For now, return placeholder
-        _logger.LogWarning("[WhisperASR] GetStatusAsync not implemented - returning placeholder");
+        _logger.LogWarning("[FasterWhisper] GetStatusAsync not implemented - returning placeholder");
 
         return new TranscriptionStatus
         {
@@ -202,12 +346,12 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     {
         // TODO: Load transcription from database and generate WebVTT
         // For now, return placeholder
-        _logger.LogWarning("[WhisperASR] GenerateWebVTTAsync not implemented - returning placeholder");
+        _logger.LogWarning("[FasterWhisper] GenerateWebVTTAsync not implemented - returning placeholder");
 
         var vtt = new StringBuilder();
         vtt.AppendLine("WEBVTT");
         vtt.AppendLine();
-        vtt.AppendLine("NOTE Generated by InsightLearn Whisper ASR");
+        vtt.AppendLine("NOTE Generated by InsightLearn faster-whisper ASR");
         vtt.AppendLine();
 
         // Placeholder cue
@@ -219,11 +363,23 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
     }
 
     /// <summary>
-    /// Format timestamp for WebVTT (HH:MM:SS.mmm)
+    /// Response format from faster-whisper-server (OpenAI-compatible)
     /// </summary>
-    private string FormatWebVTTTimestamp(double seconds)
+    private class FasterWhisperResponse
     {
-        var ts = TimeSpan.FromSeconds(seconds);
-        return $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds:D3}";
+        public string? Text { get; set; }
+        public List<FasterWhisperSegment>? Segments { get; set; }
+        public string? Language { get; set; }
+        public double Duration { get; set; }
+    }
+
+    private class FasterWhisperSegment
+    {
+        public int Id { get; set; }
+        public double Start { get; set; }
+        public double End { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public double AvgLogprob { get; set; }
+        public double NoSpeechProb { get; set; }
     }
 }

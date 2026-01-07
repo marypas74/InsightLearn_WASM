@@ -52,8 +52,9 @@ namespace InsightLearn.Application.BackgroundJobs
         /// <param name="lessonId">Lesson ID to generate transcript for</param>
         /// <param name="videoUrl">Video URL (MongoDB GridFS or external)</param>
         /// <param name="language">Language code (e.g., "en-US", "it-IT")</param>
+        /// <param name="cancellationToken">Hangfire job cancellation token (propagated to Whisper.net for 30-minute timeout)</param>
         [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 60, 300, 900 })] // Retry: 1 min, 5 min, 15 min
-        public async Task ExecuteAsync(Guid lessonId, string videoUrl, string language = "en-US")
+        public async Task ExecuteAsync(Guid lessonId, string videoUrl, string language = "en-US", IJobCancellationToken? cancellationToken = null)
         {
             _logger.LogInformation("[HANGFIRE] Starting transcript generation job for lesson {LessonId}, language {Language}",
                 lessonId, language);
@@ -62,17 +63,20 @@ namespace InsightLearn.Application.BackgroundJobs
             var lesson = await _lessonRepository.GetByIdAsync(lessonId);
             var videoDurationMinutes = lesson?.DurationMinutes ?? 10; // Default to 10 if not set
 
+            // Extract CancellationToken from Hangfire (enables 30-minute timeout in WhisperTranscriptionService)
+            var cts = cancellationToken?.ShutdownToken ?? CancellationToken.None;
+
             try
             {
                 // Measure transcript processing duration with Prometheus
                 using (_metricsService.MeasureTranscriptProcessing(videoDurationMinutes))
                 {
-                    // Call service to generate transcript (synchronous Whisper API call)
+                    // Call service to generate transcript with timeout support (Whisper.net with 30-minute timeout)
                     var transcript = await _transcriptService.GenerateTranscriptAsync(
                         lessonId,
                         videoUrl,
                         language,
-                        CancellationToken.None);
+                        cts); // Propagate Hangfire cancellation token (enables timeout)
 
                     _logger.LogInformation("[HANGFIRE] Transcript generation completed for lesson {LessonId}, {SegmentCount} segments",
                         lessonId, transcript.Segments.Count);
@@ -191,7 +195,7 @@ namespace InsightLearn.Application.BackgroundJobs
         public static string Enqueue(Guid lessonId, string videoUrl, string language = "en-US")
         {
             return BackgroundJob.Enqueue<TranscriptGenerationJob>(
-                job => job.ExecuteAsync(lessonId, videoUrl, language));
+                job => job.ExecuteAsync(lessonId, videoUrl, language, null));
         }
 
         /// <summary>
@@ -200,7 +204,7 @@ namespace InsightLearn.Application.BackgroundJobs
         public static string Schedule(Guid lessonId, string videoUrl, string language, TimeSpan delay)
         {
             return BackgroundJob.Schedule<TranscriptGenerationJob>(
-                job => job.ExecuteAsync(lessonId, videoUrl, language),
+                job => job.ExecuteAsync(lessonId, videoUrl, language, null),
                 delay);
         }
     }

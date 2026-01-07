@@ -275,9 +275,10 @@ public class ApiClient : IApiClient
                     return errorResponse;
                 }
             }
-            catch
+            catch (JsonException ex)
             {
-                // Ignore deserialization errors for error responses
+                // Error response deserialization failed - not critical, fall through to generic error
+                _logger.LogDebug(ex, "Failed to deserialize error response, using generic error message");
             }
 
             return new ApiResponse<T>

@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: faster-whisper-cache
+  namespace: insightlearn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faster-whisper
+  namespace: insightlearn
+  labels:
+    app: faster-whisper
+    version: v2.3.41-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faster-whisper
+  template:
+    metadata:
+      labels:
+        app: faster-whisper
+        version: v2.3.41-dev
+    spec:
+      containers:
+      - name: faster-whisper-server
+        image: fedirz/faster-whisper-server:latest-cpu
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: WHISPER__MODEL
+          value: "base"
+        - name: WHISPER__INFERENCE_DEVICE
+          value: "cpu"
+        - name: WHISPER__COMPUTE_TYPE
+          value: "int8"
+        volumeMounts:
+        - name: model-cache
+          mountPath: /root/.cache/huggingface
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "12Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: faster-whisper-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: faster-whisper-service
+  namespace: insightlearn
+  labels:
+    app: faster-whisper
+spec:
+  type: ClusterIP
+  selector:
+    app: faster-whisper
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http

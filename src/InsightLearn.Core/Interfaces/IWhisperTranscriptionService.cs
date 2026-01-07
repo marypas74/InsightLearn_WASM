@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace InsightLearn.Core.Interfaces;
@@ -17,17 +18,19 @@ public interface IWhisperTranscriptionService
     /// <param name="audioStream">Audio stream (WAV 16kHz mono preferred)</param>
     /// <param name="language">Language code (e.g., "en", "it", "es")</param>
     /// <param name="lessonId">Lesson ID for tracking</param>
+    /// <param name="cancellationToken">Cancellation token (automatically times out after 30 minutes)</param>
     /// <returns>Transcription result with segments and metadata</returns>
-    Task<TranscriptionResult> TranscribeAsync(Stream audioStream, string language, Guid lessonId);
+    Task<TranscriptionResult> TranscribeAsync(Stream audioStream, string language, Guid lessonId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Extract audio from video file and transcribe
+    /// Extract audio from video file and transcribe with 30-minute timeout
     /// </summary>
     /// <param name="videoStream">Video file stream</param>
     /// <param name="language">Language code</param>
     /// <param name="lessonId">Lesson ID for tracking</param>
+    /// <param name="cancellationToken">Cancellation token (automatically times out after 30 minutes)</param>
     /// <returns>Transcription result</returns>
-    Task<TranscriptionResult> TranscribeVideoAsync(Stream videoStream, string language, Guid lessonId);
+    Task<TranscriptionResult> TranscribeVideoAsync(Stream videoStream, string language, Guid lessonId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get transcription status for a lesson

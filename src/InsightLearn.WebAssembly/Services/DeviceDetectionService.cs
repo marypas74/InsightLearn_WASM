@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace InsightLearn.WebAssembly.Services;
@@ -9,6 +10,7 @@ namespace InsightLearn.WebAssembly.Services;
 public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
 {
     private readonly IJSRuntime _jsRuntime;
+    private readonly ILogger<DeviceDetectionService> _logger;
     private DeviceInfo? _cachedDeviceInfo;
     private DotNetObjectReference<DeviceDetectionService>? _dotNetRef;
     private bool _isInitialized;
@@ -16,9 +18,10 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
     public event EventHandler<OrientationChangedEventArgs>? OrientationChanged;
     public event EventHandler<ViewportChangedEventArgs>? ViewportChanged;
 
-    public DeviceDetectionService(IJSRuntime jsRuntime)
+    public DeviceDetectionService(IJSRuntime jsRuntime, ILogger<DeviceDetectionService> logger)
     {
         _jsRuntime = jsRuntime;
+        _logger = logger;
     }
 
     private async Task InitializeAsync()
@@ -30,28 +33,34 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
             _dotNetRef = DotNetObjectReference.Create(this);
             await _jsRuntime.InvokeVoidAsync("deviceDetection.initialize", _dotNetRef);
             _isInitialized = true;
+            _logger.LogDebug("Device detection initialized successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeviceDetection] Failed to initialize: {ex.Message}");
+            _logger.LogError(ex, "Failed to initialize device detection: {ErrorMessage}", ex.Message);
         }
     }
 
     public async Task<DeviceInfo> GetDeviceInfoAsync()
     {
         if (_cachedDeviceInfo != null)
+        {
+            _logger.LogDebug("Returning cached device info (DeviceType: {DeviceType})", _cachedDeviceInfo.DeviceType);
             return _cachedDeviceInfo;
+        }
 
         await InitializeAsync();
 
         try
         {
             _cachedDeviceInfo = await _jsRuntime.InvokeAsync<DeviceInfo>("deviceDetection.getDeviceInfo");
+            _logger.LogInformation("Device info retrieved: DeviceType={DeviceType}, Browser={Browser}, OS={OS}, IsTouch={IsTouch}",
+                _cachedDeviceInfo.DeviceType, _cachedDeviceInfo.Browser, _cachedDeviceInfo.OperatingSystem, _cachedDeviceInfo.IsTouch);
             return _cachedDeviceInfo;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DeviceDetection] Error getting device info: {ex.Message}");
+            _logger.LogError(ex, "Error getting device info, using fallback: {ErrorMessage}", ex.Message);
             return GetFallbackDeviceInfo();
         }
     }
@@ -86,8 +95,9 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
         {
             return await _jsRuntime.InvokeAsync<int>("deviceDetection.getViewportWidth");
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to get viewport width via JS, using fallback: {ErrorMessage}", ex.Message);
             return _cachedDeviceInfo?.ViewportWidth ?? 1024;
         }
     }
@@ -98,8 +108,9 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
         {
             return await _jsRuntime.InvokeAsync<int>("deviceDetection.getViewportHeight");
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to get viewport height via JS, using fallback: {ErrorMessage}", ex.Message);
             return _cachedDeviceInfo?.ViewportHeight ?? 768;
         }
     }
@@ -189,8 +200,12 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
             try
             {
                 await _jsRuntime.InvokeVoidAsync("deviceDetection.dispose");
+                _logger.LogDebug("Device detection disposed successfully");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error disposing device detection: {ErrorMessage}", ex.Message);
+            }
         }
         _dotNetRef?.Dispose();
     }

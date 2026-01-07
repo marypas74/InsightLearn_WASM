@@ -42,6 +42,9 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d/default.conf
           subPath: default.conf
+        - name: cloudflare-certs
+          mountPath: /etc/ssl/cloudflare
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /
@@ -62,6 +65,10 @@ spec:
       - name: nginx-config
         configMap:
           name: wasm-nginx-config
+      - name: cloudflare-certs
+        secret:
+          secretName: cloudflare-origin-certs
+          defaultMode: 0644
 ---
 apiVersion: v1
 kind: Service

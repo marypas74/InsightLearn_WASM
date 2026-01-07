@@ -35,31 +35,30 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("🔐 DEBUG - Attempting login for {Email} using endpoint: {Endpoint}",
+            _logger.LogDebug("Attempting login for {Email} using endpoint: {Endpoint}",
                 request.Email, _endpoints.Auth.Login);
 
             var response = await _authHttpClient.PostAsync<AuthResponse>(_endpoints.Auth.Login, request);
 
             if (response?.Success == true && !string.IsNullOrEmpty(response.Token))
             {
-                _logger.LogInformation("📝 Saving JWT token to localStorage (length: {Length})", response.Token.Length);
+                _logger.LogDebug("Saving JWT token to localStorage (length: {TokenLength} characters)", response.Token.Length);
                 await _tokenService.SetTokenAsync(response.Token);
 
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
-                    _logger.LogInformation("📝 Saving refresh token to localStorage");
+                    _logger.LogDebug("Saving refresh token to localStorage");
                     await _tokenService.SetRefreshTokenAsync(response.RefreshToken);
                 }
 
-                _logger.LogInformation("🔔 Notifying authentication state changed");
+                _logger.LogDebug("Notifying authentication state changed");
                 _authStateProvider.NotifyAuthenticationStateChanged();
 
-                _logger.LogInformation("✅ Login successful for {Email} - Token saved, auth state updated", request.Email);
+                _logger.LogInformation("Login successful for {Email}", request.Email);
             }
             else if (response != null)
             {
-                // Log failed login but return the response with clean error messages
-                _logger.LogInformation("❌ Login failed for {Email}: {Message}",
+                _logger.LogWarning("Login failed for {Email}: {Message}",
                     request.Email,
                     response.Errors?.FirstOrDefault() ?? response.Message ?? "Unknown error");
             }
@@ -73,9 +72,9 @@ public class AuthService : IAuthService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "❌ HTTP Error during login for {Email} - Status: {StatusCode}", request.Email, ex.StatusCode);
+            _logger.LogError(ex, "HTTP error during login for {Email} - Status: {StatusCode}: {ErrorMessage}",
+                request.Email, ex.StatusCode, ex.Message);
 
-            // Return a clean error message for HTTP exceptions
             return new AuthResponse
             {
                 Success = false,
@@ -85,9 +84,9 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Fatal error during login for {Email}", request.Email);
+            _logger.LogError(ex, "Fatal error during login for {Email}: {ErrorMessage}",
+                request.Email, ex.Message);
 
-            // Return a generic error message for unexpected exceptions
             return new AuthResponse
             {
                 Success = false,
@@ -101,12 +100,13 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Attempting registration for {Email}", request.Email);
+            _logger.LogDebug("Attempting registration for {Email}", request.Email);
 
             var response = await _authHttpClient.PostAsync<AuthResponse>(_endpoints.Auth.Register, request);
 
             if (response?.Success == true && !string.IsNullOrEmpty(response.Token))
             {
+                _logger.LogDebug("Saving tokens for newly registered user {Email}", request.Email);
                 await _tokenService.SetTokenAsync(response.Token);
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
@@ -115,6 +115,12 @@ public class AuthService : IAuthService
 
                 _authStateProvider.NotifyAuthenticationStateChanged();
                 _logger.LogInformation("Registration successful for {Email}", request.Email);
+            }
+            else if (response != null)
+            {
+                _logger.LogWarning("Registration failed for {Email}: {Message}",
+                    request.Email,
+                    response.Errors?.FirstOrDefault() ?? response.Message ?? "Unknown error");
             }
 
             return response ?? new AuthResponse
@@ -126,7 +132,8 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during registration for {Email}", request.Email);
+            _logger.LogError(ex, "Error during registration for {Email}: {ErrorMessage}",
+                request.Email, ex.Message);
             return new AuthResponse
             {
                 Success = false,
@@ -140,11 +147,12 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Completing user registration");
+            _logger.LogDebug("Completing user registration");
 
             var token = await _tokenService.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
+                _logger.LogWarning("Registration completion failed: Not authenticated");
                 return new AuthResponse
                 {
                     Success = false,
@@ -166,7 +174,8 @@ public class AuthService : IAuthService
             }
 
             var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Registration completion failed: {Error}", errorContent);
+            _logger.LogWarning("Registration completion failed - Status: {StatusCode}: {Error}",
+                response.StatusCode, errorContent);
 
             return new AuthResponse
             {
@@ -177,7 +186,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error completing registration");
+            _logger.LogError(ex, "Error completing registration: {ErrorMessage}", ex.Message);
             return new AuthResponse
             {
                 Success = false,
@@ -194,11 +203,12 @@ public class AuthService : IAuthService
             _logger.LogInformation("Logging out user");
             await _tokenService.ClearTokensAsync();
             _authStateProvider.NotifyAuthenticationStateChanged();
+            _logger.LogInformation("User logout successful");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during logout");
+            _logger.LogError(ex, "Error during logout: {ErrorMessage}", ex.Message);
             return false;
         }
     }
@@ -207,9 +217,12 @@ public class AuthService : IAuthService
     {
         try
         {
+            _logger.LogDebug("Attempting to refresh authentication token");
+
             var refreshToken = await _tokenService.GetRefreshTokenAsync();
             if (string.IsNullOrEmpty(refreshToken))
             {
+                _logger.LogWarning("Token refresh failed: No refresh token available");
                 return new AuthResponse
                 {
                     Success = false,
@@ -221,6 +234,7 @@ public class AuthService : IAuthService
 
             if (response?.Success == true && !string.IsNullOrEmpty(response.Token))
             {
+                _logger.LogDebug("Saving new tokens after refresh");
                 await _tokenService.SetTokenAsync(response.Token);
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
@@ -228,13 +242,19 @@ public class AuthService : IAuthService
                 }
 
                 _authStateProvider.NotifyAuthenticationStateChanged();
+                _logger.LogInformation("Token refresh successful");
+            }
+            else
+            {
+                _logger.LogWarning("Token refresh failed: {Message}",
+                    response?.Message ?? "Unknown error");
             }
 
             return response ?? new AuthResponse { Success = false, Message = "Token refresh failed" };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing token");
+            _logger.LogError(ex, "Error refreshing token: {ErrorMessage}", ex.Message);
             return new AuthResponse
             {
                 Success = false,
@@ -248,38 +268,59 @@ public class AuthService : IAuthService
     {
         try
         {
+            _logger.LogDebug("Fetching current user information");
+
             var token = await _tokenService.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
+                _logger.LogWarning("Cannot fetch current user: No authentication token available");
                 return null;
             }
 
             _httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            return await _httpClient.GetFromJsonAsync<UserInfo>(_endpoints.Auth.Me);
+            var userInfo = await _httpClient.GetFromJsonAsync<UserInfo>(_endpoints.Auth.Me);
+
+            if (userInfo != null)
+            {
+                _logger.LogInformation("Retrieved current user information for {Email}", userInfo.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to retrieve current user information");
+            }
+
+            return userInfo;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting current user");
+            _logger.LogError(ex, "Error getting current user: {ErrorMessage}", ex.Message);
             return null;
         }
     }
 
     public async Task<bool> IsAuthenticatedAsync()
     {
-        return await _tokenService.IsTokenValidAsync();
+        _logger.LogDebug("Checking if user is authenticated");
+        var isValid = await _tokenService.IsTokenValidAsync();
+        _logger.LogDebug("User authentication status: {IsAuthenticated}", isValid);
+        return isValid;
     }
 
     public async Task<bool> IsInRoleAsync(string role)
     {
         try
         {
+            _logger.LogDebug("Checking if user has role: {Role}", role);
             var authState = await _authStateProvider.GetAuthenticationStateAsync();
-            return authState.User.IsInRole(role);
+            var isInRole = authState.User.IsInRole(role);
+            _logger.LogDebug("User role check for {Role}: {IsInRole}", role, isInRole);
+            return isInRole;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error checking user role {Role}: {ErrorMessage}", role, ex.Message);
             return false;
         }
     }
@@ -288,15 +329,16 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Handling OAuth callback");
+            _logger.LogDebug("Handling OAuth callback (code length: {CodeLength}, state length: {StateLength})",
+                code?.Length ?? 0, state?.Length ?? 0);
 
-            // Exchange OAuth code for JWT token via API
             var response = await _authHttpClient.PostAsync<AuthResponse>(
                 $"{_endpoints.Auth.OAuthCallback}?code={Uri.EscapeDataString(code)}&state={Uri.EscapeDataString(state)}",
                 null);
 
             if (response?.Success == true && !string.IsNullOrEmpty(response.Token))
             {
+                _logger.LogDebug("Saving OAuth tokens");
                 await _tokenService.SetTokenAsync(response.Token);
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
@@ -304,16 +346,16 @@ public class AuthService : IAuthService
                 }
 
                 _authStateProvider.NotifyAuthenticationStateChanged();
-                _logger.LogInformation("OAuth callback successful");
+                _logger.LogInformation("OAuth authentication successful");
                 return true;
             }
 
-            _logger.LogWarning("OAuth callback failed: {Message}", response?.Message);
+            _logger.LogWarning("OAuth callback failed: {Message}", response?.Message ?? "Unknown error");
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "OAuth callback failed");
+            _logger.LogError(ex, "OAuth callback error: {ErrorMessage}", ex.Message);
             return false;
         }
     }
@@ -322,7 +364,7 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Requesting password reset for {Email}", email);
+            _logger.LogDebug("Requesting password reset for {Email}", email);
 
             // TODO: API endpoint not implemented yet
             // var response = await _authHttpClient.PostAsync<object>(
@@ -337,7 +379,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send password reset email");
+            _logger.LogError(ex, "Failed to send password reset email: {ErrorMessage}", ex.Message);
             return false;
         }
     }
@@ -346,7 +388,7 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Resetting password for {Email}", email);
+            _logger.LogDebug("Resetting password for {Email}", email);
 
             // TODO: API endpoint not implemented yet
             // var response = await _authHttpClient.PostAsync<object>(
@@ -361,7 +403,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to reset password");
+            _logger.LogError(ex, "Failed to reset password: {ErrorMessage}", ex.Message);
             return false;
         }
     }

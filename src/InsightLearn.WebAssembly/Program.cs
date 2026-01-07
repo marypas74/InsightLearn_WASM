@@ -10,19 +10,28 @@ using Blazored.LocalStorage;
 using Blazored.Toast;
 using Serilog;
 using Serilog.Core;
+using Serilog.Events;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Configure Serilog for client-side logging
+// Configure Serilog for client-side logging with FILTERED output
+// CRITICAL: Suppress noisy Microsoft.AspNetCore and System logs (Rendering component, Handling event, etc.)
+// Only show InsightLearn application logs at Information level
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
+    .MinimumLevel.Information() // Default level for application logs
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning) // Suppress render/event logs
+    .MinimumLevel.Override("System", LogEventLevel.Warning) // Suppress system logs
+    .MinimumLevel.Override("InsightLearn", LogEventLevel.Debug) // Keep app logs verbose
     .Enrich.WithProperty("Application", "InsightLearn.WASM")
-    .WriteTo.BrowserConsole()
+    .Enrich.WithProperty("Environment", builder.HostEnvironment.Environment)
+    .WriteTo.BrowserConsole(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
-builder.Logging.AddSerilog(Log.Logger);
+builder.Logging.ClearProviders(); // Remove default providers (prevents duplicate logs)
+builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
 // Add Blazored services
 builder.Services.AddBlazoredLocalStorage();

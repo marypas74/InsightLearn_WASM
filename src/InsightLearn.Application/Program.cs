@@ -658,9 +658,16 @@ Console.WriteLine("[CONFIG] Subtitle Translation Service registered (Ollama-powe
 builder.Services.AddScoped<ISubtitleGenerationService, SubtitleGenerationService>();
 Console.WriteLine("[CONFIG] Subtitle Generation Service registered (Whisper ASR, automatic WebVTT creation)");
 
-// Register Real-Time Video Transcription & Translation Services (v2.3.23-dev - Hybrid MongoDB + Qdrant)
+// Register Real-Time Video Transcription & Translation Services (v2.3.41-dev - faster-whisper migration)
 builder.Services.AddScoped<IWhisperTranscriptionService, WhisperTranscriptionService>();
-Console.WriteLine("[CONFIG] Whisper Transcription Service registered (ASR with Whisper.net base model)");
+builder.Services.AddHttpClient("FasterWhisper", client =>
+{
+    var baseUrl = builder.Configuration["Whisper:BaseUrl"] ?? "http://faster-whisper-service:8000";
+    var timeout = int.Parse(builder.Configuration["Whisper:Timeout"] ?? "600");
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(timeout);
+});
+Console.WriteLine("[CONFIG] faster-whisper Transcription Service registered (CTranslate2, 4x speed improvement)");
 
 builder.Services.AddScoped<IOllamaTranslationService, OllamaTranslationService>();
 builder.Services.AddHttpClient<OllamaTranslationService>(); // For Ollama API calls
@@ -1185,6 +1192,11 @@ Console.WriteLine("[CONFIG] Hangfire Dashboard enabled at /hangfire (Admin acces
 // LinkedIn Learning approach - pre-generate all transcripts daily at 3 AM
 BatchTranscriptProcessor.RegisterRecurringJob();
 Console.WriteLine("[HANGFIRE] Batch transcript processor registered (daily 3:00 AM UTC)");
+
+// ✅ NEW (v2.3.27-dev): Register recurring batch subtitle generation job
+// Auto-generate subtitles for ALL videos without subtitles - runs daily at 3 AM
+BatchSubtitleGenerationJob.RegisterRecurringJob();
+Console.WriteLine("[HANGFIRE] Batch subtitle generation job registered (daily 3:00 AM UTC)");
 
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
 // Positioned AFTER authentication to capture user context (userId, email, roles)
@@ -1974,11 +1986,24 @@ app.MapPost("/api/video/upload", async (
             return Results.BadRequest(new { error = "Video file too large (max 600MB)" });
         }
 
-        // Validate file type
-        var allowedTypes = new[] { "video/mp4", "video/webm", "video/ogg", "video/quicktime" };
-        if (!allowedTypes.Contains(videoFile.ContentType))
+        // Validate file type - ENFORCE MP4 ONLY (v2.3.30-dev transcription fix)
+        // WebM format was causing FFmpeg transcription failures, so we now only accept MP4
+        if (videoFile.ContentType != "video/mp4")
         {
-            return Results.BadRequest(new { error = "Invalid video format. Allowed: MP4, WebM, OGG, MOV" });
+            return Results.BadRequest(new {
+                error = "Only MP4 format is allowed",
+                detail = "WebM, OGG, and MOV formats are not supported due to transcription compatibility issues. Please convert your video to MP4 format before uploading."
+            });
+        }
+
+        // Additional validation: Check file extension
+        var fileExtension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+        if (fileExtension != ".mp4")
+        {
+            return Results.BadRequest(new {
+                error = "Only .mp4 file extension is allowed",
+                detail = $"File extension '{fileExtension}' is not supported. Please upload a file with .mp4 extension."
+            });
         }
 
         logger.LogInformation("[VIDEO] Starting upload for lesson {LessonId} by user {UserId}", lessonId, userId);

@@ -1,6 +1,7 @@
 @page "/learn/{CourseId:guid}/{LessonId:guid}"
 @layout InsightLearn.WebAssembly.Layout.LearningLayout
-@attribute [Authorize]
+@* v2.3.33-dev: Removed [Authorize] to allow free lessons without login *@
+@* Manual authorization check in LoadLearningEnvironment() handles free vs paid lessons *@
 @using InsightLearn.WebAssembly.Components
 @using InsightLearn.WebAssembly.Components.LearningSpace
 @using InsightLearn.WebAssembly.Services

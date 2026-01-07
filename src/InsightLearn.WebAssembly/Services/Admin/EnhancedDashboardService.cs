@@ -48,23 +48,23 @@ namespace InsightLearn.WebAssembly.Services.Admin
         {
             try
             {
-                _logger.LogInformation($"Fetching chart data for {chartType} (last {days} days)");
+                _logger.LogInformation("Fetching chart data for {ChartType} (last {Days} days)", chartType, days);
                 var response = await _apiClient.GetAsync<ChartDataDto>($"/api/admin/dashboard/charts/{chartType}?days={days}");
 
                 if (response.Success && response.Data != null)
                 {
-                    _logger.LogInformation($"Successfully fetched chart data for {chartType}");
+                    _logger.LogInformation("Successfully fetched chart data for {ChartType}", chartType);
                     return response.Data;
                 }
                 else
                 {
-                    _logger.LogWarning($"Failed to fetch chart data for {chartType}: {response.Message}");
+                    _logger.LogWarning("Failed to fetch chart data for {ChartType}: {Message}", chartType, response.Message);
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error fetching chart data for {chartType}");
+                _logger.LogError(ex, "Error fetching chart data for {ChartType}", chartType);
                 return null;
             }
         }
@@ -73,12 +73,12 @@ namespace InsightLearn.WebAssembly.Services.Admin
         {
             try
             {
-                _logger.LogInformation($"Fetching recent activity (limit: {limit}, offset: {offset})");
+                _logger.LogInformation("Fetching recent activity (limit: {Limit}, offset: {Offset})", limit, offset);
                 var response = await _apiClient.GetAsync<PagedResult<ActivityItemDto>>($"/api/admin/dashboard/activity?limit={limit}&offset={offset}");
 
                 if (response.Success && response.Data != null)
                 {
-                    _logger.LogInformation($"Successfully fetched {response.Data.Items?.Count ?? 0} activity items");
+                    _logger.LogInformation("Successfully fetched {Count} activity items", response.Data.Items?.Count ?? 0);
                     return response.Data;
                 }
                 else
