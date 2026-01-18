@@ -12,24 +12,25 @@ using InsightLearn.Core.Interfaces;
 namespace InsightLearn.Application.Services
 {
     /// <summary>
-    /// AI Chat service implementation with Ollama integration and context enrichment.
+    /// AI Chat service implementation with OpenAI integration and context enrichment.
+    /// Migrated from Ollama to OpenAI GPT-4 for improved performance and reliability.
     /// Part of Student Learning Space v2.1.0.
     /// </summary>
     public class AIChatService : IAIChatService
     {
         private readonly IAIConversationRepository _conversationRepository;
-        private readonly IOllamaService _ollamaService;
+        private readonly IOpenAILearningAssistantService _openAIService;
         private readonly IVideoTranscriptService? _transcriptService;
         private readonly ILogger<AIChatService> _logger;
 
         public AIChatService(
             IAIConversationRepository conversationRepository,
-            IOllamaService ollamaService,
+            IOpenAILearningAssistantService openAIService,
             ILogger<AIChatService> logger,
             IVideoTranscriptService? transcriptService = null)
         {
             _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
-            _ollamaService = ollamaService ?? throw new ArgumentNullException(nameof(ollamaService));
+            _openAIService = openAIService ?? throw new ArgumentNullException(nameof(openAIService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcriptService = transcriptService;
         }
@@ -89,16 +90,30 @@ namespace InsightLearn.Application.Services
 
             var enrichedPrompt = await BuildEnrichedPromptAsync(messageDto, contextInfo, ct);
 
-            // 4. Get AI response from Ollama
+            // 4. Get AI response from OpenAI (migrated from Ollama)
             string aiResponse;
             try
             {
-                aiResponse = await _ollamaService.GenerateResponseAsync(enrichedPrompt, cancellationToken: ct);
-                _logger.LogInformation("[AI_CHAT] Ollama generated response with {Length} characters", aiResponse.Length);
+                // Build conversation history for context
+                var history = await _conversationRepository.GetConversationHistoryAsync(conversation.SessionId, limit: 10, ct);
+                var chatHistory = history?.Messages?
+                    .Select(m => new ChatMessage { Role = m.Role, Content = m.Content })
+                    .ToList();
+
+                aiResponse = await _openAIService.SendMessageAsync(
+                    userMessage: enrichedPrompt,
+                    systemPrompt: "You are a helpful educational AI assistant focused on helping students learn effectively. " +
+                                  "Answer questions based on video content, transcripts, and student notes. " +
+                                  "Be concise, clear, and encouraging.",
+                    conversationHistory: chatHistory,
+                    operationType: "educational-chat",
+                    ct: ct);
+
+                _logger.LogInformation("[AI_CHAT] OpenAI generated response with {Length} characters", aiResponse.Length);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[AI_CHAT] Ollama failed to generate response");
+                _logger.LogError(ex, "[AI_CHAT] OpenAI failed to generate response");
                 aiResponse = "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.";
             }
 

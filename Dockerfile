@@ -4,6 +4,11 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
+# Install FFmpeg for audio extraction (required by WhisperTranscriptionService)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 # Add non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser
 

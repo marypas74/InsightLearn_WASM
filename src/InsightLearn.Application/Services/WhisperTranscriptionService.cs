@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using InsightLearn.Core.Interfaces;
@@ -39,7 +40,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 
         // Load configuration
         _baseUrl = configuration["Whisper:BaseUrl"] ?? "http://faster-whisper-service:8000";
-        _timeoutSeconds = int.Parse(configuration["Whisper:Timeout"] ?? "600");
+        _timeoutSeconds = int.Parse(configuration["Whisper:Timeout"] ?? "12000"); // 200 minutes (must exceed 200-min video timeout)
         _model = configuration["Whisper:Model"] ?? "base";
 
         _httpClient.BaseAddress = new Uri(_baseUrl);
@@ -156,9 +157,9 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
         _logger.LogInformation("[FasterWhisper] Video transcription started for lesson {LessonId}, language: {Language}",
             lessonId, language);
 
-        // Create linked cancellation token with 90-minute timeout (increased for 40-45 min videos)
+        // Create linked cancellation token with 200-minute timeout (increased for long videos up to 180 min)
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(TimeSpan.FromMinutes(90));
+        cts.CancelAfter(TimeSpan.FromMinutes(200));
         var timeoutToken = cts.Token;
 
         var totalSw = Stopwatch.StartNew();
@@ -306,9 +307,9 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
         {
             // Timeout occurred (not user cancellation)
             totalSw.Stop();
-            _logger.LogError("[FasterWhisper] Video transcription TIMEOUT after {ElapsedMs}ms (90-minute limit exceeded) for lesson {LessonId}",
+            _logger.LogError("[FasterWhisper] Video transcription TIMEOUT after {ElapsedMs}ms (200-minute limit exceeded) for lesson {LessonId}",
                 totalSw.ElapsedMilliseconds, lessonId);
-            throw new TimeoutException($"Video transcription exceeded 90-minute timeout (Lesson: {lessonId}, Elapsed: {totalSw.Elapsed})");
+            throw new TimeoutException($"Video transcription exceeded 200-minute timeout (Lesson: {lessonId}, Elapsed: {totalSw.Elapsed})");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -364,22 +365,41 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
 
     /// <summary>
     /// Response format from faster-whisper-server (OpenAI-compatible)
+    /// Maps camelCase JSON to PascalCase C# properties
     /// </summary>
     private class FasterWhisperResponse
     {
+        [JsonPropertyName("text")]
         public string? Text { get; set; }
+
+        [JsonPropertyName("segments")]
         public List<FasterWhisperSegment>? Segments { get; set; }
+
+        [JsonPropertyName("language")]
         public string? Language { get; set; }
+
+        [JsonPropertyName("duration")]
         public double Duration { get; set; }
     }
 
     private class FasterWhisperSegment
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("start")]
         public double Start { get; set; }
+
+        [JsonPropertyName("end")]
         public double End { get; set; }
+
+        [JsonPropertyName("text")]
         public string Text { get; set; } = string.Empty;
+
+        [JsonPropertyName("avg_logprob")]
         public double AvgLogprob { get; set; }
+
+        [JsonPropertyName("no_speech_prob")]
         public double NoSpeechProb { get; set; }
     }
 }

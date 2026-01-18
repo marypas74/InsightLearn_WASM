@@ -26,8 +26,8 @@ db.createCollection("VideoTranscripts", {
                 },
                 language: {
                     bsonType: "string",
-                    pattern: "^[a-z]{2}-[A-Z]{2}$",
-                    description: "Language code (e.g., en-US, it-IT)"
+                    pattern: "^[a-z]{2}$",
+                    description: "Language code (ISO 639-1, e.g., en, it, es)"
                 },
                 transcript: {
                     bsonType: "array",

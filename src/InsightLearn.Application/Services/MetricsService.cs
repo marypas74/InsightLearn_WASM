@@ -132,6 +132,19 @@ public class MetricsService
             LabelNames = new[] { "translator", "target_language", "status" }
         });
 
+    /// <summary>
+    /// Total OpenAI tokens consumed
+    /// Labels: operation_type (chat/translate/summary/concepts), model (gpt-4-turbo/gpt-3.5-turbo), token_type (prompt/completion/total)
+    /// Tracks AI usage and costs for monitoring and billing
+    /// </summary>
+    private static readonly Counter OpenAITokensTotal = Metrics.CreateCounter(
+        "insightlearn_openai_tokens_total",
+        "Total OpenAI tokens consumed",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "operation_type", "model", "token_type" }
+        });
+
     // ==================================================
     // GAUGES - Current snapshot values (can go up/down)
     // ==================================================
@@ -460,6 +473,37 @@ public class MetricsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[METRICS] Failed to record translation job metric");
+        }
+    }
+
+    /// <summary>
+    /// Record OpenAI token usage
+    /// Tracks tokens consumed for AI operations (chat, translation, summary, concept extraction)
+    /// </summary>
+    /// <param name="operationType">Operation type (chat/translate/summary/concepts)</param>
+    /// <param name="model">OpenAI model used (gpt-4-turbo/gpt-4/gpt-3.5-turbo)</param>
+    /// <param name="promptTokens">Number of tokens in the prompt</param>
+    /// <param name="completionTokens">Number of tokens in the completion</param>
+    /// <param name="totalTokens">Total tokens (prompt + completion)</param>
+    public void RecordOpenAITokens(string operationType, string model, int promptTokens, int completionTokens, int totalTokens)
+    {
+        try
+        {
+            // Record prompt tokens
+            OpenAITokensTotal.WithLabels(operationType, model, "prompt").Inc(promptTokens);
+
+            // Record completion tokens
+            OpenAITokensTotal.WithLabels(operationType, model, "completion").Inc(completionTokens);
+
+            // Record total tokens
+            OpenAITokensTotal.WithLabels(operationType, model, "total").Inc(totalTokens);
+
+            _logger.LogDebug("[METRICS] Recorded OpenAI tokens: operation={Operation}, model={Model}, prompt={Prompt}, completion={Completion}, total={Total}",
+                operationType, model, promptTokens, completionTokens, totalTokens);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[METRICS] Failed to record OpenAI tokens metric");
         }
     }
 

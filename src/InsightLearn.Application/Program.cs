@@ -658,20 +658,21 @@ Console.WriteLine("[CONFIG] Subtitle Translation Service registered (Ollama-powe
 builder.Services.AddScoped<ISubtitleGenerationService, SubtitleGenerationService>();
 Console.WriteLine("[CONFIG] Subtitle Generation Service registered (Whisper ASR, automatic WebVTT creation)");
 
-// Register Real-Time Video Transcription & Translation Services (v2.3.41-dev - faster-whisper migration)
-builder.Services.AddScoped<IWhisperTranscriptionService, WhisperTranscriptionService>();
-builder.Services.AddHttpClient("FasterWhisper", client =>
+// Register Real-Time Video Transcription & Translation Services (v2.3.48-dev - OpenAI API migration)
+builder.Services.AddScoped<IWhisperTranscriptionService, OpenAIWhisperService>();
+builder.Services.AddHttpClient("OpenAI", client =>
 {
-    var baseUrl = builder.Configuration["Whisper:BaseUrl"] ?? "http://faster-whisper-service:8000";
-    var timeout = int.Parse(builder.Configuration["Whisper:Timeout"] ?? "600");
-    client.BaseAddress = new Uri(baseUrl);
+    var apiKey = builder.Configuration["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+    var timeout = int.Parse(builder.Configuration["OpenAI:Timeout"] ?? "12000");
+    client.BaseAddress = new Uri("https://api.openai.com");
     client.Timeout = TimeSpan.FromSeconds(timeout);
+    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 });
-Console.WriteLine("[CONFIG] faster-whisper Transcription Service registered (CTranslate2, 4x speed improvement)");
+Console.WriteLine("[CONFIG] OpenAI Whisper API Service registered (whisper-1 model, 99+ languages, cloud-based ASR)");
 
-builder.Services.AddScoped<IOllamaTranslationService, OllamaTranslationService>();
-builder.Services.AddHttpClient<OllamaTranslationService>(); // For Ollama API calls
-Console.WriteLine("[CONFIG] Ollama Translation Service registered (mistral:7b-instruct, 20+ languages)");
+builder.Services.AddScoped<IOpenAILearningAssistantService, OpenAILearningAssistantService>();
+builder.Services.AddHttpClient<OpenAILearningAssistantService>(); // For OpenAI GPT-4 API calls
+Console.WriteLine("[CONFIG] OpenAI Learning Assistant Service registered (GPT-4, AI chat, translation, summaries)");
 
 // Register Azure Translator Service (Phase 8.1 - Professional translation with Azure Cognitive Services)
 builder.Services.AddScoped<IAzureTranslatorService, AzureTranslatorService>();
@@ -1188,10 +1189,17 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 });
 Console.WriteLine("[CONFIG] Hangfire Dashboard enabled at /hangfire (Admin access only)");
 
+// ✅ FIX (v2.3.50-dev-fix2): Removed UseHangfireServer() middleware call
+// Workers are already configured via AddHangfireServer() at line 836
+// Having BOTH creates dual server instances (10 workers + 4 workers) which prevents job execution
+// The AddHangfireServer() service registration is sufficient to start background workers
+// app.UseHangfireServer(); // REMOVED - causes dual server instance conflict
+Console.WriteLine("[HANGFIRE] Background server configured via AddHangfireServer() with {0} workers", Environment.ProcessorCount * 2);
+
 // ✅ NEW (v2.3.23-dev): Register recurring batch transcript processor
-// LinkedIn Learning approach - pre-generate all transcripts daily at 3 AM
+// LinkedIn Learning approach - pre-generate all transcripts daily at 23:30
 BatchTranscriptProcessor.RegisterRecurringJob();
-Console.WriteLine("[HANGFIRE] Batch transcript processor registered (daily 3:00 AM UTC)");
+Console.WriteLine("[HANGFIRE] Batch transcript processor registered (daily 23:30 UTC)");
 
 // ✅ NEW (v2.3.27-dev): Register recurring batch subtitle generation job
 // Auto-generate subtitles for ALL videos without subtitles - runs daily at 3 AM
@@ -7304,10 +7312,11 @@ app.MapPost("/api/notes/{id:guid}/toggle-bookmark", async (
 .Produces(500);
 
 // ========================================
-// AI CHAT ENDPOINTS (4) - v2.1.0-dev IMPLEMENTED
+// AI CHAT ENDPOINTS (4) - v2.3.58-dev MIGRATED TO OPENAI
 // ========================================
-// Implemented with Ollama LLM integration and context-aware responses
+// Migrated from Ollama to OpenAI GPT-4 for improved reliability and performance
 // Uses IAIChatService with conversation persistence and transcript enrichment
+// OpenAI integration eliminates 30-second timeout issues
 
 // POST /api/ai-chat/message - Send message with context
 // v2.1.0-dev: Allows anonymous access for free lessons using sessionId for tracking

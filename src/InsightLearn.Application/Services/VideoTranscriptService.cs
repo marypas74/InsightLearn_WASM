@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using InsightLearn.Core.DTOs.VideoTranscript;
 using InsightLearn.Core.Interfaces;
+using InsightLearn.Application.BackgroundJobs;
 
 namespace InsightLearn.Application.Services
 {
@@ -83,7 +84,7 @@ namespace InsightLearn.Application.Services
         {
             _logger.LogInformation("Queueing transcript generation for lesson {LessonId}, language {Language}", lessonId, language);
 
-            // Create metadata with "Pending" status
+            // Check if transcript already exists
             var metadata = await _repository.GetMetadataAsync(lessonId, ct);
             if (metadata != null)
             {
@@ -91,12 +92,14 @@ namespace InsightLearn.Application.Services
                 return metadata.Status;
             }
 
-            // TODO: Enqueue Hangfire background job
-            // For now, set status to "Queued"
+            // ✅ FIXED (v2.3.50-dev-fix3): Implement proper Hangfire job queueing
+            // Enqueue Hangfire background job using TranscriptGenerationJob.Enqueue()
+            // This creates InvocationData with proper type serialization matching UseSimpleAssemblyNameTypeSerializer()
+            var jobId = TranscriptGenerationJob.Enqueue(lessonId, videoUrl, language);
+
+            // Update metadata status to "Queued" (will be changed to "Processing" by the job)
             await _repository.UpdateProcessingStatusAsync(lessonId, "Queued", null, ct);
 
-            // Return job ID (placeholder for now)
-            var jobId = Guid.NewGuid().ToString();
             _logger.LogInformation("Transcript generation job queued: {JobId} for lesson {LessonId}", jobId, lessonId);
 
             return jobId;

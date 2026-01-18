@@ -1,0 +1,356 @@
+// MongoDB Playground - Transcripts & AI Data Queries
+// Use case: Analisi trascrizioni video e dati AI
+
+use('insightlearn_videos');
+
+// ========================================
+// TRANSCRIPT STATISTICS
+// ========================================
+
+// Total transcripts count
+db.VideoTranscripts.countDocuments()
+
+// Transcripts by language
+db.VideoTranscripts.aggregate([
+  {
+    $group: {
+      _id: "$language",
+      count: { $sum: 1 },
+      avgSegments: { $avg: { $size: "$segments" } },
+      avgDurationMin: { $avg: { $divide: ["$durationSeconds", 60] } }
+    }
+  },
+  {
+    $project: {
+      language: "$_id",
+      count: 1,
+      avgSegments: { $round: ["$avgSegments", 0] },
+      avgDurationMin: { $round: ["$avgDurationMin", 2] }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+
+// Transcripts by Whisper model used
+db.VideoTranscripts.aggregate([
+  {
+    $group: {
+      _id: "$modelUsed",
+      count: { $sum: 1 }
+    }
+  }
+])
+
+// ========================================
+// FIND TRANSCRIPT BY LESSON ID
+// ========================================
+
+db.VideoTranscripts.findOne({
+  lessonId: "28d88850-81c8-4628-a022-d98378d883e3"
+}, {
+  lessonId: 1,
+  language: 1,
+  modelUsed: 1,
+  transcribedAt: 1,
+  durationSeconds: 1,
+  "segments": { $slice: 5 }  // First 5 segments
+})
+
+// ========================================
+// FULL-TEXT SEARCH IN TRANSCRIPTS
+// ========================================
+
+db.VideoTranscripts.find({
+  $text: { $search: "ASP.NET Core" }
+}, {
+  lessonId: 1,
+  language: 1,
+  score: { $meta: "textScore" },
+  matchingSegments: {
+    $filter: {
+      input: "$segments",
+      as: "segment",
+      cond: { $regexMatch: { input: "$$segment.text", regex: "ASP.NET", options: "i" } }
+    }
+  }
+}).sort({ score: { $meta: "textScore" } }).limit(10)
+
+// ========================================
+// TRANSCRIPTS WITH LOW CONFIDENCE SEGMENTS
+// ========================================
+
+db.VideoTranscripts.aggregate([
+  {
+    $project: {
+      lessonId: 1,
+      language: 1,
+      lowConfidenceSegments: {
+        $filter: {
+          input: "$segments",
+          as: "segment",
+          cond: { $lt: ["$$segment.confidence", 0.7] }
+        }
+      }
+    }
+  },
+  {
+    $match: {
+      lowConfidenceSegments: { $ne: [] }
+    }
+  },
+  {
+    $project: {
+      lessonId: 1,
+      language: 1,
+      lowConfidenceCount: { $size: "$lowConfidenceSegments" },
+      lowConfidenceSegments: { $slice: ["$lowConfidenceSegments", 5] }
+    }
+  }
+])
+
+// ========================================
+// AI KEY TAKEAWAYS STATISTICS
+// ========================================
+
+// Total AI key takeaways
+db.VideoKeyTakeaways.countDocuments()
+
+// Key takeaways by category
+db.VideoKeyTakeaways.aggregate([
+  {
+    $unwind: "$takeaways"
+  },
+  {
+    $group: {
+      _id: "$takeaways.category",
+      count: { $sum: 1 },
+      avgRelevance: { $avg: "$takeaways.relevance" }
+    }
+  },
+  {
+    $project: {
+      category: "$_id",
+      count: 1,
+      avgRelevance: { $round: ["$avgRelevance", 2] }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+
+// ========================================
+// FIND AI TAKEAWAYS BY LESSON
+// ========================================
+
+db.VideoKeyTakeaways.findOne({
+  lessonId: "28d88850-81c8-4628-a022-d98378d883e3"
+}, {
+  lessonId: 1,
+  generatedAt: 1,
+  takeaways: {
+    $slice: 10  // First 10 takeaways
+  }
+})
+
+// ========================================
+// HIGH RELEVANCE TAKEAWAYS (Top Insights)
+// ========================================
+
+db.VideoKeyTakeaways.aggregate([
+  {
+    $unwind: "$takeaways"
+  },
+  {
+    $match: {
+      "takeaways.relevance": { $gte: 0.8 }
+    }
+  },
+  {
+    $project: {
+      lessonId: 1,
+      takeaway: "$takeaways.takeaway",
+      category: "$takeaways.category",
+      relevance: "$takeaways.relevance",
+      timestamp: "$takeaways.timestamp"
+    }
+  },
+  {
+    $sort: { relevance: -1 }
+  },
+  {
+    $limit: 20
+  }
+])
+
+// ========================================
+// AI CONVERSATION HISTORY
+// ========================================
+
+// Total AI conversations
+db.AIConversationHistory.countDocuments()
+
+// Conversations by lesson
+db.AIConversationHistory.aggregate([
+  {
+    $group: {
+      _id: "$lessonId",
+      conversationCount: { $sum: 1 },
+      totalMessages: { $sum: { $size: "$messages" } }
+    }
+  },
+  {
+    $sort: { totalMessages: -1 }
+  },
+  {
+    $limit: 10
+  }
+])
+
+// Find conversation by session ID
+db.AIConversationHistory.findOne({
+  sessionId: "your-session-id-here"
+}, {
+  sessionId: 1,
+  lessonId: 1,
+  createdAt: 1,
+  messages: { $slice: 20 }  // Last 20 messages
+})
+
+// ========================================
+// RECENT AI INTERACTIONS (Last 24 hours)
+// ========================================
+
+db.AIConversationHistory.find({
+  createdAt: {
+    $gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+  }
+}, {
+  sessionId: 1,
+  lessonId: 1,
+  createdAt: 1,
+  messageCount: { $size: "$messages" }
+}).sort({ createdAt: -1 })
+
+// ========================================
+// VIDEO TRANSLATIONS STATISTICS
+// ========================================
+
+// Total translations
+db.VideoTranslations.countDocuments()
+
+// Translations by target language
+db.VideoTranslations.aggregate([
+  {
+    $group: {
+      _id: "$targetLanguage",
+      count: { $sum: 1 },
+      avgSegments: { $avg: { $size: "$segments" } }
+    }
+  },
+  {
+    $project: {
+      language: "$_id",
+      count: 1,
+      avgSegments: { $round: ["$avgSegments", 0] }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+
+// Find translation by lesson and language
+db.VideoTranslations.findOne({
+  lessonId: "28d88850-81c8-4628-a022-d98378d883e3",
+  targetLanguage: "it"
+}, {
+  lessonId: 1,
+  sourceLanguage: 1,
+  targetLanguage: 1,
+  modelUsed: 1,
+  translatedAt: 1,
+  segments: { $slice: 5 }  // First 5 segments
+})
+
+// ========================================
+// TRANSLATED SUBTITLES CACHE
+// ========================================
+
+// Cache statistics
+db.TranslatedSubtitles.aggregate([
+  {
+    $group: {
+      _id: "$targetLanguage",
+      count: { $sum: 1 },
+      avgCues: { $avg: { $size: "$translatedCues" } }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+
+// Find cached translation
+db.TranslatedSubtitles.findOne({
+  lessonId: "28d88850-81c8-4628-a022-d98378d883e3",
+  targetLanguage: "it"
+}, {
+  lessonId: 1,
+  targetLanguage: 1,
+  createdAt: 1,
+  translatedCues: { $slice: 10 }
+})
+
+// ========================================
+// DATA INTEGRITY CHECKS
+// ========================================
+
+// Lessons with transcript but no AI takeaways
+db.VideoTranscripts.aggregate([
+  {
+    $lookup: {
+      from: "VideoKeyTakeaways",
+      localField: "lessonId",
+      foreignField: "lessonId",
+      as: "takeaways"
+    }
+  },
+  {
+    $match: {
+      takeaways: { $size: 0 }
+    }
+  },
+  {
+    $project: {
+      lessonId: 1,
+      language: 1,
+      transcribedAt: 1
+    }
+  }
+])
+
+// Lessons with AI takeaways but no transcript
+db.VideoKeyTakeaways.aggregate([
+  {
+    $lookup: {
+      from: "VideoTranscripts",
+      localField: "lessonId",
+      foreignField: "lessonId",
+      as: "transcripts"
+    }
+  },
+  {
+    $match: {
+      transcripts: { $size: 0 }
+    }
+  },
+  {
+    $project: {
+      lessonId: 1,
+      generatedAt: 1
+    }
+  }
+])

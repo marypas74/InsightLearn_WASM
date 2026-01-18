@@ -125,7 +125,7 @@ namespace InsightLearn.Application.BackgroundJobs
             RecurringJob.AddOrUpdate<BatchTranscriptProcessor>(
                 "batch-transcript-processor",
                 processor => processor.ProcessAllLessonsAsync(null),
-                Cron.Daily(3), // 3:00 AM UTC every day
+                "30 23 * * *", // 23:30 (11:30 PM) UTC every day
                 new RecurringJobOptions
                 {
                     TimeZone = TimeZoneInfo.Utc

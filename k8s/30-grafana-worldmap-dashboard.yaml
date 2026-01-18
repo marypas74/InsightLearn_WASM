@@ -845,10 +845,11 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "editorMode": "code",
-              "expr": "node_filesystem_avail_bytes{fstype=~\"ext4|xfs|zfs\"}",
-              "legendFormat": "{{mountpoint}}",
+              "expr": "node_filesystem_avail_bytes{fstype=~\"ext[234]|xfs|zfs\",mountpoint=~\"/|/home|/boot|/k3s-zfs\"}",
+              "legendFormat": "{{mountpoint}} ({{fstype}})",
               "range": true,
-              "refId": "A"
+              "refId": "A",
+              "instant": false
             }
           ],
           "title": "📊 Available Space by Partition",
@@ -909,7 +910,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "editorMode": "code",
-              "expr": "node_filesystem_size_bytes{fstype=~\"ext4|xfs|zfs\"}",
+              "expr": "node_filesystem_size_bytes{fstype=~\"ext[234]|xfs|zfs\",mountpoint=~\"/|/home|/boot|/k3s-zfs\"}",
               "format": "table",
               "legendFormat": "__auto",
               "range": true,
@@ -918,7 +919,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "editorMode": "code",
-              "expr": "node_filesystem_avail_bytes{fstype=~\"ext4|xfs|zfs\"}",
+              "expr": "node_filesystem_avail_bytes{fstype=~\"ext[234]|xfs|zfs\",mountpoint=~\"/|/home|/boot|/k3s-zfs\"}",
               "format": "table",
               "legendFormat": "__auto",
               "range": true,
@@ -927,7 +928,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "editorMode": "code",
-              "expr": "100 - ((node_filesystem_avail_bytes{fstype=~\"ext4|xfs|zfs\"} / node_filesystem_size_bytes{fstype=~\"ext4|xfs|zfs\"}) * 100)",
+              "expr": "100 - ((node_filesystem_avail_bytes{fstype=~\"ext[234]|xfs|zfs\",mountpoint=~\"/|/home|/boot|/k3s-zfs\"} / node_filesystem_size_bytes{fstype=~\"ext[234]|xfs|zfs\",mountpoint=~\"/|/home|/boot|/k3s-zfs\"}) * 100)",
               "format": "table",
               "legendFormat": "__auto",
               "range": true,
@@ -1156,6 +1157,124 @@ data:
             }
           ],
           "title": "📈 CPU Load Average",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "OpenAI API token consumption by operation type",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Tokens",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 100000 },
+                  { "color": "red", "value": 500000 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 68 },
+          "id": 19,
+          "options": {
+            "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "rate(insightlearn_openai_tokens_total{token_type=\"total\"}[5m])",
+              "legendFormat": "{{operation_type}} ({{model}})",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "🤖 OpenAI Token Consumption Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Breakdown of prompt vs completion tokens",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Tokens",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "bars",
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "normal" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 68 },
+          "id": 20,
+          "options": {
+            "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum by(token_type) (increase(insightlearn_openai_tokens_total[1h]))",
+              "legendFormat": "{{token_type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "📊 Token Distribution (Prompt vs Completion)",
           "type": "timeseries"
         }
       ],

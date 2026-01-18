@@ -1,0 +1,180 @@
+// MongoDB Playground - Video Statistics
+// Use case: Analisi statistiche video storage GridFS
+
+use('insightlearn_videos');
+
+// ========================================
+// BASIC STATISTICS
+// ========================================
+
+// Total video count
+db.videos.files.countDocuments()
+
+// Total storage size (bytes)
+db.videos.files.aggregate([
+  {
+    $group: {
+      _id: null,
+      totalFiles: { $sum: 1 },
+      totalSizeBytes: { $sum: "$length" },
+      totalSizeMB: { $sum: { $divide: ["$length", 1048576] } },
+      totalSizeGB: { $sum: { $divide: ["$length", 1073741824] } },
+      avgSizeMB: { $avg: { $divide: ["$length", 1048576] } }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      totalFiles: 1,
+      totalSizeMB: { $round: ["$totalSizeMB", 2] },
+      totalSizeGB: { $round: ["$totalSizeGB", 2] },
+      avgSizeMB: { $round: ["$avgSizeMB", 2] }
+    }
+  }
+])
+
+// ========================================
+// VIDEO FORMATS BREAKDOWN
+// ========================================
+
+db.videos.files.aggregate([
+  {
+    $group: {
+      _id: "$metadata.format",
+      count: { $sum: 1 },
+      totalSizeMB: { $sum: { $divide: ["$length", 1048576] } },
+      avgSizeMB: { $avg: { $divide: ["$length", 1048576] } }
+    }
+  },
+  {
+    $project: {
+      format: "$_id",
+      count: 1,
+      totalSizeMB: { $round: ["$totalSizeMB", 2] },
+      avgSizeMB: { $round: ["$avgSizeMB", 2] }
+    }
+  },
+  {
+    $sort: { count: -1 }
+  }
+])
+
+// ========================================
+// LATEST UPLOADS (Last 10)
+// ========================================
+
+db.videos.files.find({}, {
+  _id: 1,
+  filename: 1,
+  length: 1,
+  uploadDate: 1,
+  "metadata.format": 1,
+  "metadata.lessonId": 1
+}).sort({ uploadDate: -1 }).limit(10)
+
+// ========================================
+// LARGEST VIDEOS (Top 10)
+// ========================================
+
+db.videos.files.aggregate([
+  {
+    $project: {
+      _id: 1,
+      filename: 1,
+      sizeMB: { $round: [{ $divide: ["$length", 1048576] }, 2] },
+      uploadDate: 1,
+      format: "$metadata.format"
+    }
+  },
+  {
+    $sort: { sizeMB: -1 }
+  },
+  {
+    $limit: 10
+  }
+])
+
+// ========================================
+// VIDEOS BY DURATION RANGE
+// ========================================
+
+db.videos.files.aggregate([
+  {
+    $bucket: {
+      groupBy: "$metadata.durationMinutes",
+      boundaries: [0, 5, 10, 15, 30, 60, 120],
+      default: "120+",
+      output: {
+        count: { $sum: 1 },
+        avgSizeMB: { $avg: { $divide: ["$length", 1048576] } },
+        videoIds: { $push: "$_id" }
+      }
+    }
+  },
+  {
+    $project: {
+      durationRange: "$_id",
+      count: 1,
+      avgSizeMB: { $round: ["$avgSizeMB", 2] },
+      videoCount: { $size: "$videoIds" }
+    }
+  }
+])
+
+// ========================================
+// UPLOAD ACTIVITY BY MONTH
+// ========================================
+
+db.videos.files.aggregate([
+  {
+    $group: {
+      _id: {
+        year: { $year: "$uploadDate" },
+        month: { $month: "$uploadDate" }
+      },
+      count: { $sum: 1 },
+      totalSizeMB: { $sum: { $divide: ["$length", 1048576] } }
+    }
+  },
+  {
+    $sort: { "_id.year": -1, "_id.month": -1 }
+  },
+  {
+    $project: {
+      _id: 0,
+      year: "$_id.year",
+      month: "$_id.month",
+      count: 1,
+      totalSizeMB: { $round: ["$totalSizeMB", 2] }
+    }
+  }
+])
+
+// ========================================
+// FIND VIDEOS BY LESSON ID
+// ========================================
+
+db.videos.files.find({
+  "metadata.lessonId": "28d88850-81c8-4628-a022-d98378d883e3"
+}, {
+  _id: 1,
+  filename: 1,
+  length: 1,
+  uploadDate: 1
+})
+
+// ========================================
+// VIDEOS WITHOUT METADATA (Data Integrity Check)
+// ========================================
+
+db.videos.files.find({
+  $or: [
+    { "metadata.format": { $exists: false } },
+    { "metadata.lessonId": { $exists: false } },
+    { "metadata.durationMinutes": { $exists: false } }
+  ]
+}, {
+  _id: 1,
+  filename: 1,
+  metadata: 1
+})

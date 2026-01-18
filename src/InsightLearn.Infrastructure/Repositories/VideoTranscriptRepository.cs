@@ -129,11 +129,17 @@ namespace InsightLearn.Infrastructure.Repositories
 
         public async Task<VideoTranscriptMetadata> CreateAsync(Guid lessonId, VideoTranscriptDto transcriptDto, CancellationToken ct = default)
         {
+            // Convert locale code (en-US) to ISO 639-1 (en) for MongoDB text index compatibility
+            // MongoDB text indexes only support 2-letter language codes, not locale codes with region
+            var mongoLanguage = transcriptDto.Language.Contains("-")
+                ? transcriptDto.Language.Split('-')[0]
+                : transcriptDto.Language;
+
             // 1. Save transcript to MongoDB
             var mongoDoc = new BsonDocument
             {
                 { "lessonId", lessonId.ToString() },
-                { "language", transcriptDto.Language },
+                { "language", mongoLanguage },
                 { "processingStatus", transcriptDto.ProcessingStatus },
                 { "transcript", new BsonArray(transcriptDto.Transcript.Select(s => new BsonDocument
                     {
