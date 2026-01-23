@@ -111,7 +111,7 @@
                 {
                     <CourseSkeletonLoader Count="12" />
                 }
-                else if (searchResult?.Courses.Count == 0)
+                else if (searchResult?.Courses?.Count == 0)
                 {
                     <div class="empty-state">
                         <div class="empty-icon">📚</div>
@@ -128,7 +128,7 @@
                         @foreach (var course in searchResult.Courses)
                         {
                             <CourseCard Course="@ConvertToCourse(course)"
-                                        ThumbnailUrl="@(course.ThumbnailUrl ?? "/images/default-course.jpg")"
+                                        ThumbnailUrl="@(course.ThumbnailUrl ?? "/images/default-course.svg")"
                                         InstructorName="@course.InstructorName"
                                         InstructorAvatar="@course.InstructorImageUrl"
                                         Price="@course.CurrentPrice"

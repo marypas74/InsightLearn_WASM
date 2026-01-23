@@ -9,6 +9,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<Detail> Logger
+@inject IToastService ToastService
 
 <PageTitle>@(course?.Title ?? "Course") - InsightLearn</PageTitle>
 
@@ -305,14 +306,19 @@ else
         {
             if (course.IsFree)
             {
-                // Free course - enroll directly
-                var enrollmentDto = new EnrollmentDto
+                // Fix v2.3.63: Actually call enrollment service for free courses
+                var response = await EnrollmentService.EnrollInCourseAsync(course.Id);
+
+                if (response.Success)
                 {
-                    CourseId = course.Id,
-                    EnrolledAt = DateTime.UtcNow
-                };
-                // await EnrollmentService.EnrollAsync(enrollmentDto);
-                Navigation.NavigateTo($"/my-courses");
+                    Logger.LogInformation("User enrolled successfully in free course {CourseId}", course.Id);
+                    Navigation.NavigateTo($"/my-courses");
+                }
+                else
+                {
+                    Logger.LogWarning("Enrollment failed: {Message}", response.Message);
+                    ToastService.ShowError(response.Message ?? "Enrollment failed. Please try again.");
+                }
             }
             else
             {
@@ -322,7 +328,8 @@ else
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error enrolling: {ex.Message}");
+            Logger.LogError(ex, "Exception during enrollment");
+            ToastService.ShowError("An error occurred during enrollment. Please try again.");
         }
     }
 
@@ -330,14 +337,16 @@ else
     {
         if (course == null) return;
         // TODO: Implement cart service
-        await JS.InvokeVoidAsync("alert", "Course added to cart!");
+        ToastService.ShowSuccess("Course added to cart!");
+        await Task.CompletedTask;
     }
 
     private async Task HandleAddToWishlist()
     {
         if (course == null) return;
         // TODO: Implement wishlist service
-        await JS.InvokeVoidAsync("alert", "Course added to wishlist!");
+        ToastService.ShowSuccess("Course added to wishlist!");
+        await Task.CompletedTask;
     }
 
     private void HandlePreviewClick(Guid lessonId)
