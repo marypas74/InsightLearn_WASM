@@ -108,14 +108,16 @@ public class AIServiceFactory : IAIServiceFactory
                     var config = await _configService.GetConfigurationAsync(AIServiceTypes.Transcription);
                     if (config?.EnableFallback == true)
                     {
-                        _logger.LogWarning("[AIFactory] OpenAI API key not available, falling back to faster-whisper");
-                        return _serviceProvider.GetRequiredService<WhisperTranscriptionService>();
+                        _logger.LogWarning("[AIFactory] OpenAI API key not available, falling back to faster-whisper (chunked)");
+                        // v2.3.97-dev: Use IWhisperTranscriptionService which resolves to ChunkedWhisperTranscriptionService
+                        return _serviceProvider.GetRequiredService<IWhisperTranscriptionService>();
                     }
                 }
                 return _serviceProvider.GetRequiredService<OpenAIWhisperService>();
 
             case AIProviders.FasterWhisper:
-                return _serviceProvider.GetRequiredService<WhisperTranscriptionService>();
+                // v2.3.97-dev: Use IWhisperTranscriptionService which resolves to ChunkedWhisperTranscriptionService
+                return _serviceProvider.GetRequiredService<IWhisperTranscriptionService>();
 
             default:
                 _logger.LogWarning("[AIFactory] Unknown transcription provider: {Provider}, defaulting to OpenAI", provider);
