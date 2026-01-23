@@ -183,3 +183,7 @@ educational-content/videos/**/*.m4a
 educational-content/videos/**/*.webm
 educational-content/videos/**/*.mkv
 publish-wasm/
+
+# MCP Debug Tools (local development)
+.mcp-debug-tools/
+.playwright-mcp/
