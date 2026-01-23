@@ -38,7 +38,8 @@ builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddBlazoredToast();
 
 // Configure HttpClient with base address from appsettings
-var apiTimeout = int.Parse(builder.Configuration["ApiSettings:Timeout"] ?? "30");
+// Increased default timeout from 30s to 120s for transcript generation API calls
+var apiTimeout = int.Parse(builder.Configuration["ApiSettings:Timeout"] ?? "120");
 
 // CRITICAL: Use HostEnvironment.BaseAddress as HttpClient base
 // This makes all requests relative to current origin (e.g., http://192.168.49.2:31090/)

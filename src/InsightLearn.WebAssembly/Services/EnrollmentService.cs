@@ -22,7 +22,7 @@ public class EnrollmentService : IEnrollmentService
     public async Task<ApiResponse<List<EnrollmentDto>>> GetUserEnrollmentsAsync()
     {
         _logger.LogDebug("Fetching user enrollments");
-        var response = await _apiClient.GetAsync<List<EnrollmentDto>>("enrollments/my-enrollments");
+        var response = await _apiClient.GetAsync<List<EnrollmentDto>>("/api/enrollments/my-enrollments");
 
         if (response.Success && response.Data != null)
         {
@@ -40,7 +40,7 @@ public class EnrollmentService : IEnrollmentService
     public async Task<ApiResponse<EnrollmentDto>> EnrollInCourseAsync(Guid courseId)
     {
         _logger.LogInformation("Enrolling user in course: {CourseId}", courseId);
-        var response = await _apiClient.PostAsync<EnrollmentDto>(string.Format("enrollments/enroll/{0}", courseId));
+        var response = await _apiClient.PostAsync<EnrollmentDto>(string.Format("/api/enrollments/enroll/{0}", courseId));
 
         if (response.Success && response.Data != null)
         {
@@ -96,7 +96,7 @@ public class EnrollmentService : IEnrollmentService
     public async Task<ApiResponse> UpdateProgressAsync(Guid courseId, int progress)
     {
         _logger.LogInformation("Updating progress for course {CourseId}: {Progress}%", courseId, progress);
-        var response = await _apiClient.PutAsync(string.Format("enrollments/{0}/progress", courseId), new { Progress = progress });
+        var response = await _apiClient.PutAsync(string.Format("/api/enrollments/{0}/progress", courseId), new { Progress = progress });
 
         if (response.Success)
         {

@@ -53,7 +53,17 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
 
         try
         {
-            _cachedDeviceInfo = await _jsRuntime.InvokeAsync<DeviceInfo>("deviceDetection.getDeviceInfo");
+            var deviceInfo = await _jsRuntime.InvokeAsync<DeviceInfo>("deviceDetection.getDeviceInfo");
+
+            // Fix v2.3.63: Add null check to prevent NullReferenceException
+            if (deviceInfo == null)
+            {
+                _logger.LogWarning("Device detection returned null, using fallback");
+                _cachedDeviceInfo = GetFallbackDeviceInfo();
+                return _cachedDeviceInfo;
+            }
+
+            _cachedDeviceInfo = deviceInfo;
             _logger.LogInformation("Device info retrieved: DeviceType={DeviceType}, Browser={Browser}, OS={OS}, IsTouch={IsTouch}",
                 _cachedDeviceInfo.DeviceType, _cachedDeviceInfo.Browser, _cachedDeviceInfo.OperatingSystem, _cachedDeviceInfo.IsTouch);
             return _cachedDeviceInfo;
@@ -61,7 +71,8 @@ public class DeviceDetectionService : IDeviceDetectionService, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting device info, using fallback: {ErrorMessage}", ex.Message);
-            return GetFallbackDeviceInfo();
+            _cachedDeviceInfo = GetFallbackDeviceInfo();
+            return _cachedDeviceInfo;
         }
     }
 
