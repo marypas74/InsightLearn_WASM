@@ -12,25 +12,25 @@ using InsightLearn.Core.Interfaces;
 namespace InsightLearn.Application.Services
 {
     /// <summary>
-    /// AI Chat service implementation with OpenAI integration and context enrichment.
-    /// Migrated from Ollama to OpenAI GPT-4 for improved performance and reliability.
+    /// AI Chat service implementation with dynamic provider selection (OpenAI/Ollama).
+    /// Uses IAIServiceFactory to select provider at runtime based on admin configuration.
     /// Part of Student Learning Space v2.1.0.
     /// </summary>
     public class AIChatService : IAIChatService
     {
         private readonly IAIConversationRepository _conversationRepository;
-        private readonly IOpenAILearningAssistantService _openAIService;
+        private readonly IAIServiceFactory _serviceFactory;
         private readonly IVideoTranscriptService? _transcriptService;
         private readonly ILogger<AIChatService> _logger;
 
         public AIChatService(
             IAIConversationRepository conversationRepository,
-            IOpenAILearningAssistantService openAIService,
+            IAIServiceFactory serviceFactory,
             ILogger<AIChatService> logger,
             IVideoTranscriptService? transcriptService = null)
         {
             _conversationRepository = conversationRepository ?? throw new ArgumentNullException(nameof(conversationRepository));
-            _openAIService = openAIService ?? throw new ArgumentNullException(nameof(openAIService));
+            _serviceFactory = serviceFactory ?? throw new ArgumentNullException(nameof(serviceFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcriptService = transcriptService;
         }
@@ -90,7 +90,7 @@ namespace InsightLearn.Application.Services
 
             var enrichedPrompt = await BuildEnrichedPromptAsync(messageDto, contextInfo, ct);
 
-            // 4. Get AI response from OpenAI (migrated from Ollama)
+            // 4. Get AI response from configured provider (OpenAI or Ollama via factory)
             string aiResponse;
             try
             {
@@ -100,20 +100,45 @@ namespace InsightLearn.Application.Services
                     .Select(m => new ChatMessage { Role = m.Role, Content = m.Content })
                     .ToList();
 
-                aiResponse = await _openAIService.SendMessageAsync(
-                    userMessage: enrichedPrompt,
-                    systemPrompt: "You are a helpful educational AI assistant focused on helping students learn effectively. " +
+                const string systemPrompt = "You are a helpful educational AI assistant focused on helping students learn effectively. " +
                                   "Answer questions based on video content, transcripts, and student notes. " +
-                                  "Be concise, clear, and encouraging.",
-                    conversationHistory: chatHistory,
-                    operationType: "educational-chat",
-                    ct: ct);
+                                  "Be concise, clear, and encouraging.";
 
-                _logger.LogInformation("[AI_CHAT] OpenAI generated response with {Length} characters", aiResponse.Length);
+                // Try to get OpenAI service first (primary provider based on config)
+                var openAIService = await _serviceFactory.GetChatServiceAsync();
+                if (openAIService != null)
+                {
+                    _logger.LogInformation("[AI_CHAT] Using OpenAI provider for chat");
+                    aiResponse = await openAIService.SendMessageAsync(
+                        userMessage: enrichedPrompt,
+                        systemPrompt: systemPrompt,
+                        conversationHistory: chatHistory,
+                        operationType: "educational-chat",
+                        ct: ct);
+                    _logger.LogInformation("[AI_CHAT] OpenAI generated response with {Length} characters", aiResponse.Length);
+                }
+                else
+                {
+                    // Fall back to Ollama if available
+                    var ollamaService = _serviceFactory.GetOllamaService();
+                    if (ollamaService != null)
+                    {
+                        _logger.LogInformation("[AI_CHAT] Using Ollama provider for chat (OpenAI not available)");
+                        aiResponse = await ollamaService.GenerateResponseAsync(
+                            prompt: $"{systemPrompt}\n\n{enrichedPrompt}",
+                            cancellationToken: ct);
+                        _logger.LogInformation("[AI_CHAT] Ollama generated response with {Length} characters", aiResponse.Length);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[AI_CHAT] No AI provider available");
+                        aiResponse = "I apologize, but no AI service is currently configured. Please contact the administrator.";
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[AI_CHAT] OpenAI failed to generate response");
+                _logger.LogError(ex, "[AI_CHAT] AI provider failed to generate response");
                 aiResponse = "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.";
             }
 
@@ -200,11 +225,24 @@ namespace InsightLearn.Application.Services
         {
             try
             {
-                return await _ollamaService.IsAvailableAsync();
+                // Check if any AI provider is available (OpenAI or Ollama)
+                var openAIService = await _serviceFactory.GetChatServiceAsync();
+                if (openAIService != null)
+                {
+                    return await openAIService.IsAvailableAsync();
+                }
+
+                var ollamaService = _serviceFactory.GetOllamaService();
+                if (ollamaService != null)
+                {
+                    return await ollamaService.IsAvailableAsync();
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[AI_CHAT] Error checking Ollama availability");
+                _logger.LogWarning(ex, "[AI_CHAT] Error checking AI provider availability");
                 return false;
             }
         }

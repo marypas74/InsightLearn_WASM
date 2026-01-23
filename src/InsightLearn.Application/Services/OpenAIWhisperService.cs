@@ -182,7 +182,7 @@ public class OpenAIWhisperService : IWhisperTranscriptionService
         return new TranscriptionResult
         {
             LessonId = lessonId,
-            Language = result.Language ?? language,
+            Language = language, // Use original normalized language (xx-XX format), not Whisper API response (xx only)
             Segments = segments,
             DurationSeconds = result.Duration,
             TranscribedAt = DateTime.UtcNow,

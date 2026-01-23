@@ -44,9 +44,9 @@ public class OpenAILearningAssistantService : IOpenAILearningAssistantService
         _model = configuration["OpenAI:ChatModel"] ?? "gpt-4-turbo-preview"; // or gpt-4, gpt-3.5-turbo
         _temperature = double.Parse(configuration["OpenAI:Temperature"] ?? "0.7");
 
-        _httpClient.BaseAddress = new Uri("https://api.openai.com");
-        _httpClient.Timeout = TimeSpan.FromMinutes(2);
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        // Note: BaseAddress, Timeout, and Authorization header are already configured
+        // by the "OpenAI" HttpClient factory in Program.cs (lines 663-670)
+        // Do NOT set them here to avoid "header does not support multiple values" error
 
         _logger.LogInformation("[OpenAI Assistant] Initialized with model: {Model}, Temperature: {Temperature}",
             _model, _temperature);
@@ -202,7 +202,10 @@ public class OpenAILearningAssistantService : IOpenAILearningAssistantService
         HttpResponseMessage response;
         try
         {
-            response = await _httpClient.PostAsync("/v1/chat/completions", content, HttpCompletionOption.ResponseHeadersRead, ct);
+            // Use SendAsync with HttpCompletionOption.ResponseHeadersRead for streaming
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/chat/completions");
+            request.Content = content;
+            response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -241,30 +244,34 @@ public class OpenAILearningAssistantService : IOpenAILearningAssistantService
                 break;
             }
 
+            // Parse chunk outside try-catch to allow yield return
+            StreamChunkResponse? chunk = null;
             try
             {
-                var chunk = JsonSerializer.Deserialize<StreamChunkResponse>(data);
-                if (chunk?.Choices != null && chunk.Choices.Any())
-                {
-                    var delta = chunk.Choices[0].Delta?.Content;
-                    if (!string.IsNullOrEmpty(delta))
-                    {
-                        fullResponse.Append(delta);
-                        yield return delta;
-                    }
-
-                    // Track token usage if available
-                    if (chunk.Usage != null)
-                    {
-                        totalPromptTokens = chunk.Usage.PromptTokens;
-                        totalCompletionTokens = chunk.Usage.CompletionTokens;
-                    }
-                }
+                chunk = JsonSerializer.Deserialize<StreamChunkResponse>(data);
             }
             catch (JsonException ex)
             {
                 _logger.LogWarning(ex, "[OpenAI Assistant] Failed to parse streaming chunk: {Data}", data);
                 // Continue processing next chunks
+                continue;
+            }
+
+            if (chunk?.Choices != null && chunk.Choices.Any())
+            {
+                var delta = chunk.Choices[0].Delta?.Content;
+                if (!string.IsNullOrEmpty(delta))
+                {
+                    fullResponse.Append(delta);
+                    yield return delta;
+                }
+
+                // Track token usage if available
+                if (chunk.Usage != null)
+                {
+                    totalPromptTokens = chunk.Usage.PromptTokens;
+                    totalCompletionTokens = chunk.Usage.CompletionTokens;
+                }
             }
         }
 
@@ -425,6 +432,39 @@ Guidelines:
 
         return translation.Trim();
     }
+
+    /// <summary>
+    /// Check if OpenAI service is available (API key configured and reachable)
+    /// </summary>
+    public async Task<bool> IsAvailableAsync()
+    {
+        try
+        {
+            // Simple availability check - verify API key is configured and not empty
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                _logger.LogWarning("[OpenAI Assistant] API key not configured");
+                return false;
+            }
+
+            // Test API connectivity with a minimal request to models endpoint
+            var response = await _httpClient.GetAsync("/v1/models", HttpCompletionOption.ResponseHeadersRead);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("[OpenAI Assistant] Service available - API reachable");
+                return true;
+            }
+
+            _logger.LogWarning("[OpenAI Assistant] API returned status {StatusCode}", response.StatusCode);
+            return response.StatusCode != System.Net.HttpStatusCode.Unauthorized; // Available but maybe rate limited
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[OpenAI Assistant] Service availability check failed");
+            return false;
+        }
+    }
 }
 
 /// <summary>
@@ -466,6 +506,11 @@ public interface IOpenAILearningAssistantService
         List<ChatMessage>? conversationHistory = null,
         string operationType = "chat",
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Check if OpenAI service is available (API key configured and reachable)
+    /// </summary>
+    Task<bool> IsAvailableAsync();
 }
 
 /// <summary>
