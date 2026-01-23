@@ -129,6 +129,16 @@ spec:
             secretKeyRef:
               name: insightlearn-secrets
               key: mongodb-connection-string
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: admin-password
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: insightlearn-secrets
+              key: admin-email
         - name: ASPNETCORE_Kestrel__Certificates__Default__Path
           value: "/https/tls.crt"
         - name: ASPNETCORE_Kestrel__Certificates__Default__KeyPath

@@ -398,25 +398,25 @@ data:
           "description": "HTTP requests from website visitors captured by nginx-geoip logs. Shows the volume of page views and API calls over time.",
           "fieldConfig": {
             "defaults": {
-              "color": { "fixedColor": "blue", "mode": "fixed" },
+              "color": { "fixedColor": "super-light-blue", "mode": "palette-classic" },
               "custom": {
                 "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
-                "axisLabel": "HTTP Requests per Interval",
-                "axisPlacement": "auto",
+                "axisLabel": "HTTP Requests",
+                "axisPlacement": "left",
                 "barAlignment": 0,
-                "drawStyle": "bars",
-                "fillOpacity": 50,
+                "drawStyle": "line",
+                "fillOpacity": 25,
                 "gradientMode": "opacity",
                 "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                 "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 4,
                 "scaleDistribution": { "type": "linear" },
-                "showPoints": "never",
-                "spanNulls": false,
+                "showPoints": "auto",
+                "spanNulls": true,
                 "stacking": { "group": "A", "mode": "none" },
                 "thresholdsStyle": { "mode": "off" }
               },
@@ -424,26 +424,29 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  { "color": "green", "value": null }
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 100 },
+                  { "color": "red", "value": 500 }
                 ]
               },
-              "unit": "short"
+              "unit": "short",
+              "min": 0
             },
             "overrides": []
           },
-          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 35 },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 },
           "id": 6,
           "options": {
-            "legend": { "calcs": ["sum", "mean"], "displayMode": "list", "placement": "bottom", "showLegend": true },
-            "tooltip": { "mode": "single", "sort": "none" }
+            "legend": { "calcs": ["sum", "mean", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "all", "sort": "desc" }
           },
           "pluginVersion": "10.2.0",
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
               "editorMode": "code",
-              "expr": "sum(count_over_time({job=\"nginx-geoip\"} [$__interval]))",
-              "legendFormat": "Website Visitor Requests",
+              "expr": "sum(count_over_time({job=\"nginx-geoip\"} [1m]))",
+              "legendFormat": "HTTP Requests/min",
               "queryType": "range",
               "refId": "A"
             }
@@ -1276,6 +1279,293 @@ data:
           ],
           "title": "📊 Token Distribution (Prompt vs Completion)",
           "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Estimated OpenAI API costs based on GPT-4 Turbo pricing: $10/1M prompt tokens, $30/1M completion tokens",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Cost ($)",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 30,
+                "gradientMode": "opacity",
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": { "type": "linear" },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "normal" },
+                "thresholdsStyle": { "mode": "line+area" }
+              },
+              "decimals": 4,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.10 },
+                  { "color": "orange", "value": 0.50 },
+                  { "color": "red", "value": 1.00 }
+                ]
+              },
+              "unit": "currencyUSD"
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Prompt Cost" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Completion Cost" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Total Cost" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 76 },
+          "id": 21,
+          "options": {
+            "legend": { "calcs": ["sum", "mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "increase(insightlearn_openai_tokens_total{token_type=\"prompt\"}[1h]) * 0.00001",
+              "legendFormat": "Prompt Cost",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "increase(insightlearn_openai_tokens_total{token_type=\"completion\"}[1h]) * 0.00003",
+              "legendFormat": "Completion Cost",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "(increase(insightlearn_openai_tokens_total{token_type=\"prompt\"}[1h]) * 0.00001) + (increase(insightlearn_openai_tokens_total{token_type=\"completion\"}[1h]) * 0.00003)",
+              "legendFormat": "Total Cost",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "💰 OpenAI Token Costs (GPT-4 Turbo Pricing)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Real-time total estimated cost for OpenAI API usage. Shows cumulative spend since metrics started.",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "decimals": 4,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1.00 },
+                  { "color": "orange", "value": 5.00 },
+                  { "color": "red", "value": 10.00 }
+                ]
+              },
+              "unit": "currencyUSD"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 76 },
+          "id": 22,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "(insightlearn_openai_tokens_total{token_type=\"prompt\"} * 0.00001) + (insightlearn_openai_tokens_total{token_type=\"completion\"} * 0.00003)",
+              "legendFormat": "Total Cost",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "💵 Total Estimated Cost",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Token count totals for prompt and completion",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null },
+                  { "color": "green", "value": 1000 },
+                  { "color": "yellow", "value": 100000 },
+                  { "color": "red", "value": 1000000 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 4, "w": 4, "x": 16, "y": 76 },
+          "id": 23,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "insightlearn_openai_tokens_total{token_type=\"prompt\"}",
+              "legendFormat": "Prompt",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "📝 Total Prompt Tokens",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Total completion tokens used",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "orange", "value": null },
+                  { "color": "green", "value": 1000 },
+                  { "color": "yellow", "value": 100000 },
+                  { "color": "red", "value": 1000000 }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 4, "w": 4, "x": 20, "y": 76 },
+          "id": 24,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "insightlearn_openai_tokens_total{token_type=\"completion\"}",
+              "legendFormat": "Completion",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "✍️ Total Completion Tokens",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Cost breakdown by token type - Pie chart visualization",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
+              "decimals": 4,
+              "mappings": [],
+              "unit": "currencyUSD"
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Prompt Cost" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+                ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Completion Cost" },
+                "properties": [
+                  { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 4, "w": 12, "x": 12, "y": 80 },
+          "id": 25,
+          "options": {
+            "displayLabels": ["name", "value", "percent"],
+            "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+          },
+          "pluginVersion": "10.2.0",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "insightlearn_openai_tokens_total{token_type=\"prompt\"} * 0.00001",
+              "legendFormat": "Prompt Cost",
+              "instant": true,
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "insightlearn_openai_tokens_total{token_type=\"completion\"} * 0.00003",
+              "legendFormat": "Completion Cost",
+              "instant": true,
+              "refId": "B"
+            }
+          ],
+          "title": "🥧 Cost Distribution (Prompt vs Completion)",
+          "type": "piechart"
         }
       ],
       "refresh": "2m",
