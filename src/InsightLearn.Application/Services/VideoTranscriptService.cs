@@ -91,12 +91,21 @@ namespace InsightLearn.Application.Services
         {
             _logger.LogInformation("Queueing transcript generation for lesson {LessonId}, language {Language}", lessonId, language);
 
-            // Check if transcript already exists
-            var metadata = await _repository.GetMetadataAsync(lessonId, ct);
-            if (metadata != null)
+            // v2.3.99-dev: Check if transcript already exists in MongoDB (not just metadata)
+            var existingTranscript = await _repository.GetByLessonIdAsync(lessonId, ct);
+            if (existingTranscript != null && existingTranscript.ProcessingStatus == "Completed")
             {
-                _logger.LogWarning("Transcript already exists for lesson {LessonId}, status: {Status}", lessonId, metadata.Status);
-                return metadata.Status;
+                _logger.LogWarning("[TRANSCRIPT] Transcript already exists for lesson {LessonId}, language {Language}. Skipping queue.",
+                    lessonId, existingTranscript.Language);
+                return $"EXISTS:{existingTranscript.Language}";
+            }
+
+            // Check if transcript is already being processed (status in metadata)
+            var metadata = await _repository.GetMetadataAsync(lessonId, ct);
+            if (metadata != null && (metadata.Status == "Queued" || metadata.Status == "Processing"))
+            {
+                _logger.LogWarning("[TRANSCRIPT] Transcript already in progress for lesson {LessonId}, status: {Status}", lessonId, metadata.Status);
+                return $"IN_PROGRESS:{metadata.Status}";
             }
 
             // ✅ FIXED (v2.3.50-dev-fix3): Implement proper Hangfire job queueing
@@ -114,7 +123,17 @@ namespace InsightLearn.Application.Services
 
         public async Task<VideoTranscriptDto> GenerateTranscriptAsync(Guid lessonId, string videoUrl, string language = "en-US", CancellationToken ct = default)
         {
-            _logger.LogInformation("Starting transcript generation for lesson {LessonId}", lessonId);
+            _logger.LogInformation("Starting transcript generation for lesson {LessonId}, language {Language}", lessonId, language);
+
+            // v2.3.99-dev: Check if transcript already exists for this lesson/language to prevent duplicates
+            var normalizedLang = NormalizeLanguageCode(language);
+            var existingTranscript = await _repository.GetByLessonIdAsync(lessonId, ct);
+            if (existingTranscript != null && existingTranscript.ProcessingStatus == "Completed")
+            {
+                _logger.LogWarning("[TRANSCRIPT] Transcript already exists for lesson {LessonId}, language {Language}. Returning existing.",
+                    lessonId, existingTranscript.Language);
+                return existingTranscript;
+            }
 
             try
             {
