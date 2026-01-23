@@ -1,0 +1,268 @@
+@* TranscriptJobCard.razor - Card component for real-time transcript job monitoring *@
+@* v2.3.83-dev: Real-time monitoring with chunk visualization *@
+@* v2.3.93-dev: Added delete button for completed/failed transcriptions *@
+@* v2.3.95-dev: Improved delete button visibility (red border, background) *@
+
+<div class="transcript-job-card @GetStatusClass()">
+    <div class="job-header">
+        <div class="job-icon">
+            <i class="fas @GetPhaseIcon()"></i>
+        </div>
+        <div class="job-info">
+            <h4 class="job-title">@(LessonTitle ?? $"Lesson {Job?.LessonId.ToString().Substring(0, 8)}...")</h4>
+            <span class="job-id">ID: @Job?.LessonId.ToString().Substring(0, 8)...</span>
+        </div>
+        <div class="job-header-actions">
+            <div class="job-status-badge @GetStatusBadgeClass()">
+                <i class="fas @GetStatusIcon()"></i>
+                @Job?.Status
+            </div>
+            @if (CanDelete())
+            {
+                <button class="btn-delete-transcript" @onclick="HandleDelete" disabled="@isDeleting" title="Delete transcript">
+                    @if (isDeleting)
+                    {
+                        <i class="fas fa-spinner fa-spin"></i>
+                    }
+                    else
+                    {
+                        <i class="fas fa-trash-alt"></i>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="job-progress-section">
+        <div class="progress-header">
+            <span class="phase-label">@GetPhaseLabel()</span>
+            <span class="progress-percent">@(Job?.ProgressPercentage ?? 0)%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill @GetProgressBarClass()" style="width: @(Job?.ProgressPercentage ?? 0)%"></div>
+        </div>
+    </div>
+
+    @if (ShowChunks && Job != null)
+    {
+        <div class="chunks-section">
+            <span class="chunks-label">Chunks:</span>
+            <div class="chunk-indicators">
+                @for (int i = 1; i <= (Job.ChunkCount > 0 ? Job.ChunkCount : 10); i++)
+                {
+                    var chunkClass = GetChunkClass(i, Job.CompletedChunks, Job.CurrentChunk);
+                    <div class="chunk @chunkClass" title="Chunk @i">
+                        @if (chunkClass == "chunk-completed")
+                        {
+                            <i class="fas fa-check"></i>
+                        }
+                        else if (chunkClass == "chunk-current")
+                        {
+                            <i class="fas fa-spinner fa-spin"></i>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="job-details">
+        <div class="detail-item">
+            <i class="fas fa-clock"></i>
+            <span>@FormatElapsedTime()</span>
+        </div>
+        @if (Job?.VideoDurationSeconds > 0)
+        {
+            <div class="detail-item">
+                <i class="fas fa-video"></i>
+                <span>@FormatDuration(Job.VideoDurationSeconds)</span>
+            </div>
+        }
+        <div class="detail-item">
+            <i class="fas fa-calendar"></i>
+            <span>@(Job?.QueuedAt.ToString("HH:mm:ss") ?? "N/A")</span>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Job?.StatusMessage))
+    {
+        <div class="job-message">
+            <i class="fas fa-info-circle"></i>
+            <span>@Job.StatusMessage</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Job?.ErrorMessage))
+    {
+        <div class="job-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>@Job.ErrorMessage</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public TranscriptJobDto? Job { get; set; }
+
+    [Parameter]
+    public string? LessonTitle { get; set; }
+
+    [Parameter]
+    public bool ShowChunks { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<Guid> OnDelete { get; set; }
+
+    private bool isDeleting = false;
+
+    private bool CanDelete()
+    {
+        // Only allow delete for completed or failed jobs
+        return Job?.Status == "Completed" || Job?.Status == "Failed" || Job?.Status == "Timeout";
+    }
+
+    private async Task HandleDelete()
+    {
+        if (Job == null || isDeleting) return;
+
+        isDeleting = true;
+        try
+        {
+            await OnDelete.InvokeAsync(Job.LessonId);
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private string GetStatusClass()
+    {
+        return Job?.Status switch
+        {
+            "Completed" => "status-completed",
+            "Failed" or "Timeout" => "status-failed",
+            "Queued" => "status-queued",
+            _ => "status-processing"
+        };
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        return Job?.Status switch
+        {
+            "Completed" => "badge-success",
+            "Failed" or "Timeout" => "badge-danger",
+            "Queued" => "badge-secondary",
+            _ => "badge-primary"
+        };
+    }
+
+    private string GetStatusIcon()
+    {
+        return Job?.Status switch
+        {
+            "Completed" => "fa-check-circle",
+            "Failed" or "Timeout" => "fa-times-circle",
+            "Queued" => "fa-clock",
+            _ => "fa-spinner fa-spin"
+        };
+    }
+
+    private string GetPhaseIcon()
+    {
+        return Job?.Phase switch
+        {
+            "Queued" => "fa-hourglass-start",
+            "Downloading" => "fa-download",
+            "ExtractingAudio" => "fa-music",
+            "Transcribing" => "fa-microphone",
+            "Saving" => "fa-save",
+            "Completed" => "fa-check",
+            "Failed" or "Timeout" => "fa-exclamation-triangle",
+            _ => "fa-cog"
+        };
+    }
+
+    private string GetPhaseLabel()
+    {
+        return Job?.Phase switch
+        {
+            "Queued" => "In coda...",
+            "Downloading" => "Download video...",
+            "ExtractingAudio" => "Estrazione audio...",
+            "Transcribing" => "Trascrizione in corso...",
+            "Saving" => "Salvataggio...",
+            "Completed" => "Completato",
+            "Failed" => "Fallito",
+            "Timeout" => "Timeout",
+            _ => Job?.Phase ?? "Unknown"
+        };
+    }
+
+    private string GetProgressBarClass()
+    {
+        return Job?.Status switch
+        {
+            "Completed" => "progress-success",
+            "Failed" or "Timeout" => "progress-danger",
+            _ => "progress-animated"
+        };
+    }
+
+    private string GetChunkClass(int chunkIndex, int completedChunks, int currentChunk)
+    {
+        if (chunkIndex <= completedChunks)
+            return "chunk-completed";
+        if (chunkIndex == currentChunk)
+            return "chunk-current";
+        return "chunk-pending";
+    }
+
+    private string FormatElapsedTime()
+    {
+        if (Job?.ElapsedSeconds == null || Job.ElapsedSeconds <= 0)
+            return "0s";
+
+        var elapsed = TimeSpan.FromSeconds(Job.ElapsedSeconds);
+        if (elapsed.TotalHours >= 1)
+            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m {elapsed.Seconds}s";
+        if (elapsed.TotalMinutes >= 1)
+            return $"{elapsed.Minutes}m {elapsed.Seconds}s";
+        return $"{elapsed.Seconds}s";
+    }
+
+    private string FormatDuration(double? seconds)
+    {
+        if (seconds == null || seconds <= 0)
+            return "N/A";
+
+        var duration = TimeSpan.FromSeconds(seconds.Value);
+        if (duration.TotalHours >= 1)
+            return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+        return $"{duration.Minutes}m {duration.Seconds}s";
+    }
+
+    // DTO for transcript job data
+    // v2.3.94-dev: Added HangfireJobId field to match API response
+    public class TranscriptJobDto
+    {
+        public Guid Id { get; set; }
+        public Guid LessonId { get; set; }
+        public string Phase { get; set; } = "Queued";
+        public string Status { get; set; } = "Queued";
+        public int ProgressPercentage { get; set; }
+        public string? StatusMessage { get; set; }
+        public double? VideoDurationSeconds { get; set; }
+        public double ElapsedSeconds { get; set; }
+        public string? ErrorMessage { get; set; }
+        public DateTime QueuedAt { get; set; }
+        public DateTime? StartedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public int ChunkCount { get; set; } = 10;
+        public int CompletedChunks { get; set; }
+        public int CurrentChunk { get; set; }
+        public string? HangfireJobId { get; set; }  // Added to match API response
+    }
+}

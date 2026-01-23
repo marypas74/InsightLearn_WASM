@@ -2,7 +2,9 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager Navigation
 @inject Blazored.Toast.Services.IToastService Toast
+@inject HttpClient Http
 @using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
 
 <PageTitle>System Settings - InsightLearn Admin</PageTitle>
 
@@ -33,6 +35,9 @@
         </button>
         <button class="settings-tab @(activeTab == "features" ? "active" : "")" @onclick='() => SetActiveTab("features")'>
             <i class="fas fa-toggle-on"></i> Features
+        </button>
+        <button class="settings-tab @(activeTab == "ai" ? "active" : "")" @onclick='() => SetActiveTab("ai")'>
+            <i class="fas fa-robot"></i> AI Services
         </button>
     </div>
 
@@ -501,24 +506,461 @@
             </div>
         }
 
-        <!-- Save Button (shown on all tabs) -->
-        <div class="settings-footer">
-            <button class="btn btn-secondary" @onclick="ResetSettings">
-                <i class="fas fa-undo"></i> Reset to Defaults
-            </button>
-            <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
-                @if (isSaving)
+        @if (activeTab == "ai")
+        {
+            <div class="settings-section">
+                <h3 class="section-title">AI Services Configuration</h3>
+                <p class="section-description">Configure AI providers for chat, transcription, and translation</p>
+
+                @if (isLoadingAIConfig)
                 {
-                    <span class="spinner spinner-sm"></span>
-                    <span>Saving...</span>
+                    <div class="loading-container">
+                        <span class="spinner"></span>
+                        <p>Loading AI configurations...</p>
+                    </div>
                 }
                 else
                 {
-                    <i class="fas fa-save"></i>
-                    <span>Save Changes</span>
+                    <!-- AI Chat Assistant -->
+                    <div class="settings-card">
+                        <h4 class="subsection-title"><i class="fas fa-comments"></i> AI Chat Assistant</h4>
+                        <p class="card-description">Powers the learning assistant chatbot</p>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Active Provider</label>
+                                <span class="setting-description">Select AI provider for chat</span>
+                            </div>
+                            <div class="setting-control">
+                                <select class="form-control" @bind="chatConfig.ActiveProvider">
+                                    <option value="OpenAI">OpenAI (GPT-4)</option>
+                                    <option value="Ollama">Ollama (Local)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        @if (chatConfig.ActiveProvider == "OpenAI")
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">OpenAI API Key</label>
+                                    <span class="setting-description">
+                                        @if (chatConfig.HasOpenAIApiKey)
+                                        {
+                                            <span class="status-badge status-success">Configured: @chatConfig.OpenAIApiKeyMasked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-warning">Not configured</span>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="setting-control api-key-control">
+                                    <input type="@(showChatApiKey ? "text" : "password")"
+                                           class="form-control"
+                                           @bind="chatConfig.NewApiKey"
+                                           placeholder="@(chatConfig.HasOpenAIApiKey ? "Enter new key to replace" : "sk-...")" />
+                                    <button class="btn btn-icon" @onclick="() => showChatApiKey = !showChatApiKey" title="@(showChatApiKey ? "Hide" : "Show")">
+                                        <i class="fas @(showChatApiKey ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                    @if (chatConfig.HasOpenAIApiKey)
+                                    {
+                                        <button class="btn btn-danger btn-sm" @onclick="@(() => RemoveApiKey("Chat"))" title="Remove API Key">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">OpenAI Model</label>
+                                    <span class="setting-description">GPT model to use</span>
+                                </div>
+                                <div class="setting-control">
+                                    <select class="form-control" @bind="chatConfig.OpenAIModel">
+                                        <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
+                                        <option value="gpt-4">GPT-4</option>
+                                        <option value="gpt-4o">GPT-4o</option>
+                                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                    </select>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Ollama Base URL</label>
+                                    <span class="setting-description">URL of Ollama service</span>
+                                </div>
+                                <div class="setting-control">
+                                    <input type="url" class="form-control" @bind="chatConfig.OllamaBaseUrl" placeholder="http://ollama-service:11434" />
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Ollama Model</label>
+                                    <span class="setting-description">Select from available models</span>
+                                </div>
+                                <div class="setting-control model-select-control">
+                                    <select class="form-control" @bind="chatConfig.OllamaModel">
+                                        @if (ollamaModels.Any())
+                                        {
+                                            @foreach (var model in ollamaModels)
+                                            {
+                                                <option value="@model.Name">@model.Name (@model.SizeFormatted)</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="qwen2.5:3b">qwen2.5:3b</option>
+                                            <option value="llama3.2:3b">llama3.2:3b</option>
+                                            <option value="mistral:7b">mistral:7b</option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-secondary btn-sm" @onclick="RefreshOllamaModels" disabled="@isRefreshingModels">
+                                        <i class="fas @(isRefreshingModels ? "fa-spinner fa-spin" : "fa-sync")"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Temperature</label>
+                                <span class="setting-description">Response creativity (0-2)</span>
+                            </div>
+                            <div class="setting-control">
+                                <input type="number" class="form-control" @bind="chatConfig.Temperature" min="0" max="2" step="0.1" />
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Fallback</label>
+                                <span class="setting-description">Auto-switch to backup provider on failure</span>
+                            </div>
+                            <div class="setting-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" @bind="chatConfig.EnableFallback" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" @onclick="@(() => TestConnection("Chat"))" disabled="@isTestingChat">
+                                @if (isTestingChat)
+                                {
+                                    <span class="spinner spinner-sm"></span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-plug"></i>
+                                }
+                                Test Connection
+                            </button>
+                            @if (chatConnectionStatus != null)
+                            {
+                                <span class="connection-status @(chatConnectionStatus.Success ? "success" : "error")">
+                                    <i class="fas @(chatConnectionStatus.Success ? "fa-check-circle" : "fa-times-circle")"></i>
+                                    @chatConnectionStatus.Message (@chatConnectionStatus.ResponseTimeMs ms)
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Video Transcription -->
+                    <div class="settings-card">
+                        <h4 class="subsection-title"><i class="fas fa-file-audio"></i> Video Transcription</h4>
+                        <p class="card-description">Converts video audio to text for subtitles and search</p>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Active Provider</label>
+                                <span class="setting-description">Select transcription service</span>
+                            </div>
+                            <div class="setting-control">
+                                <select class="form-control" @bind="transcriptionConfig.ActiveProvider">
+                                    <option value="OpenAI">OpenAI Whisper (Cloud)</option>
+                                    <option value="FasterWhisper">Faster-Whisper (Local)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        @if (transcriptionConfig.ActiveProvider == "OpenAI")
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">OpenAI API Key</label>
+                                    <span class="setting-description">
+                                        @if (transcriptionConfig.HasOpenAIApiKey)
+                                        {
+                                            <span class="status-badge status-success">Configured: @transcriptionConfig.OpenAIApiKeyMasked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-warning">Not configured</span>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="setting-control api-key-control">
+                                    <input type="@(showTranscriptionApiKey ? "text" : "password")"
+                                           class="form-control"
+                                           @bind="transcriptionConfig.NewApiKey"
+                                           placeholder="@(transcriptionConfig.HasOpenAIApiKey ? "Enter new key to replace" : "sk-...")" />
+                                    <button class="btn btn-icon" @onclick="() => showTranscriptionApiKey = !showTranscriptionApiKey">
+                                        <i class="fas @(showTranscriptionApiKey ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                    @if (transcriptionConfig.HasOpenAIApiKey)
+                                    {
+                                        <button class="btn btn-danger btn-sm" @onclick="@(() => RemoveApiKey("Transcription"))">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="info-box info-box-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>OpenAI Whisper: Cloud-based, fast, costs ~$0.006/minute</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Faster-Whisper URL</label>
+                                    <span class="setting-description">URL of local Whisper service</span>
+                                </div>
+                                <div class="setting-control">
+                                    <input type="url" class="form-control" @bind="transcriptionConfig.FasterWhisperUrl" placeholder="http://faster-whisper:8000" />
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Model</label>
+                                    <span class="setting-description">Whisper model size</span>
+                                </div>
+                                <div class="setting-control">
+                                    <select class="form-control" @bind="transcriptionConfig.FasterWhisperModel">
+                                        <option value="tiny">Tiny (fastest, less accurate)</option>
+                                        <option value="base">Base</option>
+                                        <option value="small">Small</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="large-v3">Large V3 (slowest, most accurate)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="info-box info-box-success">
+                                <i class="fas fa-server"></i>
+                                <span>Faster-Whisper: Local GPU/CPU processing, free but requires compute resources</span>
+                            </div>
+                        }
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Timeout (seconds)</label>
+                                <span class="setting-description">Max time for transcription</span>
+                            </div>
+                            <div class="setting-control">
+                                <input type="number" class="form-control" @bind="transcriptionConfig.TimeoutSeconds" min="60" max="3600" />
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" @onclick="@(() => TestConnection("Transcription"))" disabled="@isTestingTranscription">
+                                @if (isTestingTranscription)
+                                {
+                                    <span class="spinner spinner-sm"></span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-plug"></i>
+                                }
+                                Test Connection
+                            </button>
+                            @if (transcriptionConnectionStatus != null)
+                            {
+                                <span class="connection-status @(transcriptionConnectionStatus.Success ? "success" : "error")">
+                                    <i class="fas @(transcriptionConnectionStatus.Success ? "fa-check-circle" : "fa-times-circle")"></i>
+                                    @transcriptionConnectionStatus.Message
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Translation -->
+                    <div class="settings-card">
+                        <h4 class="subsection-title"><i class="fas fa-language"></i> Subtitle Translation</h4>
+                        <p class="card-description">Translates subtitles to multiple languages</p>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Active Provider</label>
+                                <span class="setting-description">Select translation service</span>
+                            </div>
+                            <div class="setting-control">
+                                <select class="form-control" @bind="translationConfig.ActiveProvider">
+                                    <option value="OpenAI">OpenAI GPT (Cloud)</option>
+                                    <option value="Ollama">Ollama (Local)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        @if (translationConfig.ActiveProvider == "OpenAI")
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">OpenAI API Key</label>
+                                    <span class="setting-description">
+                                        @if (translationConfig.HasOpenAIApiKey)
+                                        {
+                                            <span class="status-badge status-success">Configured: @translationConfig.OpenAIApiKeyMasked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-warning">Not configured</span>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="setting-control api-key-control">
+                                    <input type="@(showTranslationApiKey ? "text" : "password")"
+                                           class="form-control"
+                                           @bind="translationConfig.NewApiKey"
+                                           placeholder="@(translationConfig.HasOpenAIApiKey ? "Enter new key to replace" : "sk-...")" />
+                                    <button class="btn btn-icon" @onclick="() => showTranslationApiKey = !showTranslationApiKey">
+                                        <i class="fas @(showTranslationApiKey ? "fa-eye-slash" : "fa-eye")"></i>
+                                    </button>
+                                    @if (translationConfig.HasOpenAIApiKey)
+                                    {
+                                        <button class="btn btn-danger btn-sm" @onclick="@(() => RemoveApiKey("Translation"))">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">OpenAI Model</label>
+                                    <span class="setting-description">GPT model for translation</span>
+                                </div>
+                                <div class="setting-control">
+                                    <select class="form-control" @bind="translationConfig.OpenAIModel">
+                                        <option value="gpt-4o-mini">GPT-4o Mini (recommended)</option>
+                                        <option value="gpt-4-turbo-preview">GPT-4 Turbo</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                    </select>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Ollama Base URL</label>
+                                    <span class="setting-description">URL of Ollama service</span>
+                                </div>
+                                <div class="setting-control">
+                                    <input type="url" class="form-control" @bind="translationConfig.OllamaBaseUrl" placeholder="http://ollama-service:11434" />
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label class="setting-label">Ollama Model</label>
+                                    <span class="setting-description">Model for translation</span>
+                                </div>
+                                <div class="setting-control">
+                                    <select class="form-control" @bind="translationConfig.OllamaModel">
+                                        @if (ollamaModels.Any())
+                                        {
+                                            @foreach (var model in ollamaModels)
+                                            {
+                                                <option value="@model.Name">@model.Name</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="qwen2.5:3b">qwen2.5:3b</option>
+                                            <option value="llama3.2:3b">llama3.2:3b</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" @onclick="@(() => TestConnection("Translation"))" disabled="@isTestingTranslation">
+                                @if (isTestingTranslation)
+                                {
+                                    <span class="spinner spinner-sm"></span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-plug"></i>
+                                }
+                                Test Connection
+                            </button>
+                            @if (translationConnectionStatus != null)
+                            {
+                                <span class="connection-status @(translationConnectionStatus.Success ? "success" : "error")">
+                                    <i class="fas @(translationConnectionStatus.Success ? "fa-check-circle" : "fa-times-circle")"></i>
+                                    @translationConnectionStatus.Message
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- AI Settings Footer -->
+                    <div class="settings-footer ai-settings-footer">
+                        <button class="btn btn-secondary" @onclick="ReloadAIConfigs">
+                            <i class="fas fa-undo"></i> Reload from Server
+                        </button>
+                        <button class="btn btn-primary" @onclick="SaveAISettings" disabled="@isSavingAI">
+                            @if (isSavingAI)
+                            {
+                                <span class="spinner spinner-sm"></span>
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-save"></i>
+                                <span>Save AI Settings</span>
+                            }
+                        </button>
+                    </div>
                 }
-            </button>
-        </div>
+            </div>
+        }
+
+        <!-- Save Button (shown on all tabs except AI which has its own) -->
+        @if (activeTab != "ai")
+        {
+            <div class="settings-footer">
+                <button class="btn btn-secondary" @onclick="ResetSettings">
+                    <i class="fas fa-undo"></i> Reset to Defaults
+                </button>
+                <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner spinner-sm"></span>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-save"></i>
+                        <span>Save Changes</span>
+                    }
+                </button>
+            </div>
+        }
     </div>
 </div>
 
@@ -527,14 +969,38 @@
     private bool isSaving = false;
     private SettingsModel settings = new();
 
-    protected override void OnInitialized()
+    // AI Configuration state
+    private bool isLoadingAIConfig = false;
+    private bool isSavingAI = false;
+    private bool isTestingChat = false;
+    private bool isTestingTranscription = false;
+    private bool isTestingTranslation = false;
+    private bool isRefreshingModels = false;
+    private bool showChatApiKey = false;
+    private bool showTranscriptionApiKey = false;
+    private bool showTranslationApiKey = false;
+
+    private AIServiceConfig chatConfig = new();
+    private AIServiceConfig transcriptionConfig = new();
+    private AIServiceConfig translationConfig = new();
+    private List<OllamaModelInfo> ollamaModels = new();
+    private ConnectionTestResult? chatConnectionStatus;
+    private ConnectionTestResult? transcriptionConnectionStatus;
+    private ConnectionTestResult? translationConnectionStatus;
+
+    protected override async Task OnInitializedAsync()
     {
         LoadDefaultSettings();
+        await LoadAIConfigurations();
     }
 
     private void SetActiveTab(string tab)
     {
         activeTab = tab;
+        if (tab == "ai" && !chatConfig.IsLoaded)
+        {
+            _ = LoadAIConfigurations();
+        }
     }
 
     private void LoadDefaultSettings()
@@ -665,5 +1131,309 @@
         public bool EnableSocialLogin { get; set; } = true;
         public bool EnableInstructorRegistration { get; set; } = true;
         public bool MaintenanceMode { get; set; } = false;
+    }
+
+    // AI Configuration Methods
+    private async Task LoadAIConfigurations()
+    {
+        try
+        {
+            isLoadingAIConfig = true;
+            StateHasChanged();
+
+            var configs = await Http.GetFromJsonAsync<List<AIServiceConfigDto>>("api/admin/ai-config");
+
+            if (configs != null)
+            {
+                foreach (var config in configs)
+                {
+                    var target = config.ServiceType switch
+                    {
+                        "Chat" => chatConfig,
+                        "Transcription" => transcriptionConfig,
+                        "Translation" => translationConfig,
+                        _ => null
+                    };
+
+                    if (target != null)
+                    {
+                        target.Id = config.Id;
+                        target.ServiceType = config.ServiceType;
+                        target.ActiveProvider = config.ActiveProvider;
+                        target.HasOpenAIApiKey = config.HasOpenAIApiKey;
+                        target.OpenAIApiKeyMasked = config.OpenAIApiKeyMasked;
+                        target.OpenAIModel = config.OpenAIModel ?? "gpt-4-turbo-preview";
+                        target.OllamaBaseUrl = config.OllamaBaseUrl ?? "http://ollama-service:11434";
+                        target.OllamaModel = config.OllamaModel ?? "qwen2.5:3b";
+                        target.FasterWhisperUrl = config.FasterWhisperUrl ?? "http://faster-whisper:8000";
+                        target.FasterWhisperModel = config.FasterWhisperModel ?? "base";
+                        target.Temperature = config.Temperature;
+                        target.TimeoutSeconds = config.TimeoutSeconds;
+                        target.EnableFallback = config.EnableFallback;
+                        target.IsLoaded = true;
+                    }
+                }
+            }
+
+            // Load Ollama models
+            await RefreshOllamaModels();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load AI configs: {ex.Message}");
+            Toast.ShowError("Failed to load AI configurations");
+            // Set defaults
+            chatConfig = new AIServiceConfig { ServiceType = "Chat", ActiveProvider = "OpenAI", IsLoaded = true };
+            transcriptionConfig = new AIServiceConfig { ServiceType = "Transcription", ActiveProvider = "OpenAI", IsLoaded = true };
+            translationConfig = new AIServiceConfig { ServiceType = "Translation", ActiveProvider = "OpenAI", IsLoaded = true };
+        }
+        finally
+        {
+            isLoadingAIConfig = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshOllamaModels()
+    {
+        try
+        {
+            isRefreshingModels = true;
+            StateHasChanged();
+
+            var models = await Http.GetFromJsonAsync<List<OllamaModelInfo>>("api/admin/ai-config/ollama/models");
+            if (models != null)
+            {
+                ollamaModels = models;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load Ollama models: {ex.Message}");
+            // Not critical, keep defaults
+        }
+        finally
+        {
+            isRefreshingModels = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveAISettings()
+    {
+        try
+        {
+            isSavingAI = true;
+            StateHasChanged();
+
+            // Save each config
+            await SaveServiceConfig("Chat", chatConfig);
+            await SaveServiceConfig("Transcription", transcriptionConfig);
+            await SaveServiceConfig("Translation", translationConfig);
+
+            Toast.ShowSuccess("AI settings saved successfully!");
+
+            // Clear new API keys after save
+            chatConfig.NewApiKey = null;
+            transcriptionConfig.NewApiKey = null;
+            translationConfig.NewApiKey = null;
+
+            // Reload to get masked keys
+            await LoadAIConfigurations();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to save AI settings: {ex.Message}");
+            Toast.ShowError("Failed to save AI settings");
+        }
+        finally
+        {
+            isSavingAI = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveServiceConfig(string serviceType, AIServiceConfig config)
+    {
+        var updateDto = new
+        {
+            ActiveProvider = config.ActiveProvider,
+            OpenAIApiKey = config.NewApiKey, // Only send if user entered a new one
+            OpenAIModel = config.OpenAIModel,
+            OllamaBaseUrl = config.OllamaBaseUrl,
+            OllamaModel = config.OllamaModel,
+            FasterWhisperUrl = config.FasterWhisperUrl,
+            FasterWhisperModel = config.FasterWhisperModel,
+            Temperature = config.Temperature,
+            TimeoutSeconds = config.TimeoutSeconds,
+            IsEnabled = true,
+            EnableFallback = config.EnableFallback,
+            FallbackProvider = config.ActiveProvider == "OpenAI" ? "Ollama" : "OpenAI"
+        };
+
+        var response = await Http.PutAsJsonAsync($"api/admin/ai-config/{serviceType}", updateDto);
+        response.EnsureSuccessStatusCode();
+    }
+
+    private async Task RemoveApiKey(string serviceType)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/admin/ai-config/{serviceType}/openai-key");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"API key removed for {serviceType}");
+                await LoadAIConfigurations();
+            }
+            else
+            {
+                Toast.ShowError("Failed to remove API key");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to remove API key: {ex.Message}");
+            Toast.ShowError("Failed to remove API key");
+        }
+    }
+
+    private async Task TestConnection(string serviceType)
+    {
+        var config = serviceType switch
+        {
+            "Chat" => chatConfig,
+            "Transcription" => transcriptionConfig,
+            "Translation" => translationConfig,
+            _ => null
+        };
+
+        if (config == null) return;
+
+        try
+        {
+            // Set loading state
+            switch (serviceType)
+            {
+                case "Chat": isTestingChat = true; break;
+                case "Transcription": isTestingTranscription = true; break;
+                case "Translation": isTestingTranslation = true; break;
+            }
+            StateHasChanged();
+
+            var request = new
+            {
+                ServiceType = serviceType,
+                Provider = config.ActiveProvider,
+                ApiKey = config.NewApiKey, // Use new key if provided
+                BaseUrl = config.ActiveProvider == "Ollama" ? config.OllamaBaseUrl :
+                          config.ActiveProvider == "FasterWhisper" ? config.FasterWhisperUrl : null,
+                Model = config.ActiveProvider == "OpenAI" ? config.OpenAIModel :
+                        config.ActiveProvider == "Ollama" ? config.OllamaModel :
+                        config.FasterWhisperModel
+            };
+
+            var response = await Http.PostAsJsonAsync("api/admin/ai-config/test-connection", request);
+            var result = await response.Content.ReadFromJsonAsync<ConnectionTestResult>();
+
+            // Set result
+            switch (serviceType)
+            {
+                case "Chat": chatConnectionStatus = result; break;
+                case "Transcription": transcriptionConnectionStatus = result; break;
+                case "Translation": translationConnectionStatus = result; break;
+            }
+
+            if (result?.Success == true)
+            {
+                Toast.ShowSuccess($"{serviceType} connection successful!");
+            }
+            else
+            {
+                Toast.ShowWarning(result?.Message ?? "Connection test failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Connection test failed: {ex.Message}");
+            var errorResult = new ConnectionTestResult { Success = false, Message = "Connection test failed" };
+            switch (serviceType)
+            {
+                case "Chat": chatConnectionStatus = errorResult; break;
+                case "Transcription": transcriptionConnectionStatus = errorResult; break;
+                case "Translation": translationConnectionStatus = errorResult; break;
+            }
+            Toast.ShowError("Connection test failed");
+        }
+        finally
+        {
+            switch (serviceType)
+            {
+                case "Chat": isTestingChat = false; break;
+                case "Transcription": isTestingTranscription = false; break;
+                case "Translation": isTestingTranslation = false; break;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReloadAIConfigs()
+    {
+        chatConnectionStatus = null;
+        transcriptionConnectionStatus = null;
+        translationConnectionStatus = null;
+        await LoadAIConfigurations();
+        Toast.ShowInfo("AI configurations reloaded");
+    }
+
+    // AI Configuration classes
+    private class AIServiceConfig
+    {
+        public Guid Id { get; set; }
+        public string ServiceType { get; set; } = "";
+        public string ActiveProvider { get; set; } = "OpenAI";
+        public bool HasOpenAIApiKey { get; set; }
+        public string? OpenAIApiKeyMasked { get; set; }
+        public string? NewApiKey { get; set; } // For user input
+        public string? OpenAIModel { get; set; } = "gpt-4-turbo-preview";
+        public string? OllamaBaseUrl { get; set; } = "http://ollama-service:11434";
+        public string? OllamaModel { get; set; } = "qwen2.5:3b";
+        public string? FasterWhisperUrl { get; set; } = "http://faster-whisper:8000";
+        public string? FasterWhisperModel { get; set; } = "base";
+        public double Temperature { get; set; } = 0.7;
+        public int TimeoutSeconds { get; set; } = 120;
+        public bool EnableFallback { get; set; } = true;
+        public bool IsLoaded { get; set; } = false;
+    }
+
+    private class AIServiceConfigDto
+    {
+        public Guid Id { get; set; }
+        public string ServiceType { get; set; } = "";
+        public string ActiveProvider { get; set; } = "";
+        public string? OpenAIApiKeyMasked { get; set; }
+        public bool HasOpenAIApiKey { get; set; }
+        public string? OpenAIModel { get; set; }
+        public string? OllamaBaseUrl { get; set; }
+        public string? OllamaModel { get; set; }
+        public string? FasterWhisperUrl { get; set; }
+        public string? FasterWhisperModel { get; set; }
+        public double Temperature { get; set; }
+        public int TimeoutSeconds { get; set; }
+        public bool IsEnabled { get; set; }
+        public bool EnableFallback { get; set; }
+    }
+
+    private class OllamaModelInfo
+    {
+        public string Name { get; set; } = "";
+        public long Size { get; set; }
+        public string SizeFormatted { get; set; } = "";
+    }
+
+    private class ConnectionTestResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public int ResponseTimeMs { get; set; }
     }
 }

@@ -1,0 +1,725 @@
+@page "/admin/transcript-monitoring"
+@page "/admin/transcripts"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+@inject IApiClient ApiClient
+@inject IToastService Toast
+@using Microsoft.AspNetCore.Authorization
+@using InsightLearn.WebAssembly.Components
+@implements IDisposable
+
+<PageTitle>Transcript Monitoring - InsightLearn Admin</PageTitle>
+
+<div class="dashboard-layout">
+    <div class="breadcrumb-nav">
+        <nav class="breadcrumb">
+            <a href="/" class="breadcrumb-item">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/admin" class="breadcrumb-item">Admin</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item active">Transcript Monitoring</span>
+        </nav>
+    </div>
+
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="fas fa-closed-captioning"></i>
+                Transcript Monitoring
+            </h1>
+            <p class="page-description">Monitor real-time transcript generation with chunk-by-chunk progress</p>
+        </div>
+        <div class="header-actions">
+            <div class="auto-refresh-toggle">
+                <label class="toggle-label">
+                    <span>Auto-refresh (@pollingIntervalSec s)</span>
+                    <div class="toggle-switch">
+                        <input type="checkbox" @bind="autoRefresh" @bind:event="oninput" @onchange="ToggleAutoRefresh" />
+                        <span class="toggle-slider"></span>
+                    </div>
+                </label>
+            </div>
+            <button class="btn btn-outline" @onclick="RefreshData" disabled="@isLoading">
+                <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading && jobs == null)
+    {
+        <div class="loading-state">
+            <div class="spinner spinner-lg"></div>
+            <p>Loading transcript jobs...</p>
+        </div>
+    }
+    else if (error != null && jobs == null)
+    {
+        <div class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>@error</h3>
+            <button class="btn btn-primary" @onclick="RefreshData">Retry</button>
+        </div>
+    }
+    else
+    {
+        <!-- Status Summary Banner -->
+        <div class="status-summary-banner">
+            <div class="summary-item">
+                <div class="summary-icon processing">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-value">@activeJobs.Count</span>
+                    <span class="summary-label">In Progress</span>
+                </div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-icon queued">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-value">@queuedJobs.Count</span>
+                    <span class="summary-label">Queued</span>
+                </div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-icon completed">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-value">@completedJobs.Count</span>
+                    <span class="summary-label">Completed</span>
+                </div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-icon failed">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-value">@failedJobs.Count</span>
+                    <span class="summary-label">Failed</span>
+                </div>
+            </div>
+            <div class="summary-item last-update">
+                <i class="fas fa-clock"></i>
+                <span>Last update: @lastChecked.ToString("HH:mm:ss")</span>
+            </div>
+        </div>
+
+        <!-- Start New Transcription Section -->
+        <div class="section-header">
+            <h2><i class="fas fa-plus-circle"></i> Start New Transcription</h2>
+        </div>
+
+        <div class="clean-card new-transcription-card">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Select Lesson</label>
+                    <select class="form-control" @bind="selectedLessonId" disabled="@isStartingJob">
+                        <option value="">-- Select a lesson --</option>
+                        @if (lessons != null)
+                        {
+                            @foreach (var lesson in lessons)
+                            {
+                                <option value="@lesson.Id">@lesson.Title (@lesson.CourseName)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Language</label>
+                    <select class="form-control" @bind="selectedLanguage" disabled="@isStartingJob">
+                        <option value="en-US">English (US)</option>
+                        <option value="it-IT">Italian</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                    </select>
+                </div>
+                <div class="form-group form-actions">
+                    <button class="btn btn-primary" @onclick="StartTranscription"
+                            disabled="@(string.IsNullOrEmpty(selectedLessonId) || isStartingJob)">
+                        @if (isStartingJob)
+                        {
+                            <span class="spinner spinner-sm"></span>
+                            <span>Starting...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-play"></i>
+                            <span>Start Transcription</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Jobs Section -->
+        @if (activeJobs.Any() || queuedJobs.Any())
+        {
+            <div class="section-header">
+                <h2><i class="fas fa-bolt"></i> Active Jobs (@(activeJobs.Count + queuedJobs.Count))</h2>
+            </div>
+
+            <div class="jobs-grid">
+                @foreach (var job in activeJobs.Concat(queuedJobs))
+                {
+                    <TranscriptJobCard Job="@job" LessonTitle="@GetLessonTitle(job.LessonId)" ShowChunks="true" OnDelete="RequestDelete" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="section-header">
+                <h2><i class="fas fa-bolt"></i> Active Jobs</h2>
+            </div>
+            <div class="empty-jobs-state">
+                <i class="fas fa-check-double"></i>
+                <p>No active transcript jobs. Start a new transcription above.</p>
+            </div>
+        }
+
+        <!-- Completed/Failed Jobs Section (Collapsible) -->
+        <div class="section-header collapsible" @onclick="ToggleHistory">
+            <h2>
+                <i class="fas @(showHistory ? "fa-chevron-down" : "fa-chevron-right")"></i>
+                <i class="fas fa-history"></i>
+                History (@(completedJobs.Count + failedJobs.Count) jobs)
+            </h2>
+            <span class="section-hint">Click to @(showHistory ? "collapse" : "expand")</span>
+        </div>
+
+        @if (showHistory)
+        {
+            <div class="jobs-grid history-grid">
+                @foreach (var job in completedJobs.Concat(failedJobs).Take(20))
+                {
+                    <TranscriptJobCard Job="@job" LessonTitle="@GetLessonTitle(job.LessonId)" ShowChunks="false" OnDelete="RequestDelete" />
+                }
+            </div>
+
+            @if (completedJobs.Count + failedJobs.Count == 0)
+            {
+                <div class="empty-jobs-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No completed or failed jobs yet.</p>
+                </div>
+            }
+        }
+    }
+
+    @* Delete Confirmation Modal (v2.3.93-dev) *@
+    @if (showDeleteConfirm)
+    {
+        <div class="delete-confirm-modal-overlay" @onclick="CancelDelete">
+            <div class="delete-confirm-modal" @onclick:stopPropagation="true">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete Transcript</h3>
+                <p>Are you sure you want to delete this transcript? This will permanently remove the transcript data from both SQL Server and MongoDB. This action cannot be undone.</p>
+                <div class="delete-confirm-actions">
+                    <button class="btn-cancel" @onclick="CancelDelete" disabled="@isDeleting">Cancel</button>
+                    <button class="btn-confirm-delete" @onclick="ConfirmDelete" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span><i class="fas fa-spinner fa-spin"></i> Deleting...</span>
+                        }
+                        else
+                        {
+                            <span>Delete Transcript</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    /* Status Summary Banner */
+    .status-summary-banner {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        flex-wrap: wrap;
+    }
+
+    .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .summary-item.last-update {
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-left: auto;
+        flex: none;
+    }
+
+    .summary-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .summary-icon.processing { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .summary-icon.queued { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    .summary-icon.completed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .summary-icon.failed { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+    .summary-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1;
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* New Transcription Card */
+    .new-transcription-card {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .form-group.form-actions {
+        flex: none;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Jobs Grid */
+    .jobs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .history-grid {
+        opacity: 0.9;
+    }
+
+    /* Empty State */
+    .empty-jobs-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        background: #f9fafb;
+        border-radius: 12px;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .empty-jobs-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-jobs-state p {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Collapsible Section */
+    .section-header.collapsible {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .section-header.collapsible:hover {
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+
+    .section-hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        font-weight: normal;
+    }
+
+    /* TranscriptJobCard Styles */
+    :global(.transcript-job-card) {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #667eea;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    :global(.transcript-job-card:hover) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    :global(.transcript-job-card.status-completed) {
+        border-left-color: #10b981;
+    }
+
+    :global(.transcript-job-card.status-failed) {
+        border-left-color: #ef4444;
+    }
+
+    :global(.transcript-job-card.status-queued) {
+        border-left-color: #f59e0b;
+    }
+
+    :global(.transcript-job-card.status-processing) {
+        border-left-color: #667eea;
+    }
+
+    :global(.job-header) {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    :global(.job-icon) {
+        width: 40px;
+        height: 40px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #667eea;
+        font-size: 1.125rem;
+    }
+
+    :global(.job-info) {
+        flex: 1;
+    }
+
+    :global(.job-title) {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #111827;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :global(.job-id) {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        font-family: monospace;
+    }
+
+    :global(.job-status-badge) {
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    :global(.badge-primary) {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    :global(.badge-success) {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    :global(.badge-danger) {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    :global(.badge-secondary) {
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+
+    /* Progress Section */
+    :global(.job-progress-section) {
+        margin-bottom: 1rem;
+    }
+
+    :global(.progress-header) {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    :global(.phase-label) {
+        color: #6b7280;
+    }
+
+    :global(.progress-percent) {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    :global(.progress-bar-container) {
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    :global(.progress-bar-fill) {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    :global(.progress-bar-fill.progress-animated) {
+        background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+        background-size: 200% 100%;
+        animation: progress-shine 2s infinite;
+    }
+
+    :global(.progress-bar-fill.progress-success) {
+        background: #10b981;
+    }
+
+    :global(.progress-bar-fill.progress-danger) {
+        background: #ef4444;
+    }
+
+    @@keyframes progress-shine {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Chunks Section */
+    :global(.chunks-section) {
+        margin-bottom: 1rem;
+    }
+
+    :global(.chunks-label) {
+        display: block;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+
+    :global(.chunk-indicators) {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    :global(.chunk) {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.625rem;
+        color: white;
+    }
+
+    :global(.chunk-completed) {
+        background: #10b981;
+    }
+
+    :global(.chunk-current) {
+        background: #f59e0b;
+        animation: pulse 1.5s infinite;
+    }
+
+    :global(.chunk-pending) {
+        background: #d1d5db;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    /* Job Details */
+    :global(.job-details) {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+        flex-wrap: wrap;
+    }
+
+    :global(.detail-item) {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    /* Job Message */
+    :global(.job-message) {
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        background: #f0f9ff;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: #0369a1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Job Error */
+    :global(.job-error) {
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        background: #fef2f2;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: #dc2626;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    :global(.job-error span) {
+        word-break: break-word;
+    }
+
+    /* Auto-refresh Toggle */
+    .auto-refresh-toggle {
+        margin-right: 1rem;
+    }
+
+    .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #4b5563;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e5e7eb;
+        transition: 0.3s;
+        border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #667eea;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .status-summary-banner {
+            flex-direction: column;
+        }
+
+        .summary-item {
+            width: 100%;
+        }
+
+        .jobs-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row {
+            flex-direction: column;
+        }
+
+        .form-group {
+            width: 100%;
+        }
+    }
+</style>

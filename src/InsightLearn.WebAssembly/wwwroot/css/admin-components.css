@@ -1,5 +1,129 @@
 /* Admin Components Styles */
 
+/* =================== Transcript Monitoring Styles (v2.3.93-dev) =================== */
+
+/* Job header actions container */
+.job-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Delete transcript button - v2.3.95-dev: Improved visibility */
+.btn-delete-transcript {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #dc2626;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.btn-delete-transcript:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #f87171;
+    transform: scale(1.05);
+}
+
+.btn-delete-transcript:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-delete-transcript:disabled:hover {
+    background: transparent;
+    color: #9ca3af;
+}
+
+/* Delete confirmation modal */
+.delete-confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.delete-confirm-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.delete-confirm-modal h3 {
+    margin: 0 0 0.5rem;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delete-confirm-modal h3 i {
+    color: #dc2626;
+}
+
+.delete-confirm-modal p {
+    color: #6b7280;
+    margin: 0 0 1.5rem;
+    font-size: 0.9rem;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: #f3f4f6;
+}
+
+.btn-confirm-delete {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    background: #dc2626;
+    color: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.btn-confirm-delete:hover {
+    background: #b91c1c;
+}
+
+.btn-confirm-delete:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* =================== Prometheus Metrics Styles =================== */
 
 .prometheus-section {
@@ -686,5 +810,216 @@
     .modal-dialog {
         width: 95%;
         margin: 20px;
+    }
+}
+
+/* =================== AI Services Tab Styles =================== */
+
+/* Card description */
+.card-description {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+/* API Key Control */
+.api-key-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.api-key-control .form-control {
+    flex: 1;
+    font-family: monospace;
+}
+
+.api-key-control .btn-icon {
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #6b7280;
+}
+
+.api-key-control .btn-icon:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* Model select with refresh button */
+.model-select-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.model-select-control .form-control {
+    flex: 1;
+}
+
+/* Connection status */
+.connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.connection-status.success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.connection-status.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Status badges for API keys */
+.status-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Info box */
+.info-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+.info-box i {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.info-box-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.info-box-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.info-box-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+/* Settings actions */
+.settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* AI Settings footer */
+.ai-settings-footer {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 2px solid #e5e7eb;
+}
+
+/* Loading container */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.loading-container .spinner {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 16px;
+}
+
+/* Spinner sizes */
+.spinner-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+/* Button with spinner */
+.btn .spinner {
+    margin-right: 0;
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Settings card subsection title styling */
+.settings-card .subsection-title {
+    margin-bottom: 8px;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+/* Form control improvements for AI tab */
+.settings-card input[type="number"].form-control {
+    max-width: 120px;
+}
+
+.settings-card input[type="url"].form-control {
+    font-family: monospace;
+    font-size: 13px;
+}
+
+/* Responsive for AI tab */
+@media (max-width: 768px) {
+    .api-key-control {
+        flex-wrap: wrap;
+    }
+
+    .api-key-control .form-control {
+        width: 100%;
+        flex: none;
+    }
+
+    .model-select-control {
+        flex-wrap: wrap;
+    }
+
+    .settings-actions {
+        flex-wrap: wrap;
+    }
+
+    .connection-status {
+        width: 100%;
+        justify-content: center;
     }
 }
