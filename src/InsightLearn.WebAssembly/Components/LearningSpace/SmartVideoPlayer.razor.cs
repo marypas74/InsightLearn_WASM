@@ -145,59 +145,27 @@ public partial class SmartVideoPlayer : IAsyncDisposable
                 return; // Cannot continue without video initialization
             }
 
-            // AUTHENTICATED VIDEO LOADING: Fetch video with JWT token and create Blob URL
-            // This is required because HTML <video src="..."> tag doesn't send Authorization header
+            // VIDEO LOADING: Use direct HTML5 video streaming (v2.3.76 fix)
+            // The /api/video/stream endpoint is PUBLIC (no authentication required)
+            // Direct src= loading enables HTTP Range requests for efficient streaming/seeking
+            // REMOVED: Blob URL loading was causing full video download into memory before playback
+            // This blocked playback for large videos (500MB+ would require full download first)
             try
             {
                 if (!string.IsNullOrEmpty(VideoSource) && VideoSource.Contains("/api/video/"))
                 {
-                    Console.WriteLine($"[SmartVideoPlayer] Attempting authenticated video load: {VideoSource}");
-                    var token = await TokenService.GetTokenAsync();
+                    Console.WriteLine($"[SmartVideoPlayer] Using direct HTML5 streaming: {VideoSource}");
+                    DebugInfo += $"\nDirect streaming mode (HTTP Range requests enabled)";
 
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        Console.WriteLine($"[SmartVideoPlayer] JWT token obtained, loading video with authentication...");
-                        var result = await JS.InvokeAsync<VideoLoadResult>("VideoInterop.loadAuthenticatedVideo",
-                            VideoElementId, VideoSource, token);
-
-                        Console.WriteLine($"[SmartVideoPlayer] Auth video load result: Success={result.Success}, Status={result.StatusCode}, Message={result.Message}");
-                        DebugInfo += $"\nAuth Load: {result.Success} (HTTP {result.StatusCode})";
-
-                        if (!result.Success)
-                        {
-                            if (result.IsAuthError)
-                            {
-                                ErrorMessage = "Authentication required. Please log in again.";
-                                DebugInfo += $"\nAuth Error: Token may be expired";
-                            }
-                            else
-                            {
-                                ErrorMessage = result.Message ?? "Failed to load video";
-                            }
-                            StopLoadingTimeout();
-                            StateHasChanged();
-                            return;
-                        }
-
-                        if (result.Size > 0)
-                        {
-                            DebugInfo += $"\nBlob Size: {result.Size / 1024 / 1024:F2} MB";
-                            DebugInfo += $"\nContent-Type: {result.ContentType}";
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[SmartVideoPlayer] No JWT token available, trying direct load...");
-                        DebugInfo += $"\nNo auth token - trying direct load";
-                        // Fall through to let HTML5 video element try direct loading
-                    }
+                    // Video source is already set in the Razor template via <source src="@VideoSource" />
+                    // The HTML5 video element handles streaming automatically with Range requests
+                    // No Blob URL creation needed - this was the cause of playback blocking
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SmartVideoPlayer] Authenticated video load failed: {ex.Message}");
-                DebugInfo += $"\nAuth Load Error: {ex.Message}";
-                // Continue - video might still work without authentication
+                Console.WriteLine($"[SmartVideoPlayer] Video source check failed: {ex.Message}");
+                DebugInfo += $"\nVideo Init: {ex.Message}";
             }
 
             // Load transcript data (non-blocking - video works without this)

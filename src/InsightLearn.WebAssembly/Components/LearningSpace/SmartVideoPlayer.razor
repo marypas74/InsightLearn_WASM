@@ -17,15 +17,19 @@
         @* REMOVED hardcoded type="video/mp4" - let browser auto-detect content type *@
         @* Backend may serve video/mp4, video/MP2T (MPEG-TS), video/webm, etc. *@
         <source src="@VideoSource" />
+        @* Fix v2.3.61: Proper boolean attribute rendering - avoid empty string attributes *@
         @if (SubtitleTracks != null)
         {
             @foreach (var track in SubtitleTracks)
             {
-                <track kind="subtitles"
-                       src="@track.Src"
-                       srclang="@track.Language"
-                       label="@track.Label"
-                       @(track.IsDefault ? "default" : "") />
+                @if (track.IsDefault)
+                {
+                    <track kind="subtitles" src="@track.Src" srclang="@track.Language" label="@track.Label" default />
+                }
+                else
+                {
+                    <track kind="subtitles" src="@track.Src" srclang="@track.Language" label="@track.Label" />
+                }
             }
         }
     </video>
