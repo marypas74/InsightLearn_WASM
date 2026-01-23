@@ -18,6 +18,12 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             
         builder.HasIndex(e => e.EnrolledAt);
         builder.HasIndex(e => e.Status);
+
+        // Fix v2.3.63: Ignore computed/non-mapped properties that don't have columns in DB
+        builder.Ignore(e => e.Progress);
+        builder.Ignore(e => e.ProgressPercentage);
+        builder.Ignore(e => e.IsCompleted);
+        builder.Ignore(e => e.TotalWatchedTime);
         
         // Relationships
         builder.HasOne(e => e.User)

@@ -132,6 +132,7 @@ namespace InsightLearn.Infrastructure.Repositories
             // 2. Create conversation metadata in SQL Server
             var conversation = new AIConversation
             {
+                Id = Guid.NewGuid(), // Explicitly generate GUID for primary key
                 SessionId = sessionId,
                 UserId = userId,
                 LessonId = lessonId,
