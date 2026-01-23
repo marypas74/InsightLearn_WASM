@@ -83,13 +83,18 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
             var audioSizeKB = audioBytes.Length / 1024;
             _logger.LogInformation("[FasterWhisper] Audio stream read into memory ({AudioSizeKB}KB)", audioSizeKB);
 
+            // Convert language from locale format (it-IT) to ISO 639-1 (it) for Whisper API
+            // Whisper API expects 2-letter codes: en, it, es, fr, de, etc.
+            var whisperLanguage = language.Contains("-") ? language.Split('-')[0].ToLowerInvariant() : language.ToLowerInvariant();
+            _logger.LogInformation("[FasterWhisper] Converted language '{OriginalLanguage}' to Whisper format '{WhisperLanguage}'", language, whisperLanguage);
+
             // Call faster-whisper-server API (OpenAI-compatible endpoint)
             using var content = new MultipartFormDataContent();
             using var audioContent = new ByteArrayContent(audioBytes);
                 audioContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
                 content.Add(audioContent, "file", "audio.wav");
                 content.Add(new StringContent(_model), "model");
-                content.Add(new StringContent(language), "language");
+                content.Add(new StringContent(whisperLanguage), "language");
                 content.Add(new StringContent("verbose_json"), "response_format");
                 content.Add(new StringContent("0.0"), "temperature");
 
@@ -125,7 +130,7 @@ public class WhisperTranscriptionService : IWhisperTranscriptionService
             return new TranscriptionResult
             {
                 LessonId = lessonId,
-                Language = result.Language ?? language,
+                Language = language, // Use original normalized language (xx-XX format), not Whisper API response (xx only)
                 Segments = segments,
                 DurationSeconds = result.Duration,
                 TranscribedAt = DateTime.UtcNow,

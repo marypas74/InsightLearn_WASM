@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using InsightLearn.Core.Entities;
@@ -18,19 +20,23 @@ namespace InsightLearn.Infrastructure.Repositories
     /// SQL Server: Metadata (VideoTranscriptMetadata table).
     /// MongoDB: Full transcript data (VideoTranscripts collection).
     /// Part of Student Learning Space v2.1.0.
+    /// v2.3.91-dev: Added detailed logging for 90-100% phase debugging.
     /// </summary>
     public class VideoTranscriptRepository : IVideoTranscriptRepository
     {
         private readonly InsightLearnDbContext _context;
         private readonly IMongoCollection<BsonDocument> _mongoCollection;
+        private readonly ILogger<VideoTranscriptRepository> _logger;
 
         public VideoTranscriptRepository(
             InsightLearnDbContext context,
-            IMongoDatabase mongoDatabase)
+            IMongoDatabase mongoDatabase,
+            ILogger<VideoTranscriptRepository> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _mongoCollection = mongoDatabase?.GetCollection<BsonDocument>("VideoTranscripts")
                 ?? throw new ArgumentNullException(nameof(mongoDatabase));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<VideoTranscriptDto?> GetTranscriptAsync(Guid lessonId, CancellationToken ct = default)
@@ -129,13 +135,24 @@ namespace InsightLearn.Infrastructure.Repositories
 
         public async Task<VideoTranscriptMetadata> CreateAsync(Guid lessonId, VideoTranscriptDto transcriptDto, CancellationToken ct = default)
         {
-            // Convert locale code (en-US) to ISO 639-1 (en) for MongoDB text index compatibility
-            // MongoDB text indexes only support 2-letter language codes, not locale codes with region
-            var mongoLanguage = transcriptDto.Language.Contains("-")
-                ? transcriptDto.Language.Split('-')[0]
-                : transcriptDto.Language;
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("[REPO:95%] ═══════════════════════════════════════════════════════════════");
+            _logger.LogInformation("[REPO:95%] CreateAsync STARTED for lesson {LessonId}", lessonId);
+            _logger.LogInformation("[REPO:95%] Input: Language={Language}, Segments={SegmentCount}, Duration={Duration}s",
+                transcriptDto.Language, transcriptDto.Transcript?.Count ?? 0, transcriptDto.Metadata?.DurationSeconds ?? 0);
 
-            // 1. Save transcript to MongoDB
+            // Convert language to ISO 639-1 for MongoDB text index compatibility (it-IT -> it)
+            // MongoDB text index requires 2-letter language codes: en, it, es, fr, de, etc.
+            var mongoLanguage = transcriptDto.Language.Contains("-")
+                ? transcriptDto.Language.Split('-')[0].ToLowerInvariant()
+                : transcriptDto.Language.ToLowerInvariant();
+            _logger.LogInformation("[REPO:95%] Language converted for MongoDB: {Original} → {MongoFormat}",
+                transcriptDto.Language, mongoLanguage);
+
+            // 1. Build MongoDB document
+            _logger.LogInformation("[REPO:95.5%] Building MongoDB BSON document...");
+            var bsonBuildStart = stopwatch.ElapsedMilliseconds;
+
             var mongoDoc = new BsonDocument
             {
                 { "lessonId", lessonId.ToString() },
@@ -162,57 +179,150 @@ namespace InsightLearn.Infrastructure.Repositories
                 { "createdAt", DateTime.UtcNow }
             };
 
-            await _mongoCollection.InsertOneAsync(mongoDoc, cancellationToken: ct);
-            var mongoDocId = mongoDoc["_id"].AsObjectId.ToString();
+            var bsonBuildDuration = stopwatch.ElapsedMilliseconds - bsonBuildStart;
+            var docSizeKb = mongoDoc.ToBson().Length / 1024.0;
+            _logger.LogInformation("[REPO:96%] BSON document built in {Duration}ms, Size: {Size:F2}KB",
+                bsonBuildDuration, docSizeKb);
 
-            // 2. Create metadata in SQL Server
-            // Note: Entity uses Status/GeneratedAt, WordCount/AverageConfidence stored in MongoDB only
-            var metadata = new VideoTranscriptMetadata
+            // 2. Save to MongoDB
+            _logger.LogInformation("[REPO:96%] ▶▶▶ INSERTING INTO MONGODB (VideoTranscripts collection)...");
+            var mongoInsertStart = stopwatch.ElapsedMilliseconds;
+
+            try
             {
-                Id = Guid.NewGuid(),
-                LessonId = lessonId,
-                MongoDocumentId = mongoDocId,
-                Language = transcriptDto.Language,
-                Status = "Completed",
-                SegmentCount = transcriptDto.Transcript?.Count,
-                DurationSeconds = transcriptDto.Metadata?.DurationSeconds,
-                GeneratedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
+                await _mongoCollection.InsertOneAsync(mongoDoc, cancellationToken: ct);
+                var mongoDocId = mongoDoc["_id"].AsObjectId.ToString();
+                var mongoInsertDuration = stopwatch.ElapsedMilliseconds - mongoInsertStart;
 
-            _context.VideoTranscriptMetadata.Add(metadata);
-            await _context.SaveChangesAsync(ct);
+                _logger.LogInformation("[REPO:97%] ✓ MongoDB INSERT SUCCESS in {Duration}ms, DocumentId: {DocId}",
+                    mongoInsertDuration, mongoDocId);
 
-            return metadata;
+                // 3. Update or Create metadata in SQL Server (UPSERT pattern)
+                _logger.LogInformation("[REPO:97%] ▶▶▶ UPSERTING INTO SQL SERVER (VideoTranscriptMetadata table)...");
+                var sqlInsertStart = stopwatch.ElapsedMilliseconds;
+
+                // Check if record already exists (created by UpdateProcessingStatusAsync)
+                var existingMetadata = await _context.VideoTranscriptMetadata
+                    .FirstOrDefaultAsync(m => m.LessonId == lessonId, ct);
+
+                VideoTranscriptMetadata metadata;
+
+                if (existingMetadata != null)
+                {
+                    // UPDATE existing record
+                    _logger.LogInformation("[REPO:97%] Found existing metadata record, UPDATING...");
+                    existingMetadata.MongoDocumentId = mongoDocId;
+                    existingMetadata.Language = transcriptDto.Language;
+                    existingMetadata.Status = "Completed";
+                    existingMetadata.SegmentCount = transcriptDto.Transcript?.Count;
+                    existingMetadata.DurationSeconds = transcriptDto.Metadata?.DurationSeconds;
+                    existingMetadata.GeneratedAt = DateTime.UtcNow;
+
+                    metadata = existingMetadata;
+                    _logger.LogInformation("[REPO:97.5%] SQL entity UPDATED: Id={Id}, MongoDocId={MongoId}, Status={Status}",
+                        metadata.Id, mongoDocId, metadata.Status);
+                }
+                else
+                {
+                    // INSERT new record
+                    _logger.LogInformation("[REPO:97%] No existing record, INSERTING...");
+                    metadata = new VideoTranscriptMetadata
+                    {
+                        Id = Guid.NewGuid(),
+                        LessonId = lessonId,
+                        MongoDocumentId = mongoDocId,
+                        Language = transcriptDto.Language,
+                        Status = "Completed",
+                        SegmentCount = transcriptDto.Transcript?.Count,
+                        DurationSeconds = transcriptDto.Metadata?.DurationSeconds,
+                        GeneratedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.VideoTranscriptMetadata.Add(metadata);
+                    _logger.LogInformation("[REPO:97.5%] SQL entity prepared: Id={Id}, MongoDocId={MongoId}, Status={Status}",
+                        metadata.Id, mongoDocId, metadata.Status);
+                }
+
+                _logger.LogInformation("[REPO:97.5%] Calling SaveChangesAsync...");
+                await _context.SaveChangesAsync(ct);
+
+                var sqlInsertDuration = stopwatch.ElapsedMilliseconds - sqlInsertStart;
+                _logger.LogInformation("[REPO:98%] ✓ SQL Server INSERT SUCCESS in {Duration}ms", sqlInsertDuration);
+
+                stopwatch.Stop();
+                _logger.LogInformation("[REPO:98%] ═══════════════════════════════════════════════════════════════");
+                _logger.LogInformation("[REPO:98%] CreateAsync COMPLETED in {TotalDuration}ms (MongoDB: {MongoDuration}ms, SQL: {SqlDuration}ms)",
+                    stopwatch.ElapsedMilliseconds, mongoInsertDuration, sqlInsertDuration);
+                _logger.LogInformation("[REPO:98%] ═══════════════════════════════════════════════════════════════");
+
+                return metadata;
+            }
+            catch (MongoWriteException mongoEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(mongoEx, "[REPO:ERROR] ✗ MongoDB WRITE FAILED after {Duration}ms: {Message}",
+                    stopwatch.ElapsedMilliseconds, mongoEx.Message);
+                _logger.LogError("[REPO:ERROR] MongoDB WriteError: Category={Category}, Code={Code}, Details={Details}",
+                    mongoEx.WriteError?.Category, mongoEx.WriteError?.Code, mongoEx.WriteError?.Details);
+                throw;
+            }
+            catch (DbUpdateException sqlEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(sqlEx, "[REPO:ERROR] ✗ SQL Server UPDATE FAILED after {Duration}ms: {Message}",
+                    stopwatch.ElapsedMilliseconds, sqlEx.Message);
+                _logger.LogError("[REPO:ERROR] SQL InnerException: {InnerMessage}",
+                    sqlEx.InnerException?.Message ?? "None");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "[REPO:ERROR] ✗ CreateAsync FAILED after {Duration}ms: {ExType} - {Message}",
+                    stopwatch.ElapsedMilliseconds, ex.GetType().Name, ex.Message);
+                throw;
+            }
         }
 
         public async Task UpdateProcessingStatusAsync(Guid lessonId, string status, string? errorMessage = null, CancellationToken ct = default)
         {
-            var metadata = await GetMetadataAsync(lessonId, ct);
-            if (metadata == null)
-            {
-                // Create new metadata record if it doesn't exist (e.g., when queueing new transcript generation)
-                metadata = new VideoTranscriptMetadata
-                {
-                    Id = Guid.NewGuid(),
-                    LessonId = lessonId,
-                    MongoDocumentId = string.Empty, // Placeholder - will be set when transcript is generated
-                    Language = "en-US", // Default language (can be updated later)
-                    Status = status,
-                    SegmentCount = 0, // Placeholder - will be updated when transcript is generated
-                    DurationSeconds = 0, // Placeholder - will be updated when transcript is generated
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.VideoTranscriptMetadata.Add(metadata);
-            }
-            else
-            {
-                metadata.Status = status;
-                if (status == "Completed")
-                    metadata.GeneratedAt = DateTime.UtcNow;
-            }
+            var stopwatch = Stopwatch.StartNew();
+            _logger.LogInformation("[REPO:STATUS] UpdateProcessingStatusAsync: LessonId={LessonId}, Status={Status}",
+                lessonId, status);
 
-            await _context.SaveChangesAsync(ct);
+            // Use atomic SQL MERGE to avoid race conditions with duplicate key errors
+            // This handles concurrent calls safely without check-then-insert pattern
+            var newId = Guid.NewGuid();
+            var now = DateTime.UtcNow;
+            var generatedAt = status == "Completed" ? now : (DateTime?)null;
+
+            try
+            {
+                var rowsAffected = await _context.Database.ExecuteSqlRawAsync(@"
+                    MERGE VideoTranscriptMetadata WITH (HOLDLOCK) AS target
+                    USING (SELECT @p0 AS LessonId) AS source
+                    ON target.LessonId = source.LessonId
+                    WHEN MATCHED THEN
+                        UPDATE SET
+                            Status = @p1,
+                            GeneratedAt = CASE WHEN @p1 = 'Completed' THEN @p2 ELSE target.GeneratedAt END
+                    WHEN NOT MATCHED THEN
+                        INSERT (Id, LessonId, MongoDocumentId, Language, Status, SegmentCount, DurationSeconds, CreatedAt, GeneratedAt)
+                        VALUES (@p3, @p0, '', 'en-US', @p1, 0, 0, @p2, @p4);",
+                    lessonId, status, now, newId, generatedAt);
+
+                stopwatch.Stop();
+                _logger.LogInformation("[REPO:STATUS] ✓ Status updated to '{Status}' in {Duration}ms (RowsAffected: {Rows})",
+                    status, stopwatch.ElapsedMilliseconds, rowsAffected);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "[REPO:STATUS] ✗ Failed to update status to '{Status}' after {Duration}ms: {Message}",
+                    status, stopwatch.ElapsedMilliseconds, ex.Message);
+                throw;
+            }
         }
 
         public async Task DeleteAsync(Guid lessonId, CancellationToken ct = default)

@@ -17,9 +17,10 @@ namespace InsightLearn.Application.Services
 {
     /// <summary>
     /// Service for video transcript generation and management.
-    /// Integrates with Whisper API (self-hosted) for ASR.
+    /// Uses IAIServiceFactory to dynamically select transcription provider (OpenAI Whisper or faster-whisper).
+    /// Supports parallel transcription using both providers simultaneously for real-time results.
     /// Uses Redis for caching, Hangfire for background processing.
-    /// Part of Student Learning Space v2.1.0.
+    /// Part of Student Learning Space v2.3.67-dev.
     /// </summary>
     public class VideoTranscriptService : IVideoTranscriptService
     {
@@ -28,7 +29,9 @@ namespace InsightLearn.Application.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<VideoTranscriptService> _logger;
         private readonly IConfiguration _configuration;
-        private readonly IWhisperTranscriptionService _whisperService;
+        private readonly IAIServiceFactory _serviceFactory;
+        private readonly IWhisperTranscriptionService _whisperServiceFallback; // Direct fallback
+        private readonly IParallelTranscriptionService? _parallelService; // Optional parallel service
 
         private const string CacheKeyPrefix = "transcript:";
         private const int CacheDurationMinutes = 60; // 1 hour cache
@@ -39,14 +42,18 @@ namespace InsightLearn.Application.Services
             IHttpClientFactory httpClientFactory,
             ILogger<VideoTranscriptService> logger,
             IConfiguration configuration,
-            IWhisperTranscriptionService whisperService)
+            IAIServiceFactory serviceFactory,
+            IWhisperTranscriptionService whisperService,
+            IParallelTranscriptionService? parallelService = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _whisperService = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
+            _serviceFactory = serviceFactory ?? throw new ArgumentNullException(nameof(serviceFactory));
+            _whisperServiceFallback = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
+            _parallelService = parallelService; // Optional - null if not configured
         }
 
         public async Task<VideoTranscriptDto?> GetTranscriptAsync(Guid lessonId, CancellationToken ct = default)
@@ -107,7 +114,7 @@ namespace InsightLearn.Application.Services
 
         public async Task<VideoTranscriptDto> GenerateTranscriptAsync(Guid lessonId, string videoUrl, string language = "en-US", CancellationToken ct = default)
         {
-            _logger.LogInformation("Starting synchronous transcript generation for lesson {LessonId} using Whisper.net", lessonId);
+            _logger.LogInformation("Starting transcript generation for lesson {LessonId}", lessonId);
 
             try
             {
@@ -118,12 +125,26 @@ namespace InsightLearn.Application.Services
                 _logger.LogDebug("Downloading video from URL: {VideoUrl}", videoUrl);
                 var videoStream = await DownloadVideoStreamAsync(videoUrl, ct);
 
-                // 2. Transcribe using Whisper.net
+                // 2. Get transcription service from factory (supports OpenAI Whisper or faster-whisper based on config)
+                var whisperService = await _serviceFactory.GetTranscriptionServiceAsync();
+                _logger.LogInformation("Using transcription service: {ServiceType}", whisperService.GetType().Name);
+
                 // Extract language code (convert "en-US" to "en" for Whisper)
                 var whisperLanguage = language.Contains('-') ? language.Split('-')[0] : language;
-                var transcriptionResult = await _whisperService.TranscribeVideoAsync(videoStream, whisperLanguage, lessonId);
+                var transcriptionResult = await whisperService.TranscribeVideoAsync(videoStream, whisperLanguage, lessonId);
 
-                // 3. Map TranscriptionResult to TranscriptSegmentDto
+                // ═══════════════════════════════════════════════════════════════════════════════
+                // PHASE 90-100%: POST-TRANSCRIPTION PROCESSING (Detailed Logging v2.3.91-dev)
+                // ═══════════════════════════════════════════════════════════════════════════════
+
+                // STEP 90-91%: Map TranscriptionResult to TranscriptSegmentDto
+                _logger.LogInformation("[TRANSCRIPT:90%] ═══ FasterWhisper COMPLETED for lesson {LessonId} ═══", lessonId);
+                _logger.LogInformation("[TRANSCRIPT:90%] Received {SegmentCount} raw segments, Duration: {Duration}s, Model: {Model}",
+                    transcriptionResult.Segments.Count, transcriptionResult.DurationSeconds, transcriptionResult.ModelUsed);
+
+                await _repository.UpdateProcessingStatusAsync(lessonId, "Mapping", null, ct);
+                _logger.LogInformation("[TRANSCRIPT:91%] Starting segment mapping...");
+
                 var segments = transcriptionResult.Segments.Select(s => new TranscriptSegmentDto
                 {
                     StartTime = s.StartSeconds,
@@ -133,15 +154,27 @@ namespace InsightLearn.Application.Services
                     Confidence = s.Confidence
                 }).ToList();
 
-                // 4. Calculate metadata
-                var wordCount = segments.Sum(s => s.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
-                var averageConfidence = segments.Where(s => s.Confidence.HasValue).Average(s => s.Confidence!.Value);
+                _logger.LogInformation("[TRANSCRIPT:92%] Mapped {SegmentCount} segments successfully", segments.Count);
 
-                // 5. Create DTO
+                // STEP 92-93%: Calculate metadata
+                _logger.LogInformation("[TRANSCRIPT:92%] Calculating metadata (word count, confidence)...");
+                var wordCount = segments.Sum(s => s.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+                var averageConfidence = segments.Any(s => s.Confidence.HasValue)
+                    ? segments.Where(s => s.Confidence.HasValue).Average(s => s.Confidence!.Value)
+                    : 0.0;
+                _logger.LogInformation("[TRANSCRIPT:93%] Metadata calculated: {WordCount} words, {AvgConfidence:F2}% avg confidence",
+                    wordCount, averageConfidence * 100);
+
+                // STEP 93-94%: Create DTO
+                _logger.LogInformation("[TRANSCRIPT:93%] Creating transcript DTO...");
+                // Normalize language to xx-XX format for MongoDB schema validation
+                var normalizedLanguage = NormalizeLanguageCode(language);
+                _logger.LogInformation("[TRANSCRIPT:94%] Language normalized: {Original} → {Normalized}", language, normalizedLanguage);
+
                 var transcriptDto = new VideoTranscriptDto
                 {
                     LessonId = lessonId,
-                    Language = language,
+                    Language = normalizedLanguage,
                     ProcessingStatus = "Completed",
                     Transcript = segments,
                     Metadata = new TranscriptMetadataDto
@@ -153,12 +186,31 @@ namespace InsightLearn.Application.Services
                         ProcessedAt = DateTime.UtcNow
                     }
                 };
+                _logger.LogInformation("[TRANSCRIPT:94%] DTO created: {SegmentCount} segments, {Duration}s duration",
+                    segments.Count, transcriptionResult.DurationSeconds);
 
-                // 6. Save to database
+                // STEP 95-98%: Save to database (MongoDB + SQL Server)
+                _logger.LogInformation("[TRANSCRIPT:95%] ═══ SAVING TO DATABASE ═══");
+                _logger.LogInformation("[TRANSCRIPT:95%] Step 1: Saving transcript to MongoDB...");
+                await _repository.UpdateProcessingStatusAsync(lessonId, "SavingMongoDB", null, ct);
+
+                var saveStartTime = DateTime.UtcNow;
                 await _repository.CreateAsync(lessonId, transcriptDto, ct);
+                var saveEndTime = DateTime.UtcNow;
+                var saveDuration = (saveEndTime - saveStartTime).TotalMilliseconds;
 
-                // 7. Invalidate cache (if any)
+                _logger.LogInformation("[TRANSCRIPT:98%] Database save COMPLETED in {Duration}ms", saveDuration);
+
+                // STEP 98-99%: Invalidate cache (if any)
+                _logger.LogInformation("[TRANSCRIPT:98%] Invalidating Redis cache...");
+                await _repository.UpdateProcessingStatusAsync(lessonId, "CacheInvalidation", null, ct);
                 await InvalidateCacheAsync(lessonId, ct);
+                _logger.LogInformation("[TRANSCRIPT:99%] Cache invalidated successfully");
+
+                // STEP 99-100%: Final status update
+                _logger.LogInformation("[TRANSCRIPT:99%] Updating final status to 'Completed'...");
+                await _repository.UpdateProcessingStatusAsync(lessonId, "Completed", null, ct);
+                _logger.LogInformation("[TRANSCRIPT:100%] ═══ TRANSCRIPT GENERATION COMPLETE ═══");
 
                 _logger.LogInformation("Transcript generation completed for lesson {LessonId}, {WordCount} words, {SegmentCount} segments",
                     lessonId, wordCount, segments.Count);
@@ -171,6 +223,139 @@ namespace InsightLearn.Application.Services
                 await _repository.UpdateProcessingStatusAsync(lessonId, "Failed", ex.Message, ct);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Generate transcript using parallel processing with both OpenAI Whisper and faster-whisper.
+        /// Splits video into chunks and distributes between providers for real-time transcription.
+        /// </summary>
+        /// <param name="lessonId">Lesson ID</param>
+        /// <param name="videoUrl">Video URL to transcribe</param>
+        /// <param name="language">Language code (e.g., "en-US", "it-IT")</param>
+        /// <param name="options">Parallel transcription options (chunk size, strategy, etc.)</param>
+        /// <param name="progress">Optional progress callback for real-time updates</param>
+        /// <param name="ct">Cancellation token</param>
+        /// <returns>Generated transcript DTO</returns>
+        public async Task<VideoTranscriptDto> GenerateTranscriptParallelAsync(
+            Guid lessonId,
+            string videoUrl,
+            string language = "en-US",
+            ParallelTranscriptionOptions? options = null,
+            IProgress<ParallelTranscriptionProgress>? progress = null,
+            CancellationToken ct = default)
+        {
+            if (_parallelService == null)
+            {
+                _logger.LogWarning("[VideoTranscript] Parallel transcription service not available, falling back to single provider");
+                return await GenerateTranscriptAsync(lessonId, videoUrl, language, ct);
+            }
+
+            _logger.LogInformation("[VideoTranscript] Starting PARALLEL transcript generation for lesson {LessonId}", lessonId);
+
+            try
+            {
+                // Update status to "Processing"
+                await _repository.UpdateProcessingStatusAsync(lessonId, "Processing", null, ct);
+
+                // 1. Check parallel service availability
+                var availability = await _parallelService.CheckAvailabilityAsync(ct);
+                if (!availability.IsFullyParallel)
+                {
+                    _logger.LogWarning("[VideoTranscript] Only one provider available ({Status}), using single provider mode",
+                        availability.RecommendedStrategy);
+
+                    if (!availability.IsAvailable)
+                    {
+                        throw new InvalidOperationException("No transcription providers available");
+                    }
+                }
+
+                // 2. Download video stream
+                _logger.LogDebug("[VideoTranscript] Downloading video from URL: {VideoUrl}", videoUrl);
+                var videoStream = await DownloadVideoStreamAsync(videoUrl, ct);
+
+                // 3. Use default options if not provided
+                options ??= new ParallelTranscriptionOptions
+                {
+                    ChunkDurationSeconds = 30,
+                    ChunkOverlapSeconds = 2,
+                    DistributionStrategy = ChunkDistributionStrategy.RoundRobin,
+                    MaxParallelChunksPerProvider = 2,
+                    EnableRealTimeStreaming = true,
+                    EnableFallbackOnFailure = true
+                };
+
+                // 4. Extract language code (convert "en-US" to "en" for Whisper)
+                var whisperLanguage = language.Contains('-') ? language.Split('-')[0] : language;
+
+                // 5. Process with parallel transcription
+                var transcriptionResult = await _parallelService.TranscribeVideoParallelAsync(
+                    videoStream, whisperLanguage, lessonId, options, progress, ct);
+
+                // 6. Map TranscriptionResult to TranscriptSegmentDto
+                var segments = transcriptionResult.Segments.Select(s => new TranscriptSegmentDto
+                {
+                    StartTime = s.StartSeconds,
+                    EndTime = s.EndSeconds,
+                    Text = s.Text,
+                    Speaker = null,
+                    Confidence = s.Confidence
+                }).ToList();
+
+                // 7. Calculate metadata
+                var wordCount = segments.Sum(s => s.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+                var averageConfidence = segments.Where(s => s.Confidence.HasValue).DefaultIfEmpty()
+                    .Average(s => s?.Confidence ?? 0.9);
+
+                // 8. Normalize language and create DTO
+                var normalizedLanguage = NormalizeLanguageCode(language);
+
+                var transcriptDto = new VideoTranscriptDto
+                {
+                    LessonId = lessonId,
+                    Language = normalizedLanguage,
+                    ProcessingStatus = "Completed",
+                    Transcript = segments,
+                    Metadata = new TranscriptMetadataDto
+                    {
+                        DurationSeconds = (int)transcriptionResult.DurationSeconds,
+                        WordCount = wordCount,
+                        AverageConfidence = averageConfidence,
+                        ProcessingEngine = transcriptionResult.ModelUsed, // "parallel-openai+fasterwhisper"
+                        ProcessedAt = DateTime.UtcNow
+                    }
+                };
+
+                // 9. Save to database
+                await _repository.CreateAsync(lessonId, transcriptDto, ct);
+
+                // 10. Invalidate cache
+                await InvalidateCacheAsync(lessonId, ct);
+
+                _logger.LogInformation("[VideoTranscript] PARALLEL transcript generation completed for lesson {LessonId}: {WordCount} words, {SegmentCount} segments, engine: {Engine}",
+                    lessonId, wordCount, segments.Count, transcriptionResult.ModelUsed);
+
+                return transcriptDto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[VideoTranscript] PARALLEL transcript generation failed for lesson {LessonId}", lessonId);
+                await _repository.UpdateProcessingStatusAsync(lessonId, "Failed", ex.Message, ct);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Check if parallel transcription is available and return availability status.
+        /// </summary>
+        public async Task<ParallelTranscriptionAvailability?> CheckParallelAvailabilityAsync(CancellationToken ct = default)
+        {
+            if (_parallelService == null)
+            {
+                return null;
+            }
+
+            return await _parallelService.CheckAvailabilityAsync(ct);
         }
 
         /// <summary>
@@ -554,6 +739,63 @@ Be educational, professional, and engaging.";
             public double End { get; set; }
             public string Text { get; set; } = string.Empty;
             public double? Confidence { get; set; }
+        }
+
+        /// <summary>
+        /// Normalize language code to xx-XX format for MongoDB schema validation.
+        /// MongoDB schema requires pattern: ^[a-z]{2}-[A-Z]{2}$
+        /// Examples: "en" -> "en-US", "it" -> "it-IT", "en-US" -> "en-US"
+        /// </summary>
+        private static string NormalizeLanguageCode(string language)
+        {
+            if (string.IsNullOrWhiteSpace(language))
+                return "en-US";
+
+            // If already in xx-XX format, return as-is
+            if (language.Contains('-') && language.Length >= 5)
+                return language;
+
+            // Map common 2-letter codes to full locale codes
+            return language.ToLowerInvariant() switch
+            {
+                "en" => "en-US",
+                "it" => "it-IT",
+                "es" => "es-ES",
+                "fr" => "fr-FR",
+                "de" => "de-DE",
+                "pt" => "pt-BR",
+                "zh" => "zh-CN",
+                "ja" => "ja-JP",
+                "ko" => "ko-KR",
+                "ru" => "ru-RU",
+                "ar" => "ar-SA",
+                "hi" => "hi-IN",
+                "nl" => "nl-NL",
+                "pl" => "pl-PL",
+                "tr" => "tr-TR",
+                "vi" => "vi-VN",
+                "th" => "th-TH",
+                "id" => "id-ID",
+                "cs" => "cs-CZ",
+                "sv" => "sv-SE",
+                "da" => "da-DK",
+                "fi" => "fi-FI",
+                "no" => "nb-NO",
+                "el" => "el-GR",
+                "he" => "he-IL",
+                "uk" => "uk-UA",
+                "ro" => "ro-RO",
+                "hu" => "hu-HU",
+                "sk" => "sk-SK",
+                "bg" => "bg-BG",
+                "hr" => "hr-HR",
+                "sl" => "sl-SI",
+                "sr" => "sr-RS",
+                "lt" => "lt-LT",
+                "lv" => "lv-LV",
+                "et" => "et-EE",
+                _ => $"{language.ToLowerInvariant()}-{language.ToUpperInvariant()}" // Fallback: xx -> xx-XX
+            };
         }
     }
 }
