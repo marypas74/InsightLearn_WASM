@@ -18,9 +18,9 @@ metadata:
   namespace: insightlearn
   labels:
     app: faster-whisper
-    version: v2.3.41-dev
+    version: v2.3.96-dev
 spec:
-  replicas: 1
+  replicas: 2  # v2.3.96-dev: Scale to 2 replicas for parallel transcriptions
   selector:
     matchLabels:
       app: faster-whisper
@@ -28,7 +28,7 @@ spec:
     metadata:
       labels:
         app: faster-whisper
-        version: v2.3.41-dev
+        version: v2.3.96-dev
     spec:
       containers:
       - name: faster-whisper-server
@@ -48,13 +48,14 @@ spec:
         volumeMounts:
         - name: model-cache
           mountPath: /root/.cache/huggingface
+        # v2.3.96-dev: 4 cores, 12Gi RAM per replica - 2 replicas for parallel transcriptions
         resources:
           requests:
             memory: "2Gi"
-            cpu: "500m"
+            cpu: "1"
           limits:
             memory: "12Gi"
-            cpu: "2"
+            cpu: "4"
         livenessProbe:
           httpGet:
             path: /health

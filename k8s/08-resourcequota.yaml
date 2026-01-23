@@ -9,11 +9,11 @@ metadata:
 spec:
   hard:
     configmaps: "30"
-    limits.cpu: "16"
-    limits.memory: 48Gi  # Increased from 32Gi to 48Gi to accommodate faster-whisper 12Gi
+    limits.cpu: "24"  # v2.3.96-dev: Increased for 2x faster-whisper replicas (cluster overcommit OK)
+    limits.memory: 64Gi  # v2.3.96-dev: Increased for 2x faster-whisper replicas (host has 33GB RAM + 42GB ZFS swap)
     persistentvolumeclaims: "20"
     pods: "50"
     requests.cpu: "8"
-    requests.memory: 24Gi  # Increased from 16Gi to 24Gi proportionally
+    requests.memory: 32Gi  # v2.3.96-dev: Increased proportionally
     secrets: "30"
     services: "25"

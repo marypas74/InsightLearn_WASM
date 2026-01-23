@@ -15,7 +15,8 @@ namespace InsightLearn.Application.BackgroundJobs
     /// Calls Whisper API and stores result in database + Redis cache.
     /// Phase 7.4: Auto-generates WebVTT subtitle files for download (LinkedIn Learning parity).
     /// Phase 8.4: Auto-queues translation jobs for top 5 languages (LinkedIn Learning parity).
-    /// Part of Student Learning Space v2.1.0 and Batch Video Transcription System v2.3.23-dev.
+    /// v2.3.97-dev: Integrated with TranscriptJobStatusService for real-time chunk progress.
+    /// Part of Student Learning Space v2.1.0 and Batch Video Transcription System v2.3.97-dev.
     /// </summary>
     public class TranscriptGenerationJob
     {
@@ -26,6 +27,7 @@ namespace InsightLearn.Application.BackgroundJobs
         private readonly ISubtitleGenerator _subtitleGenerator;
         private readonly IMongoVideoStorageService _mongoStorage;
         private readonly IConfiguration _configuration;
+        private readonly ITranscriptJobStatusService _jobStatusService;
 
         public TranscriptGenerationJob(
             IVideoTranscriptService transcriptService,
@@ -34,7 +36,8 @@ namespace InsightLearn.Application.BackgroundJobs
             MetricsService metricsService,
             ISubtitleGenerator subtitleGenerator,
             IMongoVideoStorageService mongoStorage,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ITranscriptJobStatusService jobStatusService)
         {
             _transcriptService = transcriptService ?? throw new ArgumentNullException(nameof(transcriptService));
             _lessonRepository = lessonRepository ?? throw new ArgumentNullException(nameof(lessonRepository));
@@ -43,6 +46,7 @@ namespace InsightLearn.Application.BackgroundJobs
             _subtitleGenerator = subtitleGenerator ?? throw new ArgumentNullException(nameof(subtitleGenerator));
             _mongoStorage = mongoStorage ?? throw new ArgumentNullException(nameof(mongoStorage));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _jobStatusService = jobStatusService ?? throw new ArgumentNullException(nameof(jobStatusService));
         }
 
         /// <summary>
@@ -59,12 +63,38 @@ namespace InsightLearn.Application.BackgroundJobs
             _logger.LogInformation("[HANGFIRE] Starting transcript generation job for lesson {LessonId}, language {Language}",
                 lessonId, language);
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             // Get lesson to determine video duration for metrics labeling
             var lesson = await _lessonRepository.GetByIdAsync(lessonId);
             var videoDurationMinutes = lesson?.DurationMinutes ?? 10; // Default to 10 if not set
+            var videoDurationSeconds = videoDurationMinutes * 60.0;
+
+            // Estimate chunk count based on video duration (30s chunks)
+            var chunkDurationSeconds = int.Parse(_configuration["Whisper:ChunkDurationSeconds"] ?? "30");
+            var estimatedChunkCount = Math.Max(1, (int)Math.Ceiling(videoDurationSeconds / chunkDurationSeconds));
 
             // Extract CancellationToken from Hangfire (enables 30-minute timeout in WhisperTranscriptionService)
             var cts = cancellationToken?.ShutdownToken ?? CancellationToken.None;
+
+            // Create job status entry for real-time monitoring (v2.3.97-dev)
+            // Note: Hangfire doesn't expose CurrentBackgroundJobId directly, use null
+            try
+            {
+                await _jobStatusService.CreateJobAsync(
+                    lessonId,
+                    null, // Hangfire job ID not available from within job context
+                    language,
+                    estimatedChunkCount,
+                    videoDurationSeconds,
+                    cts);
+                _logger.LogInformation("[HANGFIRE] Job status created: {ChunkCount} estimated chunks for lesson {LessonId}",
+                    estimatedChunkCount, lessonId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[HANGFIRE] Failed to create job status entry (non-fatal)");
+            }
 
             try
             {
@@ -129,6 +159,17 @@ namespace InsightLearn.Application.BackgroundJobs
                     // Record successful transcript generation
                     _metricsService.RecordTranscriptJob("success");
 
+                    // Update job status to completed (v2.3.97-dev)
+                    sw.Stop();
+                    try
+                    {
+                        await _jobStatusService.CompleteJobAsync(lessonId, transcript.Segments.Count, sw.ElapsedMilliseconds, cts);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[HANGFIRE] Failed to update job status to completed (non-fatal)");
+                    }
+
                     // Phase 8.4: Auto-queue translation jobs for top 5 languages (LinkedIn Learning parity)
                     // Only translate if source is English and auto-translation is enabled
                     if (language.StartsWith("en", StringComparison.OrdinalIgnoreCase))
@@ -175,16 +216,24 @@ namespace InsightLearn.Application.BackgroundJobs
                     }
                 }
             }
-            catch (TimeoutException)
+            catch (TimeoutException ex)
             {
                 _logger.LogError("[HANGFIRE] Transcript generation timeout for lesson {LessonId}", lessonId);
                 _metricsService.RecordTranscriptJob("timeout");
+
+                // Update job status to timeout (v2.3.97-dev)
+                try { await _jobStatusService.FailJobAsync(lessonId, $"Timeout: {ex.Message}", cts); } catch { }
+
                 throw; // Re-throw to trigger Hangfire retry
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[HANGFIRE] Transcript generation failed for lesson {LessonId}", lessonId);
                 _metricsService.RecordTranscriptJob("failed");
+
+                // Update job status to failed (v2.3.97-dev)
+                try { await _jobStatusService.FailJobAsync(lessonId, ex.Message, cts); } catch { }
+
                 throw; // Re-throw to trigger Hangfire retry
             }
         }

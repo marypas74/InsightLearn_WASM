@@ -78,6 +78,12 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
     // Phase 8: Multi-Language Subtitle Translation (v2.3.24-dev)
     public DbSet<VideoTranscriptTranslation> VideoTranscriptTranslations { get; set; }
 
+    // AI Service Configuration (v2.3.63-dev) - Admin AI provider switching
+    public DbSet<AIServiceConfiguration> AIServiceConfigurations { get; set; }
+
+    // Transcript Job Status (v2.3.97-dev) - Real-time chunked transcription monitoring
+    public DbSet<TranscriptJobStatus> TranscriptJobStatuses { get; set; }
+
     // SaaS Subscription Model entities
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
@@ -149,6 +155,9 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
 
         // Configure Student Learning Space entities (v2.1.0)
         ConfigureStudentLearningSpaceEntities(builder);
+
+        // Configure AI Service Configuration (v2.3.63-dev)
+        ConfigureAIServiceConfiguration(builder);
 
         // Apply EF Core optimizations using extension methods
         builder.ConfigureGlobalQueryFilters();
@@ -648,6 +657,7 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
         builder.Entity<AIConversation>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd(); // Generate GUID automatically
             entity.Property(e => e.SessionId).IsRequired();
             // UserId is nullable - anonymous users (free lessons) use SessionId for tracking
             entity.Property(e => e.UserId).IsRequired(false);
@@ -752,6 +762,45 @@ public class InsightLearnDbContext : IdentityDbContext<User, IdentityRole<Guid>,
 
             entity.HasIndex(e => new { e.LessonId, e.Status })
                 .HasDatabaseName("IX_VideoTranscriptTranslations_LessonId_Status");
+        });
+    }
+
+    /// <summary>
+    /// Configures AI Service Configuration entity (v2.3.63-dev).
+    /// Allows admin to switch between OpenAI and Ollama providers.
+    /// </summary>
+    private void ConfigureAIServiceConfiguration(ModelBuilder builder)
+    {
+        builder.Entity<AIServiceConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
+            entity.Property(e => e.ServiceType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ActiveProvider).IsRequired().HasMaxLength(50).HasDefaultValue("OpenAI");
+            entity.Property(e => e.OpenAIApiKey).HasMaxLength(500);
+            entity.Property(e => e.OpenAIModel).HasMaxLength(100);
+            entity.Property(e => e.OllamaBaseUrl).HasMaxLength(255);
+            entity.Property(e => e.OllamaModel).HasMaxLength(100);
+            entity.Property(e => e.FasterWhisperUrl).HasMaxLength(255);
+            entity.Property(e => e.FasterWhisperModel).HasMaxLength(50);
+            entity.Property(e => e.Temperature).HasDefaultValue(0.7);
+            entity.Property(e => e.TimeoutSeconds).HasDefaultValue(120);
+            entity.Property(e => e.IsEnabled).HasDefaultValue(true);
+            entity.Property(e => e.EnableFallback).HasDefaultValue(true);
+            entity.Property(e => e.FallbackProvider).HasMaxLength(50);
+            entity.Property(e => e.LastErrorMessage).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique constraint: one configuration per service type
+            entity.HasIndex(e => e.ServiceType)
+                .IsUnique()
+                .HasDatabaseName("IX_AIServiceConfigurations_ServiceType_Unique");
+
+            // Index for active provider queries
+            entity.HasIndex(e => new { e.ServiceType, e.ActiveProvider })
+                .HasDatabaseName("IX_AIServiceConfigurations_ServiceType_ActiveProvider");
         });
     }
 }

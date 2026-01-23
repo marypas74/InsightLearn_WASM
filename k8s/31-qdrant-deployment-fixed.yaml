@@ -87,13 +87,14 @@ spec:
         volumeMounts:
         - name: qdrant-storage
           mountPath: /qdrant/storage
+        # v2.3.96-dev: Reduced CPU to fit within namespace quota
         resources:
           requests:
-            cpu: 250m
+            cpu: 200m
             memory: 512Mi
           limits:
-            cpu: 1000m  # Increased for indexing
-            memory: 2Gi  # Increased to prevent OOM
+            cpu: 500m
+            memory: 1Gi
         livenessProbe:
           httpGet:
             path: /
