@@ -1,0 +1,34 @@
+@page "/billing/history"
+@page "/billing"
+@page "/my-billing"
+@attribute [Authorize]
+
+<PageTitle>Billing History - InsightLearn</PageTitle>
+
+<div class="billing-page">
+    <div class="container">
+        <h1><i class="fas fa-file-invoice-dollar"></i> Billing History</h1>
+        <p class="subtitle">View your purchase history and invoices</p>
+
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+            <h2>No transactions yet</h2>
+            <p>Your purchase history will appear here after you enroll in courses.</p>
+            <a href="/courses" class="btn btn-primary">Browse Courses</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .billing-page { min-height: 100vh; background: #f9fafb; padding: 60px 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 2rem; color: #1c1d1f; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+    h1 i { color: #10b981; }
+    .subtitle { color: #6b7280; margin-bottom: 3rem; }
+    .empty-state { background: white; border-radius: 16px; padding: 4rem 2rem; text-align: center; }
+    .empty-icon { width: 80px; height: 80px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+    .empty-icon i { font-size: 2rem; color: #10b981; }
+    .empty-state h2 { font-size: 1.5rem; color: #1c1d1f; margin-bottom: 0.5rem; }
+    .empty-state p { color: #6b7280; margin-bottom: 2rem; }
+    .btn-primary { display: inline-block; padding: 0.875rem 2rem; background: var(--primary-color, #a435f0); color: white; border-radius: 8px; font-weight: 600; text-decoration: none; }
+</style>

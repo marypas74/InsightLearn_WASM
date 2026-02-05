@@ -1,0 +1,59 @@
+@page "/developers/changelog"
+@page "/changelog"
+
+<PageTitle>Changelog - InsightLearn</PageTitle>
+
+<div class="changelog-page">
+    <div class="container">
+        <h1>Changelog</h1>
+        <p class="subtitle">Latest updates and improvements to InsightLearn</p>
+
+        <div class="changelog-list">
+            <div class="changelog-item">
+                <div class="version">v2.5.2</div>
+                <div class="date">February 2026</div>
+                <div class="changes">
+                    <h3>New Features</h3>
+                    <ul>
+                        <li>Added SEO schema components (Product, Speakable, Event)</li>
+                        <li>New developer console pages</li>
+                        <li>B2B tenant management stubs</li>
+                    </ul>
+                    <h3>Improvements</h3>
+                    <ul>
+                        <li>Fixed 404 errors on public pages</li>
+                        <li>Added SRI hashes for CDN security</li>
+                        <li>Updated MongoDB driver to 2.30.0</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="changelog-item">
+                <div class="version">v2.5.0</div>
+                <div class="date">January 2026</div>
+                <div class="changes">
+                    <h3>Major Changes</h3>
+                    <ul>
+                        <li>Simplified translation architecture</li>
+                        <li>Direct Ollama integration for AI translations</li>
+                        <li>Improved transcript generation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .changelog-page { min-height: 100vh; background: #f9fafb; padding: 60px 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 2.5rem; color: #1c1d1f; margin-bottom: 0.5rem; }
+    .subtitle { color: #6b7280; margin-bottom: 3rem; }
+    .changelog-list { display: flex; flex-direction: column; gap: 2rem; }
+    .changelog-item { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .version { display: inline-block; background: var(--primary-color, #a435f0); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .date { color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .changes h3 { font-size: 1rem; color: #1c1d1f; margin: 1rem 0 0.5rem; }
+    .changes ul { padding-left: 1.5rem; color: #4b5563; }
+    .changes li { margin-bottom: 0.5rem; }
+</style>

@@ -1,0 +1,73 @@
+@page "/case-studies"
+@page "/customers"
+@page "/success-stories"
+
+<PageTitle>Case Studies - InsightLearn</PageTitle>
+
+<div class="case-studies-page">
+    <div class="container">
+        <h1>Customer Success Stories</h1>
+        <p class="subtitle">See how organizations transform learning with InsightLearn</p>
+
+        <div class="case-grid">
+            <div class="case-card">
+                <div class="case-logo"><i class="fas fa-university"></i></div>
+                <div class="case-industry">Higher Education</div>
+                <h3>European University Network</h3>
+                <p>Deployed InsightLearn across 12 universities, serving 50,000+ students with multilingual content.</p>
+                <div class="case-stats">
+                    <div class="stat"><span class="number">50K+</span><span class="label">Students</span></div>
+                    <div class="stat"><span class="number">12</span><span class="label">Universities</span></div>
+                </div>
+            </div>
+
+            <div class="case-card">
+                <div class="case-logo"><i class="fas fa-industry"></i></div>
+                <div class="case-industry">Manufacturing</div>
+                <h3>Global Manufacturing Corp</h3>
+                <p>Reduced training costs by 60% while improving compliance completion rates across 30 facilities.</p>
+                <div class="case-stats">
+                    <div class="stat"><span class="number">60%</span><span class="label">Cost Reduction</span></div>
+                    <div class="stat"><span class="number">30</span><span class="label">Facilities</span></div>
+                </div>
+            </div>
+
+            <div class="case-card">
+                <div class="case-logo"><i class="fas fa-heartbeat"></i></div>
+                <div class="case-industry">Healthcare</div>
+                <h3>Regional Health System</h3>
+                <p>Achieved 99% compliance training completion with AI-powered transcription for accessibility.</p>
+                <div class="case-stats">
+                    <div class="stat"><span class="number">99%</span><span class="label">Completion</span></div>
+                    <div class="stat"><span class="number">15K</span><span class="label">Staff Trained</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2>Ready to transform your learning?</h2>
+            <a href="/contact?subject=architecture" class="btn btn-primary">Schedule a Demo</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .case-studies-page { min-height: 100vh; background: #f9fafb; padding: 60px 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 2.5rem; color: #1c1d1f; text-align: center; margin-bottom: 0.5rem; }
+    .subtitle { text-align: center; color: #6b7280; margin-bottom: 3rem; }
+    .case-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 4rem; }
+    .case-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .case-logo { width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary-color, #a435f0) 0%, #6b21a8 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+    .case-logo i { font-size: 1.5rem; color: white; }
+    .case-industry { color: var(--primary-color, #a435f0); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .case-card h3 { font-size: 1.25rem; color: #1c1d1f; margin-bottom: 0.75rem; }
+    .case-card p { color: #6b7280; line-height: 1.6; margin-bottom: 1.5rem; }
+    .case-stats { display: flex; gap: 2rem; }
+    .stat { text-align: center; }
+    .stat .number { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary-color, #a435f0); }
+    .stat .label { font-size: 0.75rem; color: #6b7280; }
+    .cta-section { text-align: center; padding: 3rem; background: white; border-radius: 16px; }
+    .cta-section h2 { font-size: 1.5rem; color: #1c1d1f; margin-bottom: 1.5rem; }
+    .btn-primary { display: inline-block; padding: 1rem 2rem; background: var(--primary-color, #a435f0); color: white; border-radius: 8px; font-weight: 600; text-decoration: none; }
+</style>

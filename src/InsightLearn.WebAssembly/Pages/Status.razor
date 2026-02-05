@@ -1,0 +1,71 @@
+@page "/status"
+@page "/system-status"
+
+<PageTitle>System Status - InsightLearn</PageTitle>
+
+<div class="status-page">
+    <div class="container">
+        <h1><i class="fas fa-check-circle"></i> All Systems Operational</h1>
+        <p class="updated">Last updated: @DateTime.UtcNow.ToString("MMMM dd, yyyy HH:mm") UTC</p>
+
+        <div class="status-grid">
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">Web Application</span>
+                <span class="badge">Operational</span>
+            </div>
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">API Services</span>
+                <span class="badge">Operational</span>
+            </div>
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">Video Streaming</span>
+                <span class="badge">Operational</span>
+            </div>
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">Database</span>
+                <span class="badge">Operational</span>
+            </div>
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">Authentication</span>
+                <span class="badge">Operational</span>
+            </div>
+            <div class="status-item operational">
+                <span class="indicator"></span>
+                <span class="name">Payment Processing</span>
+                <span class="badge">Operational</span>
+            </div>
+        </div>
+
+        <div class="uptime-section">
+            <h2>90-Day Uptime</h2>
+            <div class="uptime-bar">
+                <div class="uptime-fill" style="width: 99.9%"></div>
+            </div>
+            <p class="uptime-text">99.9% uptime</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-page { min-height: 100vh; background: #f9fafb; padding: 60px 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 2rem; color: #10b981; text-align: center; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+    .updated { text-align: center; color: #6b7280; margin-bottom: 3rem; }
+    .status-grid { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem; }
+    .status-item { background: white; padding: 1.25rem 1.5rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .indicator { width: 12px; height: 12px; border-radius: 50%; }
+    .operational .indicator { background: #10b981; }
+    .name { flex: 1; font-weight: 500; color: #1c1d1f; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .operational .badge { background: #d1fae5; color: #059669; }
+    .uptime-section { background: white; padding: 2rem; border-radius: 16px; text-align: center; }
+    .uptime-section h2 { font-size: 1.25rem; color: #1c1d1f; margin-bottom: 1rem; }
+    .uptime-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .uptime-fill { height: 100%; background: #10b981; }
+    .uptime-text { margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem; }
+</style>

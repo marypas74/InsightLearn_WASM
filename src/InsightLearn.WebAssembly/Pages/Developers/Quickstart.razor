@@ -1,0 +1,43 @@
+@page "/developers/quickstart"
+@page "/quickstart"
+@page "/getting-started"
+
+<PageTitle>Quickstart Guide - InsightLearn</PageTitle>
+
+<div class="docs-page">
+    <div class="container">
+        <div class="coming-soon-card">
+            <div class="icon"><i class="fas fa-rocket"></i></div>
+            <h1>Quickstart Guide</h1>
+            <p class="subtitle">Get Started in Minutes</p>
+            <p class="description">Step-by-step guide to integrate InsightLearn APIs into your application. From authentication to your first API call.</p>
+            <div class="features">
+                <div class="feature"><i class="fas fa-key"></i><span>Authentication Setup</span></div>
+                <div class="feature"><i class="fas fa-terminal"></i><span>First API Call</span></div>
+                <div class="feature"><i class="fas fa-code-branch"></i><span>SDK Installation</span></div>
+                <div class="feature"><i class="fas fa-check-circle"></i><span>Best Practices</span></div>
+            </div>
+            <div class="cta-buttons">
+                <a href="/contact?subject=partnership" class="btn btn-primary">Request Access</a>
+                <a href="/developers/docs" class="btn btn-outline">Back to Docs</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .docs-page { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+    .coming-soon-card { background: #1e293b; border-radius: 24px; padding: 3rem; max-width: 600px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid #334155; }
+    .icon { width: 80px; height: 80px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+    .icon i { font-size: 2rem; color: white; }
+    h1 { font-size: 2rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+    .subtitle { color: #f59e0b; font-weight: 600; margin-bottom: 1.5rem; }
+    .description { color: #94a3b8; line-height: 1.7; margin-bottom: 2rem; }
+    .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .feature { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #334155; border-radius: 8px; font-size: 0.875rem; color: #e2e8f0; }
+    .feature i { color: #f59e0b; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn { padding: 0.875rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .btn-primary { background: #f59e0b; color: white; }
+    .btn-outline { border: 2px solid #475569; color: #e2e8f0; background: transparent; }
+</style>
