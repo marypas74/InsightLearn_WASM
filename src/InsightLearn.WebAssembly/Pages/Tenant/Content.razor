@@ -1,0 +1,166 @@
+@page "/tenant/content"
+@using InsightLearn.WebAssembly.Components.SEO
+
+<SeoMetaTags
+    Title="Content Management - InsightLearn for Business"
+    Description="Curate and manage learning content for your organization. Upload custom courses, create learning paths, and assign content to teams."
+    Keywords="content management, course library, learning paths, corporate content"
+    PageType="WebPage" />
+
+<PageTitle>Content Management - InsightLearn</PageTitle>
+
+<div class="tenant-page">
+    <div class="container">
+        <div class="coming-soon-card">
+            <div class="icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h1>Content Management</h1>
+            <p class="subtitle">Learning Library</p>
+            <p class="description">
+                Build your organization's learning library. Curate courses from our catalog,
+                upload custom content, and create targeted learning paths for your teams.
+            </p>
+            <div class="features-preview">
+                <div class="feature">
+                    <i class="fas fa-upload"></i>
+                    <span>Custom Uploads</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-route"></i>
+                    <span>Learning Paths</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-star"></i>
+                    <span>Curated Collections</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-certificate"></i>
+                    <span>Certification Tracks</span>
+                </div>
+            </div>
+            <div class="cta-buttons">
+                <a href="/contact?subject=architecture" class="btn btn-primary">Contact Sales</a>
+                <a href="/tenant/overview" class="btn btn-outline">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tenant-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+    }
+
+    .coming-soon-card {
+        background: white;
+        border-radius: 24px;
+        padding: 3rem;
+        max-width: 600px;
+        text-align: center;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .icon i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1c1d1f;
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        color: #8b5cf6;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+
+    .description {
+        color: #6b7280;
+        line-height: 1.7;
+        margin-bottom: 2rem;
+    }
+
+    .features-preview {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: #f3f4f6;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .feature i {
+        color: #8b5cf6;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.875rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #7c3aed;
+    }
+
+    .btn-outline {
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        background: transparent;
+    }
+
+    .btn-outline:hover {
+        border-color: #8b5cf6;
+        color: #8b5cf6;
+    }
+
+    @@media (max-width: 576px) {
+        .features-preview {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

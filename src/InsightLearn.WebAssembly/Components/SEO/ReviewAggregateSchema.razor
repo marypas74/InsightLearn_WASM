@@ -1,0 +1,147 @@
+@*
+    ReviewAggregateSchema.razor - JSON-LD Schema.org AggregateRating Markup
+    Generates standalone aggregate rating structured data for review rich snippets.
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/review-snippet
+    Schema: https://schema.org/AggregateRating
+
+    Note: This component generates AggregateRating within a Product context
+    for compliance with Google's review snippet guidelines.
+
+    Usage:
+    <ReviewAggregateSchema
+        RatingValue="4.8"
+        ReviewCount="1250"
+        ItemName="Complete Web Development Bootcamp"
+        ItemUrl="/courses/web-dev-bootcamp" />
+
+    Created: 2026-02-05
+    Version: 1.0 (v2.5.1)
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <script type="application/ld+json">
+        @((MarkupString)GenerateJsonLd())
+    </script>
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// Average rating value
+    /// </summary>
+    [Parameter, EditorRequired]
+    public double RatingValue { get; set; }
+
+    /// <summary>
+    /// Total number of reviews
+    /// </summary>
+    [Parameter, EditorRequired]
+    public int ReviewCount { get; set; }
+
+    /// <summary>
+    /// Best possible rating (default: 5)
+    /// </summary>
+    [Parameter]
+    public int BestRating { get; set; } = 5;
+
+    /// <summary>
+    /// Worst possible rating (default: 1)
+    /// </summary>
+    [Parameter]
+    public int WorstRating { get; set; } = 1;
+
+    /// <summary>
+    /// Name of the item being reviewed (course title)
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string ItemName { get; set; } = "";
+
+    /// <summary>
+    /// URL of the item being reviewed
+    /// </summary>
+    [Parameter]
+    public string ItemUrl { get; set; } = "";
+
+    /// <summary>
+    /// Image URL of the item
+    /// </summary>
+    [Parameter]
+    public string ImageUrl { get; set; } = "";
+
+    /// <summary>
+    /// Description of the item
+    /// </summary>
+    [Parameter]
+    public string Description { get; set; } = "";
+
+    /// <summary>
+    /// Brand/Author name
+    /// </summary>
+    [Parameter]
+    public string Brand { get; set; } = "";
+
+    private string GenerateJsonLd()
+    {
+        // Google requires AggregateRating to be part of a valid item type
+        // Using Product as the container type (courses are products)
+        var product = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Product",
+            ["name"] = ItemName
+        };
+
+        if (!string.IsNullOrEmpty(Description))
+        {
+            product["description"] = Description;
+        }
+
+        if (!string.IsNullOrEmpty(ItemUrl))
+        {
+            product["url"] = GetAbsoluteUrl(ItemUrl);
+        }
+
+        if (!string.IsNullOrEmpty(ImageUrl))
+        {
+            product["image"] = GetAbsoluteUrl(ImageUrl);
+        }
+
+        if (!string.IsNullOrEmpty(Brand))
+        {
+            product["brand"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Brand",
+                ["name"] = Brand
+            };
+        }
+
+        // AggregateRating
+        product["aggregateRating"] = new Dictionary<string, object>
+        {
+            ["@type"] = "AggregateRating",
+            ["ratingValue"] = Math.Round(RatingValue, 1),
+            ["reviewCount"] = ReviewCount,
+            ["bestRating"] = BestRating,
+            ["worstRating"] = WorstRating
+        };
+
+        return JsonSerializer.Serialize(product, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+
+        var baseUri = new Uri(Navigation.BaseUri);
+        return new Uri(baseUri, url).ToString();
+    }
+}

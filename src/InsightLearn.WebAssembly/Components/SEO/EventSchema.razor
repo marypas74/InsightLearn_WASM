@@ -1,0 +1,204 @@
+@*
+    EventSchema.razor - JSON-LD Schema.org Event Markup
+    Generates structured data for live sessions and webinars.
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/event
+    Schema: https://schema.org/Event
+
+    Usage:
+    <EventSchema
+        EventName="Live Web Development Workshop"
+        Description="Join us for an interactive coding session..."
+        StartDate="@DateTime.UtcNow.AddDays(7)"
+        EndDate="@DateTime.UtcNow.AddDays(7).AddHours(2)"
+        EventUrl="/events/web-dev-workshop"
+        OrganizerName="John Doe"
+        ImageUrl="/images/workshop.jpg" />
+
+    Created: 2026-02-05
+    Version: 1.0 (v2.5.1)
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <script type="application/ld+json">
+        @((MarkupString)GenerateJsonLd())
+    </script>
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// Event name/title
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string EventName { get; set; } = "";
+
+    /// <summary>
+    /// Event description
+    /// </summary>
+    [Parameter]
+    public string Description { get; set; } = "";
+
+    /// <summary>
+    /// Event start date and time (UTC)
+    /// </summary>
+    [Parameter, EditorRequired]
+    public DateTime StartDate { get; set; }
+
+    /// <summary>
+    /// Event end date and time (UTC)
+    /// </summary>
+    [Parameter]
+    public DateTime? EndDate { get; set; }
+
+    /// <summary>
+    /// Event URL
+    /// </summary>
+    [Parameter]
+    public string EventUrl { get; set; } = "";
+
+    /// <summary>
+    /// Organizer/Instructor name
+    /// </summary>
+    [Parameter]
+    public string OrganizerName { get; set; } = "";
+
+    /// <summary>
+    /// Event image URL
+    /// </summary>
+    [Parameter]
+    public string ImageUrl { get; set; } = "";
+
+    /// <summary>
+    /// Event status: Scheduled, Cancelled, Postponed, Rescheduled
+    /// </summary>
+    [Parameter]
+    public string EventStatus { get; set; } = "Scheduled";
+
+    /// <summary>
+    /// Attendance mode: Online, Offline, Mixed
+    /// </summary>
+    [Parameter]
+    public string AttendanceMode { get; set; } = "Online";
+
+    /// <summary>
+    /// Price for the event (0 for free)
+    /// </summary>
+    [Parameter]
+    public decimal Price { get; set; } = 0;
+
+    /// <summary>
+    /// Currency code
+    /// </summary>
+    [Parameter]
+    public string Currency { get; set; } = "EUR";
+
+    private string GenerateJsonLd()
+    {
+        var eventData = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Event",
+            ["name"] = EventName,
+            ["startDate"] = StartDate.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        };
+
+        if (!string.IsNullOrEmpty(Description))
+        {
+            eventData["description"] = Description;
+        }
+
+        if (EndDate.HasValue)
+        {
+            eventData["endDate"] = EndDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        }
+
+        if (!string.IsNullOrEmpty(EventUrl))
+        {
+            eventData["url"] = GetAbsoluteUrl(EventUrl);
+        }
+
+        if (!string.IsNullOrEmpty(ImageUrl))
+        {
+            eventData["image"] = GetAbsoluteUrl(ImageUrl);
+        }
+
+        // Event status
+        eventData["eventStatus"] = EventStatus switch
+        {
+            "Cancelled" => "https://schema.org/EventCancelled",
+            "Postponed" => "https://schema.org/EventPostponed",
+            "Rescheduled" => "https://schema.org/EventRescheduled",
+            _ => "https://schema.org/EventScheduled"
+        };
+
+        // Attendance mode
+        eventData["eventAttendanceMode"] = AttendanceMode switch
+        {
+            "Offline" => "https://schema.org/OfflineEventAttendanceMode",
+            "Mixed" => "https://schema.org/MixedEventAttendanceMode",
+            _ => "https://schema.org/OnlineEventAttendanceMode"
+        };
+
+        // Location (virtual for online events)
+        if (AttendanceMode == "Online" || AttendanceMode == "Mixed")
+        {
+            eventData["location"] = new Dictionary<string, object>
+            {
+                ["@type"] = "VirtualLocation",
+                ["url"] = GetAbsoluteUrl(EventUrl)
+            };
+        }
+
+        // Organizer
+        if (!string.IsNullOrEmpty(OrganizerName))
+        {
+            eventData["organizer"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Person",
+                ["name"] = OrganizerName
+            };
+        }
+
+        // Offers (pricing)
+        var offer = new Dictionary<string, object>
+        {
+            ["@type"] = "Offer",
+            ["price"] = Price,
+            ["priceCurrency"] = Currency,
+            ["availability"] = "https://schema.org/InStock",
+            ["url"] = GetAbsoluteUrl(EventUrl),
+            ["validFrom"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        };
+
+        eventData["offers"] = offer;
+
+        // Performer (same as organizer for webinars)
+        if (!string.IsNullOrEmpty(OrganizerName))
+        {
+            eventData["performer"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Person",
+                ["name"] = OrganizerName
+            };
+        }
+
+        return JsonSerializer.Serialize(eventData, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+
+        var baseUri = new Uri(Navigation.BaseUri);
+        return new Uri(baseUri, url).ToString();
+    }
+}

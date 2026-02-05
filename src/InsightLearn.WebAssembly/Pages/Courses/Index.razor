@@ -21,6 +21,27 @@
 @* Breadcrumb Schema *@
 <BreadcrumbSchema Items="@catalogBreadcrumbs" />
 
+@* SEO v2.5.1: Product schemas for top courses in catalog *@
+@if (searchResult?.Courses != null)
+{
+    @foreach (var course in searchResult.Courses.Take(5))
+    {
+        <ProductSchema
+            ProductName="@course.Title"
+            Description="@course.ShortDescription"
+            ImageUrl="@course.ThumbnailUrl"
+            Price="@course.CurrentPrice.ToString("0.00")"
+            Currency="EUR"
+            Rating="@course.AverageRating.ToString("0.0")"
+            ReviewCount="@course.ReviewCount.ToString()"
+            Brand="@course.InstructorName"
+            Category="@course.CategoryName"
+            ProductUrl="@($"/courses/{course.EncodedId}")"
+            InStock="true"
+            Sku="@course.EncodedId" />
+    }
+}
+
 <div class="courses-page-wrapper">
     @* Hero Section *@
     <section class="courses-hero">
@@ -128,6 +149,7 @@
                         @foreach (var course in searchResult.Courses)
                         {
                             <CourseCard Course="@ConvertToCourse(course)"
+                                        EncodedId="@course.EncodedId"
                                         ThumbnailUrl="@(course.ThumbnailUrl ?? "/images/default-course.svg")"
                                         InstructorName="@course.InstructorName"
                                         InstructorAvatar="@course.InstructorImageUrl"

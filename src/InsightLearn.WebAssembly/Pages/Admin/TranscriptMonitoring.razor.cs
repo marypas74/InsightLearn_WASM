@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Rendering;
 using InsightLearn.WebAssembly.Components;
 using static InsightLearn.WebAssembly.Components.TranscriptJobCard;
 
@@ -29,6 +30,13 @@ public partial class TranscriptMonitoring : IDisposable
     private List<TranscriptJobDto> completedJobs = new();
     private List<TranscriptJobDto> failedJobs = new();
 
+    // Translation jobs (v2.4.3)
+    private List<TranslationJobDto>? translationJobs;
+    private List<TranslationJobDto> activeTranslations = new();
+    private List<TranslationJobDto> queuedTranslations = new();
+    private List<TranslationJobDto> completedTranslations = new();
+    private List<TranslationJobDto> failedTranslations = new();
+
     private List<LessonSummary>? lessons;
     private string selectedLessonId = "";
     private string selectedLanguage = "en-US";
@@ -39,6 +47,7 @@ public partial class TranscriptMonitoring : IDisposable
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadTranslationJobs();
         await LoadLessons();
         StartAutoRefresh();
     }
@@ -46,6 +55,7 @@ public partial class TranscriptMonitoring : IDisposable
     private async Task RefreshData()
     {
         await LoadData(silent: false);
+        await LoadTranslationJobs(silent: false);
     }
 
     private void StartAutoRefresh()
@@ -57,6 +67,7 @@ public partial class TranscriptMonitoring : IDisposable
                 await InvokeAsync(async () =>
                 {
                     await LoadData(silent: true);
+                    await LoadTranslationJobs(silent: true);
                     StateHasChanged();
                 });
             }, null, TimeSpan.FromSeconds(pollingIntervalSec), TimeSpan.FromSeconds(pollingIntervalSec));
@@ -169,6 +180,57 @@ public partial class TranscriptMonitoring : IDisposable
             .ToList();
     }
 
+    // v2.4.3: Load translation jobs from dedicated endpoint
+    private async Task LoadTranslationJobs(bool silent = false)
+    {
+        try
+        {
+            var response = await ApiClient.GetAsync<List<TranslationJobDto>>("/api/jobs/translations/monitor");
+
+            if (response.Success && response.Data != null)
+            {
+                translationJobs = response.Data;
+                CategorizeTranslationJobs();
+            }
+            else
+            {
+                translationJobs = new List<TranslationJobDto>();
+                CategorizeTranslationJobs();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TranscriptMonitoring] LoadTranslationJobs error: {ex.Message}");
+            translationJobs = new List<TranslationJobDto>();
+            CategorizeTranslationJobs();
+        }
+    }
+
+    private void CategorizeTranslationJobs()
+    {
+        if (translationJobs == null) return;
+
+        activeTranslations = translationJobs
+            .Where(j => j.Status == "Processing")
+            .OrderByDescending(j => j.CreatedAt)
+            .ToList();
+
+        queuedTranslations = translationJobs
+            .Where(j => j.Status == "Queued")
+            .OrderBy(j => j.CreatedAt)
+            .ToList();
+
+        completedTranslations = translationJobs
+            .Where(j => j.Status == "Completed")
+            .OrderByDescending(j => j.UpdatedAt ?? j.CreatedAt)
+            .ToList();
+
+        failedTranslations = translationJobs
+            .Where(j => j.Status == "Failed")
+            .OrderByDescending(j => j.UpdatedAt ?? j.CreatedAt)
+            .ToList();
+    }
+
     private async Task LoadLessons()
     {
         try
@@ -216,19 +278,30 @@ public partial class TranscriptMonitoring : IDisposable
             };
 
             // Use the async Hangfire endpoint: /api/transcripts/{lessonId}/generate
-            // This queues a background job and returns immediately with HTTP 202
+            // HTTP 202 = New job queued (returns JobId)
+            // HTTP 200 = Transcript already exists (returns VideoTranscriptDto without JobId)
             var response = await ApiClient.PostAsync<QueuedJobResponse>(
                 $"/api/transcripts/{lessonGuid}/generate",
                 request);
 
             if (response.Success && response.Data != null)
             {
-                Toast.ShowSuccess($"Transcription job queued! Job ID: {response.Data.JobId}");
-                selectedLessonId = "";
+                // v2.3.110: Distinguish between new job (HTTP 202) and existing transcript (HTTP 200)
+                if (!string.IsNullOrEmpty(response.Data.JobId))
+                {
+                    // HTTP 202 - New job queued
+                    Toast.ShowSuccess($"Transcription job queued! Job ID: {response.Data.JobId}");
+                    selectedLessonId = "";
 
-                // Refresh immediately to see the new job
-                await LoadData(silent: true);
-                StateHasChanged();
+                    // Refresh immediately to see the new job
+                    await LoadData(silent: true);
+                    StateHasChanged();
+                }
+                else
+                {
+                    // HTTP 200 - Transcript already exists
+                    Toast.ShowInfo("Transcript already exists for this lesson.");
+                }
             }
             else
             {
@@ -254,6 +327,68 @@ public partial class TranscriptMonitoring : IDisposable
     private string GetLessonTitle(Guid lessonId)
     {
         return lessons?.FirstOrDefault(l => l.Id == lessonId)?.Title ?? $"Lesson {lessonId.ToString().Substring(0, 8)}...";
+    }
+
+    // v2.4.3: Helper methods for translation jobs display
+    private string GetLanguageFlag(string lang) => lang.ToLower() switch
+    {
+        "es" => "🇪🇸",
+        "fr" => "🇫🇷",
+        "de" => "🇩🇪",
+        "it" => "🇮🇹",
+        "pt" => "🇵🇹",
+        "nl" => "🇳🇱",
+        "pl" => "🇵🇱",
+        "ru" => "🇷🇺",
+        "zh" => "🇨🇳",
+        "ja" => "🇯🇵",
+        "ko" => "🇰🇷",
+        _ => "🌐"
+    };
+
+    private string GetTranslationStatusClass(string status) => status switch
+    {
+        "Processing" => "status-processing",
+        "Queued" => "status-queued",
+        "Completed" => "status-completed",
+        "Failed" => "status-failed",
+        _ => ""
+    };
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Processing" => "badge-primary",
+        "Queued" => "badge-secondary",
+        "Completed" => "badge-success",
+        "Failed" => "badge-danger",
+        _ => "badge-secondary"
+    };
+
+    private string GetProgressClass(string status) => status switch
+    {
+        "Processing" => "progress-animated",
+        "Completed" => "progress-success",
+        "Failed" => "progress-danger",
+        _ => ""
+    };
+
+    private MarkupString GetStatusIcon(string status) => status switch
+    {
+        "Processing" => new MarkupString("<i class=\"fas fa-spinner fa-spin\"></i>"),
+        "Queued" => new MarkupString("<i class=\"fas fa-clock\"></i>"),
+        "Completed" => new MarkupString("<i class=\"fas fa-check\"></i>"),
+        "Failed" => new MarkupString("<i class=\"fas fa-times\"></i>"),
+        _ => new MarkupString("<i class=\"fas fa-question\"></i>")
+    };
+
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.Now;
+        var diff = now - date;
+        if (diff.TotalMinutes < 1) return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        return date.ToString("MMM dd, HH:mm");
     }
 
     // Delete transcript functionality (v2.3.93-dev)
@@ -348,5 +483,20 @@ public partial class TranscriptMonitoring : IDisposable
         public string? Status { get; set; }
         public string? Message { get; set; }
         public int EstimatedCompletionSeconds { get; set; }
+    }
+
+    // v2.4.3: DTO for translation job monitoring
+    private class TranslationJobDto
+    {
+        public Guid Id { get; set; }
+        public Guid LessonId { get; set; }
+        public string LessonTitle { get; set; } = "";
+        public string TargetLanguage { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string Phase { get; set; } = "";
+        public int ProgressPercentage { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

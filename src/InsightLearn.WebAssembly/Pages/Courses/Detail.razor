@@ -1,4 +1,4 @@
-@page "/courses/{CourseId:guid}"
+@page "/courses/{EncodedCourseId}"
 @using InsightLearn.Shared.DTOs
 @using InsightLearn.Core.Entities
 @using InsightLearn.WebAssembly.Components.SEO
@@ -42,6 +42,26 @@
         IsFree="@course.IsFree" />
 
     <BreadcrumbSchema Items="@GetBreadcrumbs()" />
+
+    @* SEO v2.5.1: Speakable schema for voice search optimization *@
+    <SpeakableSchema
+        PageUrl="@($"/courses/{EncodedCourseId}")"
+        PageName="@course.Title"
+        Description="@course.ShortDescription"
+        CssSelector=".course-description, .course-highlights, .curriculum-section" />
+
+    @* SEO v2.5.1: Review aggregate for rich snippets *@
+    @if (course.ReviewCount > 0)
+    {
+        <ReviewAggregateSchema
+            RatingValue="@course.AverageRating"
+            ReviewCount="@course.ReviewCount"
+            ItemName="@course.Title"
+            ItemUrl="@($"/courses/{EncodedCourseId}")"
+            ImageUrl="@course.ThumbnailUrl"
+            Description="@course.ShortDescription"
+            Brand="@course.InstructorName" />
+    }
 }
 
 @if (isLoading)
@@ -234,7 +254,11 @@ else
 }
 
 @code {
-    [Parameter] public Guid CourseId { get; set; }
+    // v2.3.113-dev: URL obfuscation - use encoded ID in URL
+    [Parameter] public string EncodedCourseId { get; set; } = string.Empty;
+
+    // Internal GUID reference (populated from DTO after loading)
+    private Guid CourseId => course?.Id ?? Guid.Empty;
 
     private CourseDto? course;
     private bool isLoading = true;
@@ -260,31 +284,32 @@ else
     {
         try
         {
-            Logger.LogInformation("Loading course details for CourseId: {CourseId}", CourseId);
+            // v2.3.113-dev: Use encoded ID for URL obfuscation
+            Logger.LogInformation("Loading course details for EncodedCourseId: {EncodedCourseId}", EncodedCourseId);
             isLoading = true;
-            var response = await CourseService.GetCourseByIdAsync(CourseId);
+            var response = await CourseService.GetCourseByEncodedIdAsync(EncodedCourseId);
 
             if (response.Success && response.Data != null)
             {
                 course = response.Data;
                 Logger.LogInformation("Course loaded successfully: {CourseTitle} (ID: {CourseId})",
-                    course.Title, CourseId);
+                    course.Title, course.Id);
 
                 // Check if user is enrolled
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 if (authState.User.Identity?.IsAuthenticated == true)
                 {
-                    var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                    var enrollmentResponse = await CourseService.IsEnrolledAsync(course.Id);
                     isEnrolled = enrollmentResponse.Data;
                     Logger.LogDebug("User enrollment status for CourseId {CourseId}: {IsEnrolled}",
-                        CourseId, isEnrolled);
+                        course.Id, isEnrolled);
                 }
             }
             else
             {
                 course = null;
-                Logger.LogWarning("Failed to load course {CourseId}: {ErrorMessage}",
-                    CourseId, response.Message ?? "Unknown error");
+                Logger.LogWarning("Failed to load course by encoded ID {EncodedCourseId}: {ErrorMessage}",
+                    EncodedCourseId, response.Message ?? "Unknown error");
             }
         }
         catch (Exception ex)
@@ -349,17 +374,15 @@ else
         await Task.CompletedTask;
     }
 
-    private void HandlePreviewClick(Guid lessonId)
+    // v2.3.113-dev: Use encoded IDs for URL obfuscation
+    private void HandlePreviewClick(LessonDto lesson)
     {
-        // v2.1.0-dev: Navigate to Learn page (which now allows free lessons without enrollment)
-        Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
+        Navigation.NavigateTo($"/learn/{course?.EncodedId}/{lesson.EncodedId}");
     }
 
-    private void HandleLessonClick(Guid lessonId)
+    private void HandleLessonClick(LessonDto lesson)
     {
-        // v2.3.38-dev FIX: Navigate to Learn page when user clicks on lesson
-        // This is called for enrolled users or lessons that require enrollment
-        Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
+        Navigation.NavigateTo($"/learn/{course?.EncodedId}/{lesson.EncodedId}");
     }
 
     private void ToggleDescription()

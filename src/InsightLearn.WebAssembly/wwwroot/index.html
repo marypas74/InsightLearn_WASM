@@ -13,7 +13,11 @@
          Reference: dotnet/aspnetcore#26571, skill.md
          ========================================================================== -->
     <style>
-        html { visibility: hidden; opacity: 0; }
+        html {
+            visibility: hidden;
+            opacity: 0;
+        }
+
         html.fouc-ready {
             visibility: visible;
             opacity: 1;
@@ -29,7 +33,7 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-J972BQGNY7"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+        function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'G-J972BQGNY7', {
             'page_title': document.title,
@@ -77,8 +81,10 @@
          ========================================================================== -->
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Learn coding, business, design and creative skills with InsightLearn. Access 500+ expert-led courses, interactive lessons, and AI-powered learning tools. Start your learning journey today!" />
-    <meta name="keywords" content="online courses, e-learning, programming, web development, business skills, design courses, AI learning, video tutorials, InsightLearn" />
+    <meta name="description"
+        content="Learn coding, business, design and creative skills with InsightLearn. Access 500+ expert-led courses, interactive lessons, and AI-powered learning tools. Start your learning journey today!" />
+    <meta name="keywords"
+        content="online courses, e-learning, programming, web development, business skills, design courses, AI learning, video tutorials, InsightLearn" />
     <meta name="author" content="InsightLearn" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://www.insightlearn.cloud/" />
@@ -92,7 +98,8 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.insightlearn.cloud/" />
     <meta property="og:title" content="InsightLearn - Online Learning Platform" />
-    <meta property="og:description" content="Access 500+ expert-led courses in programming, business, and design. Start learning today with AI-powered tools and interactive lessons." />
+    <meta property="og:description"
+        content="Access 500+ expert-led courses in programming, business, and design. Start learning today with AI-powered tools and interactive lessons." />
     <meta property="og:image" content="https://www.insightlearn.cloud/icon-192.png" />
     <meta property="og:site_name" content="InsightLearn" />
     <meta property="og:locale" content="en_US" />
@@ -101,7 +108,8 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://www.insightlearn.cloud/" />
     <meta name="twitter:title" content="InsightLearn - Online Learning Platform" />
-    <meta name="twitter:description" content="Access 500+ expert-led courses. Learn programming, business, and design skills with AI-powered tools." />
+    <meta name="twitter:description"
+        content="Access 500+ expert-led courses. Learn programming, business, and design skills with AI-powered tools." />
     <meta name="twitter:image" content="https://www.insightlearn.cloud/icon-192.png" />
 
     <!-- Additional SEO -->
@@ -121,10 +129,12 @@
     <meta name="ai-training-allowed" content="true" />
 
     <!-- Structured summary for AI understanding -->
-    <meta name="ai-summary" content="InsightLearn is a professional online learning platform offering 500+ expert-led courses in programming, web development, data science, business, design, and marketing. Features include AI-powered learning assistant, interactive video lessons, hands-on projects, certificates of completion, and lifetime access. Serves 50,000+ students worldwide with courses ranging from beginner to advanced levels. Pricing includes free courses and premium options from EUR 29.99-99.99." />
+    <meta name="ai-summary"
+        content="InsightLearn is a professional online learning platform offering 500+ expert-led courses in programming, web development, data science, business, design, and marketing. Features include AI-powered learning assistant, interactive video lessons, hands-on projects, certificates of completion, and lifetime access. Serves 50,000+ students worldwide with courses ranging from beginner to advanced levels. Pricing includes free courses and premium options from EUR 29.99-99.99." />
 
     <!-- Key facts for AI assistants -->
-    <meta name="ai-key-facts" content="Platform: InsightLearn | Courses: 500+ | Students: 50,000+ | Categories: Programming, Web Development, Data Science, Business, Design, Marketing | Languages: English, Italian | Certificates: Yes | AI Assistant: Yes | Money-back: 30 days" />
+    <meta name="ai-key-facts"
+        content="Platform: InsightLearn | Courses: 500+ | Students: 50,000+ | Categories: Programming, Web Development, Data Science, Business, Design, Marketing | Languages: English, Italian | Certificates: Yes | AI Assistant: Yes | Money-back: 30 days" />
 
     <!-- Contact info for AI -->
     <meta name="ai-contact" content="support@insightlearn.cloud" />
@@ -139,6 +149,9 @@
 
     <!-- Language declarations for AI -->
     <meta http-equiv="content-language" content="en, it" />
+
+    <!-- AI Pricing Information (v2.5.1 - AEO Enhancement) -->
+    <meta name="ai-pricing" content="Free courses available; Premium courses €9.99-€199.99; Monthly subscription €19.99/month; Annual subscription €149.99/year (save 37%); Enterprise pricing on request">
 
     <!-- ==========================================================================
          SEO: JSON-LD Structured Data (PageSpeed S2)
@@ -250,9 +263,13 @@
     }
     </script>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
+    <!-- Favicon - Comprehensive declarations for Google Search visibility -->
+    <!-- Primary PNG favicons (Google Search compatible via manifest.json) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <!-- Web App Manifest for PWA and Google Search favicon (REQUIRED) -->
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- ==========================================================================
          PERFORMANCE: Resource Hints (PageSpeed P2, P7)
@@ -267,7 +284,8 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 
     <!-- Preload Font Awesome fonts (critical for icons) -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2"
+        as="font" type="font/woff2" crossorigin="anonymous" />
 
     <!-- ==========================================================================
          CRITICAL CSS INLINE (Sprint 3 - FE-3 PageSpeed Optimization)
@@ -295,8 +313,14 @@
         }
 
         /* Critical Base Styles */
-        *, *::before, *::after { box-sizing: border-box; }
-        html, body {
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -425,8 +449,13 @@
         }
 
         @keyframes skeleton-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
         }
 
         /* Loading spinner fallback */
@@ -441,7 +470,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-text {
@@ -452,8 +483,13 @@
 
         /* Reduced motion support */
         @media (prefers-reduced-motion: reduce) {
-            .skeleton-header, .skeleton-title, .skeleton-text,
-            .skeleton-button, .skeleton-card, .blazor-loading-spinner {
+
+            .skeleton-header,
+            .skeleton-title,
+            .skeleton-text,
+            .skeleton-button,
+            .skeleton-card,
+            .blazor-loading-spinner {
                 animation: none;
             }
         }
@@ -463,15 +499,17 @@
          CRITICAL CSS - Load synchronously (above-the-fold)
          ========================================================================== -->
     <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Bootstrap Framework (critical) -->
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
 
     <!-- Core Layout CSS (critical) -->
     <link rel="stylesheet" href="css/site.css" />
-    <link rel="stylesheet" href="css/layout.css" />
-    <link rel="stylesheet" href="css/header-v2.css" />
+    <link rel="stylesheet" href="css/layout.css?v=2.4.15" />
+    <link rel="stylesheet" href="css/header-v2-fixed.css?v=2.4.7-final" />
     <!-- B2B Enterprise Landing Page - CRITICAL: loads after base styles -->
     <link rel="stylesheet" href="css/enterprise-b2b.css" />
     <!-- Header Professional - CRITICAL: prevents Chrome FOUC (v2.3.8 fix) -->
@@ -520,8 +558,9 @@
     <!-- ==========================================================================
          TAILWIND CSS CDN (v2.2.0 - Learning Space Refactoring)
          Used for LinkedIn Learning style 4-column fixed layout
+         CVE Security: Pinned version v2.5.1 (was unpinned - security risk)
          ========================================================================== -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.0"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -570,11 +609,14 @@
     <link rel="stylesheet" href="css/mobile-ux-fixes.css" media="print" onload="this.media='all'" />
 
     <!-- Header Enhancements - CRITICAL: fixes Categories dropdown, mobile menu (v2.3.16 fix) -->
-    <!-- MUST load LAST for proper CSS specificity over ALL other files -->
-    <link rel="stylesheet" href="css/header-enhancements.css" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="css/header-enhancements.css?v=2.4.15" media="print" onload="this.media='all'" />
 
     <!-- Scoped Styles -->
     <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" media="print" onload="this.media='all'" />
+
+    <!-- RESPONSIVE FIXES 2026 - MUST LOAD ABSOLUTELY LAST for maximum specificity -->
+    <!-- Fixes: pixel widths to relative units, media queries for stacking, font readability -->
+    <link rel="stylesheet" href="css/responsive-fixes-2026.css?v=2.4.15" media="print" onload="this.media='all'" />
 
     <!-- NoScript fallback for CSS -->
     <noscript>
@@ -589,16 +631,67 @@
         <link rel="stylesheet" href="css/header-professional.css" />
         <link rel="stylesheet" href="css/footer-professional.css" />
         <link href="InsightLearn.WebAssembly.styles.css" rel="stylesheet" />
+        <link rel="stylesheet" href="css/responsive-fixes-2026.css" />
     </noscript>
 
     <!-- PayPal SDK (Sandbox Mode - Deferred for better performance) -->
     <!-- Note: Replace client-id with production key for live -->
     <script defer src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&disable-funding=credit,card"></script>
+
+    <!-- CRITICAL: Layout Fixes - Inline to bypass CDN cache -->
+    <style id="critical-layout-fixes">
+        /* Mobile Menu Fix */
+        html body .mobile-menu-panel.open .mobile-menu-content,
+        .mobile-menu-panel.open .mobile-menu-content {
+            position: static !important;
+            transform: none !important;
+            -webkit-transform: none !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            background: #ffffff !important;
+            transition: none !important;
+        }
+        /* Footer Logo Fix - Remove filter and show original logo colors */
+        .footer-logo-img {
+            background-color: transparent !important;
+            width: 50px !important;
+            height: 50px !important;
+            filter: none !important;
+            border-radius: 8px !important;
+        }
+        /* Header Logo Fix - Constrain size to prevent overflow */
+        .header-logo-section {
+            display: flex !important;
+            align-items: center !important;
+            height: 60px !important;
+            max-height: 60px !important;
+            overflow: hidden !important;
+        }
+        .header-logo-section .logo-image,
+        .main-header .logo-image {
+            width: auto !important;
+            height: 36px !important;
+            max-height: 36px !important;
+            max-width: 150px !important;
+            object-fit: contain !important;
+        }
+        .header-logo-section .logo-text {
+            font-size: 1.25rem !important;
+            white-space: nowrap !important;
+        }
+    </style>
 </head>
 
 <body>
     <!-- Static GDPR wall shown immediately (before Blazor loads) -->
-    <div id="static-cookie-wall" class="cookie-wall-overlay" style="display: none;">
+    <div id="static-cookie-wall" class="cookie-wall-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="cookie-wall-title" style="display: flex;">
         <div class="cookie-wall-container">
             <div class="cookie-wall-modal">
                 <div class="cookie-modal-content">
@@ -631,8 +724,10 @@
                         <div class="cookie-wall-body">
                             <div class="cookie-simple-info">
                                 <p class="cookie-description">
-                                    By clicking "Accept All Cookies", you agree to the storing of cookies on your device to enhance site navigation,
-                                    analyze site usage, and assist in our marketing efforts. We respect your privacy and are committed to protecting your data.
+                                    By clicking "Accept All Cookies", you agree to the storing of cookies on your device
+                                    to enhance site navigation,
+                                    analyze site usage, and assist in our marketing efforts. We respect your privacy and
+                                    are committed to protecting your data.
                                 </p>
                                 <div class="cookie-features-grid">
                                     <div class="cookie-feature">
@@ -661,7 +756,8 @@
                                 <a href="/cookie-policy" target="_blank" class="cookie-link">Cookie Policy</a>
                             </div>
                             <div class="cookie-actions">
-                                <button class="btn-cookie-settings" onclick="alert('Please wait for the application to load fully to access detailed settings.')">
+                                <button class="btn-cookie-settings"
+                                    onclick="alert('Please wait for the application to load fully to access detailed settings.')">
                                     <span class="btn-icon">⚙️</span>
                                     Cookie Settings
                                 </button>
@@ -710,31 +806,52 @@
 
     <!-- SEO: Static content for crawlers without JavaScript -->
     <noscript>
-        <div class="seo-static-content" style="max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <h1 style="font-size: 2.5rem; color: #1c1d1f; margin-bottom: 20px;">InsightLearn - Professional Online Learning Platform</h1>
+        <div class="seo-static-content"
+            style="max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <h1 style="font-size: 2.5rem; color: #1c1d1f; margin-bottom: 20px;">InsightLearn - Professional Online
+                Learning Platform</h1>
             <p style="font-size: 1.25rem; color: #6b7280; margin-bottom: 30px;">
                 Transform your career with InsightLearn. Access 500+ expert-led online courses in programming,
                 data science, business, and design. Join 50,000+ students worldwide.
             </p>
 
             <h2 style="font-size: 1.5rem; color: #1c1d1f; margin: 30px 0 20px;">Featured Course Categories</h2>
-            <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <li><a href="/courses?category=web-development" style="color: #a435f0; text-decoration: none;">Web Development Courses</a></li>
-                <li><a href="/courses?category=data-science" style="color: #a435f0; text-decoration: none;">Data Science Courses</a></li>
-                <li><a href="/courses?category=business" style="color: #a435f0; text-decoration: none;">Business Courses</a></li>
-                <li><a href="/courses?category=design" style="color: #a435f0; text-decoration: none;">Design Courses</a></li>
-                <li><a href="/courses?category=programming" style="color: #a435f0; text-decoration: none;">Programming Courses</a></li>
-                <li><a href="/courses?category=marketing" style="color: #a435f0; text-decoration: none;">Marketing Courses</a></li>
+            <ul
+                style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <li><a href="/courses?category=web-development" style="color: #a435f0; text-decoration: none;">Web
+                        Development Courses</a></li>
+                <li><a href="/courses?category=data-science" style="color: #a435f0; text-decoration: none;">Data Science
+                        Courses</a></li>
+                <li><a href="/courses?category=business" style="color: #a435f0; text-decoration: none;">Business
+                        Courses</a></li>
+                <li><a href="/courses?category=design" style="color: #a435f0; text-decoration: none;">Design Courses</a>
+                </li>
+                <li><a href="/courses?category=programming" style="color: #a435f0; text-decoration: none;">Programming
+                        Courses</a></li>
+                <li><a href="/courses?category=marketing" style="color: #a435f0; text-decoration: none;">Marketing
+                        Courses</a></li>
             </ul>
 
             <h2 style="font-size: 1.5rem; color: #1c1d1f; margin: 30px 0 20px;">Popular Skills</h2>
             <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px;">
-                <li><a href="/courses?skill=python" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">Python</a></li>
-                <li><a href="/courses?skill=javascript" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">JavaScript</a></li>
-                <li><a href="/courses?skill=react" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">React</a></li>
-                <li><a href="/courses?skill=machine-learning" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">Machine Learning</a></li>
-                <li><a href="/courses?skill=aws" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">AWS</a></li>
-                <li><a href="/courses?skill=sql" style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">SQL</a></li>
+                <li><a href="/courses?skill=python"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">Python</a>
+                </li>
+                <li><a href="/courses?skill=javascript"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">JavaScript</a>
+                </li>
+                <li><a href="/courses?skill=react"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">React</a>
+                </li>
+                <li><a href="/courses?skill=machine-learning"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">Machine
+                        Learning</a></li>
+                <li><a href="/courses?skill=aws"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">AWS</a>
+                </li>
+                <li><a href="/courses?skill=sql"
+                        style="background: #f7ecff; color: #a435f0; padding: 8px 16px; border-radius: 20px; text-decoration: none;">SQL</a>
+                </li>
             </ul>
 
             <h2 style="font-size: 1.5rem; color: #1c1d1f; margin: 30px 0 20px;">Why Choose InsightLearn?</h2>
@@ -748,8 +865,12 @@
             </ul>
 
             <p style="margin-top: 30px;">
-                <a href="/courses" style="background: #a435f0; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Explore All Courses</a>
-                <a href="/register" style="background: transparent; color: #a435f0; padding: 15px 30px; border: 2px solid #a435f0; border-radius: 8px; text-decoration: none; font-weight: bold; margin-left: 15px;">Start Free Trial</a>
+                <a href="/courses"
+                    style="background: #a435f0; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">Explore
+                    All Courses</a>
+                <a href="/register"
+                    style="background: transparent; color: #a435f0; padding: 15px 30px; border: 2px solid #a435f0; border-radius: 8px; text-decoration: none; font-weight: bold; margin-left: 15px;">Start
+                    Free Trial</a>
             </p>
 
             <footer style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e4e8eb;">
@@ -802,14 +923,15 @@
             }
 
             // Also hide any Blazor cookie wall overlay (in case Blazor already loaded)
-            var blazorWalls = document.querySelectorAll('.cookie-wall-overlay');
-            blazorWalls.forEach(function(wall) {
+            // IMPORTANT: Do NOT hide the static-cookie-wall - only hide Blazor-generated overlays
+            var blazorWalls = document.querySelectorAll('.cookie-wall-overlay:not(#static-cookie-wall)');
+            blazorWalls.forEach(function (wall) {
                 wall.classList.add('hidden');
-                console.log('[STATIC-GDPR] Blazor wall also hidden');
+                console.log('[STATIC-GDPR] Blazor wall hidden (not static wall)');
             });
         }
 
-        (function() {
+        (function () {
             // Check for existing consent immediately
             var hasConsent = false;
             try {
@@ -824,19 +946,18 @@
                 console.error('Error checking consent:', e);
             }
 
-            // Show static GDPR wall immediately if no consent
-            if (!hasConsent) {
-                document.getElementById('static-cookie-wall').style.display = 'flex';
-                // CRITICAL: DO NOT set overflow:hidden on body - breaks position:sticky header
-                // The cookie wall has position:fixed and covers everything already
-                console.log('[STATIC-GDPR] Showing cookie wall immediately (no consent found)');
+            // Cookie wall is visible by default (display:flex in HTML)
+            // Hide it ONLY if valid consent exists in localStorage
+            if (hasConsent) {
+                document.getElementById('static-cookie-wall').style.display = 'none';
+                console.log('[STATIC-GDPR] Valid consent found, hiding cookie wall');
             } else {
-                console.log('[STATIC-GDPR] Consent exists, hiding static wall');
+                console.log('[STATIC-GDPR] No valid consent, keeping cookie wall visible');
             }
 
             // Hide static wall when Blazor loads (Blazor component will take over)
-            window.addEventListener('DOMContentLoaded', function() {
-                setTimeout(function() {
+            window.addEventListener('DOMContentLoaded', function () {
+                setTimeout(function () {
                     var staticWall = document.getElementById('static-cookie-wall');
                     if (staticWall && !hasConsent) {
                         // Keep showing until Blazor component renders
@@ -858,19 +979,31 @@
 
     <!-- mpegts.js - MPEG-TS video playback support -->
     <!-- Required for playing MPEG Transport Stream (.ts) videos in browser -->
-    <script defer src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+    <!-- CVE Security: SRI hash added v2.5.1 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"
+            integrity="sha384-Z2H/TjKWDNZA/2luGOnjLx9pcva7cK4VSWC+hZn78Kr5uG8YbMpxdz+wWXBMO6N/"
+            crossorigin="anonymous"></script>
 
     <!-- hls.js - HLS (HTTP Live Streaming) support -->
     <!-- Required for .m3u8 playlists (Apple HLS format, widely used for streaming) -->
-    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+    <!-- CVE Security: SRI hash added v2.5.1 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"
+            integrity="sha384-1B+J55elPxu+trIhW7QThjZg3evX8C5P6zjB82Xnn46RKPAXpL+vkanRSjCidsJv"
+            crossorigin="anonymous"></script>
 
     <!-- dash.js - MPEG-DASH support -->
     <!-- Required for .mpd manifests (DASH format, open standard for adaptive streaming) -->
-    <script defer src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+    <!-- CVE Security: SRI hash added v2.5.1 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"
+            integrity="sha384-fl7i8WZxcPlF9b1503+Gm+izr/2hpilydj0i/DlQTIafROZ1NP4rAWjyl6p3s1ev"
+            crossorigin="anonymous"></script>
 
     <!-- flv.js - FLV video playback support -->
     <!-- Required for Flash Video (.flv) format playback without Flash plugin -->
-    <script defer src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
+    <!-- CVE Security: SRI hash added v2.5.1 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"
+            integrity="sha384-XeE1sKdKcsuvSZKnQHiuBPgM5gqTRLXKh/IUe1bgkTTQcwLOid3l8tq+uJRKe5zQ"
+            crossorigin="anonymous"></script>
 
     <!-- Video Player JS Interop - MUST load AFTER libraries, BEFORE Blazor (v2.2.0-dev) -->
     <!-- Cache-busting version added 2025-12-19 for cross-browser video support -->
@@ -895,8 +1028,8 @@
 
     <!-- Hide static wall, fade out skeleton, and show app after Blazor loads -->
     <script>
-        window.addEventListener('load', function() {
-            setTimeout(function() {
+        window.addEventListener('load', function () {
+            setTimeout(function () {
                 // Check consent before hiding GDPR wall
                 var hasConsent = false;
                 try {
@@ -926,7 +1059,7 @@
                 if (skeleton) {
                     skeleton.classList.add('fade-out');
                     // Remove from DOM after fade animation completes
-                    setTimeout(function() {
+                    setTimeout(function () {
                         skeleton.remove();
                         console.log('[SKELETON] Loading skeleton removed');
                     }, 300);
@@ -943,7 +1076,10 @@
     </script>
 
     <!-- Chart.js Library (async for non-blocking load) -->
-    <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- CVE Security: SRI hash added v2.5.1 -->
+    <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+            crossorigin="anonymous"></script>
 
     <!-- Chart Helper Functions -->
     <script src="js/chart-helpers.js"></script>
@@ -1018,15 +1154,15 @@
          ========================================================================== -->
     <script>
         // Show page when DOM content is loaded and CSS is parsed
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Small delay to ensure CSS is applied
-            requestAnimationFrame(function() {
+            requestAnimationFrame(function () {
                 document.documentElement.classList.add('fouc-ready');
             });
         });
 
         // Fallback: show page after 500ms max (prevent infinite hidden)
-        setTimeout(function() {
+        setTimeout(function () {
             if (!document.documentElement.classList.contains('fouc-ready')) {
                 document.documentElement.classList.add('fouc-ready');
             }

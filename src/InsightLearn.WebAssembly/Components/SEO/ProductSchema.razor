@@ -1,0 +1,204 @@
+@*
+    ProductSchema.razor - JSON-LD Schema.org Product Markup
+    Generates structured data for Google Product rich results.
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/product
+    Schema: https://schema.org/Product
+
+    Usage:
+    <ProductSchema
+        ProductName="Complete Web Development Bootcamp"
+        Description="Learn HTML, CSS, JavaScript, React..."
+        ImageUrl="/images/course.jpg"
+        Price="49.99"
+        Currency="EUR"
+        Rating="4.8"
+        ReviewCount="1250"
+        Brand="John Doe"
+        Category="Web Development"
+        ProductUrl="/courses/web-dev-bootcamp"
+        InStock="true" />
+
+    Created: 2026-02-05
+    Version: 1.0 (v2.5.1)
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <script type="application/ld+json">
+        @((MarkupString)GenerateJsonLd())
+    </script>
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// Product/Course name
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string ProductName { get; set; } = "";
+
+    /// <summary>
+    /// Product description (150-300 characters recommended)
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Description { get; set; } = "";
+
+    /// <summary>
+    /// Product image URL
+    /// </summary>
+    [Parameter]
+    public string ImageUrl { get; set; } = "";
+
+    /// <summary>
+    /// Product price (decimal value as string)
+    /// </summary>
+    [Parameter]
+    public string Price { get; set; } = "";
+
+    /// <summary>
+    /// Currency code (ISO 4217, e.g., EUR, USD)
+    /// </summary>
+    [Parameter]
+    public string Currency { get; set; } = "EUR";
+
+    /// <summary>
+    /// Average rating (1-5)
+    /// </summary>
+    [Parameter]
+    public string Rating { get; set; } = "";
+
+    /// <summary>
+    /// Total number of reviews
+    /// </summary>
+    [Parameter]
+    public string ReviewCount { get; set; } = "";
+
+    /// <summary>
+    /// Brand/Instructor name
+    /// </summary>
+    [Parameter]
+    public string Brand { get; set; } = "";
+
+    /// <summary>
+    /// Product category
+    /// </summary>
+    [Parameter]
+    public string Category { get; set; } = "";
+
+    /// <summary>
+    /// Product URL (relative or absolute)
+    /// </summary>
+    [Parameter]
+    public string ProductUrl { get; set; } = "";
+
+    /// <summary>
+    /// Product availability (true = InStock, false = OutOfStock)
+    /// </summary>
+    [Parameter]
+    public bool InStock { get; set; } = true;
+
+    /// <summary>
+    /// Optional SKU/Course ID
+    /// </summary>
+    [Parameter]
+    public string Sku { get; set; } = "";
+
+    private string GenerateJsonLd()
+    {
+        var product = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "Product",
+            ["name"] = ProductName,
+            ["description"] = Description
+        };
+
+        // Image
+        if (!string.IsNullOrEmpty(ImageUrl))
+        {
+            product["image"] = GetAbsoluteUrl(ImageUrl);
+        }
+
+        // Brand
+        if (!string.IsNullOrEmpty(Brand))
+        {
+            product["brand"] = new Dictionary<string, object>
+            {
+                ["@type"] = "Brand",
+                ["name"] = Brand
+            };
+        }
+
+        // Category
+        if (!string.IsNullOrEmpty(Category))
+        {
+            product["category"] = Category;
+        }
+
+        // SKU
+        if (!string.IsNullOrEmpty(Sku))
+        {
+            product["sku"] = Sku;
+        }
+
+        // URL
+        if (!string.IsNullOrEmpty(ProductUrl))
+        {
+            product["url"] = GetAbsoluteUrl(ProductUrl);
+        }
+
+        // Offers (pricing)
+        if (!string.IsNullOrEmpty(Price) && decimal.TryParse(Price, out var priceValue))
+        {
+            var offer = new Dictionary<string, object>
+            {
+                ["@type"] = "Offer",
+                ["price"] = priceValue,
+                ["priceCurrency"] = Currency,
+                ["availability"] = InStock
+                    ? "https://schema.org/InStock"
+                    : "https://schema.org/OutOfStock",
+                ["url"] = GetAbsoluteUrl(ProductUrl)
+            };
+
+            // Price valid until (1 year from now)
+            offer["priceValidUntil"] = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-dd");
+
+            product["offers"] = offer;
+        }
+
+        // Aggregate Rating
+        if (!string.IsNullOrEmpty(Rating) && !string.IsNullOrEmpty(ReviewCount))
+        {
+            if (double.TryParse(Rating, out var ratingValue) && int.TryParse(ReviewCount, out var reviewValue))
+            {
+                product["aggregateRating"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "AggregateRating",
+                    ["ratingValue"] = ratingValue,
+                    ["reviewCount"] = reviewValue,
+                    ["bestRating"] = 5,
+                    ["worstRating"] = 1
+                };
+            }
+        }
+
+        return JsonSerializer.Serialize(product, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+
+        var baseUri = new Uri(Navigation.BaseUri);
+        return new Uri(baseUri, url).ToString();
+    }
+}

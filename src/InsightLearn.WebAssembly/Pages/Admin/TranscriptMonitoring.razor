@@ -180,12 +180,76 @@
             </div>
         }
 
+        <!-- Translation Jobs Section (v2.4.3) -->
+        <div class="section-header">
+            <h2><i class="fas fa-language"></i> Translation Jobs (@(activeTranslations.Count + queuedTranslations.Count + completedTranslations.Count + failedTranslations.Count))</h2>
+        </div>
+
+        @if (translationJobs != null && translationJobs.Any())
+        {
+            <!-- Translation Status Summary -->
+            <div class="translation-summary">
+                <div class="translation-stat processing">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>@activeTranslations.Count Active</span>
+                </div>
+                <div class="translation-stat queued">
+                    <i class="fas fa-clock"></i>
+                    <span>@queuedTranslations.Count Queued</span>
+                </div>
+                <div class="translation-stat completed">
+                    <i class="fas fa-check-circle"></i>
+                    <span>@completedTranslations.Count Completed</span>
+                </div>
+                <div class="translation-stat failed">
+                    <i class="fas fa-times-circle"></i>
+                    <span>@failedTranslations.Count Failed</span>
+                </div>
+            </div>
+
+            <div class="translation-jobs-grid">
+                @foreach (var job in activeTranslations.Concat(queuedTranslations).Concat(completedTranslations).Concat(failedTranslations).Take(20))
+                {
+                    <div class="translation-job-card @GetTranslationStatusClass(job.Status)">
+                        <div class="translation-job-header">
+                            <div class="language-badge">@GetLanguageFlag(job.TargetLanguage) @job.TargetLanguage.ToUpper()</div>
+                            <span class="translation-status-badge @GetStatusBadgeClass(job.Status)">
+                                @GetStatusIcon(job.Status)
+                                @job.Status
+                            </span>
+                        </div>
+                        <div class="translation-job-title" title="@job.LessonTitle">@job.LessonTitle</div>
+                        <div class="translation-job-progress">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill @GetProgressClass(job.Status)" style="width: @job.ProgressPercentage%"></div>
+                            </div>
+                            <span class="progress-text">@job.ProgressPercentage%</span>
+                        </div>
+                        <div class="translation-job-meta">
+                            <span><i class="fas fa-clock"></i> @FormatDate(job.CreatedAt)</span>
+                            @if (!string.IsNullOrEmpty(job.ErrorMessage))
+                            {
+                                <span class="error-hint" title="@job.ErrorMessage"><i class="fas fa-exclamation-triangle"></i> Error</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-jobs-state">
+                <i class="fas fa-language"></i>
+                <p>No translation jobs found.</p>
+            </div>
+        }
+
         <!-- Completed/Failed Jobs Section (Collapsible) -->
         <div class="section-header collapsible" @onclick="ToggleHistory">
             <h2>
                 <i class="fas @(showHistory ? "fa-chevron-down" : "fa-chevron-right")"></i>
                 <i class="fas fa-history"></i>
-                History (@(completedJobs.Count + failedJobs.Count) jobs)
+                Transcription History (@(completedJobs.Count + failedJobs.Count) jobs)
             </h2>
             <span class="section-hint">Click to @(showHistory ? "collapse" : "expand")</span>
         </div>
@@ -700,6 +764,119 @@
         transform: translateX(20px);
     }
 
+    /* Translation Jobs Section (v2.4.3) */
+    .translation-summary {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .translation-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .translation-stat.processing i { color: #667eea; }
+    .translation-stat.queued i { color: #f59e0b; }
+    .translation-stat.completed i { color: #10b981; }
+    .translation-stat.failed i { color: #ef4444; }
+
+    .translation-jobs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .translation-job-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #667eea;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .translation-job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .translation-job-card.status-completed { border-left-color: #10b981; }
+    .translation-job-card.status-failed { border-left-color: #ef4444; }
+    .translation-job-card.status-queued { border-left-color: #f59e0b; }
+    .translation-job-card.status-processing { border-left-color: #667eea; }
+
+    .translation-job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .language-badge {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .translation-status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .translation-job-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #111827;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.75rem;
+    }
+
+    .translation-job-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .translation-job-progress .progress-bar-container {
+        flex: 1;
+    }
+
+    .progress-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #374151;
+        min-width: 35px;
+    }
+
+    .translation-job-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.7rem;
+        color: #6b7280;
+    }
+
+    .error-hint {
+        color: #ef4444;
+        cursor: help;
+    }
+
     /* Responsive */
     @@media (max-width: 768px) {
         .status-summary-banner {
@@ -711,6 +888,10 @@
         }
 
         .jobs-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .translation-jobs-grid {
             grid-template-columns: 1fr;
         }
 

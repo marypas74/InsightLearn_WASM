@@ -1,0 +1,108 @@
+@*
+    SpeakableSchema.razor - JSON-LD Schema.org Speakable Markup
+    Generates structured data for voice search optimization (Google Assistant, Alexa).
+
+    Reference: https://developers.google.com/search/docs/appearance/structured-data/speakable
+    Schema: https://schema.org/SpeakableSpecification
+
+    Usage:
+    <SpeakableSchema
+        PageUrl="/courses/web-development"
+        CssSelector=".course-description, .course-highlights" />
+
+    Created: 2026-02-05
+    Version: 1.0 (v2.5.1)
+*@
+
+@using Microsoft.AspNetCore.Components.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <script type="application/ld+json">
+        @((MarkupString)GenerateJsonLd())
+    </script>
+</HeadContent>
+
+@code {
+    /// <summary>
+    /// Page URL for the speakable content
+    /// </summary>
+    [Parameter]
+    public string PageUrl { get; set; } = "";
+
+    /// <summary>
+    /// CSS selector(s) for speakable content sections
+    /// Multiple selectors can be comma-separated
+    /// </summary>
+    [Parameter]
+    public string CssSelector { get; set; } = ".course-description, .transcript-content";
+
+    /// <summary>
+    /// Page name/title for the WebPage schema
+    /// </summary>
+    [Parameter]
+    public string PageName { get; set; } = "";
+
+    /// <summary>
+    /// Page description
+    /// </summary>
+    [Parameter]
+    public string Description { get; set; } = "";
+
+    private string GenerateJsonLd()
+    {
+        var pageUrl = GetAbsoluteUrl(PageUrl);
+        if (string.IsNullOrEmpty(pageUrl))
+        {
+            pageUrl = Navigation.Uri;
+        }
+
+        var webPage = new Dictionary<string, object>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["url"] = pageUrl
+        };
+
+        if (!string.IsNullOrEmpty(PageName))
+        {
+            webPage["name"] = PageName;
+        }
+
+        if (!string.IsNullOrEmpty(Description))
+        {
+            webPage["description"] = Description;
+        }
+
+        // Speakable specification
+        var speakable = new Dictionary<string, object>
+        {
+            ["@type"] = "SpeakableSpecification"
+        };
+
+        // Parse CSS selectors
+        var selectors = CssSelector.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (selectors.Length > 0)
+        {
+            speakable["cssSelector"] = selectors.Length == 1 ? selectors[0] : selectors;
+        }
+
+        webPage["speakable"] = speakable;
+
+        return JsonSerializer.Serialize(webPage, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
+
+    private string GetAbsoluteUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+
+        var baseUri = new Uri(Navigation.BaseUri);
+        return new Uri(baseUri, url).ToString();
+    }
+}

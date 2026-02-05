@@ -1,4 +1,4 @@
-@page "/learn/{CourseId:guid}/{LessonId:guid}"
+@page "/learn/{EncodedCourseId}/{EncodedLessonId}"
 @layout InsightLearn.WebAssembly.Layout.LearningLayout
 @* v2.3.33-dev: Removed [Authorize] to allow free lessons without login *@
 @* Manual authorization check in LoadLearningEnvironment() handles free vs paid lessons *@
@@ -58,7 +58,7 @@ else if (errorMessage != null)
                     <i class="fas fa-redo mr-2"></i>Try Again
                 </button>
                 <button class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                        @onclick="@(() => Navigation.NavigateTo($"/courses/{CourseId}"))">
+                        @onclick="@(() => Navigation.NavigateTo($"/courses/{EncodedCourseId}"))">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Course
                 </button>
             </div>
@@ -173,7 +173,7 @@ else if (lesson != null && course != null)
                                         var isActive = lessonItem.Id == LessonId;
                                         var isCompleted = lessonItem.IsCompleted;
 
-                                        <div @onclick="@(() => NavigateToLesson(lessonItem.Id))"
+                                        <div @onclick="@(() => NavigateToLesson(lessonItem))"
                                              class="group flex items-center gap-3 px-4 py-2.5 mx-2 rounded cursor-pointer transition-all duration-150
                                                     @(isActive ? "bg-white/15" : "hover:bg-white/5")
                                                     @(isActive ? "border-l-2 border-blue-500 -ml-0.5 pl-[14px]" : "")">
@@ -602,8 +602,13 @@ else if (lesson != null && course != null)
 </style>
 
 @code {
-    [Parameter] public Guid CourseId { get; set; }
-    [Parameter] public Guid LessonId { get; set; }
+    // v2.3.113-dev: URL obfuscation - use encoded IDs in URL
+    [Parameter] public string EncodedCourseId { get; set; } = string.Empty;
+    [Parameter] public string EncodedLessonId { get; set; } = string.Empty;
+
+    // Internal GUID references (populated from DTO after loading)
+    private Guid CourseId => course?.Id ?? Guid.Empty;
+    private Guid LessonId => lesson?.Id ?? Guid.Empty;
 
     // Device Detection - v2.2.2-dev Responsive Design
     [CascadingParameter(Name = "DeviceType")]
@@ -640,8 +645,8 @@ else if (lesson != null && course != null)
     private int totalLessons = 1;
     private bool hasPreviousLesson = false;
     private bool hasNextLesson = false;
-    private Guid? previousLessonId;
-    private Guid? nextLessonId;
+    private string? previousEncodedLessonId;  // v2.3.113-dev: Use encoded IDs for navigation
+    private string? nextEncodedLessonId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -663,8 +668,8 @@ else if (lesson != null && course != null)
             isLoading = true;
             errorMessage = null;
 
-            // Load course data
-            var courseResponse = await CourseService.GetCourseByIdAsync(CourseId);
+            // Load course data - v2.3.113-dev: Use encoded ID
+            var courseResponse = await CourseService.GetCourseByEncodedIdAsync(EncodedCourseId);
             if (!courseResponse.Success || courseResponse.Data == null)
             {
                 errorMessage = "Course not found.";
@@ -672,8 +677,8 @@ else if (lesson != null && course != null)
             }
             course = courseResponse.Data;
 
-            // Find lesson within course
-            lesson = FindLesson(course, LessonId);
+            // Find lesson within course - v2.3.113-dev: Match by EncodedId
+            lesson = FindLessonByEncodedId(course, EncodedLessonId);
             if (lesson == null)
             {
                 errorMessage = "Lesson not found in this course.";
@@ -690,11 +695,15 @@ else if (lesson != null && course != null)
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
 
-            if (lesson.IsFree)
+            // v2.3.119-dev: Check both lesson.IsFree AND course.Price == 0
+            // Aligns with API transcript auth logic (Program.cs:7074)
+            bool isFreeContent = lesson.IsFree || course.Price == 0;
+
+            if (isFreeContent)
             {
                 if (isAuthenticated)
                 {
-                    var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                    var enrollmentResponse = await CourseService.IsEnrolledAsync(course.Id);
                     isEnrolled = enrollmentResponse.Data;
                 }
             }
@@ -702,11 +711,11 @@ else if (lesson != null && course != null)
             {
                 if (!isAuthenticated)
                 {
-                    Navigation.NavigateTo($"/login?returnUrl=/learn/{CourseId}/{LessonId}");
+                    Navigation.NavigateTo($"/login?returnUrl=/learn/{EncodedCourseId}/{EncodedLessonId}");
                     return;
                 }
 
-                var enrollmentResponse = await CourseService.IsEnrolledAsync(CourseId);
+                var enrollmentResponse = await CourseService.IsEnrolledAsync(course.Id);
                 isEnrolled = enrollmentResponse.Data;
 
                 if (!isEnrolled)
@@ -743,6 +752,23 @@ else if (lesson != null && course != null)
         return null;
     }
 
+    /// <summary>
+    /// v2.3.113-dev: Find lesson by encoded ID for URL obfuscation
+    /// </summary>
+    private LessonDto? FindLessonByEncodedId(CourseDto course, string encodedLessonId)
+    {
+        foreach (var section in course.Sections ?? Enumerable.Empty<SectionDto>())
+        {
+            var foundLesson = section.Lessons?.FirstOrDefault(l => l.EncodedId == encodedLessonId);
+            if (foundLesson != null)
+            {
+                currentSection = section;
+                return foundLesson;
+            }
+        }
+        return null;
+    }
+
     private void CalculateLessonNavigation()
     {
         if (course == null || lesson == null) return;
@@ -752,17 +778,17 @@ else if (lesson != null && course != null)
             .ToList() ?? new List<LessonDto>();
 
         totalLessons = allLessons.Count;
-        currentLessonIndex = allLessons.FindIndex(l => l.Id == LessonId) + 1;
+        currentLessonIndex = allLessons.FindIndex(l => l.Id == lesson.Id) + 1;  // v2.3.113-dev: Use lesson.Id
 
         if (currentLessonIndex > 1)
         {
-            previousLessonId = allLessons[currentLessonIndex - 2].Id;
+            previousEncodedLessonId = allLessons[currentLessonIndex - 2].EncodedId;  // v2.3.113-dev
             hasPreviousLesson = true;
         }
 
         if (currentLessonIndex < totalLessons)
         {
-            nextLessonId = allLessons[currentLessonIndex].Id;
+            nextEncodedLessonId = allLessons[currentLessonIndex].EncodedId;  // v2.3.113-dev
             hasNextLesson = true;
         }
     }
@@ -805,21 +831,23 @@ else if (lesson != null && course != null)
 
     // ========== Navigation ==========
 
-    private void NavigateToLesson(Guid lessonId) => Navigation.NavigateTo($"/learn/{CourseId}/{lessonId}");
+    // v2.3.113-dev: Navigate using encoded IDs for URL obfuscation
+    private void NavigateToLesson(LessonDto targetLesson) =>
+        Navigation.NavigateTo($"/learn/{course?.EncodedId}/{targetLesson.EncodedId}");
 
     private void NavigateToPreviousLesson()
     {
-        if (previousLessonId.HasValue)
-            Navigation.NavigateTo($"/learn/{CourseId}/{previousLessonId.Value}");
+        if (!string.IsNullOrEmpty(previousEncodedLessonId))
+            Navigation.NavigateTo($"/learn/{course?.EncodedId}/{previousEncodedLessonId}");
     }
 
     private void NavigateToNextLesson()
     {
-        if (nextLessonId.HasValue)
-            Navigation.NavigateTo($"/learn/{CourseId}/{nextLessonId.Value}");
+        if (!string.IsNullOrEmpty(nextEncodedLessonId))
+            Navigation.NavigateTo($"/learn/{course?.EncodedId}/{nextEncodedLessonId}");
     }
 
-    private void BackToCourse() => Navigation.NavigateTo($"/courses/{CourseId}");
+    private void BackToCourse() => Navigation.NavigateTo($"/courses/{course?.EncodedId}");
 
     // ========== UI Helpers ==========
 
@@ -862,14 +890,39 @@ else if (lesson != null && course != null)
 
     private List<SmartVideoPlayer.SubtitleTrack>? GetSmartSubtitleTracks()
     {
-        if (lesson?.SubtitleTracks == null || !lesson.SubtitleTracks.Any()) return null;
-        return lesson.SubtitleTracks.Select(t => new SmartVideoPlayer.SubtitleTrack
+        // v2.3.117-dev: Generate subtitle tracks dynamically from transcript endpoint
+        // This enables HTML5 <track> subtitles when transcripts exist in MongoDB
+
+        // First check if lesson has explicit SubtitleTracks from API
+        if (lesson?.SubtitleTracks != null && lesson.SubtitleTracks.Any())
         {
-            Src = t.Url,
-            Language = t.Language,
-            Label = t.Label,
-            IsDefault = t.IsDefault
-        }).ToList();
+            return lesson.SubtitleTracks.Select(t => new SmartVideoPlayer.SubtitleTrack
+            {
+                Src = t.Url,
+                Language = t.Language,
+                Label = t.Label,
+                IsDefault = t.IsDefault
+            }).ToList();
+        }
+
+        // If no explicit tracks but lesson has video, generate dynamic track
+        // pointing to the transcript download endpoint (WebVTT format)
+        if (lesson != null && !string.IsNullOrEmpty(lesson.VideoUrl) && LessonId != Guid.Empty)
+        {
+            // Generate subtitle track from transcript API endpoint
+            return new List<SmartVideoPlayer.SubtitleTrack>
+            {
+                new SmartVideoPlayer.SubtitleTrack
+                {
+                    Src = $"/api/transcripts/{LessonId}/download?format=webvtt",
+                    Language = "en",
+                    Label = "English (Auto)",
+                    IsDefault = true
+                }
+            };
+        }
+
+        return null;
     }
 
     private bool HasExerciseFiles() => !string.IsNullOrEmpty(lesson?.AttachmentUrl);
