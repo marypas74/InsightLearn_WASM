@@ -59,4 +59,29 @@ namespace InsightLearn.Core.DTOs.VideoTranscript
             }
         }
     }
+
+    /// <summary>
+    /// Request DTO for batch translation of transcripts.
+    /// v2.3.99-dev: Queue translations to multiple languages.
+    /// </summary>
+    public class BatchTranslationRequest
+    {
+        /// <summary>
+        /// Lesson ID to translate.
+        /// </summary>
+        [Required]
+        public Guid LessonId { get; set; }
+
+        /// <summary>
+        /// Target languages (ISO 639-1 codes: es, fr, de, pt, it).
+        /// If null/empty, uses config default: ["es", "fr", "de", "pt", "it"].
+        /// </summary>
+        public string[]? TargetLanguages { get; set; }
+
+        /// <summary>
+        /// Translator to use: "openai", "azure", or "ollama".
+        /// If null, uses config default (typically "openai").
+        /// </summary>
+        public string? Translator { get; set; }
+    }
 }

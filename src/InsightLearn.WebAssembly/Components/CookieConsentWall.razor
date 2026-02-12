@@ -6,7 +6,7 @@
 @implements IDisposable
 
 <!-- Full-screen blocking overlay - hidden via CSS if consent exists -->
-<div class="cookie-wall-overlay @(showWall ? "" : "hidden")" @onclick:preventDefault="true">
+<div class="cookie-wall-overlay @(showWall ? "" : "hidden") @(showDetailedSettings ? "settings-open" : "")" @onclick:preventDefault="true">
         <div class="cookie-wall-container">
             <!-- Vibrant modal card - Two Column Layout -->
             <div class="cookie-wall-modal" @onclick:stopPropagation="true">

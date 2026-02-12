@@ -6,22 +6,31 @@
     --header-height: 72px;
     --header-padding: 16px 24px;
     --header-max-width: 1200px;
-    
+
     /* Colors - Enhanced Redis.io Inspired Professional Scheme */
-    --primary-color: #dc2626; /* Redis red inspired */
+    --primary-color: #dc2626;
+    /* Redis red inspired */
     --primary-hover: #b91c1c;
     --primary-light: #fecaca;
-    --text-primary: #111827; /* Darker for modern professional look */
-    --text-secondary: #6b7280; /* Professional gray like Redis.io */
+    --text-primary: #111827;
+    /* Darker for modern professional look */
+    --text-secondary: #6b7280;
+    /* Professional gray like Redis.io */
     --text-light: #9ca3af;
-    --border-light: #e5e7eb; /* Clean modern border */
+    --border-light: #e5e7eb;
+    /* Clean modern border */
     --bg-white: #ffffff;
-    --bg-light: #f9fafb; /* Clean light background */
-    --bg-hover: #f3f4f6; /* Subtle hover state */
-    --bg-accent: #eff6ff; /* Light blue accent */
-    --bg-subtle: #f8fafc; /* Very light background */
-    --shadow-color: rgba(17, 24, 39, 0.06); /* Professional shadow */
-    
+    --bg-light: #f9fafb;
+    /* Clean light background */
+    --bg-hover: #f3f4f6;
+    /* Subtle hover state */
+    --bg-accent: #eff6ff;
+    /* Light blue accent */
+    --bg-subtle: #f8fafc;
+    /* Very light background */
+    --shadow-color: rgba(17, 24, 39, 0.06);
+    /* Professional shadow */
+
     /* Typography */
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-size-sm: 14px;
@@ -29,7 +38,7 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    
+
     /* Spacing */
     --space-xs: 4px;
     --space-sm: 8px;
@@ -37,19 +46,19 @@
     --space-lg: 16px;
     --space-xl: 24px;
     --space-2xl: 32px;
-    
+
     /* Border Radius */
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
     --radius-full: 9999px;
-    
+
     /* Shadows - Professional Redis.io style */
     --shadow-sm: 0 1px 3px var(--shadow-color), 0 1px 2px rgba(15, 23, 42, 0.04);
     --shadow-md: 0 4px 6px var(--shadow-color), 0 2px 4px rgba(15, 23, 42, 0.04);
     --shadow-lg: 0 10px 15px var(--shadow-color), 0 4px 6px rgba(15, 23, 42, 0.03);
     --shadow-xl: 0 20px 25px var(--shadow-color), 0 10px 10px rgba(15, 23, 42, 0.02);
-    
+
     /* Transitions */
     --transition-fast: 150ms ease-in-out;
     --transition-normal: 250ms ease-in-out;
@@ -58,7 +67,8 @@
 /* ===== MAIN HEADER WRAPPER - CRITICAL STICKY POSITIONING ===== */
 .main-header {
     /* CRITICAL: position sticky with fallback */
-    position: -webkit-sticky !important;  /* Safari */
+    position: -webkit-sticky !important;
+    /* Safari */
     position: sticky !important;
     top: 0 !important;
 
@@ -80,7 +90,8 @@
     /* PERFORMANCE: GPU acceleration WITHOUT breaking sticky */
     /* RIMOSSO: transform: translateZ(0) - ROMPE STICKY! */
     /* RIMOSSO: -webkit-transform: translateZ(0) - ROMPE STICKY! */
-    will-change: box-shadow;  /* Solo box-shadow, non transform */
+    will-change: box-shadow;
+    /* Solo box-shadow, non transform */
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 
@@ -93,7 +104,8 @@
 
     /* CRITICAL: Containment WITHOUT breaking sticky */
     /* MODIFICATO: contain: layout style; (rimosso 'paint') */
-    contain: layout style;  /* Solo layout e style, NO paint */
+    contain: layout style;
+    /* Solo layout e style, NO paint */
 }
 
 /* ===== CRITICAL: SCROLL CONTAINER PROTECTION ===== */
@@ -134,13 +146,17 @@ body {
     width: 100% !important;
 
     /* Professional clean appearance */
-    background-color: transparent !important;  /* CRITICAL: Let parent .main-header control background */
+    background-color: transparent !important;
+    /* CRITICAL: Let parent .main-header control background */
     border-bottom: 1px solid var(--border-light);
-    box-shadow: none !important;  /* CRITICAL: Remove to prevent double shadows */
+    box-shadow: none !important;
+    /* CRITICAL: Remove to prevent double shadows */
 
     /* CRITICAL: Positioning - relative within sticky parent */
-    position: relative !important;  /* MUST be relative, NOT sticky */
-    z-index: inherit;  /* Inherit from parent .main-header */
+    position: relative !important;
+    /* MUST be relative, NOT sticky */
+    z-index: inherit;
+    /* Inherit from parent .main-header */
 
     /* UNIFIED 3-COLUMN GRID LAYOUT */
     display: grid !important;
@@ -158,7 +174,8 @@ body {
     margin: 0 auto;
 
     /* CRITICAL: Layout optimization for sticky to work */
-    overflow: visible !important; /* MUST be visible - hidden breaks sticky on parent */
+    overflow: visible !important;
+    /* MUST be visible - hidden breaks sticky on parent */
     box-sizing: border-box;
 
     /* Typography */
@@ -235,21 +252,28 @@ body {
 /* Search input - Redis.io Clean Professional Style */
 .search-input {
     width: 100%;
-    height: 42px; /* Slightly smaller for cleaner look */
-    padding: 0 56px 0 16px; /* CRITICAL: Right padding 56px, left 16px */
-    border: 1px solid var(--border-light); /* Clean border like Redis.io */
-    border-radius: 6px; /* Subtle rounded corners */
+    height: 42px;
+    /* Slightly smaller for cleaner look */
+    padding: 0 56px 0 16px;
+    /* CRITICAL: Right padding 56px, left 16px */
+    border: 1px solid var(--border-light);
+    /* Clean border like Redis.io */
+    border-radius: 6px;
+    /* Subtle rounded corners */
     font-size: var(--font-size-base);
     font-family: var(--font-family);
     background-color: var(--bg-white);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' stroke='%236b7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: calc(100% - 16px) center; /* CRITICAL: Icon on RIGHT */
-    background-size: 20px 20px; /* Better visibility */
+    background-position: calc(100% - 16px) center;
+    /* CRITICAL: Icon on RIGHT */
+    background-size: 20px 20px;
+    /* Better visibility */
     color: var(--text-primary);
     transition: all var(--transition-fast);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); /* Very subtle shadow */
-    
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    /* Very subtle shadow */
+
     /* Enhanced focus styling for modern look */
     outline: none;
 }
@@ -257,7 +281,8 @@ body {
 .search-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06); /* Clean modern focus */
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    /* Clean modern focus */
     background-color: var(--bg-white);
 }
 
@@ -373,8 +398,13 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Enhanced Categories Menu - v2.1.0-dev Horizontal Layout with Small Icons */
@@ -383,7 +413,8 @@ body {
     top: calc(100% + var(--space-sm));
     right: 0;
     left: auto;
-    width: 520px; /* Optimized for 2-column horizontal layout */
+    width: 520px;
+    /* Optimized for 2-column horizontal layout */
     background: var(--bg-white);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
@@ -427,7 +458,8 @@ body {
 /* Categories Grid - 2 columns horizontal layout - v2.1.0-dev */
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 columns for horizontal items */
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 columns for horizontal items */
     gap: 8px;
     padding: 16px;
 }
@@ -435,7 +467,8 @@ body {
 /* Category Items - Horizontal layout with small icon + label - v2.1.0-dev */
 .category-item {
     display: flex;
-    flex-direction: row; /* Horizontal: icon left, text right */
+    flex-direction: row;
+    /* Horizontal: icon left, text right */
     align-items: center;
     justify-content: flex-start;
     gap: 12px;
@@ -773,7 +806,8 @@ body {
 .dropdown-menu {
     position: absolute;
     top: calc(100% + var(--space-sm));
-    right: 0; /* Align to right for actions section */
+    right: 0;
+    /* Align to right for actions section */
     left: auto;
     min-width: 280px;
     background-color: var(--bg-white);
@@ -874,7 +908,7 @@ body {
     gap: var(--space-md);
     min-width: 0;
     flex-wrap: nowrap;
-    
+
     /* Ensure perfect alignment */
     height: 100%;
 }
@@ -976,17 +1010,18 @@ body {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     padding: var(--space-sm) 0;
-    z-index: 1050; /* Higher z-index to prevent overlap */
+    z-index: 1050;
+    /* Higher z-index to prevent overlap */
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px);
     transition: all var(--transition-fast);
-    
+
     /* Ensure dropdown stays within viewport and prevents overflow */
     box-sizing: border-box;
     max-height: 70vh;
     overflow-y: auto;
-    
+
     /* Prevent dropdown from being cut off */
     margin-right: 0;
     margin-left: auto;
@@ -1081,7 +1116,8 @@ body {
 .user-menu-container {
     position: relative;
     flex-shrink: 0;
-    min-width: 0; /* Prevent overflow */
+    min-width: 0;
+    /* Prevent overflow */
 }
 
 .user-menu-trigger {
@@ -1239,17 +1275,20 @@ body {
 
 /* Admin section title color */
 .dropdown-section-title .fa-shield-alt {
-    color: #6366f1; /* Indigo for admin */
+    color: #6366f1;
+    /* Indigo for admin */
 }
 
 /* Instructor section title color */
 .dropdown-section-title .fa-chalkboard {
-    color: #8b5cf6; /* Purple for instructor */
+    color: #8b5cf6;
+    /* Purple for instructor */
 }
 
 /* User section title color */
 .dropdown-section-title .fa-user-circle {
-    color: #0ea5e9; /* Sky blue for user */
+    color: #0ea5e9;
+    /* Sky blue for user */
 }
 
 /* Dropdown Item Styling */
@@ -1364,21 +1403,80 @@ body {
 }
 
 /* Badge color variants */
-.admin-item-badge.badge-indigo { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
-.admin-item-badge.badge-green { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-.admin-item-badge.badge-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
-.admin-item-badge.badge-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
-.admin-item-badge.badge-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-.admin-item-badge.badge-red { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
-.admin-item-badge.badge-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
-.admin-item-badge.badge-orange { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
-.admin-item-badge.badge-violet { background: linear-gradient(135deg, #a855f7, #9333ea); color: white; }
-.admin-item-badge.badge-gray { background: linear-gradient(135deg, #64748b, #475569); color: white; }
-.admin-item-badge.badge-lime { background: linear-gradient(135deg, #84cc16, #65a30d); color: white; }
-.admin-item-badge.badge-sky { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
-.admin-item-badge.badge-rose { background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; }
-.admin-item-badge.badge-teal { background: linear-gradient(135deg, #14b8a6, #0d9488); color: white; }
-.admin-item-badge.badge-stone { background: linear-gradient(135deg, #78716c, #57534e); color: white; }
+.admin-item-badge.badge-indigo {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+}
+
+.admin-item-badge.badge-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.admin-item-badge.badge-blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.admin-item-badge.badge-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.admin-item-badge.badge-amber {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.admin-item-badge.badge-red {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.admin-item-badge.badge-cyan {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+}
+
+.admin-item-badge.badge-orange {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+}
+
+.admin-item-badge.badge-violet {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+    color: white;
+}
+
+.admin-item-badge.badge-gray {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+}
+
+.admin-item-badge.badge-lime {
+    background: linear-gradient(135deg, #84cc16, #65a30d);
+    color: white;
+}
+
+.admin-item-badge.badge-sky {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: white;
+}
+
+.admin-item-badge.badge-rose {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: white;
+}
+
+.admin-item-badge.badge-teal {
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
+    color: white;
+}
+
+.admin-item-badge.badge-stone {
+    background: linear-gradient(135deg, #78716c, #57534e);
+    color: white;
+}
 
 /* Responsive adjustments for expanded menu */
 @media (max-width: 768px) {
@@ -1698,12 +1796,12 @@ body {
         max-width: 1400px;
         padding: 0 var(--space-2xl);
     }
-    
+
     .header-search-section {
         max-width: 500px;
         margin: 0 var(--space-2xl);
     }
-    
+
     .categories-menu {
         min-width: 600px;
     }
@@ -1714,7 +1812,7 @@ body {
     :root {
         --header-height: 68px;
     }
-    
+
     .main-header-container {
         padding: 0 var(--space-lg);
         gap: var(--space-lg);
@@ -1722,26 +1820,27 @@ body {
         align-items: center;
         align-content: center;
     }
-    
+
     .header-search-section {
         max-width: 280px;
         min-width: 180px;
     }
-    
+
     .header-actions-section {
         gap: var(--space-md);
         align-items: center;
         height: 100%;
     }
-    
+
     /* Adjust categories menu for tablets */
     .categories-menu {
         min-width: 480px;
         max-width: 520px;
-        right: 0; /* Align dropdown to right edge */
+        right: 0;
+        /* Align dropdown to right edge */
         left: auto;
     }
-    
+
     .categories-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--space-xs);
@@ -1753,10 +1852,13 @@ body {
 
 /* ===== MOBILE LAYOUT (≤768px) - COMPLETE UX OVERHAUL ===== */
 @media (max-width: 768px) {
+
     /* ========== HEADER SIZE & STRUCTURE ========== */
     :root {
-        --header-height: 56px; /* Ridotto per massimizzare area contenuto */
-        --mobile-touch-min: 44px; /* Standard Apple/Google per touch target */
+        --header-height: 56px;
+        /* Ridotto per massimizzare area contenuto */
+        --mobile-touch-min: 44px;
+        /* Standard Apple/Google per touch target */
     }
 
     /* Main header - STICKY GARANTITO */
@@ -1788,8 +1890,10 @@ body {
         grid-template-areas: "logo . mobile-actions";
 
         /* Spacing minimo ma ergonomico */
-        padding: 0 12px; /* Ridotto da 16px */
-        gap: 8px; /* Ridotto da 12px */
+        padding: 0 12px;
+        /* Ridotto da 16px */
+        gap: 8px;
+        /* Ridotto da 12px */
         height: var(--header-height);
 
         /* Perfect alignment */
@@ -1827,13 +1931,15 @@ body {
     }
 
     .logo-image {
-        height: 32px; /* Ridotto da 36px */
+        height: 32px;
+        /* Ridotto da 36px */
         width: auto;
         margin-right: 6px;
     }
 
     .logo-text {
-        font-size: 16px; /* Leggermente ridotto */
+        font-size: 16px;
+        /* Leggermente ridotto */
         font-weight: 700;
         white-space: nowrap;
     }
@@ -1850,7 +1956,8 @@ body {
         align-items: center;
         justify-content: flex-end;
         justify-self: end;
-        gap: 6px; /* Ridotto per risparmiare spazio */
+        gap: 6px;
+        /* Ridotto per risparmiare spazio */
         height: 100%;
         flex-wrap: nowrap;
     }
@@ -1983,7 +2090,8 @@ body {
     /* ========== AUTH BUTTONS - VERTICAL STACK ========== */
     .auth-buttons {
         display: flex;
-        flex-direction: row; /* Mantieni orizzontale ma compatto */
+        flex-direction: row;
+        /* Mantieni orizzontale ma compatto */
         gap: 6px;
         align-items: center;
     }
@@ -2137,7 +2245,8 @@ body {
     .mobile-search .search-input {
         width: 100%;
         height: 44px;
-        font-size: 16px; /* Previene zoom iOS */
+        font-size: 16px;
+        /* Previene zoom iOS */
         border-radius: 10px;
     }
 
@@ -2187,6 +2296,7 @@ body {
 
     /* Disable animations if user prefers reduced motion */
     @media (prefers-reduced-motion: reduce) {
+
         .main-header,
         .mobile-menu-overlay,
         .mobile-menu-content,
@@ -2200,7 +2310,8 @@ body {
     /* ========== LANDSCAPE MODE ADJUSTMENTS ========== */
     @media (orientation: landscape) and (max-height: 500px) {
         :root {
-            --header-height: 48px; /* Ultra-compact in landscape */
+            --header-height: 48px;
+            /* Ultra-compact in landscape */
         }
 
         .logo-image {
@@ -2216,7 +2327,8 @@ body {
 /* ===== EXTRA SMALL MOBILE DEVICES (≤480px) - ULTRA-COMPACT ===== */
 @media (max-width: 480px) {
     :root {
-        --header-height: 52px; /* Ultra-compact */
+        --header-height: 52px;
+        /* Ultra-compact */
         --mobile-touch-min: 44px;
     }
 
@@ -2229,7 +2341,8 @@ body {
 
     /* ========== LOGO - ICON ONLY ========== */
     .logo-text {
-        display: none; /* Solo icona su schermi molto piccoli */
+        display: none;
+        /* Solo icona su schermi molto piccoli */
     }
 
     .logo-image {
@@ -2417,13 +2530,14 @@ body {
     outline: 3px solid var(--primary-color);
     outline-offset: 2px;
     box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
-    
+
     /* Ensure minimum 3:1 contrast ratio */
     background-color: rgba(220, 38, 38, 0.1);
 }
 
 .search-input:focus-visible {
-    outline: none; /* Custom focus already handled */
+    outline: none;
+    /* Custom focus already handled */
 }
 
 /* Enhanced dropdown focus management */
@@ -2446,13 +2560,13 @@ body {
     border-radius: var(--radius-md);
     font-weight: var(--font-weight-semibold);
     z-index: 10001;
-    
+
     /* Hide visually but keep accessible to screen readers */
     clip-path: inset(50%);
     height: 1px;
     width: 1px;
     overflow: hidden;
-    
+
     transition: all 0.2s ease-in-out;
 }
 
@@ -2462,7 +2576,7 @@ body {
     height: auto;
     width: auto;
     overflow: visible;
-    
+
     /* Enhanced focus styling */
     outline: 3px solid white;
     outline-offset: 2px;
@@ -2488,10 +2602,21 @@ body {
     /* Use CSS order to maintain logical tab sequence */
 }
 
-.header-logo-section { order: 1; }
-.header-search-section { order: 2; }
-.header-actions-section { order: 3; }
-.mobile-menu-toggle { order: 4; }
+.header-logo-section {
+    order: 1;
+}
+
+.header-search-section {
+    order: 2;
+}
+
+.header-actions-section {
+    order: 3;
+}
+
+.mobile-menu-toggle {
+    order: 4;
+}
 
 /* Skip link enhancements */
 .skip-link:focus {
@@ -2524,12 +2649,12 @@ body {
         --text-secondary: #333333;
         --border-light: #666666;
     }
-    
+
     .main-header-container {
         border-bottom-width: 3px;
         border-bottom-color: #000000;
     }
-    
+
     .categories-trigger,
     .dropdown-trigger,
     .admin-console-trigger,
@@ -2537,7 +2662,7 @@ body {
         border-width: 3px;
         border-color: #000000;
     }
-    
+
     .categories-menu,
     .dropdown-menu,
     .user-dropdown,
@@ -2546,13 +2671,13 @@ body {
         border-color: #000000;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
-    
+
     .category-item,
     .dropdown-item,
     .admin-dropdown-item {
         border: 2px solid transparent;
     }
-    
+
     .category-item:hover,
     .category-item:focus,
     .dropdown-item:hover,
@@ -2597,6 +2722,7 @@ body {
 
 /* Reduced Motion Support - Accessibility First */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -2606,13 +2732,13 @@ body {
         transition-delay: 0ms !important;
         scroll-behavior: auto !important;
     }
-    
+
     /* Remove decorative animations */
     .categories-trigger::before,
     .category-item::before {
         display: none;
     }
-    
+
     /* Keep essential state changes visible */
     .dropdown-menu.show,
     .categories-menu.show,
@@ -2625,6 +2751,7 @@ body {
 
 /* Color Blind Accessibility */
 @media (prefers-color-scheme: no-preference) {
+
     /* Use patterns and shapes in addition to color */
     .cart-badge::after {
         content: '';
@@ -2647,10 +2774,11 @@ html .main-header-container,
 [class*="admin"] .main-header-container,
 .admin-page .main-header-container,
 .admin-layout .main-header-container,
-.blazor-error-ui ~ * .main-header-container {
+.blazor-error-ui~* .main-header-container {
     position: sticky !important;
     top: 0 !important;
-    z-index: 10001 !important; /* Higher z-index to override admin conflicts */
+    z-index: 10001 !important;
+    /* Higher z-index to override admin conflicts */
     height: var(--header-height) !important;
     background-color: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(10px) !important;
@@ -2747,13 +2875,14 @@ html .main-header-container,
 
 /* Force unified header grid layout preservation on desktop */
 @media (min-width: 769px) {
+
     .admin-dashboard .main-header-container,
     [class*="admin"] .main-header-container {
         grid-template-columns: minmax(220px, auto) 1fr minmax(400px, auto) !important;
         grid-template-areas: "logo search actions" !important;
         gap: var(--space-2xl) !important;
         padding: 0 var(--space-2xl) !important;
-        
+
         /* Ensure perfect alignment in admin pages */
         align-items: center !important;
         align-content: center !important;
@@ -2765,12 +2894,12 @@ html .main-header-container,
     .main-header-container {
         border-bottom-width: 2px;
     }
-    
+
     .dropdown-menu,
     .user-dropdown {
         border-width: 2px;
     }
-    
+
     .btn {
         border-width: 2px;
     }
@@ -2856,6 +2985,7 @@ html .main-header-container,
 }
 
 @media print {
+
     .mobile-menu-toggle,
     .mobile-menu-overlay {
         display: none !important;
@@ -2899,8 +3029,13 @@ html .main-header-container,
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .loader-title {
@@ -2954,15 +3089,15 @@ body.admin-page .main-header-container,
     background-color: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(10px) !important;
     display: grid !important;
-    
+
     /* UNIFIED 3-COLUMN LAYOUT FOR ADMIN PAGES */
     grid-template-columns: minmax(200px, auto) 1fr minmax(300px, auto) !important;
     grid-template-areas: "logo search actions" !important;
-    
+
     /* PERFECT VERTICAL ALIGNMENT */
     align-items: center !important;
     align-content: center !important;
-    
+
     /* Maintain layout consistency */
     height: var(--header-height) !important;
     padding: 0 var(--space-xl) !important;
@@ -2976,4 +3111,157 @@ body.admin-page .main-header-container,
     align-items: center !important;
     visibility: visible !important;
     opacity: 1 !important;
+}
+
+/* ========================================
+   TABLET RESPONSIVE (769px - 1024px) - v2.4.7
+   Date: 2026-02-04
+   
+   Fixes header overlap by:
+   1. Switching from grid to flexbox
+   2. Using relative units (%, em, rem) instead of fixed pixels
+   3. Properly hiding/showing elements based on viewport
+   ======================================== */
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+
+    /* Switch to FLEXBOX layout for better responsiveness */
+    .main-header-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
+        padding: 0 1rem !important;
+        grid-template-columns: none !important;
+        /* Override grid */
+        grid-template-areas: none !important;
+    }
+
+    /* Logo section - flexible shrink */
+    .header-logo-section {
+        flex: 0 1 auto !important;
+        max-width: 10rem !important;
+        min-width: auto !important;
+    }
+
+    .logo-text {
+        font-size: 0.9rem !important;
+        white-space: nowrap !important;
+    }
+
+    .logo-image {
+        height: 2rem !important;
+    }
+
+    /* Search section - flexible, can shrink significantly */
+    .header-search-section {
+        flex: 1 1 auto !important;
+        min-width: 8rem !important;
+        max-width: 14rem !important;
+        order: 0 !important;
+    }
+
+    .search-input {
+        width: 100% !important;
+        max-width: 100% !important;
+        font-size: 0.875rem !important;
+        height: 2.25rem !important;
+        padding: 0 2.5rem 0 0.75rem !important;
+    }
+
+    /* Actions section - contains categories, nav links, auth */
+    .header-actions-section {
+        flex: 0 1 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Categories dropdown - compact */
+    .categories-trigger {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.8rem !important;
+        border-width: 1px !important;
+    }
+
+    .categories-trigger .dropdown-arrow {
+        display: none !important;
+        /* Hide arrow on tablet */
+    }
+
+    /* Navigation links - smaller */
+    .nav-link,
+    .header-nav-link {
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Auth buttons - compact */
+    .auth-buttons {
+        gap: 0.25rem !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .auth-buttons .btn,
+    .auth-buttons a.btn {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.75rem !important;
+        white-space: nowrap !important;
+    }
+
+    /* Hide button icons on tablet */
+    .auth-buttons .btn i {
+        display: none !important;
+    }
+
+    /* Categories menu - responsive */
+    .categories-menu {
+        width: min(90vw, 28rem) !important;
+        left: auto !important;
+        right: 0 !important;
+        min-width: auto !important;
+    }
+
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+    }
+}
+
+/* ===== SMALL TABLET (769px - 900px) - Use mobile-like layout ===== */
+@media screen and (min-width: 769px) and (max-width: 900px) {
+
+    /* Hide search and categories, show hamburger */
+    .header-search-section,
+    .categories-dropdown,
+    .nav-dropdown.categories-dropdown {
+        display: none !important;
+    }
+
+    /* Show mobile menu toggle */
+    .mobile-menu-toggle {
+        display: flex !important;
+        visibility: visible !important;
+        order: -1 !important;
+        margin-right: auto !important;
+    }
+
+    /* Simple layout: hamburger | logo | auth */
+    .main-header-container {
+        gap: 0.5rem !important;
+    }
+
+    .header-logo-section {
+        flex: 1 1 auto !important;
+    }
+
+    /* Nav links also hidden on small tablets */
+    .nav-links,
+    .header-nav-link:not(.logo-link) {
+        display: none !important;
+    }
 }

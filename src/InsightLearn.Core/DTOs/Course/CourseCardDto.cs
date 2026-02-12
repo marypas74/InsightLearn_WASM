@@ -6,6 +6,12 @@ namespace InsightLearn.Core.DTOs.Course;
 public class CourseCardDto
 {
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// URL-safe encoded ID for public URLs (v2.3.113-dev)
+    /// </summary>
+    public string EncodedId { get; set; } = string.Empty;
+
     public string Title { get; set; } = string.Empty;
     public string? ShortDescription { get; set; }
     public string InstructorName { get; set; } = string.Empty;

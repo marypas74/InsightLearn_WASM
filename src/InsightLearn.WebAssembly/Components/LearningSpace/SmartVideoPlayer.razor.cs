@@ -75,6 +75,8 @@ public partial class SmartVideoPlayer : IAsyncDisposable
     private IEnumerable<TranslationLanguage> TranslationLanguages { get; set; } = [];
     private System.Timers.Timer? _controlsTimer;
     private TranscriptSegment? _activeSegment;
+    private bool _isTranslating;
+    private string _translatingLanguage = string.Empty;
 
     private static readonly double[] PlaybackRates = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
@@ -474,32 +476,79 @@ public partial class SmartVideoPlayer : IAsyncDisposable
 
     private async Task RequestAiTranslation(string languageCode)
     {
-        if (TranscriptData == null) return;
+        if (string.IsNullOrEmpty(LessonId) || _isTranslating) return;
 
+        // Find the language label from TranslationLanguages
+        var langInfo = TranslationLanguages.FirstOrDefault(l => l.Code == languageCode);
+        var langLabel = langInfo?.NativeName ?? languageCode;
+
+        _isTranslating = true;
+        _translatingLanguage = langLabel;
         ShowSubtitleMenu = false;
+        StateHasChanged();
 
-        // Get current segment for translation
-        var segment = _activeSegment ?? TranscriptData.Segments.FirstOrDefault();
-        if (segment == null) return;
-
-        // Stream translation from AI
         try
         {
-            var translatedText = string.Empty;
-            await foreach (var chunk in TranscriptionService.StreamTranslationAsync(
-                segment.Text, languageCode, CancellationToken.None))
+            // Call backend translation API - returns full translated WebVTT
+            var response = await Http.GetAsync($"/api/subtitles/{LessonId}/translate/{languageCode}");
+
+            if (!response.IsSuccessStatusCode)
             {
-                translatedText += chunk;
-                // Could update UI in real-time here
+                var errorBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[SmartVideoPlayer] Translation API error ({response.StatusCode}): {errorBody}");
+                return;
             }
 
-            // Show translated subtitle
-            // In production, this would update the subtitle track
-            Console.WriteLine($"[SmartVideoPlayer] AI Translation ({languageCode}): {translatedText}");
+            var vttContent = await response.Content.ReadAsStringAsync();
+
+            if (string.IsNullOrWhiteSpace(vttContent))
+            {
+                Console.WriteLine("[SmartVideoPlayer] Translation returned empty content");
+                return;
+            }
+
+            // Create a blob URL for the translated WebVTT content
+            var blobUrl = await JS.InvokeAsync<string>("VideoInterop.createBlobUrl", vttContent, "text/vtt");
+
+            if (string.IsNullOrEmpty(blobUrl))
+            {
+                Console.WriteLine("[SmartVideoPlayer] Failed to create blob URL for translated subtitles");
+                return;
+            }
+
+            // Add the translated track to the video element and activate it
+            var added = await JS.InvokeAsync<bool>("VideoInterop.addSubtitleTrack",
+                VideoElementId, blobUrl, languageCode, $"{langLabel} (AI)", true);
+
+            if (added)
+            {
+                // Add to local SubtitleTracks list so it appears in the menu
+                SubtitleTracks ??= new List<SubtitleTrack>();
+
+                // Remove existing AI track for same language if any
+                SubtitleTracks.RemoveAll(t => t.Language == languageCode && t.Label.Contains("(AI)"));
+
+                SubtitleTracks.Add(new SubtitleTrack
+                {
+                    Src = blobUrl,
+                    Language = languageCode,
+                    Label = $"{langLabel} (AI)",
+                    IsDefault = false
+                });
+
+                ActiveSubtitle = languageCode;
+                Console.WriteLine($"[SmartVideoPlayer] AI Translation ({languageCode}) applied successfully");
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[SmartVideoPlayer] Translation error: {ex.Message}");
+        }
+        finally
+        {
+            _isTranslating = false;
+            _translatingLanguage = string.Empty;
+            StateHasChanged();
         }
     }
 

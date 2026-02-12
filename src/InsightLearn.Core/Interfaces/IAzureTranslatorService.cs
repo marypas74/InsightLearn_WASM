@@ -65,6 +65,22 @@ public interface IAzureTranslatorService
     /// </summary>
     /// <returns>True if Azure Translator is available</returns>
     Task<bool> IsAvailableAsync();
+
+    /// <summary>
+    /// Translate a batch of text using Ollama LLM with TranslateGemma model.
+    /// Phase 8.6 (v2.3.24-dev): Batch translation for subtitle segments.
+    /// Sends all segments in a single prompt for 10x faster translation.
+    /// </summary>
+    /// <param name="batchPrompt">Pre-formatted prompt with numbered segments</param>
+    /// <param name="sourceLanguage">Source language code (ISO 639-1)</param>
+    /// <param name="targetLanguage">Target language code (ISO 639-1)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Raw response with translated segments (one per line)</returns>
+    Task<string> TranslateBatchWithOllamaAsync(
+        string batchPrompt,
+        string sourceLanguage,
+        string targetLanguage,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

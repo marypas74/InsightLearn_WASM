@@ -337,14 +337,15 @@
             try
             {
                 // Verifica consenso GDPR per Functional Cookies
-                var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie_consent");
+                var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie-consent");
                 bool functionalAllowed = false;
 
                 if (!string.IsNullOrEmpty(consentJson))
                 {
                     try
                     {
-                        var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson);
+                        var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         functionalAllowed = consent?.Functional ?? false;
                     }
                     catch
@@ -766,10 +767,11 @@
     {
         try
         {
-            var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie_consent");
+            var consentJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookie-consent");
             if (!string.IsNullOrEmpty(consentJson))
             {
-                var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson);
+                var consent = System.Text.Json.JsonSerializer.Deserialize<CookieConsent>(consentJson,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return consent?.Functional ?? false;
             }
         }

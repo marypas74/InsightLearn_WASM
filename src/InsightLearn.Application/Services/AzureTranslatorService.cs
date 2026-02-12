@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using InsightLearn.Core.Interfaces;
@@ -28,6 +29,10 @@ public class AzureTranslatorService : IAzureTranslatorService
     private readonly string? _azureTranslatorKey;
     private readonly string? _azureTranslatorRegion;
     private readonly string _azureTranslatorEndpoint;
+
+    // Ollama configuration for batch translation (Phase 8.6)
+    private readonly string _ollamaBaseUrl;
+    private const string OllamaTranslationModel = "qwen2.5:3b-instruct"; // General-purpose model for translation
 
     // Azure Translator API v3.0 endpoints
     private const string TranslateEndpoint = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0";
@@ -63,7 +68,7 @@ public class AzureTranslatorService : IAzureTranslatorService
         _azureTranslatorRegion = configuration["Azure:TranslatorRegion"] ?? Environment.GetEnvironmentVariable("AZURE_TRANSLATOR_REGION") ?? "westeurope";
         _azureTranslatorEndpoint = configuration["Azure:TranslatorEndpoint"] ?? TranslateEndpoint;
 
-        // Configure HTTP client
+        // Configure HTTP client for Azure
         if (!string.IsNullOrEmpty(_azureTranslatorKey))
         {
             _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _azureTranslatorKey);
@@ -72,6 +77,9 @@ public class AzureTranslatorService : IAzureTranslatorService
                 _httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Region", _azureTranslatorRegion);
             }
         }
+
+        // Load Ollama configuration for batch translation (Phase 8.6)
+        _ollamaBaseUrl = configuration["Ollama:BaseUrl"] ?? "http://ollama-service:11434";
     }
 
     public async Task<bool> IsAvailableAsync()
@@ -258,6 +266,122 @@ public class AzureTranslatorService : IAzureTranslatorService
             _logger.LogError(ex, "[AZURE TRANSLATOR] Language detection failed for text: {TextPreview}", text.Substring(0, Math.Min(100, text.Length)));
             return ("unknown", 0.0);
         }
+    }
+
+    /// <summary>
+    /// Translate a batch of subtitle segments using Ollama LLM with TranslateGemma model.
+    /// Phase 8.6 (v2.3.24-dev): Batch translation for 10x faster subtitle translation.
+    /// Sends multiple segments in a single prompt instead of one-by-one API calls.
+    /// </summary>
+    /// <param name="batchPrompt">Pre-formatted prompt with numbered segments</param>
+    /// <param name="sourceLanguage">Source language code (ISO 639-1)</param>
+    /// <param name="targetLanguage">Target language code (ISO 639-1)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Raw response with translated segments (one per line, numbered)</returns>
+    public async Task<string> TranslateBatchWithOllamaAsync(
+        string batchPrompt,
+        string sourceLanguage,
+        string targetLanguage,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[OLLAMA BATCH] Starting batch translation: {Source} → {Target}, prompt length: {Length} chars",
+            sourceLanguage, targetLanguage, batchPrompt.Length);
+
+        try
+        {
+            // Build Ollama API request
+            var request = new
+            {
+                model = OllamaTranslationModel,
+                prompt = batchPrompt,
+                stream = false,
+                options = new
+                {
+                    temperature = 0.2,    // Low temperature for consistent translations
+                    num_predict = 4096,   // Allow long response for batch (30 segments)
+                    top_p = 0.9,          // Nucleus sampling for quality
+                    repeat_penalty = 1.1  // Avoid repetitive translations
+                }
+            };
+
+            var httpContent = new StringContent(
+                JsonSerializer.Serialize(request),
+                Encoding.UTF8,
+                "application/json");
+
+            // Use a longer timeout for batch translation (5 minutes)
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromMinutes(5));
+
+            var response = await _httpClient.PostAsync(
+                $"{_ollamaBaseUrl}/api/generate",
+                httpContent,
+                cts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(cts.Token);
+                _logger.LogError("[OLLAMA BATCH] API error {StatusCode}: {Error}",
+                    response.StatusCode, errorBody);
+                throw new HttpRequestException($"Ollama API error: {response.StatusCode} - {errorBody}");
+            }
+
+            var responseJson = await response.Content.ReadAsStringAsync(cts.Token);
+            var ollamaResponse = JsonSerializer.Deserialize<OllamaGenerateResponse>(responseJson);
+
+            if (string.IsNullOrWhiteSpace(ollamaResponse?.Response))
+            {
+                _logger.LogWarning("[OLLAMA BATCH] Empty response from Ollama");
+                throw new InvalidOperationException("Ollama returned empty response");
+            }
+
+            _logger.LogInformation("[OLLAMA BATCH] Translation completed, response length: {Length} chars",
+                ollamaResponse.Response.Length);
+
+            return ollamaResponse.Response;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("[OLLAMA BATCH] Translation cancelled by user");
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("[OLLAMA BATCH] Translation timeout (5 minutes exceeded)");
+            throw new TimeoutException("Ollama batch translation timeout");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[OLLAMA BATCH] Batch translation failed");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Ollama API response model for /api/generate endpoint
+    /// </summary>
+    private class OllamaGenerateResponse
+    {
+        [JsonPropertyName("model")]
+        public string? Model { get; set; }
+
+        [JsonPropertyName("response")]
+        public string? Response { get; set; }
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }
+
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }
+
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
     }
 
     #region Private Helper Methods

@@ -1,0 +1,1337 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: insightlearn-seo-dashboard
+  namespace: insightlearn
+  labels:
+    grafana_dashboard: "1"
+data:
+  insightlearn-seo-aeo.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 2,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "type": "row",
+          "title": "🎯 SEO SCORE OVERVIEW - InsightLearn Real-Time Metrics",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+          "collapsed": false,
+          "id": 100
+        },
+        {
+          "type": "gauge",
+          "title": "🏆 SEO Score Totale",
+          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1},
+          "id": 1,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 85}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true,
+            "text": {"titleSize": 14, "valueSize": 36}
+          },
+          "targets": [{"expr": "insightlearn_seo_score_overall", "refId": "A", "instant": true}],
+          "description": "Score SEO complessivo (60% Traditional + 40% AEO)"
+        },
+        {
+          "type": "gauge",
+          "title": "📊 Traditional SEO",
+          "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1},
+          "id": 2,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100, "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 85}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "targets": [{"expr": "insightlearn_seo_score_traditional", "refId": "A", "instant": true}],
+          "description": "Score SEO Tradizionale:\n- Meta Tags\n- Structured Data\n- Sitemap\n- Social/OG\n- Technical"
+        },
+        {
+          "type": "gauge",
+          "title": "🤖 AI/AEO Score",
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1},
+          "id": 3,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100, "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "#73BF69", "value": 85}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true
+          },
+          "targets": [{"expr": "insightlearn_seo_score_aeo", "refId": "A", "instant": true}],
+          "description": "Score AI/AEO:\n- AI Crawler Permissions\n- AI Meta Tags\n- Semantic Content\n- Content Clarity"
+        },
+        {
+          "type": "stat",
+          "title": "📑 Corsi Pubblicati",
+          "gridPos": {"h": 4, "w": 3, "x": 18, "y": 1},
+          "id": 4,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 5},
+                  {"color": "green", "value": 20}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_courses_published", "refId": "A"}],
+          "description": "Numero di corsi pubblicati (pagine indicizzabili)"
+        },
+        {
+          "type": "stat",
+          "title": "📋 URL in Sitemap",
+          "gridPos": {"h": 4, "w": 3, "x": 21, "y": 1},
+          "id": 5,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "blue", "value": null}]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "sum(insightlearn_seo_sitemap_urls)", "refId": "A"}],
+          "description": "URL totali nel sitemap.xml (static + dynamic)"
+        },
+        {
+          "type": "stat",
+          "title": "⭐ Media Voti",
+          "gridPos": {"h": 4, "w": 3, "x": 18, "y": 5},
+          "id": 6,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 3},
+                  {"color": "green", "value": 4}
+                ]
+              },
+              "unit": "none",
+              "decimals": 1
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_average_rating", "refId": "A"}],
+          "description": "Media voti dei corsi pubblicati con recensioni"
+        },
+        {
+          "type": "stat",
+          "title": "💬 Recensioni",
+          "gridPos": {"h": 4, "w": 3, "x": 21, "y": 5},
+          "id": 7,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "yellow", "value": null},
+                  {"color": "green", "value": 10}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_total_reviews", "refId": "A"}],
+          "description": "Numero totale di recensioni"
+        },
+        {
+          "type": "row",
+          "title": "📊 SEO CATEGORY SCORES - Breakdown Dettagliato",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+          "collapsed": false,
+          "id": 101
+        },
+        {
+          "type": "bargauge",
+          "title": "📈 Traditional SEO - Breakdown per Categoria",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+          "id": 10,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 85}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_category_score{category=\"meta_tags\"}", "legendFormat": "Meta Tags", "refId": "A"},
+            {"expr": "insightlearn_seo_category_score{category=\"structured_data\"}", "legendFormat": "Structured Data", "refId": "B"},
+            {"expr": "insightlearn_seo_category_score{category=\"sitemap\"}", "legendFormat": "Sitemap", "refId": "C"},
+            {"expr": "insightlearn_seo_category_score{category=\"social\"}", "legendFormat": "Social/OG", "refId": "D"},
+            {"expr": "insightlearn_seo_category_score{category=\"technical\"}", "legendFormat": "Technical", "refId": "E"}
+          ],
+          "description": "Punteggi per ogni categoria SEO tradizionale"
+        },
+        {
+          "type": "bargauge",
+          "title": "🤖 AI/AEO - Breakdown per Categoria",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+          "id": 11,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "#73BF69", "value": 85}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_category_score{category=\"ai_crawlers\"}", "legendFormat": "AI Crawlers", "refId": "A"},
+            {"expr": "insightlearn_seo_category_score{category=\"ai_meta\"}", "legendFormat": "AI Meta Tags", "refId": "B"},
+            {"expr": "insightlearn_seo_category_score{category=\"semantic\"}", "legendFormat": "Semantic Content", "refId": "C"},
+            {"expr": "insightlearn_seo_category_score{category=\"content_clarity\"}", "legendFormat": "Content Clarity", "refId": "D"}
+          ],
+          "description": "Punteggi per ogni categoria AI/AEO"
+        },
+        {
+          "type": "row",
+          "title": "🔧 SEO IMPLEMENTATION STATUS",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+          "collapsed": false,
+          "id": 102
+        },
+        {
+          "type": "stat",
+          "title": "📝 AI Meta Tags",
+          "gridPos": {"h": 5, "w": 4, "x": 0, "y": 19},
+          "id": 20,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 3},
+                  {"color": "green", "value": 5}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_meta_tags_ai", "refId": "A"}],
+          "description": "Tag AI implementati:\n- ai-content-declaration\n- ai-training-allowed\n- ai-summary\n- ai-key-facts\n- ai-contact\n- ai-business-type"
+        },
+        {
+          "type": "stat",
+          "title": "📊 Schema Types",
+          "gridPos": {"h": 5, "w": 4, "x": 4, "y": 19},
+          "id": 21,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "yellow", "value": null},
+                  {"color": "green", "value": 5}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_structured_data_types", "refId": "A"}],
+          "description": "Schema JSON-LD attivi:\n1. Organization\n2. WebSite\n3. EducationalOrganization\n4. FAQPage\n5. Course\n6. Breadcrumb\n7. VideoObject\n8. HowTo"
+        },
+        {
+          "type": "stat",
+          "title": "❓ FAQ Items",
+          "gridPos": {"h": 5, "w": 4, "x": 8, "y": 19},
+          "id": 22,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "blue", "value": null}]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_faq_items", "refId": "A"}],
+          "description": "Domande FAQ nello schema FAQPage"
+        },
+        {
+          "type": "stat",
+          "title": "🤖 AI Crawlers Allowed",
+          "gridPos": {"h": 5, "w": 4, "x": 12, "y": 19},
+          "id": 23,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 3},
+                  {"color": "green", "value": 5}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_ai_crawlers_allowed", "refId": "A"}],
+          "description": "AI Crawlers con accesso Allow:\n- GPTBot\n- ChatGPT-User\n- Claude-Web\n- anthropic-ai\n- PerplexityBot"
+        },
+        {
+          "type": "stat",
+          "title": "🗺️ Sitemap Static URLs",
+          "gridPos": {"h": 5, "w": 4, "x": 16, "y": 19},
+          "id": 24,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "purple", "value": null}]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_sitemap_urls{type=\"static\"}", "refId": "A"}],
+          "description": "URL statici nel sitemap (categorie, skill, pagine)"
+        },
+        {
+          "type": "stat",
+          "title": "📚 Sitemap Dynamic URLs",
+          "gridPos": {"h": 5, "w": 4, "x": 20, "y": 19},
+          "id": 25,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{"color": "orange", "value": null}]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_sitemap_urls{type=\"dynamic\"}", "refId": "A"}],
+          "description": "URL dinamici nel sitemap (corsi pubblicati)"
+        },
+        {
+          "type": "row",
+          "title": "📈 SEO TREND - Storico Real-Time",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 24},
+          "collapsed": false,
+          "id": 103
+        },
+        {
+          "type": "timeseries",
+          "title": "📈 Trend Score SEO nel Tempo",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 25},
+          "id": 30,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "SEO Score",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "none"
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Traditional SEO"}, "properties": [{"id": "color", "value": {"fixedColor": "#5794F2", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "AI/AEO SEO"}, "properties": [{"id": "color", "value": {"fixedColor": "#73BF69", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "Overall"}, "properties": [{"id": "color", "value": {"fixedColor": "#a435f0", "mode": "fixed"}}]}
+            ]
+          },
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "min", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi", "sort": "none"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_score_traditional", "legendFormat": "Traditional SEO", "refId": "A"},
+            {"expr": "insightlearn_seo_score_aeo", "legendFormat": "AI/AEO SEO", "refId": "B"},
+            {"expr": "insightlearn_seo_score_overall", "legendFormat": "Overall", "refId": "C"}
+          ],
+          "description": "Trend storico dei punteggi SEO"
+        },
+        {
+          "type": "timeseries",
+          "title": "📊 Content Metrics nel Tempo",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 25},
+          "id": 31,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "never",
+                "spanNulls": true
+              },
+              "mappings": [],
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Published Courses"}, "properties": [{"id": "color", "value": {"fixedColor": "#73BF69", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "Total Reviews"}, "properties": [{"id": "color", "value": {"fixedColor": "#FF9830", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "Sitemap URLs"}, "properties": [{"id": "color", "value": {"fixedColor": "#8F3BB8", "mode": "fixed"}}]}
+            ]
+          },
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi", "sort": "none"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_courses_published", "legendFormat": "Published Courses", "refId": "A"},
+            {"expr": "insightlearn_seo_total_reviews", "legendFormat": "Total Reviews", "refId": "B"},
+            {"expr": "sum(insightlearn_seo_sitemap_urls)", "legendFormat": "Sitemap URLs", "refId": "C"}
+          ],
+          "description": "Metriche contenuto nel tempo:\n- Corsi pubblicati\n- Recensioni totali\n- URL nel sitemap"
+        },
+        {
+          "type": "row",
+          "title": "🔍 SITEMAP BREAKDOWN",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 33},
+          "collapsed": false,
+          "id": 104
+        },
+        {
+          "type": "piechart",
+          "title": "🗺️ Distribuzione URL Sitemap",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 34},
+          "id": 40,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"hideFrom": {"legend": false, "tooltip": false, "viz": false}},
+              "mappings": []
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Static"}, "properties": [{"id": "color", "value": {"fixedColor": "#8F3BB8", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "Dynamic"}, "properties": [{"id": "color", "value": {"fixedColor": "#FF9830", "mode": "fixed"}}]}
+            ]
+          },
+          "options": {
+            "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"]},
+            "pieType": "donut",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "tooltip": {"mode": "single", "sort": "none"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_sitemap_urls{type=\"static\"}", "legendFormat": "Static", "refId": "A"},
+            {"expr": "insightlearn_seo_sitemap_urls{type=\"dynamic\"}", "legendFormat": "Dynamic", "refId": "B"}
+          ],
+          "description": "Distribuzione URL nel sitemap:\n- Static: categorie, skill, pagine\n- Dynamic: corsi pubblicati"
+        },
+        {
+          "type": "bargauge",
+          "title": "📋 Sitemap URLs per Tipo",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 34},
+          "id": 41,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "blue", "value": null},
+                  {"color": "green", "value": 20}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_sitemap_urls{type=\"static\"}", "legendFormat": "Static URLs", "refId": "A"},
+            {"expr": "insightlearn_seo_sitemap_urls{type=\"dynamic\"}", "legendFormat": "Dynamic URLs", "refId": "B"}
+          ],
+          "description": "Confronto URL statici vs dinamici"
+        },
+        {
+          "type": "stat",
+          "title": "📊 Corsi con Recensioni",
+          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 34},
+          "id": 42,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "yellow", "value": null},
+                  {"color": "green", "value": 5}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "insightlearn_seo_courses_with_reviews", "refId": "A"}],
+          "description": "Corsi pubblicati con almeno una recensione"
+        },
+        {
+          "type": "stat",
+          "title": "📈 % Corsi Recensiti",
+          "gridPos": {"h": 4, "w": 4, "x": 20, "y": 34},
+          "id": 43,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 25},
+                  {"color": "green", "value": 50}
+                ]
+              },
+              "unit": "percent",
+              "decimals": 0
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["lastNotNull"]}
+          },
+          "targets": [{"expr": "(insightlearn_seo_courses_with_reviews / insightlearn_seo_courses_published) * 100", "refId": "A"}],
+          "description": "Percentuale di corsi con almeno una recensione"
+        },
+        {
+          "type": "text",
+          "title": "📋 AI Meta Tags Implementati",
+          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 38},
+          "id": 44,
+          "options": {
+            "content": "| Tag | Status |\n|-----|--------|\n| ai-content-declaration | ✅ |\n| ai-training-allowed | ✅ |\n| ai-summary | ✅ |\n| ai-key-facts | ✅ |\n| ai-contact | ✅ |\n| ai-business-type | ✅ |",
+            "mode": "markdown"
+          }
+        },
+        {
+          "type": "text",
+          "title": "🤖 AI Crawlers Allowed",
+          "gridPos": {"h": 4, "w": 4, "x": 20, "y": 38},
+          "id": 45,
+          "options": {
+            "content": "| Crawler | Status |\n|---------|--------|\n| GPTBot | ✅ Allow |\n| ChatGPT-User | ✅ Allow |\n| Claude-Web | ✅ Allow |\n| anthropic-ai | ✅ Allow |\n| PerplexityBot | ✅ Allow |",
+            "mode": "markdown"
+          }
+        },
+        {
+          "type": "row",
+          "title": "🏁 COMPETITOR COMPARISON - Real-Time Data (Google PageSpeed API)",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 42},
+          "collapsed": false,
+          "id": 200
+        },
+        {
+          "type": "bargauge",
+          "title": "🏆 SEO Score Comparison",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 43},
+          "id": 201,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 85}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_score_overall", "legendFormat": "InsightLearn", "refId": "A"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"coursera\"}", "legendFormat": "Coursera", "refId": "B"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"linkedin_learning\"}", "legendFormat": "LinkedIn Learning", "refId": "C"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"pluralsight\"}", "legendFormat": "Pluralsight", "refId": "D"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"udemy\"}", "legendFormat": "Udemy", "refId": "E"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"skillshare\"}", "legendFormat": "Skillshare", "refId": "F"}
+          ],
+          "description": "SEO Score calcolato da: Performance (40%) + Core Web Vitals (30%) + AI Access (30%)\nDati reali da Google PageSpeed Insights API"
+        },
+        {
+          "type": "bargauge",
+          "title": "⚡ Performance Score (PageSpeed)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 43},
+          "id": 202,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 90}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_competitor_performance_score{competitor=\"coursera\"}", "legendFormat": "Coursera", "refId": "A"},
+            {"expr": "insightlearn_competitor_performance_score{competitor=\"linkedin_learning\"}", "legendFormat": "LinkedIn Learning", "refId": "B"},
+            {"expr": "insightlearn_competitor_performance_score{competitor=\"pluralsight\"}", "legendFormat": "Pluralsight", "refId": "C"},
+            {"expr": "insightlearn_competitor_performance_score{competitor=\"udemy\"}", "legendFormat": "Udemy", "refId": "D"},
+            {"expr": "insightlearn_competitor_performance_score{competitor=\"skillshare\"}", "legendFormat": "Skillshare", "refId": "E"}
+          ],
+          "description": "Performance Score da Google Lighthouse (mobile strategy)\nDati reali aggiornati ogni ora"
+        },
+        {
+          "type": "stat",
+          "title": "🖼️ LCP Medio (ms)",
+          "gridPos": {"h": 6, "w": 4, "x": 0, "y": 51},
+          "id": 203,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 2500},
+                  {"color": "red", "value": 4000}
+                ]
+              },
+              "unit": "ms"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["mean"]}
+          },
+          "targets": [
+            {"expr": "avg(insightlearn_competitor_lcp_ms)", "legendFormat": "Avg LCP", "refId": "A"}
+          ],
+          "description": "Largest Contentful Paint medio dei competitor\n<2500ms = buono, <4000ms = da migliorare"
+        },
+        {
+          "type": "stat",
+          "title": "⚡ INP Medio (ms)",
+          "gridPos": {"h": 6, "w": 4, "x": 4, "y": 51},
+          "id": 204,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 200},
+                  {"color": "red", "value": 500}
+                ]
+              },
+              "unit": "ms"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["mean"]}
+          },
+          "targets": [
+            {"expr": "avg(insightlearn_competitor_inp_ms)", "legendFormat": "Avg INP", "refId": "A"}
+          ],
+          "description": "Interaction to Next Paint medio\n<200ms = buono, <500ms = da migliorare"
+        },
+        {
+          "type": "stat",
+          "title": "📏 CLS Medio",
+          "gridPos": {"h": 6, "w": 4, "x": 8, "y": 51},
+          "id": 205,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.1},
+                  {"color": "red", "value": 0.25}
+                ]
+              },
+              "unit": "none",
+              "decimals": 3
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "reduceOptions": {"calcs": ["mean"]}
+          },
+          "targets": [
+            {"expr": "avg(insightlearn_competitor_cls)", "legendFormat": "Avg CLS", "refId": "A"}
+          ],
+          "description": "Cumulative Layout Shift medio\n<0.1 = buono, <0.25 = da migliorare"
+        },
+        {
+          "type": "bargauge",
+          "title": "🤖 AI Crawler Access Comparison",
+          "gridPos": {"h": 6, "w": 12, "x": 12, "y": 51},
+          "id": 206,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 5,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 1},
+                  {"color": "yellow", "value": 3},
+                  {"color": "green", "value": 5}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "reduceOptions": {"calcs": ["lastNotNull"]},
+            "showUnfilled": true
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_ai_crawlers_allowed", "legendFormat": "InsightLearn", "refId": "A"},
+            {"expr": "insightlearn_competitor_ai_crawlers_allowed{competitor=\"coursera\"}", "legendFormat": "Coursera", "refId": "B"},
+            {"expr": "insightlearn_competitor_ai_crawlers_allowed{competitor=\"linkedin_learning\"}", "legendFormat": "LinkedIn Learning", "refId": "C"},
+            {"expr": "insightlearn_competitor_ai_crawlers_allowed{competitor=\"pluralsight\"}", "legendFormat": "Pluralsight", "refId": "D"},
+            {"expr": "insightlearn_competitor_ai_crawlers_allowed{competitor=\"udemy\"}", "legendFormat": "Udemy", "refId": "E"},
+            {"expr": "insightlearn_competitor_ai_crawlers_allowed{competitor=\"skillshare\"}", "legendFormat": "Skillshare", "refId": "F"}
+          ],
+          "description": "Numero di AI crawler (GPTBot, ClaudeBot, etc.) con accesso Allow in robots.txt\nDati reali analizzati dai robots.txt dei competitor"
+        },
+        {
+          "type": "text",
+          "title": "ℹ️ Note sui Dati Competitor",
+          "gridPos": {"h": 6, "w": 12, "x": 0, "y": 57},
+          "id": 207,
+          "options": {
+            "content": "## Fonte dei Dati\n\n**Performance & Core Web Vitals:**\n- Google PageSpeed Insights API (gratuita)\n- Strategia: Mobile\n- Aggiornamento: Ogni ora\n\n**AI Crawler Access:**\n- Analisi diretta dei file robots.txt\n- Crawler verificati: GPTBot, ChatGPT-User, ClaudeBot, Google-Extended, PerplexityBot\n\n**Score Calculation:**\n- Performance: 40%\n- Core Web Vitals (LCP, INP, CLS): 30%\n- AI/AEO Access: 30%",
+            "mode": "markdown"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "📈 Competitor Performance Trend",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 57},
+          "id": 208,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "axisBorderShow": false,
+                "axisLabel": "Score",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "auto"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+              "unit": "none"
+            }
+          },
+          "options": {
+            "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_score_overall", "legendFormat": "InsightLearn", "refId": "A"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"coursera\"}", "legendFormat": "Coursera", "refId": "B"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"pluralsight\"}", "legendFormat": "Pluralsight", "refId": "C"},
+            {"expr": "insightlearn_competitor_seo_score{competitor=\"linkedin_learning\"}", "legendFormat": "LinkedIn Learning", "refId": "D"}
+          ],
+          "description": "Trend storico dello score SEO nel tempo\nDati reali da Google PageSpeed Insights API"
+        },
+        {
+          "type": "row",
+          "title": "🔍 SEARCH VISIBILITY - Real Google Indexation & Performance",
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 65},
+          "collapsed": false,
+          "id": 300
+        },
+        {
+          "type": "gauge",
+          "title": "📊 Indexation Rate",
+          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 66},
+          "id": 301,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100, "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 20},
+                  {"color": "yellow", "value": 50},
+                  {"color": "green", "value": 80}
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true,
+            "text": {"titleSize": 14, "valueSize": 36}
+          },
+          "targets": [{"expr": "insightlearn_seo_indexation_rate", "refId": "A", "instant": true}],
+          "description": "Percentuale di pagine del sitemap indicizzate da Google"
+        },
+        {
+          "type": "stat",
+          "title": "📑 Pagine Indicizzate",
+          "gridPos": {"h": 4, "w": 3, "x": 6, "y": 66},
+          "id": 302,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 5},
+                  {"color": "yellow", "value": 20},
+                  {"color": "green", "value": 40}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_indexed_pages", "refId": "A", "instant": true}],
+          "description": "Numero di pagine critiche indicizzate da Google"
+        },
+        {
+          "type": "stat",
+          "title": "🗺️ Pagine Sitemap",
+          "gridPos": {"h": 4, "w": 3, "x": 9, "y": 66},
+          "id": 303,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "blue", "value": null},
+                  {"color": "green", "value": 30}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_total_sitemap_pages", "refId": "A", "instant": true}],
+          "description": "Numero totale di URL nel sitemap.xml"
+        },
+        {
+          "type": "stat",
+          "title": "🏅 Domain Authority (Stima)",
+          "gridPos": {"h": 4, "w": 3, "x": 6, "y": 70},
+          "id": 304,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 10},
+                  {"color": "yellow", "value": 30},
+                  {"color": "green", "value": 50}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_domain_authority_estimate", "refId": "A", "instant": true}],
+          "description": "Stima Domain Authority basata su pagine indicizzate e contenuto"
+        },
+        {
+          "type": "stat",
+          "title": "📸 Snapshot Coverage",
+          "gridPos": {"h": 4, "w": 3, "x": 9, "y": 70},
+          "id": 305,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 30},
+                  {"color": "yellow", "value": 60},
+                  {"color": "green", "value": 80}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_snapshot_coverage", "refId": "A", "instant": true}],
+          "description": "Percentuale di pagine sitemap con SEO snapshot pre-renderizzato"
+        },
+        {
+          "type": "gauge",
+          "title": "⚡ Site Performance (PageSpeed)",
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 66},
+          "id": 306,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "max": 100, "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "orange", "value": 50},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 90}
+                ]
+              },
+              "unit": "none"
+            }
+          },
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+            "showThresholdLabels": true,
+            "showThresholdMarkers": true,
+            "text": {"titleSize": 14, "valueSize": 36}
+          },
+          "targets": [{"expr": "insightlearn_seo_site_performance_score", "refId": "A", "instant": true}],
+          "description": "Google PageSpeed performance score per InsightLearn (mobile)"
+        },
+        {
+          "type": "stat",
+          "title": "🖼️ LCP (ms)",
+          "gridPos": {"h": 4, "w": 2, "x": 18, "y": 66},
+          "id": 307,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "ms",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 2500},
+                  {"color": "orange", "value": 4000},
+                  {"color": "red", "value": 6000}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_site_lcp_ms", "refId": "A", "instant": true}],
+          "description": "Largest Contentful Paint - Target < 2500ms"
+        },
+        {
+          "type": "stat",
+          "title": "⚡ INP (ms)",
+          "gridPos": {"h": 4, "w": 2, "x": 20, "y": 66},
+          "id": 308,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "ms",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 200},
+                  {"color": "orange", "value": 500},
+                  {"color": "red", "value": 1000}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_site_inp_ms", "refId": "A", "instant": true}],
+          "description": "Interaction to Next Paint - Target < 200ms"
+        },
+        {
+          "type": "stat",
+          "title": "📏 CLS",
+          "gridPos": {"h": 4, "w": 2, "x": 22, "y": 66},
+          "id": 309,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "decimals": 3,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.1},
+                  {"color": "orange", "value": 0.25},
+                  {"color": "red", "value": 0.5}
+                ]
+              }
+            }
+          },
+          "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
+          "targets": [{"expr": "insightlearn_seo_site_cls", "refId": "A", "instant": true}],
+          "description": "Cumulative Layout Shift - Target < 0.1"
+        },
+        {
+          "type": "table",
+          "title": "📋 Stato Indicizzazione per Pagina",
+          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 70},
+          "id": 310,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {"align": "auto", "displayMode": "auto"},
+              "mappings": [
+                {"options": {"0": {"text": "Non Indicizzata", "color": "red"}, "1": {"text": "Indicizzata", "color": "green"}}, "type": "value"}
+              ]
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "page"}, "properties": [{"id": "custom.width", "value": 150}]},
+              {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.displayMode", "value": "color-background"}, {"id": "custom.width", "value": 120}]}
+            ]
+          },
+          "options": {"showHeader": true, "footer": {"show": false}},
+          "targets": [{"expr": "insightlearn_seo_page_indexed", "refId": "A", "instant": true, "format": "table"}],
+          "transformations": [
+            {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true}, "renameByName": {"page": "Pagina", "Value": "Stato"}}}
+          ],
+          "description": "Stato indicizzazione Google per ogni pagina critica"
+        },
+        {
+          "type": "timeseries",
+          "title": "📈 Trend Indicizzazione nel Tempo",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 74},
+          "id": 311,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 2, "fillOpacity": 20, "spanNulls": true, "axisCenteredZero": false},
+              "unit": "none"
+            }
+          },
+          "options": {
+            "legend": {"displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_indexed_pages", "legendFormat": "Pagine Indicizzate", "refId": "A"},
+            {"expr": "insightlearn_seo_indexation_rate", "legendFormat": "Tasso Indicizzazione (%)", "refId": "B"},
+            {"expr": "insightlearn_seo_domain_authority_estimate", "legendFormat": "Domain Authority (stima)", "refId": "C"}
+          ],
+          "description": "Trend nel tempo delle metriche di visibilità reale"
+        },
+        {
+          "type": "timeseries",
+          "title": "⚡ Core Web Vitals - InsightLearn Trend",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 74},
+          "id": 312,
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 2, "fillOpacity": 10, "spanNulls": true}
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "CLS"}, "properties": [{"id": "custom.axisPlacement", "value": "right"}]}
+            ]
+          },
+          "options": {
+            "legend": {"displayMode": "list", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {"expr": "insightlearn_seo_site_lcp_ms", "legendFormat": "LCP (ms)", "refId": "A"},
+            {"expr": "insightlearn_seo_site_inp_ms", "legendFormat": "INP (ms)", "refId": "B"},
+            {"expr": "insightlearn_seo_site_cls * 1000", "legendFormat": "CLS (x1000)", "refId": "C"}
+          ],
+          "description": "Core Web Vitals di InsightLearn nel tempo (da Google PageSpeed API)"
+        },
+        {
+          "type": "text",
+          "title": "ℹ️ Note sulla Visibilità",
+          "gridPos": {"h": 4, "w": 12, "x": 0, "y": 82},
+          "id": 313,
+          "options": {
+            "mode": "markdown",
+            "content": "### Come vengono raccolti questi dati\n- **Indicizzazione**: Verifica `site:www.insightlearn.cloud/page` su Google ogni 4 ore\n- **PageSpeed**: Google PageSpeed Insights API (mobile strategy)\n- **Domain Authority**: Stima basata su tasso indicizzazione e contenuto\n- **Snapshot Coverage**: % di pagine con pre-rendering SEO per crawler\n\n**Obiettivo**: Aumentare pagine indicizzate da Google migliorando gli SEO snapshot pre-renderizzati"
+          }
+        }
+      ],
+      "refresh": "5m",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["seo", "aeo", "insightlearn", "real-time"],
+      "templating": {"list": []},
+      "time": {"from": "now-7d", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "InsightLearn - SEO & AEO Dashboard (Real-Time)",
+      "uid": "insightlearn-seo-aeo",
+      "version": 2
+    }

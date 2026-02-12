@@ -77,23 +77,40 @@ namespace InsightLearn.Application.BackgroundJobs
             // Extract CancellationToken from Hangfire (enables 30-minute timeout in WhisperTranscriptionService)
             var cts = cancellationToken?.ShutdownToken ?? CancellationToken.None;
 
-            // Create job status entry for real-time monitoring (v2.3.97-dev)
-            // Note: Hangfire doesn't expose CurrentBackgroundJobId directly, use null
+            // v2.3.109: Aggiornare job esistente (creato dall'API) o creare se non esiste (endpoint interni)
             try
             {
-                await _jobStatusService.CreateJobAsync(
-                    lessonId,
-                    null, // Hangfire job ID not available from within job context
-                    language,
-                    estimatedChunkCount,
-                    videoDurationSeconds,
-                    cts);
-                _logger.LogInformation("[HANGFIRE] Job status created: {ChunkCount} estimated chunks for lesson {LessonId}",
-                    estimatedChunkCount, lessonId);
+                var existingJob = await _jobStatusService.GetJobStatusAsync(lessonId, cts);
+                if (existingJob != null)
+                {
+                    // Job già creato dall'API endpoint - aggiornare stato a Processing
+                    await _jobStatusService.UpdateChunkProgressAsync(
+                        lessonId,
+                        0, // completedChunks
+                        0, // currentChunk
+                        "Starting",
+                        "Worker started processing...",
+                        cts);
+                    _logger.LogInformation("[HANGFIRE] Updated existing job status to Processing for lesson {LessonId}",
+                        lessonId);
+                }
+                else
+                {
+                    // Fallback: creare job se non esiste (compatibilità con endpoint interni)
+                    await _jobStatusService.CreateJobAsync(
+                        lessonId,
+                        null, // Hangfire job ID not available from within job context
+                        language,
+                        estimatedChunkCount,
+                        videoDurationSeconds,
+                        cts);
+                    _logger.LogInformation("[HANGFIRE] Job status created: {ChunkCount} estimated chunks for lesson {LessonId}",
+                        estimatedChunkCount, lessonId);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[HANGFIRE] Failed to create job status entry (non-fatal)");
+                _logger.LogWarning(ex, "[HANGFIRE] Failed to update/create job status entry (non-fatal)");
             }
 
             try

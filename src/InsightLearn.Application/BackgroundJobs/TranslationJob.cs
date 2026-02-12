@@ -251,47 +251,191 @@ namespace InsightLearn.Application.BackgroundJobs
         }
 
         /// <summary>
-        /// Translate transcript segments using Ollama (qwen2:0.5b).
+        /// Translate transcript segments using Ollama with batch processing.
+        /// Phase 8.6 (v2.3.24-dev): Optimized batch translation using TranslateGemma model.
+        /// Sends 30 segments per batch to reduce API calls from N to N/30.
+        /// Reference: https://github.com/rockbenben/subtitle-translator
         /// </summary>
         private async Task<List<TranslatedSegment>> TranslateWithOllamaAsync(List<TranscriptSegmentDto> segments, string targetLanguage)
         {
             var translatedSegments = new List<TranslatedSegment>();
+            const int batchSize = 30; // Optimal batch size for subtitle translation
 
-            // Ollama doesn't have a batch API - translate one by one (can be optimized later)
-            foreach (var segment in segments)
+            // Language name mapping for better translation quality
+            var languageNames = new Dictionary<string, string>
             {
+                { "es", "Spanish" }, { "fr", "French" }, { "de", "German" },
+                { "pt", "Portuguese" }, { "it", "Italian" }, { "ru", "Russian" },
+                { "zh", "Chinese" }, { "ja", "Japanese" }, { "ko", "Korean" },
+                { "ar", "Arabic" }, { "hi", "Hindi" }, { "nl", "Dutch" },
+                { "pl", "Polish" }, { "tr", "Turkish" }, { "vi", "Vietnamese" },
+                { "th", "Thai" }, { "sv", "Swedish" }, { "no", "Norwegian" },
+                { "da", "Danish" }, { "en", "English" }
+            };
+            var targetLangName = languageNames.GetValueOrDefault(targetLanguage, targetLanguage);
+
+            _logger.LogInformation("[TRANSLATION-JOB] Starting batch translation: {SegmentCount} segments, batch size {BatchSize}, target {Language}",
+                segments.Count, batchSize, targetLangName);
+
+            // Process segments in batches
+            for (int batchStart = 0; batchStart < segments.Count; batchStart += batchSize)
+            {
+                var batch = segments.Skip(batchStart).Take(batchSize).ToList();
+                var batchNumber = (batchStart / batchSize) + 1;
+                var totalBatches = (int)Math.Ceiling(segments.Count / (double)batchSize);
+
+                _logger.LogDebug("[TRANSLATION-JOB] Processing batch {BatchNum}/{TotalBatches} ({Count} segments)",
+                    batchNumber, totalBatches, batch.Count);
+
                 try
                 {
-                    var translatedText = await _azureTranslator.TranslateSingleAsync(segment.Text, "en", targetLanguage, CancellationToken.None);
+                    // Build batch prompt with numbered segments for easy parsing
+                    var batchPrompt = BuildBatchTranslationPrompt(batch, targetLangName);
 
-                    translatedSegments.Add(new TranslatedSegment
+                    // Call Ollama with TranslateGemma model for batch translation
+                    var response = await _azureTranslator.TranslateBatchWithOllamaAsync(
+                        batchPrompt,
+                        "en",
+                        targetLanguage,
+                        CancellationToken.None);
+
+                    // Parse batch response back to individual segments
+                    var translatedTexts = ParseBatchResponse(response, batch.Count);
+
+                    // Map results to TranslatedSegment objects
+                    for (int i = 0; i < batch.Count; i++)
                     {
-                        Index = segments.IndexOf(segment),
-                        StartSeconds = segment.StartTime,
-                        EndSeconds = segment.EndTime,
-                        OriginalText = segment.Text,
-                        TranslatedText = translatedText,
-                        ConfidenceScore = null // Ollama doesn't provide confidence scores
-                    });
+                        var segment = batch[i];
+                        var globalIndex = batchStart + i;
+                        var translatedText = i < translatedTexts.Count ? translatedTexts[i] : segment.Text;
+
+                        translatedSegments.Add(new TranslatedSegment
+                        {
+                            Index = globalIndex,
+                            StartSeconds = segment.StartTime,
+                            EndSeconds = segment.EndTime,
+                            OriginalText = segment.Text,
+                            TranslatedText = translatedText,
+                            ConfidenceScore = null
+                        });
+                    }
+
+                    _logger.LogDebug("[TRANSLATION-JOB] Batch {BatchNum} completed successfully", batchNumber);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[TRANSLATION-JOB] Failed to translate segment {SegmentIndex}, using original text", segments.IndexOf(segment));
+                    _logger.LogWarning(ex, "[TRANSLATION-JOB] Batch {BatchNum} failed, falling back to segment-by-segment", batchNumber);
 
-                    // Fallback: use original text if translation fails
-                    translatedSegments.Add(new TranslatedSegment
+                    // Fallback: translate segments individually in this batch
+                    foreach (var segment in batch)
                     {
-                        Index = segments.IndexOf(segment),
-                        StartSeconds = segment.StartTime,
-                        EndSeconds = segment.EndTime,
-                        OriginalText = segment.Text,
-                        TranslatedText = segment.Text, // Fallback
-                        ConfidenceScore = 0.0
-                    });
+                        var globalIndex = batchStart + batch.IndexOf(segment);
+                        try
+                        {
+                            var translatedText = await _azureTranslator.TranslateSingleAsync(
+                                segment.Text, "en", targetLanguage, CancellationToken.None);
+
+                            translatedSegments.Add(new TranslatedSegment
+                            {
+                                Index = globalIndex,
+                                StartSeconds = segment.StartTime,
+                                EndSeconds = segment.EndTime,
+                                OriginalText = segment.Text,
+                                TranslatedText = translatedText,
+                                ConfidenceScore = null
+                            });
+                        }
+                        catch
+                        {
+                            // Ultimate fallback: keep original text
+                            translatedSegments.Add(new TranslatedSegment
+                            {
+                                Index = globalIndex,
+                                StartSeconds = segment.StartTime,
+                                EndSeconds = segment.EndTime,
+                                OriginalText = segment.Text,
+                                TranslatedText = segment.Text,
+                                ConfidenceScore = 0.0
+                            });
+                        }
+                    }
                 }
             }
 
+            _logger.LogInformation("[TRANSLATION-JOB] Batch translation completed: {TranslatedCount}/{TotalCount} segments",
+                translatedSegments.Count, segments.Count);
+
             return translatedSegments;
+        }
+
+        /// <summary>
+        /// Build a batch translation prompt with numbered segments.
+        /// Format designed for easy parsing of LLM response.
+        /// </summary>
+        private string BuildBatchTranslationPrompt(List<TranscriptSegmentDto> segments, string targetLanguage)
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.AppendLine($"Translate the following subtitle segments from English to {targetLanguage}.");
+            sb.AppendLine("IMPORTANT: Output ONLY the translations, one per line, maintaining the same order.");
+            sb.AppendLine("Do NOT include numbers, explanations, or any other text.");
+            sb.AppendLine();
+            sb.AppendLine("=== SEGMENTS TO TRANSLATE ===");
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                sb.AppendLine($"[{i + 1}] {segments[i].Text}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("=== TRANSLATIONS ===");
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Parse batch translation response back to individual segment texts.
+        /// Handles various LLM output formats robustly.
+        /// </summary>
+        private List<string> ParseBatchResponse(string response, int expectedCount)
+        {
+            var results = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(response))
+                return results;
+
+            // Split by newlines and clean up
+            var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToList();
+
+            foreach (var line in lines)
+            {
+                var cleaned = line;
+
+                // Remove common prefixes: [1], 1., 1), (1), etc.
+                cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"^\s*[\[\(]?\d+[\]\)\.]?\s*", "");
+
+                // Remove markdown formatting
+                cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"^\*\*|\*\*$", "");
+
+                // Skip header/footer lines
+                if (cleaned.StartsWith("===") || cleaned.StartsWith("---") ||
+                    cleaned.ToLower().Contains("translation") && cleaned.Length < 30)
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(cleaned))
+                {
+                    results.Add(cleaned);
+                }
+
+                // Stop if we have enough results
+                if (results.Count >= expectedCount)
+                    break;
+            }
+
+            return results;
         }
 
         /// <summary>

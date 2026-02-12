@@ -72,6 +72,9 @@
 
     <!-- FFMpegCore for video audio extraction - v2.3.41-dev (faster-whisper migration) -->
     <PackageReference Include="FFMpegCore" Version="5.1.0" />
+
+    <!-- Sqids for URL-safe ID encoding - v2.3.113-dev (URL obfuscation) -->
+    <PackageReference Include="Sqids" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>

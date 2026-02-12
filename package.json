@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "@remotion/captions": "^4.0.416",
+    "@remotion/cli": "^4.0.416",
+    "playwright": "^1.58.0",
+    "remotion": "^4.0.416"
+  },
+  "name": "insightlearn_wasm",
+  "version": "1.0.0",
+  "description": "Enterprise Learning Management System con frontend Blazor WebAssembly e backend ASP.NET Core.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marypas74/InsightLearn_WASM.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marypas74/InsightLearn_WASM/issues"
+  },
+  "homepage": "https://github.com/marypas74/InsightLearn_WASM#readme"
+}

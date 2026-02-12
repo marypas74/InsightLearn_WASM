@@ -6,6 +6,12 @@ namespace InsightLearn.Shared.DTOs;
 public class CourseDto
 {
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// URL-safe encoded ID for public URLs (v2.3.113-dev)
+    /// </summary>
+    public string EncodedId { get; set; } = string.Empty;
+
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? ShortDescription { get; set; }
@@ -140,6 +146,12 @@ public class UpdateCourseDto
 public class SectionDto
 {
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// URL-safe encoded ID for public URLs (v2.3.113-dev)
+    /// </summary>
+    public string EncodedId { get; set; } = string.Empty;
+
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int OrderIndex { get; set; }
@@ -163,6 +175,12 @@ public class CreateSectionDto
 public class LessonDto
 {
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// URL-safe encoded ID for public URLs (v2.3.113-dev)
+    /// </summary>
+    public string EncodedId { get; set; } = string.Empty;
+
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public LessonType Type { get; set; }

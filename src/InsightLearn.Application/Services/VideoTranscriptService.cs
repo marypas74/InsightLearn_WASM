@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
@@ -92,7 +93,7 @@ namespace InsightLearn.Application.Services
             _logger.LogInformation("Queueing transcript generation for lesson {LessonId}, language {Language}", lessonId, language);
 
             // v2.3.99-dev: Check if transcript already exists in MongoDB (not just metadata)
-            var existingTranscript = await _repository.GetByLessonIdAsync(lessonId, ct);
+            var existingTranscript = await _repository.GetTranscriptAsync(lessonId, ct);
             if (existingTranscript != null && existingTranscript.ProcessingStatus == "Completed")
             {
                 _logger.LogWarning("[TRANSCRIPT] Transcript already exists for lesson {LessonId}, language {Language}. Skipping queue.",
@@ -127,7 +128,7 @@ namespace InsightLearn.Application.Services
 
             // v2.3.99-dev: Check if transcript already exists for this lesson/language to prevent duplicates
             var normalizedLang = NormalizeLanguageCode(language);
-            var existingTranscript = await _repository.GetByLessonIdAsync(lessonId, ct);
+            var existingTranscript = await _repository.GetTranscriptAsync(lessonId, ct);
             if (existingTranscript != null && existingTranscript.ProcessingStatus == "Completed")
             {
                 _logger.LogWarning("[TRANSCRIPT] Transcript already exists for lesson {LessonId}, language {Language}. Returning existing.",
@@ -692,7 +693,10 @@ Be educational, professional, and engaging.";
         /// </summary>
         private class OllamaGenerateResponse
         {
+            [JsonPropertyName("response")]
             public string? Response { get; set; }
+
+            [JsonPropertyName("done")]
             public bool Done { get; set; }
         }
 

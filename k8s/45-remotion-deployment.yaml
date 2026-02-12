@@ -1,0 +1,157 @@
+# Remotion Renderer Deployment
+# Video export service with burned-in captions
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remotion-renderer
+  namespace: insightlearn
+  labels:
+    app: remotion-renderer
+    version: "1.0.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: remotion-renderer
+  template:
+    metadata:
+      labels:
+        app: remotion-renderer
+    spec:
+      containers:
+      - name: remotion-renderer
+        image: localhost/insightlearn/remotion-renderer:1.0.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MONGODB_URI
+          value: "mongodb://insightlearn:GpYb2EZ3srVBb0Ziv0kG4Ual3hxaY9oT@10.43.85.201:27017/insightlearn_videos?authSource=admin"
+        - name: MONGODB_DB
+          value: "insightlearn_videos"
+        - name: NODE_ENV
+          value: "production"
+        # Chromium settings for container
+        - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+          value: "true"
+        - name: PUPPETEER_EXECUTABLE_PATH
+          value: "/usr/bin/chromium"
+        - name: REMOTION_CHROME_EXECUTABLE
+          value: "/usr/bin/chromium"
+        # Temp directories
+        - name: TMPDIR
+          value: "/tmp"
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: remotion-renderer-service
+  namespace: insightlearn
+  labels:
+    app: remotion-renderer
+spec:
+  type: NodePort
+  selector:
+    app: remotion-renderer
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 31086
+    name: http
+---
+# ConfigMap for additional settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: remotion-renderer-config
+  namespace: insightlearn
+data:
+  # Render settings
+  DEFAULT_FPS: "30"
+  DEFAULT_CRF: "23"
+  DEFAULT_CODEC: "h264"
+  # Cache TTL for rendered videos (7 days in seconds)
+  RENDERED_VIDEO_TTL: "604800"
+---
+# NetworkPolicy for Remotion Renderer
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: remotion-renderer-network-policy
+  namespace: insightlearn
+  labels:
+    app.kubernetes.io/component: security
+    app.kubernetes.io/name: insightlearn
+spec:
+  podSelector:
+    matchLabels:
+      app: remotion-renderer
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from API service
+  - from:
+    - podSelector:
+        matchLabels:
+          app: insightlearn-api
+    ports:
+    - port: 3000
+      protocol: TCP
+  # Allow traffic from any pod in namespace (for health checks)
+  - from:
+    - podSelector: {}
+    ports:
+    - port: 3000
+      protocol: TCP
+  egress:
+  # Allow DNS resolution
+  - ports:
+    - port: 53
+      protocol: UDP
+    to:
+    - namespaceSelector: {}
+  # Allow connection to MongoDB
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mongodb
+    ports:
+    - port: 27017
+      protocol: TCP

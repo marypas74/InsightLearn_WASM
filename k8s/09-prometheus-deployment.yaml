@@ -20,11 +20,10 @@ data:
         static_configs:
           - targets: ['localhost:9090']
 
-      # kube-state-metrics - DISABLED (not deployed)
-      # To enable: kubectl apply -f https://github.com/kubernetes/kube-state-metrics/releases/latest/download/kube-state-metrics.yaml
-      # - job_name: 'kube-state-metrics'
-      #   static_configs:
-      #     - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+      # kube-state-metrics - Kubernetes state metrics
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
       # Kubelet cAdvisor (container_* metrics)
       - job_name: 'kubernetes-cadvisor'
@@ -100,16 +99,36 @@ data:
           - targets: ['grafana.insightlearn.svc.cluster.local:3000']
         metrics_path: '/metrics'
 
-      # Disaster Recovery Metrics - Host-based service
-      - job_name: 'insightlearn-disaster-recovery'
-        static_configs:
-          - targets: ['192.168.1.114:9101']
-            labels:
-              service: 'disaster-recovery'
-              environment: 'production'
-        scrape_interval: 60s
-        scrape_timeout: 30s
-        metrics_path: '/metrics'
+      # CoreDNS metrics (DNS resolver in K3s)
+      - job_name: 'coredns'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - kube-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+            action: keep
+            regex: kube-dns
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "9153"
+          - source_labels: [__meta_kubernetes_pod_ip]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: $1:9153
+
+      # Disaster Recovery Metrics - DISABLED (internal network not reachable from K3s)
+      # - job_name: 'insightlearn-disaster-recovery'
+      #   static_configs:
+      #     - targets: ['192.168.1.114:9101']
+      #       labels:
+      #         service: 'disaster-recovery'
+      #         environment: 'production'
+      #   scrape_interval: 60s
+      #   scrape_timeout: 30s
+      #   metrics_path: '/metrics'
 
       # Node Exporter - System metrics (CPU, Memory, Disk, Network)
       - job_name: 'node-exporter'

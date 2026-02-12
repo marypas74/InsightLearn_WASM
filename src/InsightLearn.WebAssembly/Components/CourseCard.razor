@@ -131,6 +131,12 @@
     /// </summary>
     [Parameter] public EventCallback<Course> OnCourseClick { get; set; }
 
+    /// <summary>
+    /// URL-safe encoded ID for navigation (v2.3.114-dev)
+    /// If provided, uses this instead of Course.Id for URL
+    /// </summary>
+    [Parameter] public string? EncodedId { get; set; }
+
     private string BadgeClass => Badge.ToLower() switch
     {
         "bestseller" => "bestseller",
@@ -149,8 +155,21 @@
         }
         else
         {
-            // Default navigation to course detail page
-            var navigationUrl = Course.Id != Guid.Empty ? $"/courses/{Course.Id}" : "/courses";
+            // v2.3.114-dev: Use EncodedId for URL obfuscation if available
+            string navigationUrl;
+            if (!string.IsNullOrEmpty(EncodedId))
+            {
+                navigationUrl = $"/courses/{EncodedId}";
+            }
+            else if (Course.Id != Guid.Empty)
+            {
+                // Fallback to GUID for backward compatibility
+                navigationUrl = $"/courses/{Course.Id}";
+            }
+            else
+            {
+                navigationUrl = "/courses";
+            }
             Navigation.NavigateTo(navigationUrl);
         }
     }

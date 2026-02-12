@@ -4,6 +4,7 @@
 @inject IAiTranscriptionService TranscriptionService
 @inject IJSRuntime JS
 @inject ITokenService TokenService
+@inject HttpClient Http
 @implements IAsyncDisposable
 
 <div class="smart-video-container @(IsFullscreen ? "fullscreen" : "")" tabindex="0" @ref="_containerRef" @onkeydown="HandleKeyDown" @onkeydown:preventDefault>
@@ -14,9 +15,15 @@
            playsinline
            @onclick="TogglePlayPause"
            @ondblclick="ToggleFullscreen">
-        @* REMOVED hardcoded type="video/mp4" - let browser auto-detect content type *@
-        @* Backend may serve video/mp4, video/MP2T (MPEG-TS), video/webm, etc. *@
-        <source src="@VideoSource" />
+        @* v2.4.5: Specify type="video/mp4" for GridFS streams to help Firefox decode properly *@
+        @if (VideoSource.Contains("/api/video/"))
+        {
+            <source src="@VideoSource" type="video/mp4" />
+        }
+        else
+        {
+            <source src="@VideoSource" />
+        }
         @* Fix v2.3.61: Proper boolean attribute rendering - avoid empty string attributes *@
         @if (SubtitleTracks != null)
         {
@@ -181,9 +188,16 @@
                             }
                             @* AI Translation Section *@
                             <div class="subtitle-divider">AI Translation</div>
+                            @if (_isTranslating)
+                            {
+                                <div class="subtitle-option ai-translate translating">
+                                    <span class="subtitle-spinner"></span> Translating @_translatingLanguage...
+                                </div>
+                            }
                             @foreach (var lang in TranslationLanguages.Take(5))
                             {
                                 <button class="subtitle-option ai-translate"
+                                        disabled="@_isTranslating"
                                         @onclick="() => RequestAiTranslation(lang.Code)">
                                     @lang.NativeName
                                 </button>

@@ -27,22 +27,18 @@
 
     <!-- ==========================================================================
          GOOGLE ANALYTICS 4 (GA4) - SEO Tracking
-         Configured: 2025-12-13 | Property ID: 351495180 | Stream ID: 484824838
+         GDPR: Loaded ONLY after user consent via cookieConsentWall.loadAnalytics()
+         Property ID: 351495180 | Stream ID: 484824838
          Dashboard: https://analytics.google.com/analytics/web/#/a351495180p484824838/
          ========================================================================== -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-J972BQGNY7"></script>
     <script>
+        // GA4 helper functions (available globally, but GA4 loads only after consent)
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'G-J972BQGNY7', {
-            'page_title': document.title,
-            'page_location': window.location.href,
-            'send_page_view': true
-        });
 
         // Track course views, enrollments, and conversions
         function trackCourseView(courseId, courseName, category) {
+            if (!window._ga4Loaded) return;
             gtag('event', 'view_item', {
                 'currency': 'EUR',
                 'items': [{
@@ -54,6 +50,7 @@
         }
 
         function trackEnrollment(courseId, courseName, price) {
+            if (!window._ga4Loaded) return;
             gtag('event', 'purchase', {
                 'currency': 'EUR',
                 'value': price,
@@ -121,8 +118,7 @@
          Meta tags for AI-powered search engines and assistants
          GPTBot, ChatGPT, Claude, Perplexity, Bing AI, Google Bard/Gemini
          ========================================================================== -->
-    <!-- Allow AI crawlers to index content -->
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <!-- Note: robots meta tag already declared above (line 89), not duplicated here -->
 
     <!-- AI-specific meta tags -->
     <meta name="ai-content-declaration" content="human-created" />

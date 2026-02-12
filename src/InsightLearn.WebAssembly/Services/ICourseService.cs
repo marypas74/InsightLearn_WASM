@@ -7,6 +7,11 @@ public interface ICourseService
 {
     Task<ApiResponse<List<CourseDto>>> GetAllCoursesAsync();
     Task<ApiResponse<CourseDto>> GetCourseByIdAsync(Guid id);
+
+    /// <summary>
+    /// v2.3.113-dev: Get course by encoded ID (URL obfuscation)
+    /// </summary>
+    Task<ApiResponse<CourseDto>> GetCourseByEncodedIdAsync(string encodedId);
     Task<ApiResponse<List<CourseDto>>> GetCoursesByCategoryAsync(Guid categoryId);
     Task<ApiResponse<List<CourseDto>>> SearchCoursesAsync(string searchTerm);
     Task<ApiResponse<CourseDto>> CreateCourseAsync(CourseDto course);

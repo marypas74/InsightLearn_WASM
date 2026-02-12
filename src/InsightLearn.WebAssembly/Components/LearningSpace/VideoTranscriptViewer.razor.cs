@@ -9,6 +9,7 @@ namespace InsightLearn.WebAssembly.Components.LearningSpace;
 /// <summary>
 /// Video transcript viewer component with search and timestamp navigation.
 /// Part of Student Learning Space v2.1.0.
+/// Enhanced with ClawdBot SSE streaming for real-time subtitle translation.
 /// </summary>
 public partial class VideoTranscriptViewer : ComponentBase
 {
@@ -68,6 +69,11 @@ public partial class VideoTranscriptViewer : ComponentBase
         new() { Code = "pt", Name = "Portuguese", Flag = "🇵🇹" },
         new() { Code = "it", Name = "Italian", Flag = "🇮🇹" }
     };
+
+    // Ollama Translation Support (v2.5.0 - removed ClawdBot, using direct Ollama)
+    private bool isStreamingTranslation = false;
+    private int streamingProgress = 0;
+    private int totalStreamingSegments = 0;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -550,6 +556,7 @@ public partial class VideoTranscriptViewer : ComponentBase
     /// <summary>
     /// Handle language selection - switch to translated transcript.
     /// Phase 8.5: Multi-Language Subtitle Support.
+    /// v2.5.0: Uses direct Ollama API via backend (removed ClawdBot middleware)
     /// </summary>
     private async Task OnLanguageSelected(string languageCode)
     {
@@ -579,15 +586,18 @@ public partial class VideoTranscriptViewer : ComponentBase
             {
                 // Fetch translated transcript
                 var response = await TranscriptService.GetTranslationAsync(LessonId, languageCode);
+                Console.WriteLine($"[TranscriptViewer] GetTranslationAsync response - Success: {response.Success}, HasData: {response.Data != null}");
 
                 if (response.Success && response.Data != null)
                 {
                     var translationData = response.Data;
+                    Console.WriteLine($"[TranscriptViewer] Translation status: {translationData.Status}, SegmentCount: {translationData.Segments?.Count ?? 0}");
 
-                    if (translationData.Status == "Completed" && translationData.Segments != null)
+                    if (translationData.Status == "Completed" && translationData.Segments != null && translationData.Segments.Count > 0)
                     {
                         // Translation is ready - update UI with translated segments
                         selectedLanguage = languageCode;
+                        Console.WriteLine($"[TranscriptViewer] Processing {translationData.Segments.Count} segments for language {languageCode}");
 
                         // Convert TranslatedSegmentDto to TranscriptSegmentDto for display
                         segments = translationData.Segments.Select(s => new TranscriptSegmentDto
@@ -599,8 +609,10 @@ public partial class VideoTranscriptViewer : ComponentBase
                             Confidence = s.Confidence
                         }).ToList();
 
+                        Console.WriteLine($"[TranscriptViewer] Converted segments count: {segments.Count}");
                         filteredSegments = segments;
                         hasTranscript = true;
+                        Console.WriteLine($"[TranscriptViewer] filteredSegments updated: {filteredSegments.Count}, hasTranscript: {hasTranscript}");
 
                         // Update translation status
                         translationStatuses[languageCode] = "Completed";
@@ -608,10 +620,30 @@ public partial class VideoTranscriptViewer : ComponentBase
                         var languageName = GetLanguageName(languageCode);
                         ToastService.ShowSuccess($"Switched to {languageName} translation");
                     }
+                    else if (translationData.Status == "Queued")
+                    {
+                        // Phase 8.6: On-Demand Translation - auto-queued, start polling
+                        translationStatuses[languageCode] = "Queued";
+                        var languageName = GetLanguageName(languageCode);
+                        ToastService.ShowInfo($"Translation to {languageName} is being prepared...");
+
+                        // Start polling in background (fire and forget)
+                        _ = PollTranslationCompletionAsync(languageCode, maxAttempts: 60, intervalMs: 2000);
+                    }
                     else if (translationData.Status == "Processing")
                     {
+                        // Translation already in progress (queued earlier), start polling
                         translationStatuses[languageCode] = "Processing";
-                        ToastService.ShowWarning("Translation is being processed. Try again in a few moments.");
+                        ToastService.ShowInfo("Translation is being processed. Waiting for completion...");
+
+                        // Start polling in background
+                        _ = PollTranslationCompletionAsync(languageCode, maxAttempts: 60, intervalMs: 2000);
+                    }
+                    else if (translationData.Status == "RateLimited")
+                    {
+                        // Phase 8.6: Rate limit exceeded
+                        translationStatuses[languageCode] = "RateLimited";
+                        ToastService.ShowWarning(translationData.ErrorMessage ?? "Translation rate limit exceeded. Please try again later.");
                     }
                     else if (translationData.Status == "Failed")
                     {
@@ -622,6 +654,13 @@ public partial class VideoTranscriptViewer : ComponentBase
                     {
                         translationStatuses[languageCode] = "NotFound";
                         ToastService.ShowInfo("Translation not available yet");
+                    }
+                    else if (translationData.Status == "Completed" && (translationData.Segments == null || translationData.Segments.Count == 0))
+                    {
+                        // Fix v2.3.112: Handle edge case where translation completed but segments are empty
+                        translationStatuses[languageCode] = "Failed";
+                        ToastService.ShowWarning("Translation data is empty. Please try again later.");
+                        Console.WriteLine($"[TranscriptViewer] Translation completed but segments empty for language {languageCode}");
                     }
                 }
                 else
@@ -675,6 +714,95 @@ public partial class VideoTranscriptViewer : ComponentBase
         {
             Console.WriteLine($"[VideoTranscriptViewer] Error loading translation statuses: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Poll translation status every 2 seconds until completion or timeout.
+    /// Phase 8.6 (v2.3.24-dev): On-Demand Translation Support.
+    /// </summary>
+    /// <param name="languageCode">Target language code to poll</param>
+    /// <param name="maxAttempts">Maximum number of polling attempts (default: 60 = 2 minutes)</param>
+    /// <param name="intervalMs">Polling interval in milliseconds (default: 2000ms)</param>
+    private async Task PollTranslationCompletionAsync(string languageCode, int maxAttempts = 60, int intervalMs = 2000)
+    {
+        int attempts = 0;
+        var languageName = GetLanguageName(languageCode);
+
+        Console.WriteLine($"[VideoTranscriptViewer] Starting polling for {languageName} translation (max {maxAttempts} attempts)");
+
+        while (attempts < maxAttempts)
+        {
+            attempts++;
+            await Task.Delay(intervalMs);
+
+            try
+            {
+                var response = await TranscriptService.GetTranslationAsync(LessonId, languageCode);
+
+                if (response.Success && response.Data != null)
+                {
+                    var status = response.Data.Status;
+                    translationStatuses[languageCode] = status;
+
+                    Console.WriteLine($"[VideoTranscriptViewer] Poll attempt {attempts}: {languageName} status = {status}");
+
+                    if (status == "Completed" && response.Data.Segments != null && response.Data.Segments.Count > 0)
+                    {
+                        // Translation is ready! Update UI with translated segments
+                        selectedLanguage = languageCode;
+
+                        segments = response.Data.Segments.Select(s => new TranscriptSegmentDto
+                        {
+                            Text = s.TranslatedText,
+                            StartTime = s.StartTime,
+                            EndTime = s.EndTime,
+                            Speaker = null,
+                            Confidence = s.Confidence
+                        }).ToList();
+
+                        filteredSegments = segments;
+                        hasTranscript = true;
+
+                        ToastService.ShowSuccess($"{languageName} translation is ready!");
+                        Console.WriteLine($"[VideoTranscriptViewer] {languageName} translation completed after {attempts} polls");
+
+                        StateHasChanged();
+                        return;
+                    }
+
+                    // Fix v2.3.112: Handle edge case where translation completed but segments are empty
+                    if (status == "Completed" && (response.Data.Segments == null || response.Data.Segments.Count == 0))
+                    {
+                        translationStatuses[languageCode] = "Failed";
+                        ToastService.ShowWarning("Translation completed but no segments available. Please try again.");
+                        Console.WriteLine($"[VideoTranscriptViewer] {languageName} translation completed but segments empty");
+                        StateHasChanged();
+                        return;
+                    }
+
+                    if (status == "Failed")
+                    {
+                        ToastService.ShowError($"Translation to {languageName} failed: {response.Data.ErrorMessage}");
+                        Console.WriteLine($"[VideoTranscriptViewer] {languageName} translation failed: {response.Data.ErrorMessage}");
+                        StateHasChanged();
+                        return;
+                    }
+
+                    // Status is "Processing" or "Queued" - continue polling
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VideoTranscriptViewer] Polling error (attempt {attempts}): {ex.Message}");
+                // Continue polling despite errors
+            }
+        }
+
+        // Timeout reached
+        Console.WriteLine($"[VideoTranscriptViewer] Polling timeout for {languageName} translation after {maxAttempts} attempts");
+        ToastService.ShowWarning($"Translation to {languageName} is taking longer than expected. It will be ready when you return.");
+        StateHasChanged();
     }
 
     /// <summary>
@@ -736,7 +864,7 @@ public partial class VideoTranscriptViewer : ComponentBase
             var response = await TranscriptService.GetTranslationAsync(LessonId, languageCode);
 
             if (response.Success && response.Data != null &&
-                response.Data.Status == "Completed" && response.Data.Segments != null)
+                response.Data.Status == "Completed" && response.Data.Segments != null && response.Data.Segments.Count > 0)
             {
                 // Translation is ready - update UI with translated segments
                 selectedLanguage = languageCode;

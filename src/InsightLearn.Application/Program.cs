@@ -274,6 +274,80 @@ static string GetClientIp(HttpContext context)
         ?? "unknown-" + Guid.NewGuid().ToString();
 }
 
+// Phase 8.6 (v2.3.24-dev): Rate limiting helper for on-demand translations
+// Prevents abuse and controls costs (Ollama is free but CPU-intensive)
+static async Task<(bool Allowed, string Reason, int RetryAfterSeconds)> CheckTranslationRateLimitAsync(
+    IConnectionMultiplexer redis,
+    string? userId,
+    Guid lessonId,
+    IConfiguration configuration,
+    ILogger logger)
+{
+    try
+    {
+        var db = redis.GetDatabase();
+        var now = DateTime.UtcNow;
+
+        // Get rate limit settings from configuration
+        var perUserLimit = configuration.GetValue<int>("Translation:RateLimits:PerUserPerTenMinutes", 5);
+        var perLessonLimit = configuration.GetValue<int>("Translation:RateLimits:PerLessonPerHour", 3);
+        var globalLimit = configuration.GetValue<int>("Translation:RateLimits:GlobalPerDay", 100);
+
+        // 1. Per-user limit: default 5 requests per 10 minutes
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var userKey = $"translation:user:{userId}:{now:yyyyMMddHHmm}";
+            var userCount = await db.StringIncrementAsync(userKey);
+            if (userCount == 1)
+            {
+                await db.KeyExpireAsync(userKey, TimeSpan.FromMinutes(10));
+            }
+            if (userCount > perUserLimit)
+            {
+                logger.LogWarning("[TRANSLATION-RATELIMIT] User {UserId} exceeded limit: {Count}/{Limit}",
+                    userId, userCount, perUserLimit);
+                return (false, $"You have exceeded the translation limit ({perUserLimit} per 10 minutes). Please try again later.", 600);
+            }
+        }
+
+        // 2. Per-lesson limit: default 3 requests per hour (across all users)
+        var lessonKey = $"translation:lesson:{lessonId}:{now:yyyyMMddHH}";
+        var lessonCount = await db.StringIncrementAsync(lessonKey);
+        if (lessonCount == 1)
+        {
+            await db.KeyExpireAsync(lessonKey, TimeSpan.FromHours(1));
+        }
+        if (lessonCount > perLessonLimit)
+        {
+            logger.LogWarning("[TRANSLATION-RATELIMIT] Lesson {LessonId} exceeded limit: {Count}/{Limit}",
+                lessonId, lessonCount, perLessonLimit);
+            return (false, $"This lesson has reached the translation limit ({perLessonLimit} per hour). Please try again later.", 3600);
+        }
+
+        // 3. Global daily limit: default 100 requests (cost control)
+        var globalKey = $"translation:global:{now:yyyyMMdd}";
+        var globalCount = await db.StringIncrementAsync(globalKey);
+        if (globalCount == 1)
+        {
+            await db.KeyExpireAsync(globalKey, TimeSpan.FromDays(1));
+        }
+        if (globalCount > globalLimit)
+        {
+            logger.LogWarning("[TRANSLATION-RATELIMIT] Global daily limit exceeded: {Count}/{Limit}",
+                globalCount, globalLimit);
+            return (false, $"The system has reached its daily translation limit. Please try again tomorrow.", 86400);
+        }
+
+        return (true, string.Empty, 0);
+    }
+    catch (Exception ex)
+    {
+        // If Redis fails, allow the request (fail-open for better UX)
+        logger.LogError(ex, "[TRANSLATION-RATELIMIT] Redis error, allowing request");
+        return (true, string.Empty, 0);
+    }
+}
+
 // Configure Rate Limiting (DDoS protection)
 builder.Services.AddRateLimiter(options =>
 {
@@ -407,6 +481,19 @@ builder.Services.AddScoped<IPrometheusService, PrometheusService>();
 builder.Services.AddSingleton<MetricsService>();
 Console.WriteLine("[CONFIG] MetricsService registered (custom Prometheus metrics)");
 
+// Register SEO Metrics Service (v2.5.4-dev - Real-time SEO dashboard metrics)
+builder.Services.AddSingleton<SeoMetricsService>();
+Console.WriteLine("[CONFIG] SeoMetricsService registered (SEO Prometheus metrics for Grafana)");
+
+// Register Competitor SEO Service (v2.5.4-dev - Real competitor metrics from Google PageSpeed API)
+builder.Services.AddHttpClient<CompetitorSeoService>();
+builder.Services.AddSingleton<CompetitorSeoService>();
+Console.WriteLine("[CONFIG] CompetitorSeoService registered (real competitor SEO metrics)");
+
+builder.Services.AddHttpClient<SearchVisibilityService>();
+builder.Services.AddSingleton<SearchVisibilityService>();
+Console.WriteLine("[CONFIG] SearchVisibilityService registered (real visibility monitoring)");
+
 // Register Audit Service (database-backed audit logging)
 builder.Services.AddScoped<IAuditService, AuditService>();
 Console.WriteLine("[CONFIG] Audit Service registered (database-backed compliance logging)");
@@ -418,6 +505,10 @@ Console.WriteLine("[CONFIG] Logging Service registered (database-backed error/ac
 // Register Error Logging Service (v2.3.70-dev - SQL error logging for all services)
 builder.Services.AddScoped<IErrorLoggingService, ErrorLoggingService>();
 Console.WriteLine("[CONFIG] Error Logging Service registered (SQL-backed error persistence)");
+
+// Register ID Encoding Service (v2.3.113-dev - URL obfuscation with Sqids)
+builder.Services.AddSingleton<IIdEncodingService, SqidsEncodingService>();
+Console.WriteLine("[CONFIG] ID Encoding Service registered (Sqids-based URL obfuscation)");
 
 // Configure ASP.NET Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
@@ -1232,6 +1323,48 @@ Console.WriteLine("[HANGFIRE] Batch transcript processor registered (daily 23:30
 BatchSubtitleGenerationJob.RegisterRecurringJob();
 Console.WriteLine("[HANGFIRE] Batch subtitle generation job registered (daily 3:00 AM UTC)");
 
+// ✅ NEW (v2.5.4-dev): Register SEO metrics update job
+// Updates Prometheus SEO metrics every 5 minutes for real-time Grafana dashboard
+RecurringJob.AddOrUpdate<SeoMetricsUpdateJob>(
+    "seo-metrics-update",
+    job => job.ExecuteAsync(),
+    "*/5 * * * *"); // Every 5 minutes
+Console.WriteLine("[HANGFIRE] SEO metrics update job registered (every 5 minutes)");
+
+// ✅ NEW (v2.5.4-dev): Register competitor SEO metrics update job
+// Uses Google PageSpeed Insights API to fetch real competitor performance data
+RecurringJob.AddOrUpdate<CompetitorSeoUpdateJob>(
+    "competitor-seo-update",
+    job => job.ExecuteAsync(),
+    "0 * * * *"); // Every hour (on the hour)
+Console.WriteLine("[HANGFIRE] Competitor SEO update job registered (hourly)");
+
+// ✅ NEW (v2.5.7-dev): Register search visibility monitoring job
+// Checks Google indexation status and own PageSpeed every 4 hours
+RecurringJob.AddOrUpdate<SearchVisibilityUpdateJob>(
+    "search-visibility-update",
+    job => job.ExecuteAsync(),
+    "0 */4 * * *"); // Every 4 hours (on the hour)
+Console.WriteLine("[HANGFIRE] Search visibility update job registered (every 4 hours)");
+
+// Trigger initial SEO metrics update on startup
+using (var scope = app.Services.CreateScope())
+{
+    var seoMetrics = scope.ServiceProvider.GetRequiredService<SeoMetricsService>();
+    _ = seoMetrics.UpdateDynamicMetricsAsync(); // Fire and forget
+    Console.WriteLine("[SEO-METRICS] Initial metrics update triggered");
+
+    // Trigger initial competitor SEO metrics update
+    var competitorSeo = scope.ServiceProvider.GetRequiredService<CompetitorSeoService>();
+    _ = competitorSeo.UpdateCompetitorMetricsAsync(); // Fire and forget
+    Console.WriteLine("[COMPETITOR-SEO] Initial competitor metrics update triggered");
+
+    // Trigger initial search visibility check
+    var visibility = scope.ServiceProvider.GetRequiredService<SearchVisibilityService>();
+    _ = visibility.UpdateVisibilityMetricsAsync(); // Fire and forget
+    Console.WriteLine("[VISIBILITY] Initial search visibility check triggered");
+}
+
 // Audit Logging Middleware - Logs sensitive operations (auth, admin, payments)
 // Positioned AFTER authentication to capture user context (userId, email, roles)
 // TEMPORARILY DISABLED for debugging empty response issue
@@ -1534,6 +1667,199 @@ app.MapPost("/api/seo/indexnow", async (
 .WithTags("SEO")
 .RequireAuthorization("AdminOnly")
 .Produces(200)
+.Produces(500);
+
+// ============================================
+// SEO: Dynamic Course Snapshot for Crawlers (v2.5.7-dev)
+// Returns pre-rendered HTML for search engine bots
+// ============================================
+app.MapGet("/api/seo/course-snapshot/{encodedId}", async (
+    string encodedId,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] IIdEncodingService idEncoder,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        var id = idEncoder.Decode(encodedId);
+        if (!id.HasValue)
+            return Results.BadRequest("Invalid course identifier");
+
+        var course = await courseService.GetCourseByIdAsync(id.Value);
+        if (course == null)
+            return Results.NotFound("Course not found");
+
+        var baseUrl = "https://www.insightlearn.cloud";
+        var courseUrl = $"{baseUrl}/courses/{encodedId}";
+        var imageUrl = !string.IsNullOrEmpty(course.ThumbnailUrl)
+            ? (course.ThumbnailUrl.StartsWith("http") ? course.ThumbnailUrl : $"{baseUrl}{course.ThumbnailUrl}")
+            : $"{baseUrl}/images/og-courses.webp";
+
+        var priceText = course.IsFree ? "Free" : $"€{course.CurrentPrice:F2}";
+        var durationHours = course.EstimatedDurationMinutes / 60;
+        var durationMinutes = course.EstimatedDurationMinutes % 60;
+        var durationText = durationHours > 0 ? $"{durationHours}h {durationMinutes}m" : $"{durationMinutes}m";
+        var isoDuration = $"PT{course.EstimatedDurationMinutes}M";
+
+        // Build what-you-will-learn list
+        var learnItems = "";
+        if (!string.IsNullOrEmpty(course.WhatYouWillLearn))
+        {
+            var items = course.WhatYouWillLearn.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            learnItems = string.Join("\n", items.Select(i => $"                <li>{System.Net.WebUtility.HtmlEncode(i.Trim())}</li>"));
+        }
+
+        // Build requirements list
+        var reqItems = "";
+        if (!string.IsNullOrEmpty(course.Requirements))
+        {
+            var items = course.Requirements.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            reqItems = string.Join("\n", items.Select(i => $"                <li>{System.Net.WebUtility.HtmlEncode(i.Trim())}</li>"));
+        }
+
+        var html = $@"<!DOCTYPE html>
+<html lang=""{System.Net.WebUtility.HtmlEncode(course.Language.ToLower())}"">
+<head>
+    <meta charset=""utf-8"" />
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+    <title>{System.Net.WebUtility.HtmlEncode(course.Title)} - InsightLearn Online Course</title>
+    <meta name=""description"" content=""{System.Net.WebUtility.HtmlEncode(course.ShortDescription ?? course.Description?.Substring(0, Math.Min(160, course.Description.Length)) ?? "")}"" />
+    <meta name=""keywords"" content=""{System.Net.WebUtility.HtmlEncode(course.CategoryName)}, online course, {System.Net.WebUtility.HtmlEncode(course.Title)}, e-learning, InsightLearn"" />
+    <meta name=""robots"" content=""index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"" />
+    <link rel=""canonical"" href=""{courseUrl}"" />
+    <link rel=""alternate"" hreflang=""en"" href=""{courseUrl}"" />
+    <meta property=""og:type"" content=""website"" />
+    <meta property=""og:url"" content=""{courseUrl}"" />
+    <meta property=""og:title"" content=""{System.Net.WebUtility.HtmlEncode(course.Title)} - InsightLearn"" />
+    <meta property=""og:description"" content=""{System.Net.WebUtility.HtmlEncode(course.ShortDescription ?? "")}"" />
+    <meta property=""og:image"" content=""{imageUrl}"" />
+    <meta property=""og:site_name"" content=""InsightLearn"" />
+    <meta name=""twitter:card"" content=""summary_large_image"" />
+    <meta name=""twitter:title"" content=""{System.Net.WebUtility.HtmlEncode(course.Title)}"" />
+    <meta name=""twitter:description"" content=""{System.Net.WebUtility.HtmlEncode(course.ShortDescription ?? "")}"" />
+    <script type=""application/ld+json"">
+    {{
+        ""@context"": ""https://schema.org"",
+        ""@type"": ""Course"",
+        ""name"": ""{System.Net.WebUtility.HtmlEncode(course.Title).Replace("\"", "\\\"")}"",
+        ""description"": ""{System.Net.WebUtility.HtmlEncode(course.ShortDescription ?? course.Description ?? "").Replace("\"", "\\\"")}"",
+        ""url"": ""{courseUrl}"",
+        ""image"": ""{imageUrl}"",
+        ""provider"": {{
+            ""@type"": ""Organization"",
+            ""name"": ""InsightLearn"",
+            ""url"": ""{baseUrl}""
+        }},
+        ""instructor"": {{
+            ""@type"": ""Person"",
+            ""name"": ""{System.Net.WebUtility.HtmlEncode(course.InstructorName).Replace("\"", "\\\"")}""
+        }},
+        ""inLanguage"": ""{course.Language}"",
+        ""coursePrerequisites"": ""{System.Net.WebUtility.HtmlEncode(course.Requirements ?? "None").Replace("\"", "\\\"").Replace("\n", " ")}"",
+        ""timeRequired"": ""{isoDuration}"",
+        ""educationalLevel"": ""{course.Level}"",
+        ""numberOfCredits"": {course.SectionCount},
+        ""hasCourseInstance"": {{
+            ""@type"": ""CourseInstance"",
+            ""courseMode"": ""online"",
+            ""courseWorkload"": ""{isoDuration}""
+        }},
+        ""offers"": {{
+            ""@type"": ""Offer"",
+            ""price"": ""{course.CurrentPrice:F2}"",
+            ""priceCurrency"": ""EUR"",
+            ""availability"": ""https://schema.org/InStock"",
+            ""url"": ""{courseUrl}""
+        }}{(course.ReviewCount > 0 ? $@",
+        ""aggregateRating"": {{
+            ""@type"": ""AggregateRating"",
+            ""ratingValue"": ""{course.AverageRating:F1}"",
+            ""reviewCount"": ""{course.ReviewCount}"",
+            ""bestRating"": ""5"",
+            ""worstRating"": ""1""
+        }}" : "")}
+    }}
+    </script>
+    <script type=""application/ld+json"">
+    {{
+        ""@context"": ""https://schema.org"",
+        ""@type"": ""BreadcrumbList"",
+        ""itemListElement"": [
+            {{""@type"": ""ListItem"", ""position"": 1, ""name"": ""Home"", ""item"": ""{baseUrl}/""}},
+            {{""@type"": ""ListItem"", ""position"": 2, ""name"": ""Courses"", ""item"": ""{baseUrl}/courses""}},
+            {{""@type"": ""ListItem"", ""position"": 3, ""name"": ""{System.Net.WebUtility.HtmlEncode(course.CategoryName)}"", ""item"": ""{baseUrl}/courses?category={System.Net.WebUtility.HtmlEncode(course.CategorySlug ?? "")}""}},
+            {{""@type"": ""ListItem"", ""position"": 4, ""name"": ""{System.Net.WebUtility.HtmlEncode(course.Title).Replace("\"", "&quot;")}"", ""item"": ""{courseUrl}""}}
+        ]
+    }}
+    </script>
+</head>
+<body>
+    <nav aria-label=""breadcrumb"">
+        <a href=""/"">Home</a> &gt; <a href=""/courses"">Courses</a> &gt; <a href=""/courses?category={System.Net.WebUtility.HtmlEncode(course.CategorySlug ?? "")}"">{System.Net.WebUtility.HtmlEncode(course.CategoryName)}</a> &gt; <span>{System.Net.WebUtility.HtmlEncode(course.Title)}</span>
+    </nav>
+    <main>
+        <article>
+            <h1>{System.Net.WebUtility.HtmlEncode(course.Title)}</h1>
+            <p><strong>{System.Net.WebUtility.HtmlEncode(course.ShortDescription ?? "")}</strong></p>
+            <ul>
+                <li><strong>Instructor:</strong> {System.Net.WebUtility.HtmlEncode(course.InstructorName)}</li>
+                <li><strong>Category:</strong> {System.Net.WebUtility.HtmlEncode(course.CategoryName)}</li>
+                <li><strong>Level:</strong> {course.Level}</li>
+                <li><strong>Duration:</strong> {durationText}</li>
+                <li><strong>Language:</strong> {course.Language}</li>
+                <li><strong>Price:</strong> {priceText}</li>
+                <li><strong>Students Enrolled:</strong> {course.EnrollmentCount}</li>
+                {(course.ReviewCount > 0 ? $"<li><strong>Rating:</strong> {course.AverageRating:F1}/5 ({course.ReviewCount} reviews)</li>" : "")}
+                {(course.HasCertificate ? "<li><strong>Certificate:</strong> Certificate of Completion included</li>" : "")}
+            </ul>
+            <section>
+                <h2>About This Course</h2>
+                <p>{System.Net.WebUtility.HtmlEncode(course.Description ?? "")}</p>
+            </section>
+            {(learnItems.Length > 0 ? $@"<section>
+                <h2>What You Will Learn</h2>
+                <ul>
+{learnItems}
+                </ul>
+            </section>" : "")}
+            {(reqItems.Length > 0 ? $@"<section>
+                <h2>Requirements</h2>
+                <ul>
+{reqItems}
+                </ul>
+            </section>" : "")}
+            <section>
+                <h2>Course Structure</h2>
+                <p>{course.SectionCount} sections, {course.LessonCount} lessons, {durationText} total duration</p>
+            </section>
+        </article>
+    </main>
+    <footer>
+        <p>&copy; 2024-2026 InsightLearn. All rights reserved.</p>
+        <nav>
+            <a href=""/"">Home</a> |
+            <a href=""/courses"">Courses</a> |
+            <a href=""/about"">About</a> |
+            <a href=""/pricing"">Pricing</a> |
+            <a href=""/contact"">Contact</a>
+        </nav>
+    </footer>
+</body>
+</html>";
+
+        logger.LogInformation("[SEO-SNAPSHOT] Generated course snapshot for: {Title} ({EncodedId})", course.Title, encodedId);
+        return Results.Content(html, "text/html");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[SEO-SNAPSHOT] Error generating course snapshot for {EncodedId}", encodedId);
+        return Results.Problem("Error generating course snapshot", statusCode: 500);
+    }
+})
+.WithName("GetCourseSnapshot")
+.WithTags("SEO")
+.Produces<string>(200)
+.Produces(404)
 .Produces(500);
 
 // ============================================
@@ -2903,7 +3229,7 @@ app.MapPost("/api/subtitles/auto-generate", async (
                 "詳細にどのように機能するか一緒に見てみましょう",
                 "概念を明確にする別の例がこちらです",
                 "これまでに見たことを簡単にまとめましょう",
-                "次の教材に進みましょう",
+                "次の教材に進みましょ���",
                 "このポイントは非常に重要です"
             }},
             { "ko", new[] {
@@ -4449,6 +4775,44 @@ app.MapGet("/api/courses/{id:guid}", async (
 .WithName("GetCourseById")
 .WithTags("Courses")
 .Produces<InsightLearn.Core.DTOs.Course.CourseDto>(200)
+.Produces(404);
+
+// v2.3.113-dev: Get course by encoded ID (URL obfuscation)
+app.MapGet("/api/courses/e/{encodedId}", async (
+    string encodedId,
+    [FromServices] InsightLearn.Core.Interfaces.ICourseService courseService,
+    [FromServices] IIdEncodingService idEncoder,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        var id = idEncoder.Decode(encodedId);
+        if (!id.HasValue)
+        {
+            logger.LogWarning("[COURSES] Invalid encoded ID: {EncodedId}", encodedId);
+            return Results.BadRequest(new { message = "Invalid course identifier" });
+        }
+
+        logger.LogInformation("[COURSES] Getting course by encoded ID: {EncodedId} -> {CourseId}", encodedId, id.Value);
+        var course = await courseService.GetCourseByIdAsync(id.Value);
+
+        if (course == null)
+        {
+            return Results.NotFound(new { message = "Course not found" });
+        }
+
+        return Results.Ok(course);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[COURSES] Error getting course by encoded ID: {EncodedId}", encodedId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.WithName("GetCourseByEncodedId")
+.WithTags("Courses")
+.Produces<InsightLearn.Core.DTOs.Course.CourseDto>(200)
+.Produces(400)
 .Produces(404);
 
 // Get course curriculum (sections and lessons) - v2.1.0-dev
@@ -6730,14 +7094,46 @@ app.MapGet("/api/dashboard/student", async (
 // ========================================
 
 // GET /api/transcripts/{lessonId} - Get complete transcript
+// v2.3.116-dev: Conditional auth - public for free lessons, auth for premium
 app.MapGet("/api/transcripts/{lessonId:guid}", async (
     Guid lessonId,
+    HttpContext context,
     [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] InsightLearnDbContext dbContext,
     [FromServices] ILogger<Program> logger) =>
 {
     try
     {
         logger.LogInformation("[TRANSCRIPT] Getting transcript for lesson {LessonId}", lessonId);
+
+        // 1. Get lesson with course info to check if free
+        var lesson = await dbContext.Lessons
+            .Include(l => l.Section)
+            .ThenInclude(s => s.Course)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
+
+        if (lesson == null)
+        {
+            logger.LogWarning("[TRANSCRIPT] Lesson not found: {LessonId}", lessonId);
+            return Results.NotFound(new { error = "Lesson not found" });
+        }
+
+        // 2. Check if authentication required (paid course AND lesson not free)
+        var course = lesson.Section?.Course;
+        bool isFreeContent = lesson.IsFree || course == null || course.Price == 0;
+
+        if (!isFreeContent)
+        {
+            // Require auth for paid content
+            if (context.User.Identity?.IsAuthenticated != true)
+            {
+                logger.LogWarning("[TRANSCRIPT] Unauthorized access to paid transcript: {LessonId}", lessonId);
+                return Results.Unauthorized();
+            }
+        }
+
+        // 3. Get transcript
         var transcript = await transcriptService.GetTranscriptAsync(lessonId);
 
         if (transcript == null)
@@ -6754,10 +7150,10 @@ app.MapGet("/api/transcripts/{lessonId:guid}", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("GetTranscript")
 .WithTags("Transcripts")
 .Produces<VideoTranscriptDto>(200)
+.Produces(401)
 .Produces(404)
 .Produces(500);
 
@@ -6800,14 +7196,38 @@ app.MapGet("/api/transcripts/{lessonId:guid}/search", async (
 // ========================================
 
 // GET /api/transcripts/{lessonId}/status - Check processing status
+// v2.3.116-dev: Conditional auth - public for free lessons, auth for premium
 app.MapGet("/api/transcripts/{lessonId:guid}/status", async (
     Guid lessonId,
+    HttpContext context,
     [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] InsightLearnDbContext dbContext,
     [FromServices] ILogger<Program> logger) =>
 {
     try
     {
         logger.LogInformation("[TRANSCRIPT] Checking status for lesson {LessonId}", lessonId);
+
+        // Check access permissions (same logic as GetTranscript)
+        var lesson = await dbContext.Lessons
+            .Include(l => l.Section)
+            .ThenInclude(s => s.Course)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
+
+        if (lesson == null)
+        {
+            return Results.NotFound(new { error = "Lesson not found" });
+        }
+
+        var course = lesson.Section?.Course;
+        bool isFreeContent = lesson.IsFree || course == null || course.Price == 0;
+
+        if (!isFreeContent && context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
         var status = await transcriptService.GetProcessingStatusAsync(lessonId);
 
         if (status == null)
@@ -6823,10 +7243,10 @@ app.MapGet("/api/transcripts/{lessonId:guid}/status", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("GetTranscriptStatus")
 .WithTags("Transcripts")
 .Produces<TranscriptProcessingStatusDto>(200)
+.Produces(401)
 .Produces(404)
 .Produces(500);
 
@@ -6859,11 +7279,14 @@ app.MapDelete("/api/transcripts/{lessonId:guid}", async (
 
 // GET /api/transcripts/{lessonId}/download?format={webvtt|srt} - Download subtitle file
 // Phase 7.3: WebVTT Subtitle Generation - LinkedIn Learning parity feature
+// v2.3.116-dev: Conditional auth - public for free lessons, auth for premium
 app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
     Guid lessonId,
+    HttpContext context,
     [FromQuery] string format,
     [FromServices] IVideoTranscriptService transcriptService,
     [FromServices] ISubtitleGenerator subtitleGenerator,
+    [FromServices] InsightLearnDbContext dbContext,
     [FromServices] ILogger<Program> logger) =>
 {
     try
@@ -6882,6 +7305,26 @@ app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
         }
 
         logger.LogInformation("[SUBTITLE] Downloading subtitle for lesson {LessonId}, format: {Format}", lessonId, format);
+
+        // Check access permissions (same logic as GetTranscript)
+        var lesson = await dbContext.Lessons
+            .Include(l => l.Section)
+            .ThenInclude(s => s.Course)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
+
+        if (lesson == null)
+        {
+            return Results.NotFound(new { error = "Lesson not found" });
+        }
+
+        var course = lesson.Section?.Course;
+        bool isFreeContent = lesson.IsFree || course == null || course.Price == 0;
+
+        if (!isFreeContent && context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
 
         // Get transcript from service
         var transcript = await transcriptService.GetTranscriptAsync(lessonId);
@@ -6927,11 +7370,11 @@ app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
         return Results.Problem(detail: ex.Message, statusCode: 500);
     }
 })
-.RequireAuthorization()
 .WithName("DownloadSubtitle")
 .WithTags("Transcripts", "Subtitles")
 .Produces(200)
 .Produces(400)
+.Produces(401)
 .Produces(404)
 .Produces(500);
 
@@ -6943,6 +7386,8 @@ app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
     [FromBody] AutoGenerateTranscriptRequest request,
     [FromServices] IVideoTranscriptService transcriptService,
     [FromServices] ILessonRepository lessonRepository,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] IConfiguration configuration,
     [FromServices] ILogger<Program> logger) =>
 {
     try
@@ -6972,12 +7417,42 @@ app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
             return Results.BadRequest(new { error = "Lesson has no video URL" });
         }
 
+        // v2.3.109: Creare job status PRIMA di Enqueue per visibilità immediata nel monitoring
+        var chunkDurationSeconds = configuration.GetValue<int>("Whisper:ChunkDurationSeconds", 30);
+        var videoDurationSeconds = (lesson.DurationMinutes > 0 ? lesson.DurationMinutes : 10) * 60.0;
+        var estimatedChunkCount = Math.Max(1, (int)Math.Ceiling(videoDurationSeconds / chunkDurationSeconds));
+
+        var jobStatus = new TranscriptJobStatus
+        {
+            Id = Guid.NewGuid(),
+            LessonId = lessonId,
+            Status = "Queued",
+            Phase = "Queued",
+            Language = request.Language ?? "en-US",
+            ChunkCount = estimatedChunkCount,
+            CompletedChunks = 0,
+            CurrentChunk = 0,
+            ProgressPercentage = 0,
+            StatusMessage = "Job queued, waiting for worker...",
+            VideoDurationSeconds = videoDurationSeconds,
+            QueuedAt = DateTime.UtcNow,
+            LastUpdatedAt = DateTime.UtcNow
+        };
+        db.TranscriptJobStatuses.Add(jobStatus);
+        await db.SaveChangesAsync();
+        logger.LogInformation("[TRANSCRIPT] Created job status for lesson {LessonId}, estimated {ChunkCount} chunks",
+            lessonId, estimatedChunkCount);
+
         // ✅ Queue Hangfire background job (returns immediately, < 100ms)
         var jobId = TranscriptGenerationJob.Enqueue(
             lessonId,
             lesson.VideoUrl,  // Use actual VideoUrl from database (contains MongoDB ObjectId)
             request.Language ?? "en-US"
         );
+
+        // Aggiornare job status con Hangfire JobId
+        jobStatus.HangfireJobId = jobId;
+        await db.SaveChangesAsync();
 
         logger.LogInformation("[TRANSCRIPT] Hangfire job {JobId} queued for lesson {LessonId}, videoUrl: {VideoUrl}",
             jobId, lessonId, lesson.VideoUrl);
@@ -7010,93 +7485,18 @@ app.MapPost("/api/transcripts/{lessonId:guid}/generate", async (
 .Produces(403)  // Forbidden (not Admin/Instructor)
 .Produces(500); // Error
 
-// GET /api/transcripts/{lessonId:guid}/download - Download pre-generated subtitle file (WebVTT or SRT)
-// Phase 7 Task 7.2: Subtitle Download API Endpoint - LinkedIn Learning parity
-// Retrieves pre-generated subtitle files from MongoDB GridFS (generated by TranscriptGenerationJob)
-app.MapGet("/api/transcripts/{lessonId:guid}/download", async (
-    Guid lessonId,
-    HttpContext httpContext,
-    [FromServices] IConfiguration configuration,
-    [FromServices] ILogger<Program> logger,
-    string format = "webvtt",  // "webvtt" or "srt"
-    string language = "en-US") =>
-{
-    try
-    {
-        // Normalize format parameter
-        var normalizedFormat = format.ToLowerInvariant();
-        var extension = normalizedFormat == "srt" ? "srt" : "vtt";
-        var mimeType = normalizedFormat == "srt" ? "application/x-subrip" : "text/vtt";
-
-        logger.LogInformation("[SUBTITLE] Downloading {Format} subtitle for lesson {LessonId}, language: {Language}",
-            extension.ToUpperInvariant(), lessonId, language);
-
-        // Construct filename as generated by TranscriptGenerationJob (Phase 7.3)
-        // Format: "lesson-{lessonId}-{language}.{extension}"
-        var fileName = $"lesson-{lessonId}-{language}.{extension}";
-
-        // Connect to MongoDB GridFS to find subtitle file
-        var connectionString = configuration["MongoDb:ConnectionString"]
-            ?? configuration.GetConnectionString("MongoDB")
-            ?? throw new InvalidOperationException("MongoDB connection string not configured");
-
-        var mongoClient = new MongoDB.Driver.MongoClient(connectionString);
-        var database = mongoClient.GetDatabase("insightlearn_videos");
-        var gridFsBucket = new MongoDB.Driver.GridFS.GridFSBucket(database, new MongoDB.Driver.GridFS.GridFSBucketOptions
-        {
-            BucketName = "videos"
-        });
-
-        // Find file by filename
-        var filter = MongoDB.Driver.Builders<MongoDB.Driver.GridFS.GridFSFileInfo>.Filter.Eq("filename", fileName);
-        var fileInfoCursor = await gridFsBucket.FindAsync(filter);
-        var fileInfoList = await fileInfoCursor.ToListAsync();
-        var fileInfo = fileInfoList.FirstOrDefault();
-
-        if (fileInfo == null)
-        {
-            logger.LogWarning("[SUBTITLE] Subtitle file not found: {FileName}", fileName);
-            return Results.NotFound(new {
-                error = $"Subtitle file not found for lesson {lessonId} in {extension.ToUpperInvariant()} format and language {language}.",
-                hint = "Subtitle files are generated automatically when transcripts are created. Please generate a transcript first.",
-                expectedFilename = fileName
-            });
-        }
-
-        // Download file stream from GridFS
-        var fileStream = await gridFsBucket.OpenDownloadStreamAsync(fileInfo.Id);
-
-        logger.LogInformation("[SUBTITLE] Successfully retrieved {Format} subtitle file: {FileName}, FileId: {FileId}, Size: {Size} bytes",
-            extension.ToUpperInvariant(), fileName, fileInfo.Id, fileInfo.Length);
-
-        // Set response headers for file download
-        httpContext.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");
-        httpContext.Response.ContentType = mimeType;
-
-        // Return file stream
-        return Results.Stream(fileStream, contentType: mimeType, fileDownloadName: fileName);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "[SUBTITLE] Error downloading subtitle file for lesson {LessonId}, format: {Format}", lessonId, format);
-        return Results.Problem(detail: ex.Message, statusCode: 500);
-    }
-})
-.RequireAuthorization()
-.WithName("DownloadSubtitleFile")
-.WithTags("Transcripts")
-.Produces(200, contentType: "text/vtt")
-.Produces(200, contentType: "application/x-subrip")
-.Produces(404)
-.Produces(500);
-
 // GET /api/transcripts/{lessonId}/translations/{targetLanguage} - Get translated transcript
 // Phase 8.5: Multi-Language Subtitle Support - Frontend language selector
+// Phase 8.6 (v2.3.24-dev): On-Demand Translation - Auto-queue when not found
 app.MapGet("/api/transcripts/{lessonId:guid}/translations/{targetLanguage}", async (
     Guid lessonId,
     string targetLanguage,
+    HttpContext context,
     [FromServices] InsightLearnDbContext dbContext,
     [FromServices] IMongoVideoStorageService mongoStorage,
+    [FromServices] IVideoTranscriptRepository transcriptRepository,
+    [FromServices] IConnectionMultiplexer redis,
+    [FromServices] IConfiguration configuration,
     [FromServices] ILogger<Program> logger) =>
 {
     try
@@ -7110,20 +7510,96 @@ app.MapGet("/api/transcripts/{lessonId:guid}/translations/{targetLanguage}", asy
             return Results.BadRequest(new { error = "Invalid language code. Use 2-letter ISO 639-1 codes (es, fr, de, pt, it)" });
         }
 
+        var normalizedLang = targetLanguage.ToLower();
+
         // Find translation record in SQL Server
         var translationRecord = await dbContext.VideoTranscriptTranslations
-            .FirstOrDefaultAsync(t => t.LessonId == lessonId && t.TargetLanguage == targetLanguage.ToLower());
+            .FirstOrDefaultAsync(t => t.LessonId == lessonId && t.TargetLanguage == normalizedLang);
 
         if (translationRecord == null)
         {
-            logger.LogInformation("[TRANSLATION] Translation not found for lesson {LessonId}, language: {Language}",
+            // Phase 8.6: On-Demand Translation - Auto-queue when not found
+            logger.LogInformation("[TRANSLATION] Translation not found, checking for on-demand generation. Lesson: {LessonId}, Language: {Language}",
                 lessonId, targetLanguage);
+
+            // Check if on-demand translation is enabled
+            var enableOnDemand = configuration.GetValue<bool>("Translation:EnableOnDemandTranslation", true);
+            if (!enableOnDemand)
+            {
+                return Results.Ok(new
+                {
+                    Status = "NotFound",
+                    Message = $"No translation found for language '{targetLanguage}'. On-demand translation is disabled.",
+                    LessonId = lessonId,
+                    TargetLanguage = normalizedLang
+                });
+            }
+
+            // Check if source transcript exists
+            var sourceTranscript = await transcriptRepository.GetTranscriptAsync(lessonId);
+            if (sourceTranscript == null || sourceTranscript.Segments == null || !sourceTranscript.Segments.Any())
+            {
+                logger.LogWarning("[TRANSLATION] No source transcript available for lesson {LessonId}", lessonId);
+                return Results.Ok(new
+                {
+                    Status = "NotFound",
+                    Message = "No source transcript available for translation. Please generate a transcript first.",
+                    LessonId = lessonId,
+                    TargetLanguage = normalizedLang
+                });
+            }
+
+            // Get user ID for rate limiting
+            var userId = context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            // Check rate limits
+            var rateLimitResult = await CheckTranslationRateLimitAsync(redis, userId, lessonId, configuration, logger);
+            if (!rateLimitResult.Allowed)
+            {
+                logger.LogWarning("[TRANSLATION] Rate limit exceeded for user {UserId}, lesson {LessonId}: {Reason}",
+                    userId ?? "anonymous", lessonId, rateLimitResult.Reason);
+                return Results.Ok(new
+                {
+                    Status = "RateLimited",
+                    Message = rateLimitResult.Reason,
+                    LessonId = lessonId,
+                    TargetLanguage = normalizedLang,
+                    RetryAfterSeconds = rateLimitResult.RetryAfterSeconds
+                });
+            }
+
+            // Auto-queue translation job
+            var translator = configuration.GetValue<string>("Translation:OnDemandTranslator", "ollama") ?? "ollama";
+            var jobId = TranslationJob.Enqueue(lessonId, normalizedLang, translator);
+
+            logger.LogInformation("[TRANSLATION] Auto-queued on-demand translation job {JobId} for lesson {LessonId}, language: {Language}, translator: {Translator}",
+                jobId, lessonId, normalizedLang, translator);
+
+            // Create translation record with "Queued" status
+            var newRecord = new VideoTranscriptTranslation
+            {
+                Id = Guid.NewGuid(),
+                LessonId = lessonId,
+                SourceLanguage = sourceTranscript.Language ?? "en",
+                TargetLanguage = normalizedLang,
+                Status = "Queued",
+                QualityTier = $"Auto/{translator}",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            dbContext.VideoTranscriptTranslations.Add(newRecord);
+            await dbContext.SaveChangesAsync();
+
             return Results.Ok(new
             {
-                Status = "NotFound",
-                Message = $"No translation found for language '{targetLanguage}'. It may not have been generated yet.",
+                Status = "Queued",
+                Message = $"Translation to '{normalizedLang}' has been queued. Please poll for completion.",
                 LessonId = lessonId,
-                TargetLanguage = targetLanguage
+                TargetLanguage = normalizedLang,
+                JobId = jobId,
+                Translator = translator,
+                EstimatedWaitSeconds = 60,
+                QueuedAt = newRecord.CreatedAt
             });
         }
 
@@ -8878,6 +9354,73 @@ app.MapGet("/api/jobs/transcripts/monitor", async (
 .WithTags("Background Jobs")
 .Produces(200);
 
+// GET /api/jobs/translations/monitor - Real-time translation job monitoring (v2.4.2-dev)
+// Returns all translation jobs with progress info from database
+app.MapGet("/api/jobs/translations/monitor", async (
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogDebug("[MONITOR] Fetching translation jobs from database");
+
+        // Get all translation jobs from VideoTranscriptTranslations
+        var translations = await db.VideoTranscriptTranslations
+            .Include(t => t.Lesson)
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(50)
+            .Select(t => new
+            {
+                Id = t.Id,
+                LessonId = t.LessonId,
+                LessonTitle = t.Lesson != null ? t.Lesson.Title : "Unknown",
+                TargetLanguage = t.TargetLanguage,
+                Status = t.Status,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.UpdatedAt,
+                ErrorMessage = t.ErrorMessage
+            })
+            .ToListAsync();
+
+        // Enrich with Hangfire job info if available
+        var enrichedJobs = translations.Select(t => new
+        {
+            t.Id,
+            t.LessonId,
+            t.LessonTitle,
+            t.TargetLanguage,
+            t.Status,
+            Phase = t.Status == "Processing" ? "Translating" : t.Status,
+            ProgressPercentage = t.Status == "Completed" ? 100 : (t.Status == "Processing" ? 50 : 0),
+            t.CreatedAt,
+            t.UpdatedAt,
+            t.ErrorMessage
+        })
+        .OrderBy(j => j.Status switch
+        {
+            "Processing" => 0,
+            "Queued" => 1,
+            "Failed" => 2,
+            "Completed" => 3,
+            _ => 4
+        })
+        .ThenByDescending(j => j.CreatedAt)
+        .ToList();
+
+        logger.LogInformation("[MONITOR] Returning {Count} translation jobs", enrichedJobs.Count);
+        return Results.Ok(enrichedJobs);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[MONITOR] Error fetching translation jobs");
+        return Results.Ok(new List<object>()); // Return empty list on error
+    }
+})
+.AllowAnonymous()
+.WithName("MonitorTranslationJobs")
+.WithTags("Background Jobs")
+.Produces(200);
+
 // GET /api/admin/lessons/with-videos - Get lessons that have video URLs (v2.3.83-dev)
 // For transcript monitoring dashboard lesson selector
 app.MapGet("/api/admin/lessons/with-videos", async (
@@ -9035,6 +9578,163 @@ app.MapPost("/api/jobs/takeaways/{lessonId:guid}/queue", async (
 .Produces(403)
 .Produces(500);
 
+// POST /api/jobs/translations/batch - Queue batch translation jobs for a lesson (v2.3.99-dev)
+// Translates transcript to all configured target languages (es, fr, de, pt, it)
+app.MapPost("/api/jobs/translations/batch", async (
+    [FromBody] BatchTranslationRequest request,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] IVideoTranscriptRepository transcriptRepository,
+    [FromServices] IConfiguration configuration,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("[TRANSLATION] Starting batch translation for lesson {LessonId}", request.LessonId);
+
+        // 1. Check if transcript exists for this lesson
+        var transcript = await transcriptRepository.GetTranscriptAsync(request.LessonId);
+        if (transcript == null || transcript.ProcessingStatus != "Completed")
+        {
+            return Results.BadRequest(new { error = "No completed transcript found for this lesson. Generate transcript first." });
+        }
+
+        // 2. Get target languages from config (or use request override)
+        var targetLanguages = request.TargetLanguages?.Length > 0
+            ? request.TargetLanguages
+            : configuration.GetSection("Translation:TargetLanguages").Get<string[]>()
+              ?? new[] { "es", "fr", "de", "pt", "it" };
+
+        var translator = request.Translator ?? configuration.GetValue<string>("Translation:DefaultTranslator", "openai");
+
+        // 3. Check for existing translations (skip already completed)
+        var existingTranslations = await db.VideoTranscriptTranslations
+            .Where(t => t.LessonId == request.LessonId)
+            .Select(t => new { t.TargetLanguage, t.Status })
+            .ToListAsync();
+
+        var queuedJobs = new List<object>();
+        var skippedLanguages = new List<string>();
+
+        foreach (var targetLang in targetLanguages)
+        {
+            // Skip if already completed or in progress
+            var existing = existingTranslations.FirstOrDefault(t => t.TargetLanguage == targetLang);
+            if (existing != null)
+            {
+                if (existing.Status == "Completed")
+                {
+                    skippedLanguages.Add($"{targetLang} (already completed)");
+                    continue;
+                }
+                if (existing.Status == "Processing")
+                {
+                    skippedLanguages.Add($"{targetLang} (already in progress)");
+                    continue;
+                }
+            }
+
+            // Skip if target language is same as source
+            if (transcript.Language?.StartsWith(targetLang, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                skippedLanguages.Add($"{targetLang} (same as source)");
+                continue;
+            }
+
+            // Queue the translation job
+            var jobId = TranslationJob.Enqueue(request.LessonId, targetLang, translator);
+
+            queuedJobs.Add(new
+            {
+                JobId = jobId,
+                TargetLanguage = targetLang,
+                Translator = translator,
+                QueuedAt = DateTime.UtcNow
+            });
+
+            logger.LogInformation("[TRANSLATION] Queued translation job {JobId} for lesson {LessonId}, language {Language}",
+                jobId, request.LessonId, targetLang);
+        }
+
+        logger.LogInformation("[TRANSLATION] Batch translation completed: {QueuedCount} jobs queued, {SkippedCount} skipped",
+            queuedJobs.Count, skippedLanguages.Count);
+
+        return Results.Ok(new
+        {
+            LessonId = request.LessonId,
+            SourceLanguage = transcript.Language,
+            QueuedJobs = queuedJobs,
+            SkippedLanguages = skippedLanguages,
+            TotalQueued = queuedJobs.Count,
+            Message = $"Queued {queuedJobs.Count} translation jobs" + (skippedLanguages.Count > 0 ? $", skipped {skippedLanguages.Count}" : "")
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSLATION] Error queueing batch translation for lesson {LessonId}", request.LessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin", "Instructor"))
+.WithName("QueueBatchTranslation")
+.WithTags("Background Jobs")
+.Produces<object>(200)
+.Produces(400)
+.Produces(401)
+.Produces(403)
+.Produces(500);
+
+// GET /api/jobs/translations/{lessonId}/status - Get translation status for all languages (v2.3.99-dev)
+app.MapGet("/api/jobs/translations/{lessonId:guid}/status", async (
+    Guid lessonId,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        var translations = await db.VideoTranscriptTranslations
+            .Where(t => t.LessonId == lessonId)
+            .Select(t => new
+            {
+                t.Id,
+                t.TargetLanguage,
+                t.Status,
+                t.QualityTier,
+                t.SegmentCount,
+                t.TotalCharacters,
+                t.EstimatedCost,
+                t.ErrorMessage,
+                t.CompletedAt,
+                t.CreatedAt
+            })
+            .OrderBy(t => t.TargetLanguage)
+            .ToListAsync();
+
+        return Results.Ok(new
+        {
+            LessonId = lessonId,
+            Translations = translations,
+            Summary = new
+            {
+                Total = translations.Count,
+                Completed = translations.Count(t => t.Status == "Completed"),
+                Processing = translations.Count(t => t.Status == "Processing"),
+                Pending = translations.Count(t => t.Status == "Pending"),
+                Failed = translations.Count(t => t.Status == "Failed")
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[TRANSLATION] Error getting translation status for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.RequireAuthorization()
+.WithName("GetTranslationStatus")
+.WithTags("Background Jobs")
+.Produces<object>(200)
+.Produces(500);
+
 Console.WriteLine("[ENDPOINTS] Student Learning Space v2.1.0 endpoints registered (28 endpoints)");
 Console.WriteLine("[ENDPOINTS] - Video Transcripts: /api/transcripts/* (5 endpoints)");
 Console.WriteLine("[ENDPOINTS] - AI Takeaways: /api/takeaways/* (3 endpoints)");
@@ -9054,6 +9754,342 @@ app.MapGet("/api/test", () => new { message = "Test OK", timestamp = DateTime.Ut
 app.MapGet("/api/test-string", () => "Test OK - Plain Text")
    .AllowAnonymous()
    .WithName("DebugTestString");
+
+// POST /api/internal/translations/batch-start - Internal endpoint for batch translations (v2.3.100-dev)
+// WARNING: No auth - only for internal/k8s use. Uses localhost verification.
+app.MapPost("/api/internal/translations/batch-start/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] IVideoTranscriptRepository transcriptRepository,
+    [FromServices] IConfiguration configuration,
+    [FromServices] ILogger<Program> logger,
+    HttpContext httpContext) =>
+{
+    // Log remote IP for debugging (v2.3.102-dev: temporarily allow all for testing)
+    var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+    logger.LogInformation("[INTERNAL] Received request from IP: {IP}", remoteIp);
+
+    logger.LogInformation("[INTERNAL] Starting batch translation for lesson {LessonId} from {IP}", lessonId, remoteIp);
+
+    var transcript = await transcriptRepository.GetTranscriptAsync(lessonId);
+    if (transcript == null || transcript.ProcessingStatus != "Completed")
+    {
+        return Results.BadRequest(new { error = "No completed transcript found for this lesson" });
+    }
+
+    var targetLanguages = configuration.GetSection("Translation:TargetLanguages").Get<string[]>()
+        ?? new[] { "es", "fr", "de", "pt", "it" };
+    var translator = configuration.GetValue<string>("Translation:DefaultTranslator", "openai");
+
+    var existingTranslations = await db.VideoTranscriptTranslations
+        .Where(t => t.LessonId == lessonId)
+        .Select(t => new { t.TargetLanguage, t.Status })
+        .ToListAsync();
+
+    var queuedJobs = new List<object>();
+    var skipped = new List<string>();
+
+    foreach (var lang in targetLanguages)
+    {
+        var existing = existingTranslations.FirstOrDefault(t => t.TargetLanguage == lang);
+        if (existing?.Status == "Completed")
+        {
+            skipped.Add($"{lang} (completed)");
+            continue;
+        }
+        if (existing?.Status == "Processing")
+        {
+            skipped.Add($"{lang} (processing)");
+            continue;
+        }
+        if (transcript.Language?.StartsWith(lang, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            skipped.Add($"{lang} (source)");
+            continue;
+        }
+
+        var jobId = TranslationJob.Enqueue(lessonId, lang, translator);
+        queuedJobs.Add(new { JobId = jobId, Language = lang });
+        logger.LogInformation("[INTERNAL] Queued translation job {JobId} for {Language}", jobId, lang);
+    }
+
+    return Results.Ok(new { LessonId = lessonId, Queued = queuedJobs, Skipped = skipped, Translator = translator });
+})
+.AllowAnonymous()
+.WithName("InternalBatchTranslation")
+.WithTags("Internal");
+
+// POST /api/internal/transcripts/queue/{lessonId} - Internal endpoint for transcript generation (v2.3.104-dev)
+// WARNING: No auth - only for internal/k8s use.
+// v2.4.0: Added optional language query parameter (default: en-US for English videos)
+app.MapPost("/api/internal/transcripts/queue/{lessonId:guid}", async (
+    Guid lessonId,
+    [FromQuery] string? language,
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] ILogger<Program> logger,
+    HttpContext httpContext) =>
+{
+    var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+    var transcriptLanguage = string.IsNullOrWhiteSpace(language) ? "en-US" : language;
+    logger.LogInformation("[INTERNAL] Transcript queue request from IP: {IP} for lesson {LessonId}, language: {Language}", remoteIp, lessonId, transcriptLanguage);
+
+    // Check if lesson exists and has video
+    var lesson = await db.Lessons.FindAsync(lessonId);
+    if (lesson == null)
+    {
+        return Results.NotFound(new { error = "Lesson not found" });
+    }
+    if (string.IsNullOrEmpty(lesson.VideoUrl))
+    {
+        return Results.BadRequest(new { error = "Lesson has no video URL" });
+    }
+
+    // Check for existing transcript job
+    var existingJob = await db.TranscriptJobStatuses.FirstOrDefaultAsync(j => j.LessonId == lessonId);
+    if (existingJob?.Status == "Completed")
+    {
+        return Results.Ok(new { Status = "already_completed", LessonId = lessonId, Message = "Transcript already completed" });
+    }
+    if (existingJob?.Status == "Processing" || existingJob?.Status == "Queued")
+    {
+        return Results.Ok(new { Status = "already_queued", LessonId = lessonId, JobId = existingJob.Id, Message = $"Transcript already {existingJob.Status}" });
+    }
+
+    try
+    {
+        var jobId = await transcriptService.QueueTranscriptGenerationAsync(lessonId, lesson.VideoUrl, transcriptLanguage);
+        logger.LogInformation("[INTERNAL] Queued transcript job {JobId} for lesson {LessonId}, language: {Language}", jobId, lessonId, transcriptLanguage);
+
+        return Results.Ok(new { Status = "queued", LessonId = lessonId, JobId = jobId, VideoUrl = lesson.VideoUrl, Language = transcriptLanguage });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[INTERNAL] Failed to queue transcript for lesson {LessonId}", lessonId);
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+})
+.AllowAnonymous()
+.WithName("InternalQueueTranscript")
+.WithTags("Internal");
+
+// POST /api/internal/transcripts/queue-all - Queue transcripts for ALL videos without transcripts (v2.3.104-dev)
+app.MapPost("/api/internal/transcripts/queue-all", async (
+    [FromServices] IVideoTranscriptService transcriptService,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] ILogger<Program> logger,
+    HttpContext httpContext) =>
+{
+    var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+    logger.LogInformation("[INTERNAL] Queue-all transcripts request from IP: {IP}", remoteIp);
+
+    // Find all lessons with videos but no completed transcript
+    var lessonsWithVideos = await db.Lessons
+        .Where(l => l.VideoUrl != null && l.VideoUrl != "")
+        .Select(l => new { l.Id, l.Title, l.VideoUrl })
+        .ToListAsync();
+
+    var completedTranscripts = await db.TranscriptJobStatuses
+        .Where(j => j.Status == "Completed" || j.Status == "Processing" || j.Status == "Queued")
+        .Select(j => j.LessonId)
+        .ToListAsync();
+
+    var lessonsToProcess = lessonsWithVideos
+        .Where(l => !completedTranscripts.Contains(l.Id))
+        .ToList();
+
+    var queued = new List<object>();
+    var skipped = new List<object>();
+
+    foreach (var lesson in lessonsWithVideos)
+    {
+        if (completedTranscripts.Contains(lesson.Id))
+        {
+            skipped.Add(new { lesson.Id, lesson.Title, Reason = "already_has_transcript" });
+            continue;
+        }
+
+        try
+        {
+            var jobId = await transcriptService.QueueTranscriptGenerationAsync(lesson.Id, lesson.VideoUrl!, "it-IT");
+            queued.Add(new { JobId = jobId, LessonId = lesson.Id, Title = lesson.Title });
+            logger.LogInformation("[INTERNAL] Queued transcript job {JobId} for lesson {Title}", jobId, lesson.Title);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[INTERNAL] Failed to queue transcript for lesson {LessonId}", lesson.Id);
+            skipped.Add(new { lesson.Id, lesson.Title, Reason = ex.Message });
+        }
+    }
+
+    return Results.Ok(new
+    {
+        TotalLessonsWithVideo = lessonsWithVideos.Count,
+        Queued = queued,
+        QueuedCount = queued.Count,
+        Skipped = skipped,
+        SkippedCount = skipped.Count
+    });
+})
+.AllowAnonymous()
+.WithName("InternalQueueAllTranscripts")
+.WithTags("Internal");
+
+// POST /api/internal/translations/single/{lessonId}/{targetLanguage} - Queue single language translation (v2.3.105-dev)
+// v2.3.108-dev: Added ?force=true to regenerate existing translations
+app.MapPost("/api/internal/translations/single/{lessonId:guid}/{targetLanguage}", async (
+    Guid lessonId,
+    string targetLanguage,
+    [FromQuery] bool force,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] IVideoTranscriptRepository transcriptRepository,
+    [FromServices] IConfiguration configuration,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogInformation("[INTERNAL] Single translation request: lesson {LessonId}, target {Language}, force={Force}", lessonId, targetLanguage, force);
+
+    var transcript = await transcriptRepository.GetTranscriptAsync(lessonId);
+    if (transcript == null || transcript.ProcessingStatus != "Completed")
+    {
+        return Results.BadRequest(new { error = "No completed transcript found for this lesson" });
+    }
+
+    // Check if translation already exists
+    var existing = await db.VideoTranscriptTranslations
+        .FirstOrDefaultAsync(t => t.LessonId == lessonId && t.TargetLanguage == targetLanguage);
+
+    if (existing?.Status == "Completed" && !force)
+    {
+        return Results.Ok(new { Status = "already_completed", LessonId = lessonId, Language = targetLanguage, Message = "Use ?force=true to regenerate" });
+    }
+    if (existing?.Status == "Processing")
+    {
+        return Results.Ok(new { Status = "already_processing", LessonId = lessonId, Language = targetLanguage });
+    }
+
+    // If force=true and existing completed, reset status to allow regeneration
+    if (force && existing?.Status == "Completed")
+    {
+        existing.Status = "Pending";
+        existing.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        logger.LogInformation("[INTERNAL] Reset translation status to Pending for regeneration");
+    }
+
+    // Check if target is same as source
+    if (transcript.Language?.StartsWith(targetLanguage, StringComparison.OrdinalIgnoreCase) == true)
+    {
+        return Results.BadRequest(new { error = $"Cannot translate to source language ({targetLanguage})" });
+    }
+
+    var translator = configuration.GetValue<string>("Translation:DefaultTranslator", "openai") ?? "openai";
+    var jobId = TranslationJob.Enqueue(lessonId, targetLanguage, translator);
+
+    logger.LogInformation("[INTERNAL] Queued translation job {JobId} for {Language}", jobId, targetLanguage);
+    return Results.Ok(new { Status = "queued", LessonId = lessonId, Language = targetLanguage, JobId = jobId, Translator = translator });
+})
+.AllowAnonymous()
+.WithName("InternalSingleTranslation")
+.WithTags("Internal");
+
+// POST /api/internal/translations/all-to-english - Queue English translations for ALL Italian videos (v2.3.105-dev)
+app.MapPost("/api/internal/translations/all-to-english", async (
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] IVideoTranscriptRepository transcriptRepository,
+    [FromServices] IConfiguration configuration,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogInformation("[INTERNAL] Queuing English translations for all Italian videos");
+
+    // Get all lessons with completed transcripts in Italian
+    var completedJobs = await db.TranscriptJobStatuses
+        .Where(j => j.Status == "Completed")
+        .Select(j => j.LessonId)
+        .ToListAsync();
+
+    var queued = new List<object>();
+    var skipped = new List<object>();
+    var translator = configuration.GetValue<string>("Translation:DefaultTranslator", "openai") ?? "openai";
+
+    foreach (var lessonId in completedJobs)
+    {
+        var transcript = await transcriptRepository.GetTranscriptAsync(lessonId);
+        if (transcript == null) continue;
+
+        // Only translate Italian transcripts to English
+        if (!transcript.Language?.StartsWith("it", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            skipped.Add(new { LessonId = lessonId, Reason = $"Not Italian (is {transcript.Language})" });
+            continue;
+        }
+
+        // Check if English translation already exists
+        var existing = await db.VideoTranscriptTranslations
+            .FirstOrDefaultAsync(t => t.LessonId == lessonId && t.TargetLanguage == "en");
+
+        if (existing?.Status == "Completed")
+        {
+            skipped.Add(new { LessonId = lessonId, Reason = "English translation already completed" });
+            continue;
+        }
+        if (existing?.Status == "Processing")
+        {
+            skipped.Add(new { LessonId = lessonId, Reason = "English translation already processing" });
+            continue;
+        }
+
+        var jobId = TranslationJob.Enqueue(lessonId, "en", translator);
+        queued.Add(new { LessonId = lessonId, JobId = jobId });
+        logger.LogInformation("[INTERNAL] Queued English translation for lesson {LessonId}", lessonId);
+    }
+
+    return Results.Ok(new { Queued = queued, QueuedCount = queued.Count, Skipped = skipped, SkippedCount = skipped.Count, Translator = translator });
+})
+.AllowAnonymous()
+.WithName("InternalAllToEnglish")
+.WithTags("Internal");
+
+// PUT /api/internal/transcripts/update-language/{lessonId}/{language} - Update transcript source language (v2.3.106-dev)
+// Use this when Whisper auto-detected a different language than what was requested
+app.MapPut("/api/internal/transcripts/update-language/{lessonId:guid}/{language}", async (
+    Guid lessonId,
+    string language,
+    [FromServices] IMongoDatabase mongoDatabase,
+    [FromServices] InsightLearnDbContext db,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogInformation("[INTERNAL] Updating transcript language for lesson {LessonId} to {Language}", lessonId, language);
+
+    // Get metadata from SQL to find MongoDB document ID
+    var metadata = await db.VideoTranscriptMetadata.FirstOrDefaultAsync(m => m.LessonId == lessonId);
+    if (metadata == null || string.IsNullOrEmpty(metadata.MongoDocumentId))
+    {
+        return Results.NotFound(new { error = "Transcript metadata not found" });
+    }
+
+    // Update language in MongoDB
+    var collection = mongoDatabase.GetCollection<MongoDB.Bson.BsonDocument>("VideoTranscripts");
+    var filter = MongoDB.Driver.Builders<MongoDB.Bson.BsonDocument>.Filter.Eq("_id", MongoDB.Bson.ObjectId.Parse(metadata.MongoDocumentId));
+
+    // First get the old language
+    var doc = await collection.Find(filter).FirstOrDefaultAsync();
+    var oldLanguage = doc?.GetValue("language", "unknown").AsString ?? "unknown";
+
+    // Update the language field
+    var update = MongoDB.Driver.Builders<MongoDB.Bson.BsonDocument>.Update.Set("language", language);
+    var result = await collection.UpdateOneAsync(filter, update);
+
+    if (result.ModifiedCount == 0)
+    {
+        return Results.Problem(detail: "Failed to update language in MongoDB", statusCode: 500);
+    }
+
+    logger.LogInformation("[INTERNAL] Updated transcript language from {OldLanguage} to {NewLanguage}", oldLanguage, language);
+    return Results.Ok(new { LessonId = lessonId, OldLanguage = oldLanguage, NewLanguage = language, Message = "Language updated successfully" });
+})
+.AllowAnonymous()
+.WithName("InternalUpdateTranscriptLanguage")
+.WithTags("Internal");
 
 // ========================================
 // SAAS SUBSCRIPTION SYSTEM ENDPOINTS
@@ -9280,6 +10316,9 @@ app.MapGet("/api/vector/stats", async (
 .Produces(500);
 
 Console.WriteLine("[API] Vector Search endpoints registered (4 endpoints)");
+
+// v2.4.5-dev: Video Render endpoints (Remotion integration for burned-in subtitles)
+app.MapVideoRenderEndpoints();
 
 app.Run();
 

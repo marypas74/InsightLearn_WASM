@@ -1,0 +1,78 @@
+# Kubernetes Job to pull qwen2.5:3b-instruct model for ClawdBot translation service
+# This model provides optimal balance between translation quality and CPU inference speed
+# Benchmark: ~3-5 tokens/sec on 8-16 CPU cores, ~2.5GB RAM
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-qwen25-3b
+  namespace: insightlearn
+  labels:
+    app: ollama
+    component: model-pull
+    model: qwen2.5-3b-instruct
+spec:
+  ttlSecondsAfterFinished: 300  # Cleanup job 5 minutes after completion
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: ollama-pull
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: ollama-pull
+        image: docker.io/curlimages/curl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== ClawdBot Model Setup ==="
+          echo "Waiting for Ollama service to be ready..."
+
+          # Wait for Ollama to be ready (HTTP on port 11434)
+          until curl -s http://ollama-service:11434/api/version > /dev/null 2>&1; do
+            echo "Ollama not ready, retrying in 5 seconds..."
+            sleep 5
+          done
+
+          echo "Ollama is ready. Checking existing models..."
+          curl -s http://ollama-service:11434/api/tags | grep -o '"name":"[^"]*"' || echo "No models found"
+
+          echo ""
+          echo "=== Pulling qwen2.5:3b-instruct model ==="
+          echo "This model is optimized for:"
+          echo "  - Multilingual translation (European languages)"
+          echo "  - CPU inference (3-5 tokens/sec)"
+          echo "  - Low memory footprint (~2.5GB)"
+          echo ""
+
+          # Pull qwen2.5:3b-instruct model with progress output
+          curl -X POST http://ollama-service:11434/api/pull \
+            -H "Content-Type: application/json" \
+            -d '{"name": "qwen2.5:3b-instruct", "stream": true}' \
+            --no-buffer
+
+          echo ""
+          echo "=== Verifying model installation ==="
+          curl -s http://ollama-service:11434/api/tags | grep -o '"name":"[^"]*"'
+
+          echo ""
+          echo "=== Testing model with translation prompt ==="
+          curl -s -X POST http://ollama-service:11434/api/generate \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "qwen2.5:3b-instruct",
+              "prompt": "Translate to Spanish: Hello, welcome to our learning platform.",
+              "stream": false,
+              "options": {"temperature": 0.3, "num_predict": 50}
+            }' | grep -o '"response":"[^"]*"' | head -1
+
+          echo ""
+          echo "=== qwen2.5:3b-instruct model setup complete ==="
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"

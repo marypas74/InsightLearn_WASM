@@ -73,6 +73,9 @@ kind: StatefulSet
 metadata:
   name: ollama
   namespace: insightlearn
+  labels:
+    app: ollama
+    version: "0.15.2"
 spec:
   serviceName: ollama-service
   replicas: 1
@@ -83,10 +86,13 @@ spec:
     metadata:
       labels:
         app: ollama
+      annotations:
+        prometheus.io/scrape: "false"
     spec:
       containers:
       - name: ollama
-        image: docker.io/ollama/ollama:latest
+        image: docker.io/ollama/ollama:0.15.2
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 11434
           name: http
@@ -95,27 +101,47 @@ spec:
           mountPath: /root/.ollama
         resources:
           requests:
-            memory: "4Gi"
+            memory: "2Gi"
             cpu: "500m"
           limits:
-            memory: "8Gi"
-            cpu: "1500m"
+            memory: "16Gi"
+            cpu: "6000m"
         env:
         - name: OLLAMA_HOST
           value: "0.0.0.0:11434"
         - name: OLLAMA_ORIGINS
           value: "*"
-        # PERFORMANCE OPTIMIZATIONS for qwen2:0.5b
+        # PERFORMANCE OPTIMIZATIONS for ClawdBot translation streaming
         - name: OLLAMA_KEEP_ALIVE
-          value: "-1"  # Keep model loaded forever (no 20-30s reload penalty)
+          value: "-1"  # Keep model loaded forever (no reload penalty)
         - name: OLLAMA_NUM_THREADS
-          value: "6"   # Use all 6 logical threads (1.5 CPU cores with HT)
+          value: "6"   # CPU threads per request (balanced for parallel)
         - name: OLLAMA_NUM_PARALLEL
-          value: "1"   # Single chatbot user = no concurrent requests
+          value: "8"   # Allow 8 concurrent translation requests (workers)
         - name: OLLAMA_MAX_LOADED_MODELS
-          value: "1"   # Only load one model at a time (8Gi limit)
+          value: "2"   # qwen2.5:3b (ClawdBot) + qwen2:0.5b (chatbot)
         - name: OLLAMA_MAX_QUEUE
-          value: "64"  # Reduce memory overhead (default 512)
+          value: "256" # Large queue for burst translation workload
+        - name: OLLAMA_FLASH_ATTENTION
+          value: "1"   # Enable flash attention for faster inference
+        - name: OLLAMA_DEBUG
+          value: "0"   # Disable debug logging in production
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
       - name: nginx-tls-proxy
         image: docker.io/library/nginx:alpine
         ports:

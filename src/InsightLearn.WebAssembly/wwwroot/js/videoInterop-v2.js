@@ -321,6 +321,79 @@ window.VideoInterop = {
         return true;
     },
 
+    /**
+     * Create a Blob URL from text content (e.g., WebVTT subtitle content)
+     * @param {string} content - Text content to create blob from
+     * @param {string} mimeType - MIME type (e.g., 'text/vtt')
+     * @returns {string} Blob URL that can be used as track src
+     */
+    createBlobUrl: function (content, mimeType) {
+        try {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            console.log('[VideoInterop] Created blob URL:', url, 'size:', content.length, 'bytes');
+            return url;
+        } catch (e) {
+            console.error('[VideoInterop] Error creating blob URL:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Dynamically add a subtitle track to the video element
+     * @param {string} elementId - The video element ID
+     * @param {string} src - Track source URL (can be blob URL)
+     * @param {string} language - Language code (e.g., 'es', 'fr')
+     * @param {string} label - Display label (e.g., 'Español (AI)')
+     * @param {boolean} activate - Whether to activate this track immediately
+     * @returns {boolean} Success
+     */
+    addSubtitleTrack: function (elementId, src, language, label, activate) {
+        const instance = this.instances.get(elementId);
+        if (!instance?.video) {
+            console.error('[VideoInterop] No video instance for:', elementId);
+            return false;
+        }
+
+        try {
+            // Remove existing track with same language if present (avoid duplicates)
+            const existingTracks = instance.video.querySelectorAll(`track[srclang="${language}"]`);
+            existingTracks.forEach(t => {
+                // Revoke old blob URL if applicable
+                if (t.src && t.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(t.src);
+                }
+                t.remove();
+            });
+
+            // Create new track element
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.src = src;
+            track.srclang = language;
+            track.label = label;
+
+            // Append to video
+            instance.video.appendChild(track);
+
+            console.log('[VideoInterop] Added subtitle track:', language, label);
+
+            if (activate) {
+                // Deactivate all other tracks, activate this one
+                const textTracks = instance.video.textTracks;
+                for (let i = 0; i < textTracks.length; i++) {
+                    textTracks[i].mode = textTracks[i].language === language ? 'showing' : 'hidden';
+                }
+                console.log('[VideoInterop] Activated subtitle track:', language);
+            }
+
+            return true;
+        } catch (e) {
+            console.error('[VideoInterop] Error adding subtitle track:', e);
+            return false;
+        }
+    },
+
     // Private methods
     _bindEvents: function (elementId, video, dotNetRef) {
         const handlers = {

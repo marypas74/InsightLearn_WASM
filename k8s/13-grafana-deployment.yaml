@@ -11,6 +11,7 @@ data:
     datasources:
       - name: Prometheus
         type: prometheus
+        uid: prometheus
         access: proxy
         url: http://prometheus:9090
         isDefault: true
@@ -19,6 +20,14 @@ data:
           timeInterval: "15s"
           queryTimeout: "60s"
           httpMethod: "POST"
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki:3100
+        editable: true
+        jsonData:
+          maxLines: 1000
 
 ---
 # ConfigMap per Grafana Dashboard Provisioning
@@ -58,6 +67,42 @@ data:
         allowUiUpdates: true
         options:
           path: /var/lib/grafana/dashboards-backup
+      - name: 'InsightLearn SEO Dashboard'
+        orgId: 1
+        folder: 'SEO'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-seo
+      - name: 'InsightLearn WorldMap Dashboard'
+        orgId: 1
+        folder: 'Analytics'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-worldmap
+      - name: 'InsightLearn GeoIP Dashboard'
+        orgId: 1
+        folder: 'Analytics'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-geoip
+      - name: 'InsightLearn LoadBalancer Dashboard'
+        orgId: 1
+        folder: 'Infrastructure'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards-loadbalancer
 
 ---
 # Grafana Deployment
@@ -119,6 +164,14 @@ spec:
           mountPath: /var/lib/grafana/dashboards-main
         - name: grafana-dashboards-backup
           mountPath: /var/lib/grafana/dashboards-backup
+        - name: grafana-dashboards-seo
+          mountPath: /var/lib/grafana/dashboards-seo
+        - name: grafana-dashboards-worldmap
+          mountPath: /var/lib/grafana/dashboards-worldmap
+        - name: grafana-dashboards-geoip
+          mountPath: /var/lib/grafana/dashboards-geoip
+        - name: grafana-dashboards-loadbalancer
+          mountPath: /var/lib/grafana/dashboards-loadbalancer
         livenessProbe:
           httpGet:
             path: /api/health
@@ -151,6 +204,18 @@ spec:
       - name: grafana-dashboards-backup
         configMap:
           name: grafana-backup-dashboard
+      - name: grafana-dashboards-seo
+        configMap:
+          name: insightlearn-seo-dashboard
+      - name: grafana-dashboards-worldmap
+        configMap:
+          name: grafana-worldmap-dashboard
+      - name: grafana-dashboards-geoip
+        configMap:
+          name: grafana-geoip-dashboard
+      - name: grafana-dashboards-loadbalancer
+        configMap:
+          name: grafana-dashboard-loadbalancer
 
 ---
 # Grafana Service

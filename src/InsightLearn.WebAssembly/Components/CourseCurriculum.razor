@@ -66,7 +66,7 @@
                             var lessonNumber = GetLessonNumber(sectionIndex, lessonIndex);
 
                             <div class="ll-lesson-item @(isCurrentLesson ? "active" : "") @(lesson.IsCompleted ? "completed" : "") @(isLocked ? "locked" : "") @(isClickable ? "clickable" : "")"
-                                 @onclick="@(() => HandleLessonClick(lesson.Id, isLocked))"
+                                 @onclick="@(() => HandleLessonClick(lesson, isLocked))"
                                  role="button"
                                  tabindex="@(isClickable ? 0 : -1)"
                                  aria-current="@(isCurrentLesson ? "true" : "false")"
@@ -126,7 +126,7 @@
                                         @FormatDuration(lesson.DurationMinutes)
                                         @if (lesson.IsFree && !OnLessonClick.HasDelegate)
                                         {
-                                            <span class="ll-free-badge" @onclick="@(() => HandlePreviewClick(lesson.Id))" @onclick:stopPropagation="true">
+                                            <span class="ll-free-badge" @onclick="@(() => HandlePreviewClick(lesson))" @onclick:stopPropagation="true">
                                                 <i class="fas fa-play"></i> Preview
                                             </span>
                                         }
@@ -489,9 +489,10 @@
 
 @code {
     [Parameter] public List<SectionDto> Sections { get; set; } = new();
-    [Parameter] public EventCallback<Guid> OnPreviewClick { get; set; }
+    // v2.3.113-dev: Changed from EventCallback<Guid> to EventCallback<LessonDto> for URL obfuscation
+    [Parameter] public EventCallback<LessonDto> OnPreviewClick { get; set; }
     [Parameter] public Guid? CurrentLessonId { get; set; }
-    [Parameter] public EventCallback<Guid> OnLessonClick { get; set; }
+    [Parameter] public EventCallback<LessonDto> OnLessonClick { get; set; }
     [Parameter] public bool IsEnrolled { get; set; } = false;
 
     private HashSet<Guid> expandedSections = new();
@@ -555,17 +556,18 @@
         }
     }
 
-    private async Task HandleLessonClick(Guid lessonId, bool isLocked)
+    // v2.3.113-dev: Pass LessonDto instead of Guid for URL obfuscation
+    private async Task HandleLessonClick(LessonDto lesson, bool isLocked)
     {
         if (!isLocked && OnLessonClick.HasDelegate)
         {
-            await OnLessonClick.InvokeAsync(lessonId);
+            await OnLessonClick.InvokeAsync(lesson);
         }
     }
 
-    private async Task HandlePreviewClick(Guid lessonId)
+    private async Task HandlePreviewClick(LessonDto lesson)
     {
-        await OnPreviewClick.InvokeAsync(lessonId);
+        await OnPreviewClick.InvokeAsync(lesson);
     }
 
     private bool IsLessonLocked(LessonDto lesson)

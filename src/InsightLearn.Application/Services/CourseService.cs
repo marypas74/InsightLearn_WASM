@@ -14,17 +14,20 @@ public class CourseService : ICourseService
     private readonly ICourseRepository _courseRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IIdEncodingService _idEncoder;
     private readonly ILogger<CourseService> _logger;
 
     public CourseService(
         ICourseRepository courseRepository,
         ICategoryRepository categoryRepository,
         IEnrollmentRepository enrollmentRepository,
+        IIdEncodingService idEncoder,
         ILogger<CourseService> logger)
     {
         _courseRepository = courseRepository;
         _categoryRepository = categoryRepository;
         _enrollmentRepository = enrollmentRepository;
+        _idEncoder = idEncoder;
         _logger = logger;
     }
 
@@ -647,6 +650,7 @@ public class CourseService : ICourseService
         return new CourseDto
         {
             Id = course.Id,
+            EncodedId = _idEncoder.Encode(course.Id),  // v2.3.113-dev: URL obfuscation
             Title = course.Title,
             Description = course.Description,
             ShortDescription = course.ShortDescription,
@@ -686,6 +690,7 @@ public class CourseService : ICourseService
         return new SectionDto
         {
             Id = section.Id,
+            EncodedId = _idEncoder.Encode(section.Id),  // v2.3.113-dev: URL obfuscation
             CourseId = section.CourseId,
             Title = section.Title,
             Description = section.Description,
@@ -700,6 +705,7 @@ public class CourseService : ICourseService
         return new LessonDto
         {
             Id = lesson.Id,
+            EncodedId = _idEncoder.Encode(lesson.Id),  // v2.3.113-dev: URL obfuscation
             SectionId = lesson.SectionId,
             Title = lesson.Title,
             Description = lesson.Description,
@@ -737,6 +743,7 @@ public class CourseService : ICourseService
         return new CourseCardDto
         {
             Id = course.Id,
+            EncodedId = _idEncoder.Encode(course.Id),  // v2.3.113-dev: URL obfuscation
             Title = course.Title,
             ShortDescription = course.ShortDescription,
             InstructorName = $"{course.Instructor?.FirstName ?? ""} {course.Instructor?.LastName ?? ""}".Trim(),

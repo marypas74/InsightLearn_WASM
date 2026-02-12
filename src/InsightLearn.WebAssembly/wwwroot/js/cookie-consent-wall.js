@@ -130,25 +130,28 @@ window.cookieConsentWall = {
         }
     },
 
-    // Load Google Analytics (if consent given)
+    // Load Google Analytics (ONLY after user consent - GDPR compliant)
     loadAnalytics: function() {
-        if (window.gtag) {
+        if (window._ga4Loaded) {
             console.log('[COOKIE-WALL-JS] Google Analytics already loaded');
             return;
         }
 
-        console.log('[COOKIE-WALL-JS] Loading Google Analytics...');
-        // Add your Google Analytics tracking code here
-        // Example: (uncomment and add your GA tracking ID)
-        // const script = document.createElement('script');
-        // script.async = true;
-        // script.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX';
-        // document.head.appendChild(script);
-        //
-        // window.dataLayer = window.dataLayer || [];
-        // function gtag(){dataLayer.push(arguments);}
-        // gtag('js', new Date());
-        // gtag('config', 'G-XXXXXXXXXX');
+        console.log('[COOKIE-WALL-JS] Loading Google Analytics (consent given)...');
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-J972BQGNY7';
+        script.onload = function() {
+            window._ga4Loaded = true;
+            gtag('js', new Date());
+            gtag('config', 'G-J972BQGNY7', {
+                'page_title': document.title,
+                'page_location': window.location.href,
+                'send_page_view': true
+            });
+            console.log('[COOKIE-WALL-JS] GA4 initialized successfully');
+        };
+        document.head.appendChild(script);
     },
 
     // Load marketing scripts (if consent given)
@@ -163,6 +166,31 @@ window.cookieConsentWall = {
         // Add language preference, theme, etc. here
     }
 };
+
+// Auto-load consented scripts on page load (returning visitors)
+(function() {
+    try {
+        var consentData = localStorage.getItem('cookie-consent');
+        if (consentData) {
+            var consent = JSON.parse(consentData);
+            var now = new Date().getTime();
+            var expiryTime = consent.timestamp + (365 * 24 * 60 * 60 * 1000);
+            if (now <= expiryTime) {
+                if (consent.analytics) {
+                    window.cookieConsentWall.loadAnalytics();
+                }
+                if (consent.marketing) {
+                    window.cookieConsentWall.loadMarketing();
+                }
+                if (consent.functional) {
+                    window.cookieConsentWall.enableFunctional();
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[COOKIE-WALL-JS] Error auto-loading consented scripts:', e);
+    }
+})();
 
 // Log when script loads
 console.log('[COOKIE-WALL-JS] Cookie Consent Wall JavaScript loaded');

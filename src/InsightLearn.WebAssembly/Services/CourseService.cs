@@ -56,6 +56,28 @@ public class CourseService : ICourseService
         return response;
     }
 
+    /// <summary>
+    /// v2.3.113-dev: Get course by encoded ID (URL obfuscation)
+    /// </summary>
+    public async Task<ApiResponse<CourseDto>> GetCourseByEncodedIdAsync(string encodedId)
+    {
+        _logger.LogInformation("Fetching course by encoded ID: {EncodedId}", encodedId);
+        var response = await _apiClient.GetAsync<CourseDto>($"/api/courses/e/{encodedId}");
+
+        if (response.Success && response.Data != null)
+        {
+            _logger.LogInformation("Course retrieved: {CourseTitle} (EncodedID: {EncodedId})",
+                response.Data.Title, encodedId);
+        }
+        else
+        {
+            _logger.LogWarning("Failed to retrieve course by encoded ID {EncodedId}: {ErrorMessage}",
+                encodedId, response.Message ?? "Not found");
+        }
+
+        return response;
+    }
+
     public async Task<ApiResponse<List<CourseDto>>> GetCoursesByCategoryAsync(Guid categoryId)
     {
         _logger.LogDebug("Fetching courses for category: {CategoryId}", categoryId);

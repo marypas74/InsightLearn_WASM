@@ -1,13 +1,16 @@
 /* ===== MAIN LAYOUT STYLES - CRITICAL FOR STICKY HEADER ===== */
 
 .main-layout {
-    display: flex !important;           /* Force flex display */
-    flex-direction: column !important;  /* Force column layout */
+    display: flex !important;
+    /* Force flex display */
+    flex-direction: column !important;
+    /* Force column layout */
     min-height: 100vh !important;
     background-color: var(--gray-50, #f7f9fa);
 
     /* CRITICAL: Ensure sticky header has proper scroll container */
-    overflow-x: hidden !important;  /* Prevent horizontal scroll */
+    overflow-x: hidden !important;
+    /* Prevent horizontal scroll */
     /* REMOVED overflow-y: auto - creates double scroll container with body */
     /* Body already has overflow-y: auto, only ONE scroll container needed */
 
@@ -33,7 +36,8 @@
 
     /* CRITICAL: Ensure no overflow that breaks sticky */
     overflow: visible !important;
-    position: relative;  /* Establish stacking context without breaking sticky */
+    position: relative;
+    /* Establish stacking context without breaking sticky */
 }
 
 .content-container {
@@ -48,7 +52,8 @@ footer.main-footer,
 .main-footer,
 footer[role="contentinfo"] {
     background: linear-gradient(180deg, #1a1d23 0%, #0f1115 100%) !important;
-    background-color: #1a1d23 !important;  /* Fallback for gradient */
+    background-color: #1a1d23 !important;
+    /* Fallback for gradient */
     color: #e5e7eb !important;
     padding: 4rem 0 0 !important;
     margin-top: auto !important;
@@ -111,6 +116,12 @@ footer[role="contentinfo"] {
     width: 40px;
     height: 40px;
     border-radius: 8px;
+    object-fit: contain;
+    /* Ensure logo fits */
+    background-color: transparent;
+    /* Removed white background - conflicts with footer-professional.css invert filter */
+    padding: 4px;
+    /* Give some breathing room */
 }
 
 .footer-logo-text {
@@ -131,7 +142,8 @@ footer[role="contentinfo"] {
 .footer-social {
     display: flex;
     gap: 0.75rem;
-    justify-content: center;  /* Center the social icons */
+    justify-content: center;
+    /* Center the social icons */
 }
 
 .social-link {
@@ -182,18 +194,21 @@ footer[role="contentinfo"] {
 .footer-link,
 .main-footer a,
 .footer-section a {
-    color: #e5e7eb !important;  /* Much lighter gray - better visibility on dark background */
+    color: #e5e7eb !important;
+    /* Much lighter gray - better visibility on dark background */
     text-decoration: none !important;
     font-size: 0.9375rem;
     transition: all 0.2s ease;
     display: inline-block;
-    font-weight: 500;  /* Slightly bolder for better readability */
+    font-weight: 500;
+    /* Slightly bolder for better readability */
 }
 
 .footer-link:hover,
 .main-footer a:hover,
 .footer-section a:hover {
-    color: #a435f0 !important;  /* Purple highlight on hover - brand color */
+    color: #a435f0 !important;
+    /* Purple highlight on hover - brand color */
     transform: translateX(4px);
     text-decoration: underline !important;
 }
@@ -201,7 +216,8 @@ footer[role="contentinfo"] {
 /* Footer Bottom */
 .footer-bottom {
     padding: 1.5rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);  /* Subtle separator */
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    /* Subtle separator */
 }
 
 .footer-bottom-content {

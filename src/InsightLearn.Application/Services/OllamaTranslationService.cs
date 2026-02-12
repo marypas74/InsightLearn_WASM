@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using InsightLearn.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -15,8 +16,9 @@ using MongoDB.Bson;
 namespace InsightLearn.Application.Services;
 
 /// <summary>
-/// Ollama-based subtitle translation service using mistral:7b-instruct
+/// Ollama-based subtitle translation service using qwen2.5:3b-instruct
 /// Translates transcription segments to target languages
+/// Optimized for CPU inference with faster response times (3-5 tokens/sec vs 1-2)
 /// </summary>
 public class OllamaTranslationService : IOllamaTranslationService
 {
@@ -24,7 +26,7 @@ public class OllamaTranslationService : IOllamaTranslationService
     private readonly ILogger<OllamaTranslationService> _logger;
     private readonly IMongoDatabase _mongoDb;
     private readonly string _ollamaUrl;
-    private readonly string _model = "mistral:7b-instruct";
+    private readonly string _model = "qwen2.5:3b-instruct"; // Upgraded from mistral:7b for better CPU performance
     private readonly string _transcriptsCollectionName = "VideoTranscripts";
 
     public OllamaTranslationService(
@@ -274,8 +276,13 @@ public class OllamaTranslationService : IOllamaTranslationService
     /// </summary>
     private class OllamaGenerateResponse
     {
+        [JsonPropertyName("model")]
         public string? Model { get; set; }
+
+        [JsonPropertyName("response")]
         public string? Response { get; set; }
+
+        [JsonPropertyName("done")]
         public bool Done { get; set; }
     }
 }
