@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@remotion/captions": "^4.0.416",
-    "@remotion/cli": "^4.0.416",
+    "@remotion/cli": "^4.0.421",
     "playwright": "^1.58.0",
     "remotion": "^4.0.416"
   },
