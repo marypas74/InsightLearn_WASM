@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "remotion": "^4.0.416",
-    "@remotion/cli": "^4.0.416",
+    "@remotion/cli": "^4.0.421",
     "@remotion/captions": "^4.0.416",
     "@remotion/renderer": "^4.0.416",
-    "@remotion/bundler": "^4.0.416",
+    "@remotion/bundler": "^4.0.421",
     "express": "^4.21.0",
     "mongodb": "^6.10.0",
     "cors": "^2.8.5",
