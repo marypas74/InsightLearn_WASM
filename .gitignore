@@ -187,3 +187,10 @@ publish-wasm/
 # MCP Debug Tools (local development)
 .mcp-debug-tools/
 .playwright-mcp/
+
+# Test screenshots (debug/layout verification)
+**/wwwroot/*.png
+**/wwwroot/v24*.png
+**/wwwroot/v25*.png
+**/wwwroot/mobile-menu*.png
+**/wwwroot/desktop-header*.png
